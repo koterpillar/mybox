@@ -1,0 +1,28 @@
+name: mybox
+version: 0.0.0
+synopsis: Manage the configuration and tools on your workstation without bothering the OS too much
+description: See README at <https://github.com/koterpillar/mybox#readme>
+maintainer: Alexey Kotlyarov <a@koterpillar.com>
+github: koterpillar/mybox
+category: Desktop
+
+ghc-options: -Wall
+
+dependencies:
+  - base >= 4.9 && < 5
+
+library:
+  source-dirs: src
+
+executable:
+  main: Main.hs
+  source-dirs: app
+  dependencies:
+    - mybox
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs: src
+    dependencies:
+      - mybox

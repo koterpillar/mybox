@@ -1,0 +1,54 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mybox
+version:        0.0.0
+synopsis:       Manage the configuration and tools on your workstation without bothering the OS too much
+description:    See README at <https://github.com/koterpillar/mybox#readme>
+category:       Desktop
+homepage:       https://github.com/koterpillar/mybox#readme
+bug-reports:    https://github.com/koterpillar/mybox/issues
+maintainer:     Alexey Kotlyarov <a@koterpillar.com>
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/koterpillar/mybox
+
+library
+  other-modules:
+      Paths_mybox
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.9 && <5
+  default-language: Haskell2010
+
+executable mybox
+  main-is: Main.hs
+  other-modules:
+      Paths_mybox
+  hs-source-dirs:
+      app
+  ghc-options: -Wall
+  build-depends:
+      base >=4.9 && <5
+    , mybox
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_mybox
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.9 && <5
+    , mybox
+  default-language: Haskell2010
