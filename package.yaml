@@ -21,6 +21,7 @@ default-extensions:
 
 dependencies:
   - base >= 4.9 && < 5
+  - text
 
 library:
   source-dirs: src
