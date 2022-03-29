@@ -41,6 +41,8 @@ library
   build-depends:
       aeson
     , base >=4.9 && <5
+    , directory
+    , extra
     , text
   default-language: Haskell2010
 
@@ -64,6 +66,8 @@ executable mybox
   build-depends:
       aeson
     , base >=4.9 && <5
+    , directory
+    , extra
     , mybox
     , text
   default-language: Haskell2010
@@ -89,6 +93,8 @@ test-suite spec
   build-depends:
       aeson
     , base >=4.9 && <5
+    , directory
+    , extra
     , mybox
     , tasty
     , tasty-discover

@@ -3,9 +3,15 @@
 module Installer where
 
 import           Data.Aeson
-import           Data.Text    (Text)
+
+import           Data.Maybe
+
+import           Data.Text        (Text)
+import qualified Data.Text        as Text
 
 import           GHC.Generics
+
+import           System.Directory (findExecutable)
 
 import           Environment
 
@@ -45,8 +51,8 @@ ispDoInstall (PerOS l m) =
   (\case
      Linux -> ispDoInstall l
      Macos -> ispDoInstall m)
-ispDoInstall (Package _) = _
-ispDoInstall (Github _ _) = _
+ispDoInstall (Package _) = error "Not implemented"
+ispDoInstall (Github _ _) = error "Not implemented"
 
 newtype CheckSpec =
   Binary
@@ -55,7 +61,7 @@ newtype CheckSpec =
   deriving (Show, Generic)
 
 cspCheck :: CheckSpec -> IO Bool
-cspCheck = _
+cspCheck (Binary binary) = isJust <$> findExecutable (Text.unpack binary)
 
 instance FromJSON InstallSpec where
   parseJSON = genericParseJSON specOptions
