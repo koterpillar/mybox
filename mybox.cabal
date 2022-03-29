@@ -20,6 +20,7 @@ source-repository head
 
 library
   exposed-modules:
+      Environment
       Installer
       Tool
   other-modules:
@@ -38,7 +39,8 @@ library
       TypeApplications
   ghc-options: -Wall
   build-depends:
-      base >=4.9 && <5
+      aeson
+    , base >=4.9 && <5
     , text
   default-language: Haskell2010
 
@@ -60,7 +62,8 @@ executable mybox
       TypeApplications
   ghc-options: -Wall
   build-depends:
-      base >=4.9 && <5
+      aeson
+    , base >=4.9 && <5
     , mybox
     , text
   default-language: Haskell2010
@@ -84,7 +87,8 @@ test-suite spec
       TypeApplications
   ghc-options: -Wall
   build-depends:
-      base >=4.9 && <5
+      aeson
+    , base >=4.9 && <5
     , mybox
     , tasty
     , tasty-discover
