@@ -10,6 +10,7 @@ ghc-options: -Wall
 
 default-extensions:
   - BangPatterns
+  - DeriveGeneric
   - FlexibleInstances
   - FunctionalDependencies
   - LambdaCase
@@ -24,6 +25,7 @@ dependencies:
   - aeson
   - directory
   - extra
+  - http-conduit
   - text
 
 library:

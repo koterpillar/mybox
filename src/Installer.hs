@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Installer where
 
 import           Data.Aeson
@@ -14,7 +12,9 @@ import           GHC.Generics
 import           System.Directory (findExecutable)
 
 import           Environment
+import           GitHub
 
+-- TODO: version check and updates
 data Installer =
   Installer
     { iInstall   :: InstallSpec
@@ -24,7 +24,6 @@ data Installer =
 
 instance FromJSON Installer
 
--- TODO: version check and updates
 iDoInstall :: Installer -> IO ()
 iDoInstall = ispDoInstall . iInstall
 
@@ -39,9 +38,9 @@ data InstallSpec
   | Package
       { ispPackage :: Text
       }
-  | Github
-      { ispOrg  :: Text
-      , ispRepo :: Text
+  | GitHub
+      { ispRepo :: GitHubRepo
+      , ispArtifactFilters :: [Text]
       }
   deriving (Show, Generic)
 
@@ -52,7 +51,11 @@ ispDoInstall (PerOS l m) =
      Linux -> ispDoInstall l
      Macos -> ispDoInstall m)
 ispDoInstall (Package _) = error "Not implemented"
-ispDoInstall (Github _ _) = error "Not implemented"
+ispDoInstall (GitHub _ _) = error "Not implemented"
+
+-- | Installs from a local file.
+installArtifact :: Text -> IO ()
+installArtifact = error "Not implemented"
 
 newtype CheckSpec =
   Binary
