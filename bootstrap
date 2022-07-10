@@ -47,7 +47,7 @@ fi
 
 if ! command_exists mybox
 then
-  pipx install mybox
+  python3 -m pipx install mybox
 else
-  pipx upgrade mybox
+  python3 -m pipx upgrade mybox
 fi
