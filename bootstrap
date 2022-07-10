@@ -39,3 +39,15 @@ case "$OSTYPE" in
         ;;
     esac
 esac
+
+if ! command_exists pipx
+then
+  python3 -m pip install --user pipx
+fi
+
+if ! command_exists mybox
+then
+  pipx install mybox
+else
+  pipx upgrade mybox
+fi
