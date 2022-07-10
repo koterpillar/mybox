@@ -3,7 +3,7 @@ name = "mybox"
 version = "0.0.1"
 description = "Manage the configuration and tools on your workstation without bothering the OS too much"
 authors = ["Alexey Kotlyarov <a@koterpillar.com>"]
-license = "GPL3"
+license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
 python = "^3.10"
