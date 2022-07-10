@@ -14,7 +14,10 @@ case "$OSTYPE" in
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
 
-    brew install shellcheck
+    if ! command_exists shellcheck
+    then
+      brew install shellcheck
+    fi
   ;;
   linux*)
   ;;
