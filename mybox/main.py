@@ -19,6 +19,3 @@ def main():
     links = load_links()
     for link in links:
         link.install()
-
-
-main()
