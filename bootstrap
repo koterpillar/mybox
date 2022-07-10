@@ -20,7 +20,7 @@ case "$OSTYPE" in
 
     for PACKAGE in coreutils gnu-tar
     do
-      if [ ! -f "/usr/local/opt/$PACKAGE" ]
+      if [ ! -d "/usr/local/opt/$PACKAGE" ]
       then
         brew install "$PACKAGE"
       fi
