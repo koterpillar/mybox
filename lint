@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ISORT_ARGS=--check
+BLACK_ARGS=--check
+if [ "${1-}" == "--format" ]
+then
+    ISORT_ARGS=
+    BLACK_ARGS=
+fi
+
+DIR=$(cd "$(dirname "$0")" && pwd)
+
+# shellcheck disable=SC2046
+shellcheck "$DIR"/*.sh $(grep -l '^#!/bin/bash' "$DIR"/* 2>/dev/null)
+
+# shellcheck disable=SC2086
+poetry run isort $ISORT_ARGS "$DIR"/mybox
+# shellcheck disable=SC2086
+poetry run black $BLACK_ARGS "$DIR"/mybox
+poetry run mypy "$DIR"/mybox
