@@ -1,8 +1,19 @@
 import os
+import shutil
 from pathlib import Path
 from typing import Iterator, Literal, Optional
 
 from .utils import run
+
+
+def find_executable(*executables: str) -> str:
+    for candidate in executables:
+        if shutil.which(candidate):
+            return candidate
+    raise Exception(f"None of {','.join(executables)} found in PATH.")
+
+
+LN = find_executable("gln", "ln")
 
 
 def home(*path: str) -> str:
@@ -60,6 +71,6 @@ def link(
             make_executable(target)
     else:
         if sudo:
-            run("sudo", "ln", "-s", "-f", "-T", source, target)
+            run("sudo", LN, "-s", "-f", "-T", source, target)
         else:
             os.symlink(source, target)

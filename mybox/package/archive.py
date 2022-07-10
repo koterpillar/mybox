@@ -3,9 +3,11 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from typing import Optional, Union
 
-from ..fs import make_executable, makedirs
+from ..fs import find_executable, make_executable, makedirs
 from ..utils import *
 from .manual import ManualPackage
+
+TAR = find_executable("gtar", "tar")
 
 
 class ArchivePackage(ManualPackage, metaclass=ABCMeta):
@@ -33,7 +35,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     def untar(self, source: str, *extra: str) -> None:
         run(
-            "tar",
+            TAR,
             "-x",
             "--strip",
             str(self.strip),
