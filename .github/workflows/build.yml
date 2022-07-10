@@ -21,6 +21,8 @@ jobs:
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
-        run: poetry install
+        run: |
+          type -f brew >/dev/null 2>&1 && brew install shellcheck || true
+          poetry install
       - name: Lint
         run: ./lint
