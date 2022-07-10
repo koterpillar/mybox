@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Install dependencies required for the project
+
+case "$OSTYPE" in
+  darwin*)
+    if ! command_exists brew
+    then
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+
+    brew install shellcheck
+  ;;
+  linux*)
+  ;;
+esac
+
+poetry install
