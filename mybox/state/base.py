@@ -7,9 +7,7 @@ from typing import Generic, Type, TypeVar
 
 T = TypeVar("T")
 
-from ..utils import ROOT_DIR
-
-DB_PATH = os.path.join(ROOT_DIR, "state.sqlite")
+DB_PATH = "state.sqlite"
 
 
 DB_CACHE = threading.local()

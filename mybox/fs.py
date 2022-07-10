@@ -1,11 +1,8 @@
 import os
-from os.path import dirname
 from pathlib import Path
 from typing import Iterator, Literal, Optional
 
 from .utils import run
-
-ROOT_DIR = dirname(dirname(__file__))
 
 
 def home(*path: str) -> str:

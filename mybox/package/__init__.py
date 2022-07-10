@@ -3,7 +3,6 @@ from typing import Any
 
 import yaml
 
-from ..utils import ROOT_DIR
 from .base import Package
 from .clone import Clone
 from .github import GitHubPackage
@@ -32,6 +31,6 @@ def parse_package(package: Any) -> Package:
 
 
 def load_packages(component: str) -> list[Package]:
-    with open(os.path.join(ROOT_DIR, "packages", f"{component}.yaml")) as f:
+    with open(os.path.join("packages", f"{component}.yaml")) as f:
         packages = yaml.safe_load(f)
         return list(map(parse_package, packages))

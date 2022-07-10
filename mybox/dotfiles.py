@@ -18,7 +18,7 @@ class Links:
         only: Some[str] = None,
     ) -> None:
         self.root = root
-        self.source = os.path.join(ROOT_DIR, source)
+        self.source = os.path.abspath(source)
         if not dest.startswith("/"):
             if self.root:
                 dest = os.path.join(with_os(linux="/root", macos="/var/root"), dest)
@@ -49,6 +49,6 @@ class Links:
 
 
 def load_links() -> list[Links]:
-    with open(os.path.join(ROOT_DIR, "links.yaml")) as f:
+    with open("links.yaml") as f:
         links = yaml.safe_load(f)
         return list(Links(**args) for args in links)

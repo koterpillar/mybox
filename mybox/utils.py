@@ -62,9 +62,6 @@ def run_output(*args: str, **kwargs) -> str:
     )
 
 
-ROOT_DIR = dirname(dirname(__file__))
-
-
 def home(*path: str) -> str:
     return os.path.join(os.environ["HOME"], *path)
 
