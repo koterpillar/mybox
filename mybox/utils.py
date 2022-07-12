@@ -15,13 +15,17 @@ CURRENT_OS: OS = cast(OS, sys.platform)
 Distribution = str
 
 
-def get_distro() -> Distribution:
+def get_distro() -> Optional[Distribution]:
+    if CURRENT_OS != "linux":
+        return None
+
     release_file = "/etc/os-release"
     with open(release_file) as release:
         for line in release:
             k, v = line.split("=", 1)
             if k == "ID":
                 return v
+
     raise ValueError(f"Cannot find distribution ID in {release_file}.")
 
 

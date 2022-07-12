@@ -45,7 +45,8 @@ class Package(metaclass=ABCMeta):
         if self.os is not None and CURRENT_OS not in self.os:
             return
         if (
-            self.distribution is not None
+            CURRENT_DISTRIBUTION is not None
+            and self.distribution is not None
             and CURRENT_DISTRIBUTION not in self.distribution
         ):
             return
