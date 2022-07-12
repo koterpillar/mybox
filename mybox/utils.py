@@ -11,6 +11,22 @@ OS = Literal["linux", "darwin"]
 
 CURRENT_OS: OS = cast(OS, sys.platform)
 
+
+Distribution = str
+
+
+def get_distro() -> Distribution:
+    release_file = "/etc/os-release"
+    with open(release_file) as release:
+        for line in release:
+            k, v = line.split("=", 1)
+            if k == "ID":
+                return v
+    raise ValueError(f"Cannot find distribution ID in {release_file}.")
+
+
+CURRENT_DISTRIBUTION = get_distro()
+
 T = TypeVar("T")
 U = TypeVar("U")
 

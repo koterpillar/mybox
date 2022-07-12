@@ -6,10 +6,14 @@ from ..utils import *
 
 
 class Package(metaclass=ABCMeta):
-    applicable: Optional[list[OS]]
+    os: Optional[list[OS]]
+    distribution: Optional[list[Distribution]]
 
-    def __init__(self, applicable: Some[OS] = None) -> None:
-        self.applicable = unsome_(applicable)
+    def __init__(
+        self, os: Some[OS] = None, distribution: Some[Distribution] = None
+    ) -> None:
+        self.os = unsome_(os)
+        self.distribution = unsome_(distribution)
 
     @property
     @abstractmethod
@@ -38,7 +42,12 @@ class Package(metaclass=ABCMeta):
         pass
 
     def ensure(self) -> None:
-        if self.applicable is not None and CURRENT_OS not in self.applicable:
+        if self.os is not None and CURRENT_OS not in self.os:
+            return
+        if (
+            self.distribution is not None
+            and CURRENT_DISTRIBUTION not in self.distribution
+        ):
             return
         if self.is_installed:
             return
