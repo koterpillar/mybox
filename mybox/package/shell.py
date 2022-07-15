@@ -45,5 +45,5 @@ class Shell(Package):
         if not os.access(self.shell, os.X_OK):
             raise ValueError(f"{self.shell} is not executable.")
         if self.shell not in get_all_shells():
-            raise NotImplementedError(f"{self.shell} is not in {SHELLS_FILE}.")
+            run("sudo", "tee", "-a", SHELLS_FILE, input=self.shell.encode())
         run("chsh", "-s", self.shell)
