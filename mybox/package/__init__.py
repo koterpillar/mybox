@@ -7,6 +7,7 @@ from .base import Package
 from .clone import Clone
 from .github import GitHubPackage
 from .pipx import PipxPackage
+from .shell import Shell
 from .system import SystemPackage
 from .url import URLPackage
 
@@ -16,6 +17,7 @@ TYPES: list[Tuple[str, Type[Package]]] = [
     ("url", URLPackage),
     ("clone", Clone),
     ("pipx", PipxPackage),
+    ("shell", Shell),
 ]
 
 
