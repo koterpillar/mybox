@@ -25,6 +25,9 @@ different ones for different roles).
   For package definition examples, see
   [koterpillar/desktop](https://github.com/koterpillar/desktop/).
 
+* To install optional components, add their names as arguments, e.g.
+  `mybox development`.
+
 ## Development
 
 Pre-requisites (see [install-dev](install-dev) for ways to install):
@@ -34,6 +37,13 @@ Pre-requisites (see [install-dev](install-dev) for ways to install):
 
 Run [`./lint`](lint) to check style & types, `./lint --format` to apply
 formatting automatically.
+
+### Running locally
+
+* Run `poetry install`.
+* Run `poetry shell`.
+* In the launched shell, go to the directory with package definitions.
+* Run `mybox` with the desired arguments.
 
 ### Releasing
 
