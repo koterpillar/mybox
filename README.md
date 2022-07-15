@@ -12,7 +12,30 @@ Manage the configuration and tools on your workstation without bothering the OS
 too much (maybe your favorite one isn't supported by `$WORK` or you have
 different ones for different roles).
 
-## Status
+## Usage
 
-In development, for the current horrible state of affairs see
-[install](https://github.com/koterpillar/desktop/blob/main/install).
+* Run the [bootstrap](bootstrap) script:
+
+  ```shell
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/koterpillar/mybox/main/bootstrap)"
+  ```
+
+* Run `mybox` from the directory with package definitions.
+
+  For package definition examples, see
+  [koterpillar/desktop](https://github.com/koterpillar/desktop/).
+
+## Development
+
+Pre-requisites (see [install-dev](install-dev) for ways to install):
+
+* [Poetry](https://python-poetry.org/)
+* [ShellCheck](https://www.shellcheck.net/)
+
+Run [`./lint`](lint) to check style & types, `./lint --format` to apply
+formatting automatically.
+
+### Releasing
+
+Create and push a signed Git tag of the format `vX.Y.Z`. The release will be
+done using GitHub actions.
