@@ -3,14 +3,15 @@ from typing import Iterator
 
 import yaml
 
-from .fs import files_in_recursively, link
-from .utils import *
+from ..fs import files_in_recursively, link
+from ..utils import *
+from .manual_version import ManualVersion
 
 
-class Links:
+class Links(ManualVersion):
     def __init__(
         self,
-        source: str,
+        links: str,
         dest: str,
         dot: bool = False,
         root: bool = False,
@@ -18,7 +19,7 @@ class Links:
         only: Some[str] = None,
     ) -> None:
         self.root = root
-        self.source = os.path.abspath(source)
+        self.source = os.path.abspath(links)
         if not dest.startswith("/"):
             if self.root:
                 dest = os.path.join(with_os(linux="/root", macos="/var/root"), dest)
@@ -46,6 +47,7 @@ class Links:
             target = os.path.join(self.dest, target)
 
             link(path, target, sudo=self.root)
+        super().install()
 
 
 def load_links() -> list[Links]:
