@@ -33,10 +33,11 @@ class Links(ManualVersion):
         self.only = unsome_(only)
         super().__init__(**kwargs)
 
+    @property
     def name(self) -> str:
         return f"links-{self.source}-{self.dest}"
 
-    def paths(self) -> Iterator[str]:
+    def all_paths(self) -> Iterator[str]:
         if self.shallow:
             for entry in os.scandir(self.source):
                 yield entry.path
@@ -44,6 +45,12 @@ class Links(ManualVersion):
             for path in files_in_recursively(self.source):
                 if os.path.isfile(path):
                     yield path
+
+    def paths(self) -> Iterator[str]:
+        for path in self.all_paths():
+            if self.only and os.path.basename(path) not in self.only:
+                continue
+            yield path
 
     def get_remote_version(self) -> str:
         m = hashlib.sha256()
@@ -54,9 +61,6 @@ class Links(ManualVersion):
     def install(self) -> None:
         # TODO: remove links that were created before but no longer exist
         for path in self.paths():
-            if self.only and os.path.basename(path) not in self.only:
-                continue
-
             target = os.path.relpath(path, self.source)
             if self.dot:
                 target = "." + target
