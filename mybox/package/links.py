@@ -1,3 +1,4 @@
+import hashlib
 import os
 from typing import Iterator
 
@@ -17,6 +18,7 @@ class Links(ManualVersion):
         root: bool = False,
         shallow: bool = False,
         only: Some[str] = None,
+        **kwargs,
     ) -> None:
         self.root = root
         self.source = os.path.abspath(links)
@@ -29,15 +31,29 @@ class Links(ManualVersion):
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)
+        super().__init__(**kwargs)
+
+    def name(self) -> str:
+        return f"links-{self.source}-{self.dest}"
+
+    def paths(self) -> Iterator[str]:
+        if self.shallow:
+            for entry in os.scandir(self.source):
+                yield entry.path
+        else:
+            for path in files_in_recursively(self.source):
+                if os.path.isfile(path):
+                    yield path
+
+    def get_remote_version(self) -> str:
+        m = hashlib.sha256()
+        for path in self.paths():
+            m.update(path.encode())
+        return m.hexdigest()
 
     def install(self) -> None:
-        paths: Iterator[str]
-        if self.shallow:
-            paths = map(lambda entry: entry.path, os.scandir(self.source))
-        else:
-            paths = filter(os.path.isfile, files_in_recursively(self.source))
-
-        for path in paths:
+        # TODO: remove links that were created before but no longer exist
+        for path in self.paths():
             if self.only and os.path.basename(path) not in self.only:
                 continue
 
