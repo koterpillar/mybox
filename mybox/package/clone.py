@@ -49,7 +49,7 @@ class Clone(Package):
 
     def install(self) -> None:
         if not self.directory_exists:
-            run("git", "clone", self.remote, self.destination)
+            run("git", "clone", self.remote, self.directory)
         with self.in_directory():
             run("git", "remote", "set-url", "origin", self.remote)
             run("git", "fetch")
