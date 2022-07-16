@@ -5,9 +5,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from ..fs import files_in_recursively, link, makedirs, transplant_path
-from ..state import VERSIONS, Version
 from ..utils import *
-from .base import Package
+from .manual_version import ManualVersion
 
 
 def icon_name(app_path: str) -> Optional[str]:
@@ -16,7 +15,7 @@ def icon_name(app_path: str) -> Optional[str]:
     return app["Desktop Entry"].get("Icon")
 
 
-class ManualPackage(Package, metaclass=ABCMeta):
+class ManualPackage(ManualVersion, metaclass=ABCMeta):
     binaries: list[str]
     apps: list[str]
     fonts: list[str]
@@ -37,13 +36,6 @@ class ManualPackage(Package, metaclass=ABCMeta):
         self.apps = unsome(app)
         self.fonts = unsome(font)
         super().__init__(**kwargs)
-
-    @property
-    def local_version(self) -> Optional[str]:
-        try:
-            return VERSIONS[self.name].version
-        except KeyError:
-            return None
 
     def local(self, *path: str) -> str:
         if self.as_global:
@@ -113,4 +105,4 @@ class ManualPackage(Package, metaclass=ABCMeta):
             self.install_app(app)
         for font in self.fonts:
             self.install_font(font)
-        VERSIONS[self.name] = Version(version=self.get_remote_version())
+        super().install()
