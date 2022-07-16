@@ -37,11 +37,21 @@ case "$OSTYPE" in
           sudo apt install --yes python3{,-pip}
         fi
         ;;
+      fedora)
+        if ! command_exists xz
+        then
+          sudo dnf install --assumeyes xz
+        fi
+        ;;
     esac
 esac
 
 if ! python3 -c 'import pipx' >/dev/null 2>&1
 then
+  if ! python3 -c 'import pip' >/dev/null 2>&1
+  then
+    python3 -m ensurepip
+  fi
   python3 -m pip install --user pipx
 fi
 
