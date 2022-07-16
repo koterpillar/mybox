@@ -2,6 +2,7 @@ import json
 import shutil
 from abc import ABCMeta, abstractmethod
 from functools import cache
+from threading import Lock
 from typing import Optional
 
 from ..utils import *
@@ -124,6 +125,8 @@ def linux_installer() -> Installer:
 
 INSTALLER = with_os(linux=linux_installer, macos=lambda: Brew())()
 
+INSTALLER_LOCK = Lock()
+
 
 class SystemPackage(Package):
     services: list[str]
@@ -166,5 +169,6 @@ class SystemPackage(Package):
         pass
 
     def install(self):
-        INSTALLER.install(self.name)
+        with INSTALLER_LOCK:
+            INSTALLER.install(self.name)
         with_os(linux=self.postinstall_linux, macos=self.postinstall_macos)()
