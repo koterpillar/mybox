@@ -2,7 +2,6 @@ import concurrent.futures
 import os
 import subprocess
 import sys
-from os.path import dirname
 from typing import Callable, Iterable, Literal, Optional, TypeVar, Union, cast
 
 import tqdm  # type: ignore
