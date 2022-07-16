@@ -1,6 +1,5 @@
 import argparse
 
-from .dotfiles import load_links
 from .package import load_packages
 from .utils import flatten, parallel_map_tqdm
 
@@ -16,6 +15,3 @@ def main():
     components: frozenset[str] = frozenset(args.component) | {"base"}
     packages = flatten(map(load_packages, components))
     parallel_map_tqdm(packages, lambda p: p.ensure())
-    links = load_links()
-    for link in links:
-        link.install()

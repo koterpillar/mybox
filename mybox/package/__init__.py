@@ -6,6 +6,7 @@ import yaml
 from .base import Package
 from .clone import Clone
 from .github import GitHubPackage
+from .links import Links
 from .pipx import PipxPackage
 from .shell import Shell
 from .system import SystemPackage
@@ -18,6 +19,7 @@ TYPES: list[Tuple[str, Type[Package]]] = [
     ("clone", Clone),
     ("pipx", PipxPackage),
     ("shell", Shell),
+    ("links", Links),
 ]
 
 
