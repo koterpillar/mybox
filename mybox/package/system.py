@@ -157,9 +157,10 @@ class SystemPackage(Package):
         return INSTALLER.installed_version(self.name)
 
     def postinstall_linux(self):
-        run("sudo", "systemctl", "daemon-reload")
-        for service in self.services:
-            run("sudo", "systemctl", "enable", service)
+        if self.services:
+            run("sudo", "systemctl", "daemon-reload")
+            for service in self.services:
+                run("sudo", "systemctl", "enable", service)
 
     def postinstall_macos(self):
         pass
