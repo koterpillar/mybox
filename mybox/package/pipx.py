@@ -5,10 +5,12 @@ from typing import Optional
 from ..utils import run, run_output
 from .pip_base import PipBasePackage
 
+PIPX = ["python3", "-m", "pipx"]
+
 
 def get_pipx_versions() -> dict[str, str]:
     pipx_list = json.loads(
-        run_output("pipx", "list", "--json", stderr=subprocess.DEVNULL)
+        run_output(*PIPX, "list", "--json", stderr=subprocess.DEVNULL)
     )
     packages = (
         item["metadata"]["main_package"] for item in pipx_list["venvs"].values()
@@ -27,4 +29,4 @@ class PipxPackage(PipBasePackage):
 
     def install(self) -> None:
         cmd = "install" if self.local_version is None else "upgrade"
-        run("pipx", cmd, self.package)
+        run(*PIPX, cmd, self.package)
