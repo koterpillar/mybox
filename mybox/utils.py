@@ -2,6 +2,7 @@ import concurrent.futures
 import os
 import subprocess
 import sys
+from threading import Lock
 from typing import Callable, Iterable, Literal, Optional, TypeVar, Union, cast
 
 import tqdm  # type: ignore
@@ -58,7 +59,15 @@ def unsome(x: Some[T]) -> list[T]:
     return unsome_(x) or []
 
 
+TERMINAL_LOCK = Lock()
+
+
 def run(*args: str, **kwargs) -> subprocess.CompletedProcess:
+    if args[0] == "sudo":
+        # If the sudo prompt is needed, avoid drawing a progress bar over it
+        # with first prompting for a no-op command.
+        with TERMINAL_LOCK:
+            subprocess.run(["sudo", "true"])
     return subprocess.run(args, check=True, **kwargs)
 
 
@@ -99,7 +108,8 @@ def parallel_map_tqdm(items: list[T], action: Callable[[T], U]) -> list[U]:
 
             def action_and_update(item: T) -> U:
                 result = action(item)
-                progress.update(1)
+                with TERMINAL_LOCK:
+                    progress.update(1)
                 return result
 
             return list(executor.map(action_and_update, items))
