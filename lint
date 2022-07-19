@@ -20,3 +20,4 @@ poetry run isort $ISORT_ARGS "$DIR"/mybox
 # shellcheck disable=SC2086
 poetry run black $BLACK_ARGS "$DIR"/mybox
 poetry run mypy "$DIR"/mybox
+poetry run pylint "$DIR"/mybox

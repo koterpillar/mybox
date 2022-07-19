@@ -69,22 +69,22 @@ class GitHubPackage(ArchivePackage):
 
     def filters(self) -> Iterable[Callable[[str], bool]]:
         for prefix in self.prefixes:
-            yield lambda name: name.startswith(prefix)
+            yield Filters.startswith(prefix)
         for suffix in self.suffixes:
-            yield lambda name: name.endswith(suffix)
+            yield Filters.endswith(suffix)
         for exclude in self.excludes:
-            yield lambda name: exclude not in name
+            yield Filters.excludes(exclude)
         for hint in [".tar.gz"]:
-            yield lambda name: hint in name.lower()
+            yield Filters.includes(hint)
         os_hints = with_os(
             linux=["linux", "gnu"],
             macos=["macos", "darwin", "osx"],
         )
-        for os_hint in os_hints:
-            yield lambda name: os_hint in name.lower()
+        for hint in os_hints:
+            yield Filters.includes(hint)
         arch_hints = ["x86_64", "amd64"]
-        for arch_hint in arch_hints:
-            yield lambda name: arch_hint in name.lower()
+        for hint in arch_hints:
+            yield Filters.includes(hint)
 
     def artifact(self) -> GitHubReleaseArtifact:
         candidates = self.latest_release().assets

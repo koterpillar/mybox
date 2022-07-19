@@ -123,7 +123,9 @@ def linux_installer() -> Installer:
         raise NotImplementedError("Cannot find a package manager.")
 
 
-INSTALLER = with_os(linux=linux_installer, macos=lambda: Brew())()
+INSTALLER: Installer = with_os(
+    linux=linux_installer, macos=lambda: Brew()  # pylint:disable=unnecessary-lambda
+)()
 
 INSTALLER_LOCK = Lock()
 

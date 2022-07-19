@@ -1,5 +1,4 @@
 import dataclasses
-import os
 import sqlite3
 import threading
 from functools import cached_property

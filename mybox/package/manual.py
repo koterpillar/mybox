@@ -69,7 +69,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         path = self.app_path(name)
         target = self.local("share", "applications", f"{name}.desktop")
         link(path, target, sudo=self.as_global)
-        icons_source = self.icon_directory()
+        icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
         if icons_source:
             icons_target = self.local("share", "icons")
             icon = icon_name(path)

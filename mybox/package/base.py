@@ -10,7 +10,9 @@ class Package(metaclass=ABCMeta):
     distribution: Optional[list[Distribution]]
 
     def __init__(
-        self, os: Some[OS] = None, distribution: Some[Distribution] = None
+        self,
+        os: Some[OS] = None,  # pylint:disable=redefined-outer-name
+        distribution: Some[Distribution] = None,
     ) -> None:
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)

@@ -67,7 +67,7 @@ def run(*args: str, **kwargs) -> subprocess.CompletedProcess:
         # If the sudo prompt is needed, avoid drawing a progress bar over it
         # with first prompting for a no-op command.
         with TERMINAL_LOCK:
-            subprocess.run(["sudo", "true"])
+            subprocess.run(["sudo", "true"], check=True)
     return subprocess.run(args, check=True, **kwargs)
 
 
@@ -86,7 +86,9 @@ def run_ok(*args: str, **kwargs) -> bool:
 
 def run_output(*args: str, **kwargs) -> str:
     return (
-        subprocess.run(args, stdout=subprocess.PIPE, **kwargs).stdout.decode().strip()
+        subprocess.run(args, stdout=subprocess.PIPE, check=True, **kwargs)
+        .stdout.decode()
+        .strip()
     )
 
 
@@ -113,3 +115,21 @@ def parallel_map_tqdm(items: list[T], action: Callable[[T], U]) -> list[U]:
                 return result
 
             return list(executor.map(action_and_update, items))
+
+
+class Filters:
+    @staticmethod
+    def includes(substring: str) -> Callable[[str], bool]:
+        return lambda x: substring in x.lower()
+
+    @staticmethod
+    def excludes(substring: str) -> Callable[[str], bool]:
+        return lambda x: substring not in x
+
+    @staticmethod
+    def startswith(prefix: str) -> Callable[[str], bool]:
+        return lambda x: x.startswith(prefix)
+
+    @staticmethod
+    def endswith(suffix: str) -> Callable[[str], bool]:
+        return lambda x: x.endswith(suffix)

@@ -5,9 +5,9 @@ from .utils import flatten, parallel_map_tqdm
 
 
 def parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Install the environment")
-    parser.add_argument("component", nargs="*", help="The component to install")
-    return parser
+    result = argparse.ArgumentParser(description="Install the environment")
+    result.add_argument("component", nargs="*", help="The component to install")
+    return result
 
 
 def main():
