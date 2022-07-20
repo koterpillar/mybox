@@ -14,4 +14,6 @@ def main():
     args = parser().parse_args()
     components: frozenset[str] = frozenset(args.component) | {"base"}
     packages = flatten(map(load_packages, components))
-    parallel_map_tqdm(packages, lambda p: p.ensure())
+    results = parallel_map_tqdm(packages, lambda p: p.ensure())
+    total_installed = sum(1 if installed else 0 for installed in results)
+    print(f"{total_installed} packages installed or updated.")
