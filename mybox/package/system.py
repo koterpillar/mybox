@@ -11,7 +11,11 @@ from .base import Package
 
 class Installer(metaclass=ABCMeta):
     @abstractmethod
-    def install(self, *packages: str) -> None:
+    def install(self, package: str) -> None:
+        pass
+
+    @abstractmethod
+    def upgrade(self, package: str) -> None:
         pass
 
     def is_installed(self, package: str) -> bool:
@@ -27,8 +31,11 @@ class Installer(metaclass=ABCMeta):
 
 
 class Brew(Installer):
-    def install(self, *packages: str) -> None:
-        run("brew", "reinstall", *packages)
+    def install(self, package: str) -> None:
+        run("brew", "install", package)
+
+    def upgrade(self, package: str) -> None:
+        run("brew", "upgrade", package)
 
     @cache
     def info(self, package: str) -> tuple[str, Optional[str]]:
@@ -60,9 +67,11 @@ class Brew(Installer):
 
 
 class DNF(Installer):
-    def install(self, *packages: str) -> None:
-        run("sudo", "dnf", "install", "-y", *packages)
-        run("sudo", "dnf", "upgrade", "-y", *packages)
+    def install(self, package: str) -> None:
+        run("sudo", "dnf", "install", "-y", package)
+
+    def upgrade(self, package: str) -> None:
+        run("sudo", "dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
         output = run_output(
@@ -92,8 +101,11 @@ class DNF(Installer):
 
 
 class Apt(Installer):
-    def install(self, *packages: str) -> None:
-        run("sudo", "apt", "install", "--yes", *packages)
+    def install(self, package: str) -> None:
+        run("sudo", "apt", "install", "--yes", package)
+
+    def upgrade(self, package: str) -> None:
+        self.install(package)
 
     def latest_version(self, package: str) -> str:
         output = run_output(
@@ -172,5 +184,8 @@ class SystemPackage(Package):
 
     def install(self):
         with INSTALLER_LOCK:
-            INSTALLER.install(self.name)
+            if self.local_version:
+                INSTALLER.upgrade(self.name)
+            else:
+                INSTALLER.install(self.name)
         with_os(linux=self.postinstall_linux, macos=self.postinstall_macos)()
