@@ -1,5 +1,4 @@
-import requests
-
+from ..utils import url_version
 from .archive import ArchivePackage
 
 
@@ -25,5 +24,4 @@ class URLPackage(ArchivePackage):
                 return parts[0]
 
     def get_remote_version(self) -> str:
-        head_response = requests.head(self.url, allow_redirects=True)
-        return head_response.headers["etag"]
+        return url_version(self.url)

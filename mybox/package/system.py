@@ -5,6 +5,7 @@ from functools import cache
 from threading import Lock
 from typing import Optional
 
+from ..state import VERSIONS, Version
 from ..utils import *
 from .base import Package
 
@@ -143,19 +144,19 @@ INSTALLER_LOCK = Lock()
 
 
 class SystemPackage(Package):
-    services: list[str]
-
     def __init__(
         self,
         *,
         name: str,
+        url: Optional[str] = None,
         auto_updates: bool = False,
         service: Some[str] = None,
         **kwargs,
     ) -> None:
         self._name = name
-        self.services = unsome(service)
+        self.url = url
         self.auto_updates = auto_updates
+        self.services = unsome(service)
         super().__init__(**kwargs)
 
     @property
@@ -163,12 +164,19 @@ class SystemPackage(Package):
         return self._name
 
     def get_remote_version(self) -> str:
+        if self.url:
+            return url_version(self.url)
         if self.auto_updates:
             return "latest"
         return INSTALLER.latest_version(self.name)
 
     @property
     def local_version(self) -> Optional[str]:
+        if self.url:
+            try:
+                return VERSIONS[self.name].version
+            except KeyError:
+                return None
         if self.auto_updates:
             return "latest" if INSTALLER.is_installed(self.name) else None
         return INSTALLER.installed_version(self.name)
@@ -184,7 +192,10 @@ class SystemPackage(Package):
 
     def install(self):
         with INSTALLER_LOCK:
-            if self.local_version:
+            if self.url:
+                INSTALLER.install(self.url)
+                VERSIONS[self.name] = Version(version=self.get_remote_version())
+            elif self.local_version:
                 INSTALLER.upgrade(self.name)
             else:
                 INSTALLER.install(self.name)

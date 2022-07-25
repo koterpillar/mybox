@@ -5,6 +5,7 @@ import sys
 from threading import Lock
 from typing import Callable, Iterable, Literal, Optional, TypeVar, Union, cast
 
+import requests
 import tqdm  # type: ignore
 
 OS = Literal["linux", "darwin"]
@@ -133,3 +134,8 @@ class Filters:
     @staticmethod
     def endswith(suffix: str) -> Callable[[str], bool]:
         return lambda x: x.endswith(suffix)
+
+
+def url_version(url: str) -> str:
+    head_response = requests.head(url, allow_redirects=True)
+    return head_response.headers["etag"]
