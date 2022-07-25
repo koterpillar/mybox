@@ -22,7 +22,7 @@ def get_distro() -> Optional[Distribution]:
     release_file = "/etc/os-release"
     with open(release_file) as release:
         for line in release:
-            k, v = line.split("=", 1)
+            k, v = line.strip().split("=", 1)
             if k == "ID":
                 return v
 
