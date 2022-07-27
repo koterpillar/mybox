@@ -2,8 +2,6 @@ import hashlib
 import os
 from typing import Iterator
 
-import yaml
-
 from ..fs import files_in_recursively, link
 from ..utils import *
 from .manual_version import ManualVersion
@@ -68,9 +66,3 @@ class Links(ManualVersion):
 
             link(path, target, sudo=self.root)
         super().install()
-
-
-def load_links() -> list[Links]:
-    with open("links.yaml") as f:
-        links = yaml.safe_load(f)
-        return list(Links(**args) for args in links)
