@@ -1,4 +1,5 @@
 import os
+import pwd
 from typing import Optional
 
 from ..utils import run, run_output, with_os
@@ -6,7 +7,7 @@ from .base import Package
 
 
 def get_current_linux_shell() -> str:
-    return run_output("getent", "passwd", os.environ["USER"]).split(":")[6].strip()
+    return pwd.getpwuid(os.getuid()).pw_shell
 
 
 def get_current_macos_shell() -> str:
