@@ -105,7 +105,7 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-def parallel_map_tqdm(items: list[T], action: Callable[[T], U]) -> list[U]:
+def parallel_map_tqdm(action: Callable[[T], U], items: list[T]) -> list[U]:
     with tqdm.tqdm(total=len(items)) as progress:
         with concurrent.futures.ThreadPoolExecutor(20) as executor:
 
