@@ -38,6 +38,10 @@ case "$OSTYPE" in
         fi
         ;;
       fedora)
+        if ! command_exists bzip2
+        then
+          sudo dnf install --assumeyes bzip2
+        fi
         if ! command_exists xz
         then
           sudo dnf install --assumeyes xz
