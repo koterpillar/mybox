@@ -12,6 +12,7 @@ from .pipx import PipxPackage
 from .shell import Shell
 from .system import SystemPackage
 from .url import URLPackage
+from .yum_repo import YumRepo
 
 TYPES: list[Tuple[str, Type[Package]]] = [
     ("name", SystemPackage),
@@ -22,6 +23,7 @@ TYPES: list[Tuple[str, Type[Package]]] = [
     ("pipx", PipxPackage),
     ("shell", Shell),
     ("links", Links),
+    ("yum_name", YumRepo),
 ]
 
 
