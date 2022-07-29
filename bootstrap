@@ -46,6 +46,10 @@ case "$OSTYPE" in
         then
           sudo dnf install --assumeyes xz
         fi
+        if ! command_exists chsh
+        then
+          sudo dnf install --assumeyes util-linux-user
+        fi
         ;;
     esac
 esac
