@@ -1,5 +1,6 @@
 import json
 import shutil
+import subprocess
 from abc import ABCMeta, abstractmethod
 from functools import cache
 from threading import Lock
@@ -75,9 +76,17 @@ class DNF(Installer):
         run("sudo", "dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
-        output = run_output(
-            "rpm", "--query", "--queryformat", "%{VERSION}", "--whatprovides", package
-        ).strip()
+        try:
+            output = run_output(
+                "rpm",
+                "--query",
+                "--queryformat",
+                "%{VERSION}",
+                "--whatprovides",
+                package,
+            ).strip()
+        except subprocess.CalledProcessError:
+            return None
         if not output:
             return None
         return output
