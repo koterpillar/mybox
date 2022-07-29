@@ -4,7 +4,7 @@ import shutil
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
-from ..fs import files_in_recursively, link, makedirs, transplant_path
+from ..fs import files_in_recursively, home, link, local, makedirs, transplant_path
 from ..utils import *
 from .manual_version import ManualVersion
 

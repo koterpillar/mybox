@@ -2,7 +2,7 @@ import hashlib
 import os
 from typing import Iterator
 
-from ..fs import files_in_recursively, link
+from ..fs import files_in_recursively, home, link
 from ..utils import *
 from .manual_version import ManualVersion
 

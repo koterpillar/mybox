@@ -17,7 +17,7 @@ LN = find_executable("gln", "ln")
 
 
 def home(*path: str) -> str:
-    return os.path.join(os.environ["HOME"], *path)
+    return os.path.join(os.path.expanduser("~"), *path)
 
 
 def local(*path: str) -> str:

@@ -2,6 +2,7 @@ import os
 import pwd
 from typing import Optional
 
+from ..fs import home
 from ..utils import run, run_output, with_os
 from .base import Package
 
@@ -11,9 +12,7 @@ def get_current_linux_shell() -> str:
 
 
 def get_current_macos_shell() -> str:
-    return run_output("dscl", ".", "-read", os.environ["HOME"], "UserShell").split(
-        ": "
-    )[1]
+    return run_output("dscl", ".", "-read", home(), "UserShell").split(": ")[1]
 
 
 SHELLS_FILE = "/etc/shells"

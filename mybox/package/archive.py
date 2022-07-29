@@ -3,7 +3,7 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from typing import Optional, Union
 
-from ..fs import find_executable, make_executable, makedirs
+from ..fs import find_executable, local, make_executable, makedirs
 from ..utils import *
 from .manual import ManualPackage
 

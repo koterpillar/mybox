@@ -1,5 +1,4 @@
 import concurrent.futures
-import os
 import subprocess
 import sys
 from threading import Lock
@@ -91,14 +90,6 @@ def run_output(*args: str, **kwargs) -> str:
         .stdout.decode()
         .strip()
     )
-
-
-def home(*path: str) -> str:
-    return os.path.join(os.environ["HOME"], *path)
-
-
-def local(*path: str) -> str:
-    return home(".local", *path)
 
 
 def flatten(items: Iterable[Iterable[T]]) -> list[T]:

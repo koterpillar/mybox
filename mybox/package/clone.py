@@ -2,6 +2,7 @@ import os
 from contextlib import contextmanager
 from typing import Iterator, Optional
 
+from ..fs import home
 from ..utils import *
 from .base import Package
 
