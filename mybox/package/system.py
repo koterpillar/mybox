@@ -84,6 +84,7 @@ class DNF(Installer):
                 "%{VERSION}",
                 "--whatprovides",
                 package,
+                stderr=subprocess.DEVNULL,
             ).strip()
         except subprocess.CalledProcessError:
             return None
@@ -130,7 +131,12 @@ class Apt(Installer):
     def installed_version(self, package: str) -> Optional[str]:
         try:
             return run_output(
-                "dpkg-query", "--showformat", "${Version}", "--show", package
+                "dpkg-query",
+                "--showformat",
+                "${Version}",
+                "--show",
+                package,
+                stderr=subprocess.DEVNULL,
             ).strip()
         except subprocess.CalledProcessError:
             return None
