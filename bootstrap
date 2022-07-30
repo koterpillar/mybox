@@ -63,9 +63,9 @@ then
   python3 -m pip install --user pipx
 fi
 
-if ! command_exists mybox
+if python3 -m pipx list --short | grep -qE '^mybox ' >/dev/null 2>&1
 then
-  python3 -m pipx install mybox
-else
   python3 -m pipx upgrade mybox
+else
+  python3 -m pipx install mybox
 fi
