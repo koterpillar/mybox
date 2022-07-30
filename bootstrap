@@ -34,7 +34,7 @@ case "$OSTYPE" in
       debian)
         if ! command_exists python3
         then
-          sudo apt install --yes python3{,-pip}
+          sudo apt install --yes python3{,-{pip,venv}}
         fi
         ;;
       fedora)
