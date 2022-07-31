@@ -20,3 +20,5 @@ jobs:
         run: ./install-dev
       - name: Lint
         run: ./lint
+      - name: Test
+        run: ./test
