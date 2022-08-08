@@ -45,6 +45,6 @@ class Shell(Package):
             raise ValueError(f"{self.shell} does not exist.")
         if not is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
-        if self.shell not in get_all_shells():
+        if str(self.shell) not in get_all_shells():
             run("sudo", "tee", "-a", SHELLS_FILE, input=str(self.shell).encode())
         run("chsh", "-s", str(self.shell))
