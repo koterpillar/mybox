@@ -3,18 +3,9 @@ import pwd
 from pathlib import Path
 from typing import Optional
 
-from ..fs import HOME, is_executable
-from ..utils import run, run_output, with_os
+from ..fs import is_executable
+from ..utils import run
 from .base import Package
-
-
-def get_current_linux_shell() -> str:
-    return pwd.getpwuid(os.getuid()).pw_shell
-
-
-def get_current_macos_shell() -> str:
-    return run_output("dscl", ".", "-read", str(HOME), "UserShell").split(": ")[1]
-
 
 SHELLS_FILE = "/etc/shells"
 
@@ -38,7 +29,7 @@ class Shell(Package):
 
     @property
     def local_version(self) -> Optional[str]:
-        return with_os(linux=get_current_linux_shell, macos=get_current_macos_shell)()
+        return pwd.getpwuid(os.getuid()).pw_shell
 
     def install(self) -> None:
         if not self.shell.is_file():
