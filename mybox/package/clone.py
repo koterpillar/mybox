@@ -1,7 +1,5 @@
-import os
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Optional
 
 from ..fs import HOME
 from ..utils import *
@@ -26,21 +24,11 @@ class Clone(Package):
     def directory_exists(self) -> bool:
         return self.directory.is_dir()
 
-    @contextmanager
-    def in_directory(self) -> Iterator[None]:
-        olddir = Path.cwd()
-        try:
-            os.chdir(self.directory)
-            yield
-        finally:
-            os.chdir(olddir)
-
     @property
     def local_version(self) -> Optional[str]:
         if not self.directory_exists:
             return None
-        with self.in_directory():
-            return run_output("git", "rev-parse", "HEAD")
+        return run_output("git", "rev-parse", "HEAD", cwd=self.directory)
 
     @property
     def remote(self):
@@ -52,11 +40,10 @@ class Clone(Package):
     def install(self) -> None:
         if not self.directory_exists:
             run("git", "clone", self.remote, str(self.directory))
-        with self.in_directory():
-            run("git", "remote", "set-url", "origin", self.remote)
-            run("git", "fetch")
-            default_branch = run_output(
-                "git", "rev-parse", "--abbrev-ref", "origin/HEAD"
-            ).split("/")[1]
-            run("git", "switch", default_branch)
-            run("git", "reset", "--hard", f"origin/{default_branch}")
+        run("git", "remote", "set-url", "origin", self.remote, cwd=self.directory)
+        run("git", "fetch", cwd=self.directory)
+        default_branch = run_output(
+            "git", "rev-parse", "--abbrev-ref", "origin/HEAD", cwd=self.directory
+        ).split("/")[1]
+        run("git", "switch", default_branch, cwd=self.directory)
+        run("git", "reset", "--hard", f"origin/{default_branch}", cwd=self.directory)
