@@ -1,15 +1,15 @@
 import configparser
-import os
 import shutil
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import Optional
 
-from ..fs import files_in_recursively, home, link, local, makedirs, transplant_path
+from ..fs import HOME, LOCAL, link, makedirs, transplant_path
 from ..utils import *
 from .manual_version import ManualVersion
 
 
-def icon_name(app_path: str) -> Optional[str]:
+def icon_name(app_path: Path) -> Optional[str]:
     app = configparser.ConfigParser()
     app.read(app_path)
     return app["Desktop Entry"].get("Icon")
@@ -37,29 +37,30 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         self.fonts = unsome(font)
         super().__init__(**kwargs)
 
-    def local(self, *path: str) -> str:
+    @property
+    def local(self) -> Path:
         if self.as_global:
-            return os.path.join("/usr/local", *path)
+            return Path("/usr/local")
         else:
-            return local(*path)
+            return LOCAL
 
     @abstractmethod
-    def binary_path(self, binary: str) -> str:
+    def binary_path(self, binary: str) -> Path:
         pass
 
     def install_binary(self, name: str) -> None:
         link(
             self.binary_path(name),
-            self.local("bin", name),
+            self.local / "bin" / name,
             sudo=self.as_global,
             method="binary_wrapper" if self.binary_wrapper else None,
         )
 
     @abstractmethod
-    def app_path(self, name: str) -> str:
+    def app_path(self, name: str) -> Path:
         pass
 
-    def icon_directory(self) -> Optional[str]:
+    def icon_directory(self) -> Optional[Path]:
         return None
 
     def install_app(self, name: str) -> None:
@@ -67,14 +68,14 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
 
     def install_app_linux(self, name: str) -> None:
         path = self.app_path(name)
-        target = self.local("share", "applications", f"{name}.desktop")
+        target = self.local / "share" / "applications" / f"{name}.desktop"
         link(path, target, sudo=self.as_global)
         icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
         if icons_source:
-            icons_target = self.local("share", "icons")
+            icons_target = self.local / "share" / "icons"
             icon = icon_name(path)
             if icon:
-                for icon_path in files_in_recursively(icons_source, f"{icon}.*"):
+                for icon_path in icons_source.rglob(f"{icon}.*"):
                     target = transplant_path(icons_source, icons_target, icon_path)
                     link(icon_path, target, sudo=self.as_global)
 
@@ -84,19 +85,19 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def font_path(self, name: str) -> str:
+    def font_path(self, name: str) -> Path:
         pass
 
     def install_font(self, name: str) -> None:
         font_dir = with_os(
-            linux=self.local("share", "fonts"), macos=home("Library", "Fonts")
+            linux=self.local / "share" / "fonts", macos=HOME / "Library" / "Fonts"
         )
         makedirs(font_dir)
         source = self.font_path(name)
-        target = os.path.join(font_dir, name)
+        target = font_dir / name
         link(source, target, sudo=self.as_global)
         if shutil.which("fc-cache"):
-            run("fc-cache", "-f", font_dir)
+            run("fc-cache", "-f", str(font_dir))
 
     def install(self) -> None:
         for binary in self.binaries:

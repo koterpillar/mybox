@@ -1,8 +1,9 @@
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Iterator, Optional
 
-from ..fs import home
+from ..fs import HOME
 from ..utils import *
 from .base import Package
 
@@ -18,16 +19,16 @@ class Clone(Package):
         return self.repo
 
     @property
-    def directory(self) -> str:
-        return home(self.destination)
+    def directory(self) -> Path:
+        return HOME / self.destination
 
     @property
     def directory_exists(self) -> bool:
-        return os.path.isdir(self.directory)
+        return self.directory.is_dir()
 
     @contextmanager
     def in_directory(self) -> Iterator[None]:
-        olddir = os.getcwd()
+        olddir = Path.cwd()
         try:
             os.chdir(self.directory)
             yield
@@ -50,7 +51,7 @@ class Clone(Package):
 
     def install(self) -> None:
         if not self.directory_exists:
-            run("git", "clone", self.remote, self.directory)
+            run("git", "clone", self.remote, str(self.directory))
         with self.in_directory():
             run("git", "remote", "set-url", "origin", self.remote)
             run("git", "fetch")

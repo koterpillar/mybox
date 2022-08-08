@@ -1,9 +1,9 @@
-import os
 import tempfile
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import Optional, Union
 
-from ..fs import find_executable, local, make_executable, makedirs
+from ..fs import LOCAL, find_executable, is_executable, make_executable, makedirs
 from ..utils import *
 from .manual import ManualPackage
 
@@ -28,8 +28,8 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def archive_url(self) -> str:
         pass
 
-    def package_directory(self) -> str:
-        result = local(f"{self.name.replace('/', '--')}.app")
+    def package_directory(self) -> Path:
+        result = LOCAL / f"{self.name.replace('/', '--')}.app"
         makedirs(result)
         return result
 
@@ -40,7 +40,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             "--strip",
             str(self.strip),
             "-C",
-            self.package_directory(),
+            str(self.package_directory()),
             *extra,
             "-f",
             source,
@@ -52,8 +52,8 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 filename = self.raw
             else:
                 filename = url.rsplit("/", 1)[-1]
-            target = os.path.join(self.package_directory(), filename)
-            run("cp", source, target)
+            target = self.package_directory() / filename
+            run("cp", str(source), str(target))
             if self.raw_executable:
                 make_executable(target)
         elif ".tar" in url:
@@ -70,33 +70,33 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         else:
             raise ValueError(f"Unknown archive format: {url}")
 
-    def binary_path(self, binary: str) -> str:
+    def binary_path(self, binary: str) -> Path:
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
-            candidate = os.path.join(self.package_directory(), *relative_path, binary)
-            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            candidate = self.package_directory() / Path(*relative_path) / binary
+            if candidate.is_file() and is_executable(candidate):
                 return candidate
         raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
 
-    def app_path(self, name: str) -> str:
-        candidate = os.path.join(
-            self.package_directory(), "share", "applications", f"{name}.desktop"
+    def app_path(self, name: str) -> Path:
+        candidate = (
+            self.package_directory() / "share" / "applications" / f"{name}.desktop"
         )
-        if os.path.isfile(candidate):
+        if candidate.is_file():
             return candidate
         raise ValueError(
             f"Cannot find application '{name}' in {self.package_directory()}."
         )
 
-    def icon_directory(self) -> Optional[str]:
-        candidate = os.path.join(self.package_directory(), "share", "icons")
-        if os.path.isdir(candidate):
+    def icon_directory(self) -> Optional[Path]:
+        candidate = self.package_directory() / "share" / "icons"
+        if candidate.is_dir():
             return candidate
         return None
 
-    def font_path(self, name: str) -> str:
-        candidate = os.path.join(self.package_directory(), name)
-        if os.path.isfile(candidate):
+    def font_path(self, name: str) -> Path:
+        candidate = self.package_directory() / name
+        if candidate.is_file():
             return candidate
         raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
 

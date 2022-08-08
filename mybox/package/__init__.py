@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Any, Tuple, Type
 
 import yaml
@@ -40,6 +40,6 @@ def parse_package(package: Any) -> Package:
 
 
 def load_packages(component: str) -> list[Package]:
-    with open(os.path.join("packages", f"{component}.yaml")) as f:
+    with open(Path("packages") / f"{component}.yaml") as f:
         packages = yaml.safe_load(f)
         return list(map(parse_package, packages))

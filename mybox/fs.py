@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterator, Literal, Optional
+from typing import Literal, Optional
 
 from .utils import run
 
@@ -13,54 +13,51 @@ def find_executable(*executables: str) -> str:
     raise Exception(f"None of {','.join(executables)} found in PATH.")
 
 
+def is_executable(path: Path) -> bool:
+    return os.access(path, os.X_OK)
+
+
 LN = find_executable("gln", "ln")
 
 
-def home(*path: str) -> str:
-    return os.path.join(os.path.expanduser("~"), *path)
+HOME = Path.home()
+
+LOCAL = HOME / ".local"
 
 
-def local(*path: str) -> str:
-    return home(".local", *path)
+def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
+    return dir_to.joinpath(path.relative_to(dir_from))
 
 
-def files_in_recursively(directory: str, glob: str = "*") -> Iterator[str]:
-    for path in Path(directory).rglob(glob):
-        yield str(path)
-
-
-def transplant_path(dir_from: str, dir_to: str, path: str) -> str:
-    path = os.path.relpath(path, dir_from)
-    return os.path.join(dir_to, path)
-
-
-def makedirs(path: str, sudo: bool = False) -> None:
+def makedirs(path: Path, sudo: bool = False) -> None:
     if sudo:
-        run("sudo", "mkdir", "-p", path)
+        run("sudo", "mkdir", "-p", str(path))
     else:
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(parents=True, exist_ok=True)
 
 
-def rm(path: str, sudo: bool = False) -> None:
+def rm(path: Path, sudo: bool = False) -> None:
     if sudo:
-        run("sudo", "rm", "-r", "-f", path)
+        run("sudo", "rm", "-r", "-f", str(path))
     else:
-        if os.path.lexists(path):
-            os.unlink(path)
+        path.unlink(missing_ok=True)
 
 
-def make_executable(path: str) -> None:
-    run("chmod", "+x", path)
+def make_executable(path: Path) -> None:
+    run("chmod", "+x", str(path))
 
 
 LinkMethod = Literal["binary_wrapper"]
 
 
 def link(
-    source: str, target: str, *, sudo: bool = False, method: Optional[LinkMethod] = None
+    source: Path,
+    target: Path,
+    *,
+    sudo: bool = False,
+    method: Optional[LinkMethod] = None,
 ) -> None:
-    target_dir = os.path.dirname(target)
-    makedirs(target_dir, sudo=sudo)
+    makedirs(target.parent, sudo=sudo)
     rm(target, sudo=sudo)
     if method == "binary_wrapper":
         if sudo:
@@ -71,6 +68,6 @@ def link(
             make_executable(target)
     else:
         if sudo:
-            run("sudo", LN, "-s", "-f", "-T", source, target)
+            run("sudo", LN, "-s", "-f", "-T", str(source), str(target))
         else:
-            os.symlink(source, target)
+            target.symlink_to(source)
