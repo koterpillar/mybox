@@ -82,6 +82,8 @@ class GitHubPackage(ArchivePackage):
         )
         for hint in os_hints:
             yield Filters.includes(hint)
+        if CURRENT_OS == "linux":
+            yield Filters.excludes("musl")
         arch_hints = ["x86_64", "amd64"]
         for hint in arch_hints:
             yield Filters.includes(hint)
