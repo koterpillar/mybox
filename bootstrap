@@ -36,6 +36,10 @@ case "$OSTYPE" in
         then
           sudo apt install --yes python3{,-{pip,venv}}
         fi
+        if ! command_exists unzip
+        then
+          sudo apt install --yes unzip
+        fi
         ;;
       fedora)
         if ! command_exists bzip2
@@ -45,6 +49,10 @@ case "$OSTYPE" in
         if ! command_exists xz
         then
           sudo dnf install --assumeyes xz
+        fi
+        if ! command_exists unzip
+        then
+          sudo dnf install --assumeyes unzip
         fi
         if ! command_exists chsh
         then

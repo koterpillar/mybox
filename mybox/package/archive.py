@@ -46,6 +46,11 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             source,
         )
 
+    def unzip(self, source: str) -> None:
+        if self.strip > 0:
+            raise NotImplementedError("Strip is not supported for unzip.")
+        run("unzip", "-qq", source, "-d", str(self.package_directory()))
+
     def extract(self, url: str, source: str) -> None:
         if self.raw:
             if isinstance(self.raw, str):
@@ -56,17 +61,16 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             run("cp", str(source), str(target))
             if self.raw_executable:
                 make_executable(target)
-        elif ".tar" in url:
-            if ".gz" in url:
-                self.untar(source, "-z")
-            elif ".bz2" in url:
-                self.untar(source, "-j")
-            else:
-                self.untar(source)
-        elif ".tgz" in url:
+        elif url.endswith(".tar"):
+            self.untar(source)
+        elif url.endswith(".tar.gz") or url.endswith(".tgz"):
             self.untar(source, "-z")
-        elif ".txz" in url:
+        elif url.endswith(".tar.bz2"):
+            self.untar(source, "-j")
+        elif url.endswith(".txz"):
             self.untar(source, "-J")
+        elif url.endswith(".zip"):
+            self.unzip(source)
         else:
             raise ValueError(f"Unknown archive format: {url}")
 
