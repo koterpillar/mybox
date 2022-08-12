@@ -19,7 +19,9 @@ def github_api(url: str) -> Any:
     if have_github_auth():
         return json.loads(run_output("gh", "api", url))
     else:
-        return requests.get(f"https://api.github.com/{url}").json()
+        result = requests.get(f"https://api.github.com/{url}")
+        result.raise_for_status()
+        return result.json()
 
 
 @dataclass
