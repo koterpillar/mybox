@@ -1,6 +1,9 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import Any, Iterable, Optional
+
+import pytest
 
 from mybox.package import parse_package
 
@@ -17,6 +20,10 @@ class PackageTestBase(metaclass=ABCMeta):
         pass
 
     check_installed_output: Optional[str] = None
+
+    @pytest.fixture(autouse=True)
+    def ensure_local_bin_environment(self, monkeypatch) -> None:
+        monkeypatch.setenv("PATH", f"{Path.home().absolute()}/.bin", prepend=":")
 
     def check_installed(self):
         result = subprocess.run(
