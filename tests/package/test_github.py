@@ -9,3 +9,7 @@ class TestNeovim(PackageTestBase):
         "binary": "nvim",
         "app": "nvim",
     }
+
+    check_installed_command = ["nvim", "--version"]
+
+    check_installed_output = "NVIM"
