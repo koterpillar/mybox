@@ -8,5 +8,4 @@ class TestNeovim(PackageTestBase):
         "strip": 1,
         "binary": "nvim",
         "app": "nvim",
-        "as_global": True,
     }
