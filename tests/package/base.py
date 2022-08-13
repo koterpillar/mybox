@@ -23,7 +23,8 @@ class PackageTestBase(metaclass=ABCMeta):
 
     @pytest.fixture(autouse=True)
     def ensure_local_bin_environment(self, monkeypatch) -> None:
-        monkeypatch.setenv("PATH", f"{Path.home().absolute()}/.bin", prepend=":")
+        local_bin = Path.home() / ".local" / "bin"
+        monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
 
     def check_installed(self):
         result = subprocess.run(
