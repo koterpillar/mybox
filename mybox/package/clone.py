@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from ..fs import HOME
+from ..fs import home
 from ..utils import *
 from .base import Package
 
@@ -18,7 +18,7 @@ class Clone(Package):
 
     @property
     def directory(self) -> Path:
-        return HOME / self.destination
+        return home() / self.destination
 
     @property
     def directory_exists(self) -> bool:

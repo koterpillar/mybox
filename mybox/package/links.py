@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from ..fs import HOME, link
+from ..fs import home, link
 from ..utils import *
 from .manual_version import ManualVersion
 
@@ -28,7 +28,7 @@ class Links(ManualVersion):
             if self.root:
                 self.dest = Path("~root").expanduser() / dest
             else:
-                self.dest = HOME / dest
+                self.dest = home() / dest
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)

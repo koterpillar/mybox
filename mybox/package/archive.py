@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional, Union
 
-from ..fs import LOCAL, find_executable, is_executable, make_executable, makedirs
+from ..fs import find_executable, is_executable, local, make_executable, makedirs
 from ..utils import *
 from .manual import ManualPackage
 
@@ -29,7 +29,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         pass
 
     def package_directory(self) -> Path:
-        result = LOCAL / f"{self.name.replace('/', '--')}.app"
+        result = local() / f"{self.name.replace('/', '--')}.app"
         makedirs(result)
         return result
 

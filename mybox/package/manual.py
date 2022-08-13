@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from ..fs import HOME, LOCAL, link, makedirs, transplant_path
+from ..fs import home, link, local, makedirs, transplant_path
 from ..utils import *
 from .manual_version import ManualVersion
 
@@ -42,7 +42,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         if self.as_global:
             return Path("/usr/local")
         else:
-            return LOCAL
+            return local()
 
     @abstractmethod
     def binary_path(self, binary: str) -> Path:
@@ -90,7 +90,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
 
     def install_font(self, name: str) -> None:
         font_dir = with_os(
-            linux=self.local / "share" / "fonts", macos=HOME / "Library" / "Fonts"
+            linux=self.local / "share" / "fonts", macos=home() / "Library" / "Fonts"
         )
         makedirs(font_dir)
         source = self.font_path(name)
