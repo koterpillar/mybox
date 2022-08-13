@@ -21,6 +21,11 @@ LN = find_executable("gln", "ln")
 
 
 def home() -> Path:
+    try:
+        return Path(os.environ["MYBOX_HOME"])
+    except KeyError:
+        pass
+
     return Path.home()
 
 

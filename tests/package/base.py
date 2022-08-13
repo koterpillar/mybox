@@ -22,8 +22,11 @@ class PackageTestBase(metaclass=ABCMeta):
     check_installed_output: Optional[str] = None
 
     @pytest.fixture(autouse=True)
-    def ensure_local_bin_environment(self, monkeypatch) -> None:
-        local_bin = Path.home() / ".local" / "bin"
+    def ensure_local_bin_environment(
+        self, monkeypatch: pytest.MonkeyPatch, override_home: Path
+    ) -> None:
+        monkeypatch.setenv("MYBOX_HOME", str(override_home))
+        local_bin = override_home / ".local" / "bin"
         monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
 
     def check_installed(self):
