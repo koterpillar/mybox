@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 from dataclasses import dataclass
 from functools import cache
@@ -19,8 +20,18 @@ def github_api(url: str) -> Any:
     if have_github_auth():
         return json.loads(run_output("gh", "api", url))
     else:
-        result = requests.get(f"https://api.github.com/{url}")
+        try:
+            token = os.environ["GITHUB_TOKEN"]
+        except KeyError:
+            token = None
+
+        headers = {}
+        if token:
+            headers["Authorization"] = f"token {token}"
+
+        result = requests.get(f"https://api.github.com/{url}", headers=headers)
         result.raise_for_status()
+
         return result.json()
 
 
