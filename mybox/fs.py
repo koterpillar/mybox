@@ -20,9 +20,12 @@ def is_executable(path: Path) -> bool:
 LN = find_executable("gln", "ln")
 
 
-HOME = Path.home()
+def home() -> Path:
+    return Path.home()
 
-LOCAL = HOME / ".local"
+
+def local() -> Path:
+    return home() / ".local"
 
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
