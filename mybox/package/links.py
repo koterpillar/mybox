@@ -39,6 +39,9 @@ class Links(ManualVersion):
         return f"links-{self.source}-{self.dest}"
 
     def all_paths(self) -> Iterator[Path]:
+        if not self.source.is_dir():
+            raise ValueError(f"Source is not a directory: {self.source}")
+
         if self.shallow:
             candidates = self.source.glob("*")
         else:
