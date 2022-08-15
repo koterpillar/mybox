@@ -2,7 +2,7 @@ import concurrent.futures
 import subprocess
 import sys
 from threading import Lock
-from typing import Callable, Iterable, Literal, Optional, TypeVar, Union, cast
+from typing import Callable, Iterable, Iterator, Literal, Optional, TypeVar, Union, cast
 
 import requests
 import tqdm  # type: ignore
@@ -125,6 +125,25 @@ class Filters:
     @staticmethod
     def endswith(suffix: str) -> Callable[[str], bool]:
         return lambda x: x.endswith(suffix)
+
+
+def choose(candidates: list[T], filters: Iterator[Callable[[T], bool]]) -> T:
+    if len(candidates) == 0:
+        raise ValueError("No candidates to choose from.")
+    while len(candidates) > 1:
+        try:
+            filter_fn = next(filters)
+        except StopIteration:
+            break
+
+        new_candidates = list(filter(filter_fn, candidates))
+        if new_candidates:
+            candidates = new_candidates
+
+    if len(candidates) == 1:
+        return candidates[0]
+
+    raise ValueError(f"Cannot choose between: {candidates}.")
 
 
 def url_version(url: str) -> str:

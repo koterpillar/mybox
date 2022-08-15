@@ -3,7 +3,7 @@ import os
 import shutil
 from dataclasses import dataclass
 from functools import cache
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterator
 
 import requests
 
@@ -80,7 +80,7 @@ class GitHubPackage(ArchivePackage):
             ],
         )
 
-    def filters(self) -> Iterable[Callable[[str], bool]]:
+    def filters(self) -> Iterator[Callable[[str], bool]]:
         for prefix in self.prefixes:
             yield Filters.startswith(prefix)
         for suffix in self.suffixes:
@@ -103,17 +103,13 @@ class GitHubPackage(ArchivePackage):
 
     def artifact(self) -> GitHubReleaseArtifact:
         candidates = self.latest_release().assets
-        for filter_fn in self.filters():
-            if len(candidates) == 1:
-                return candidates[0]
-            new_candidates = [
-                candidate for candidate in candidates if filter_fn(candidate.name)
-            ]
-            if new_candidates:
-                candidates = new_candidates
-            if len(candidates) == 1:
-                return candidates[0]
-        raise ValueError(f"Cannot choose between: {candidates}")
+
+        def candidate_filter(
+            name_filter: Callable[[str], bool]
+        ) -> Callable[[GitHubReleaseArtifact], bool]:
+            return lambda candidate: name_filter(candidate.name)
+
+        return choose(candidates, map(candidate_filter, self.filters()))
 
     def archive_url(self) -> str:
         return self.artifact().url
