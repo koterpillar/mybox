@@ -18,6 +18,11 @@ def main():
     components: frozenset[str] = frozenset(args.component) | {"base"}
     packages = flatten(map(load_packages, components))
     map_fn = map if args.sequential else parallel_map_tqdm
-    results = map_fn(lambda p: p.ensure(), packages)
-    total_installed = sum(1 if installed else 0 for installed in results)
-    print(f"{total_installed} packages installed or updated.")
+    results = map_fn(lambda p: p.name if p.ensure() else None, packages)
+    installed = list(filter(None, results))
+    if installed:
+        print(
+            f"{len(installed)} packages installed or updated: {', '   .join(installed)}"
+        )
+    else:
+        print("Everything up to date.")
