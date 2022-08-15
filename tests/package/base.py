@@ -39,5 +39,6 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def test_installs(self):
         package = parse_package(self.constructor_args)
-        package.ensure()
+        assert package.applicable
+        package.install()
         self.check_installed()

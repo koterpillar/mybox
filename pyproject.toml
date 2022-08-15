@@ -22,6 +22,7 @@ types-requests = "^2.28.0"
 pylint = "^2.14.5"
 pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
+coverage = {extras = ["toml"], version = "^6.4.3"}
 
 [tool.poetry.scripts]
 mybox = "mybox.main:main"
@@ -49,3 +50,10 @@ disable = [
 
 [tool.pylint.reports]
 output-format = "colorized"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "@abstract",
+    "raise NotImplementedError"
+]

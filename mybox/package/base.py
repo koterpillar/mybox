@@ -43,7 +43,8 @@ class Package(metaclass=ABCMeta):
     def install(self) -> None:
         pass
 
-    def ensure(self) -> bool:
+    @property
+    def applicable(self) -> bool:
         if self.os is not None and CURRENT_OS not in self.os:
             return False
         if (
@@ -51,6 +52,11 @@ class Package(metaclass=ABCMeta):
             and self.distribution is not None
             and CURRENT_DISTRIBUTION not in self.distribution
         ):
+            return False
+        return True
+
+    def ensure(self) -> bool:
+        if not self.applicable:
             return False
         if self.is_installed:
             return False
