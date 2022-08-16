@@ -1,3 +1,4 @@
+import sqlite3
 import subprocess
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -38,7 +39,8 @@ class PackageTestBase(metaclass=ABCMeta):
             assert self.check_installed_output in output
 
     def test_installs(self):
-        package = parse_package(self.constructor_args)
+        db = sqlite3.Connection(":memory:")
+        package = parse_package(db, self.constructor_args)
         assert package.applicable
         package.install()
         self.check_installed()
