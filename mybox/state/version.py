@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .base import Storage
+from .base import storage
 
 
 @dataclass
@@ -8,4 +8,4 @@ class Version:
     version: str
 
 
-VERSIONS = Storage[Version]("version", Version)
+VERSIONS = storage("version", Version)

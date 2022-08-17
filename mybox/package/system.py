@@ -6,7 +6,7 @@ from functools import cache
 from threading import Lock
 from typing import Optional
 
-from ..state import VERSIONS, Version
+from ..state import Version
 from ..utils import *
 from .base import Package
 
@@ -189,7 +189,7 @@ class SystemPackage(Package):
     def local_version(self) -> Optional[str]:
         if self.url:
             try:
-                return VERSIONS[self.name].version
+                return self.versions[self.name].version
             except KeyError:
                 return None
         if self.auto_updates:
@@ -209,7 +209,7 @@ class SystemPackage(Package):
         with INSTALLER_LOCK:
             if self.url:
                 INSTALLER.install(self.url)
-                VERSIONS[self.name] = Version(version=self.get_remote_version())
+                self.versions[self.name] = Version(version=self.get_remote_version())
             elif self.local_version:
                 INSTALLER.upgrade(self.name)
             else:

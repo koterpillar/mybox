@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import Optional
 
+from ..state import DB, VERSIONS, Table, Version
 from ..utils import *
 
 
@@ -11,9 +12,12 @@ class Package(metaclass=ABCMeta):
 
     def __init__(
         self,
+        *,
+        db: DB,
         os: Some[OS] = None,  # pylint:disable=redefined-outer-name
         distribution: Some[Distribution] = None,
     ) -> None:
+        self.db = db
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)
 
@@ -62,3 +66,7 @@ class Package(metaclass=ABCMeta):
             return False
         self.install()
         return True
+
+    @cached_property
+    def versions(self) -> Table[Version]:
+        return VERSIONS(self.db)

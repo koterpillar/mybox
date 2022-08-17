@@ -1,8 +1,8 @@
 import dataclasses
 import sqlite3
 import threading
-from functools import cached_property
-from typing import Generic, Type, TypeVar
+from abc import ABCMeta, abstractmethod
+from typing import Callable, Generic, Type, TypeVar
 
 T = TypeVar("T")
 
@@ -12,7 +12,10 @@ DB_PATH = "state.sqlite"
 DB_CACHE = threading.local()
 
 
-def db() -> sqlite3.Connection:
+DB = sqlite3.Connection
+
+
+def make_db() -> DB:
     try:
         return DB_CACHE.connection
     except AttributeError:
@@ -23,34 +26,56 @@ def db() -> sqlite3.Connection:
     return connection
 
 
-class Storage(Generic[T]):
-    @cached_property
-    def attributes(self) -> list[str]:
-        return [field.name for field in dataclasses.fields(self.klass)]
+class Table(Generic[T], metaclass=ABCMeta):
+    @abstractmethod
+    def __getitem__(self, key: str) -> T:
+        pass
 
-    def __init__(self, name: str, klass: Type[T]) -> None:
-        self.name = name
-        self.klass = klass
-        db().execute(
-            f'CREATE TABLE IF NOT EXISTS {self.name} (id TEXT PRIMARY KEY, {", ".join(self.attributes)})'
+    @abstractmethod
+    def __delitem__(self, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def __setitem__(self, key: str, value: T) -> None:
+        pass
+
+
+StorageTable = Callable[[DB], Table[T]]
+
+
+def storage(name: str, klass: Type[T]) -> StorageTable[T]:
+    attributes: list[str] = [field.name for field in dataclasses.fields(klass)]
+
+    def storage_table(db: DB) -> Table[T]:
+        db.execute(
+            f'CREATE TABLE IF NOT EXISTS {name} (id TEXT PRIMARY KEY, {", ".join(attributes)})'
         )
 
-    def __getitem__(self, key: str) -> T:
-        row = db().execute(f"SELECT * FROM {self.name} WHERE id = ?", (key,)).fetchone()
-        if row:
-            attributes = {key: row[key] for key in row.keys() if key != "id"}
-            return self.klass(**attributes)
-        raise KeyError(key)
+        class Storage(Table[T]):
+            def __getitem__(self, key: str) -> T:
+                row = db.execute(
+                    f"SELECT * FROM {name} WHERE id = ?", (key,)
+                ).fetchone()
+                if row:
+                    attributes = {key: row[key] for key in row.keys() if key != "id"}
+                    return klass(**attributes)
+                raise KeyError(key)
 
-    def __delitem__(self, key: str) -> None:
-        db().execute(f"DELETE FROM {self.name} WHERE id = ?", (key,))
+            def __delitem__(self, key: str) -> None:
+                db.execute(f"DELETE FROM {name} WHERE id = ?", (key,))
 
-    def __setitem__(self, key: str, value: T) -> None:
-        with db():
-            del self[key]
-            attr_clause = "?"
-            attr_values = [key]
-            for attribute in self.attributes:
-                attr_clause += ", ?"
-                attr_values.append(getattr(value, attribute))
-            db().execute(f"INSERT INTO {self.name} VALUES ({attr_clause})", attr_values)
+            def __setitem__(self, key: str, value: T) -> None:
+                with db:
+                    del self[key]
+                    attr_clause = "?"
+                    attr_values = [key]
+                    for attribute in attributes:
+                        attr_clause += ", ?"
+                        attr_values.append(getattr(value, attribute))
+                    db.execute(
+                        f"INSERT INTO {name} VALUES ({attr_clause})", attr_values
+                    )
+
+        return Storage()
+
+    return storage_table

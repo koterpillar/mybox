@@ -1,6 +1,7 @@
 import argparse
 
 from .package import load_packages
+from .state.base import make_db
 from .utils import flatten, parallel_map_tqdm
 
 
@@ -14,9 +15,10 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main():
+    db = make_db()
     args = parser().parse_args()
     components: frozenset[str] = frozenset(args.component) | {"base"}
-    packages = flatten(map(load_packages, components))
+    packages = flatten(load_packages(db, component) for component in components)
     map_fn = map if args.sequential else parallel_map_tqdm
     results = map_fn(lambda p: p.name if p.ensure() else None, packages)
     installed = list(filter(None, results))
