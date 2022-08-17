@@ -22,6 +22,8 @@ jobs:
         run: ./lint
       - name: Test
         run: ./test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     needs: ci
