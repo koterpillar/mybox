@@ -33,7 +33,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         makedirs(result)
         return result
 
-    def untar(self, source: str, *extra: str) -> None:
+    def untar(self, source: Path, *extra: str) -> None:
         run(
             TAR,
             "-x",
@@ -43,15 +43,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             str(self.package_directory()),
             *extra,
             "-f",
-            source,
+            str(source),
         )
 
-    def unzip(self, source: str) -> None:
+    def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
-        run("unzip", "-qq", source, "-d", str(self.package_directory()))
+        run("unzip", "-qq", str(source), "-d", str(self.package_directory()))
 
-    def extract(self, url: str, source: str) -> None:
+    def extract(self, url: str, source: Path) -> None:
         if self.raw:
             if isinstance(self.raw, str):
                 filename = self.raw
@@ -108,5 +108,5 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         url = self.archive_url()
         with tempfile.NamedTemporaryFile() as archive_file:
             run("curl", "-sSL", url, stdout=archive_file)
-            self.extract(url, archive_file.name)
+            self.extract(url, Path(archive_file.name))
         super().install()
