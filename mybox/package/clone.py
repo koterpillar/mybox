@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from ..fs import home
+from ..fs import home, makedirs
 from ..utils import *
 from .base import Package
 
@@ -38,6 +38,7 @@ class Clone(Package):
         return run_output("git", "ls-remote", self.remote, "HEAD").split()[0]
 
     def install(self) -> None:
+        makedirs(self.directory.parent)
         if not self.directory_exists:
             run("git", "clone", self.remote, str(self.directory))
         run("git", "remote", "set-url", "origin", self.remote, cwd=self.directory)
