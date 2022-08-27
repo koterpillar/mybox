@@ -1,7 +1,7 @@
 import argparse
 
 from .package import load_packages
-from .state.base import make_db
+from .state.base import DB, DB_PATH
 from .utils import flatten, parallel_map_tqdm
 
 
@@ -15,7 +15,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main():
-    db = make_db()
+    db = DB(DB_PATH)
     args = parser().parse_args()
     components: frozenset[str] = frozenset(args.component) | {"base"}
     packages = flatten(load_packages(db, component) for component in components)

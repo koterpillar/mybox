@@ -1,2 +1,2 @@
-from .base import DB, Table, make_db
+from .base import DB, Table
 from .version import VERSIONS, Version

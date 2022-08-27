@@ -1,4 +1,3 @@
-import sqlite3
 import subprocess
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -7,6 +6,7 @@ from typing import Any, Iterable, Optional
 import pytest
 
 from mybox.package import parse_package
+from mybox.state import DB
 
 
 class PackageTestBase(metaclass=ABCMeta):
@@ -39,7 +39,7 @@ class PackageTestBase(metaclass=ABCMeta):
             assert self.check_installed_output in output
 
     def test_installs(self):
-        db = sqlite3.Connection(":memory:")
+        db = DB(":memory:")
         package = parse_package(db, self.constructor_args)
         assert package.applicable
         package.install()
