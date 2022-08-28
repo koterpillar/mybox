@@ -4,7 +4,7 @@ from typing import Any, Tuple, Type
 import yaml
 
 from ..driver import Driver
-from ..state.base import DB
+from ..state import DB
 from .base import Package
 from .clone import Clone
 from .github import GitHubPackage

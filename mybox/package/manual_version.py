@@ -1,8 +1,7 @@
 from abc import ABCMeta
 from typing import Optional
 
-from ..state import Version
-from .base import Package
+from .base import Package, Version
 
 
 class ManualVersion(Package, metaclass=ABCMeta):
