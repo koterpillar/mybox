@@ -52,6 +52,7 @@ output-format = "colorized"
 
 [tool.coverage.run]
 parallel = true
+relative_files = true
 
 [tool.coverage.report]
 exclude_lines = [
