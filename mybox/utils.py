@@ -1,4 +1,5 @@
 import concurrent.futures
+import re
 import subprocess
 import sys
 from threading import Lock
@@ -125,6 +126,12 @@ class Filters:
     @staticmethod
     def endswith(suffix: str) -> Callable[[str], bool]:
         return lambda x: x.endswith(suffix)
+
+    @staticmethod
+    def regex(regex: str) -> Callable[[str], bool]:
+        regex_compiled = re.compile(regex)
+
+        return lambda x: regex_compiled.match(x) is not None
 
 
 def choose(candidates: list[T], filters: Iterator[Callable[[T], bool]]) -> T:

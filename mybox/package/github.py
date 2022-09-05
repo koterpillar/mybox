@@ -59,12 +59,14 @@ class GitHubPackage(ArchivePackage):
         prefix: Some[str] = None,
         suffix: Some[str] = None,
         exclude: Some[str] = None,
+        regex: Some[str] = None,
         **kwargs,
     ) -> None:
         self.repo = repo
         self.prefixes = unsome(prefix)
         self.suffixes = unsome(suffix)
         self.excludes = unsome(exclude)
+        self.regex = unsome(regex)
         super().__init__(**kwargs)
 
     @cache
@@ -87,6 +89,8 @@ class GitHubPackage(ArchivePackage):
             yield Filters.endswith(suffix)
         for exclude in self.excludes:
             yield Filters.excludes(exclude)
+        for regex in self.regex:
+            yield Filters.regex(regex)
         for hint in [".tar.gz"]:
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig"]:
