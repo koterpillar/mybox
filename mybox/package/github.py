@@ -93,7 +93,7 @@ class GitHubPackage(ArchivePackage):
             yield Filters.regex(regex)
         for hint in [".tar.gz"]:
             yield Filters.includes(hint)
-        for signature_hint in [".asc", ".sig"]:
+        for signature_hint in [".asc", ".sig", "sha256sum"]:
             yield Filters.excludes(signature_hint)
         os_hints = with_os(
             linux=["linux", "gnu"],
