@@ -2,4 +2,5 @@
 
 set -euo pipefail
 
-poetry run pytest --cov=mybox "$@"
+poetry run coverage erase
+poetry run -- coverage run -m pytest "$@"
