@@ -57,7 +57,9 @@ class Brew(Installer):
         raise ValueError(f"Unexpected output from brew: {info}")
 
     def api(self, path: str) -> dict:
-        return requests.get(f"https://formulae.brew.sh/api/{path}").json()
+        result = requests.get(f"https://formulae.brew.sh/api/{path}")
+        result.raise_for_status()
+        return result.json()
 
     CASK_PREFIX = "homebrew/cask/"
 
