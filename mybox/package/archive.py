@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from ..fs import find_executable, is_executable, local, make_executable, makedirs
-from ..utils import *
+from ..utils import run
 from .manual import ManualPackage
 
 TAR = find_executable("gtar", "tar")

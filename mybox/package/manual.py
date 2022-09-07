@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..fs import home, link, local, makedirs, transplant_path
-from ..utils import *
+from ..utils import Some, run, unsome, with_os
 from .manual_version import ManualVersion
 
 

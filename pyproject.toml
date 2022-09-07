@@ -43,8 +43,6 @@ disable = [
     "no-else-raise",
     "no-else-return",
     "unspecified-encoding",
-    "unused-wildcard-import",
-    "wildcard-import",
 ]
 
 [tool.pylint.reports]

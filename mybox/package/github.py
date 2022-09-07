@@ -7,7 +7,16 @@ from typing import Any, Callable, Iterator
 
 import requests
 
-from ..utils import *
+from ..utils import (
+    CURRENT_OS,
+    Filters,
+    Some,
+    choose,
+    run_ok,
+    run_output,
+    unsome,
+    with_os,
+)
 from .archive import ArchivePackage
 
 

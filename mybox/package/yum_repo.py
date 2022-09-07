@@ -2,7 +2,7 @@ import configparser
 import hashlib
 import tempfile
 
-from ..utils import *
+from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, Optional, run
 from .manual_version import ManualVersion
 
 

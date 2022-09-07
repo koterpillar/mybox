@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterator
 
 from ..fs import home, link
-from ..utils import *
+from ..utils import Some, unsome_
 from .manual_version import ManualVersion
 
 

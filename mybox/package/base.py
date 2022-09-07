@@ -3,7 +3,7 @@ from functools import cached_property
 from typing import Optional
 
 from ..state import DB, VERSIONS, Table, Version
-from ..utils import *
+from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, OS, Distribution, Some, unsome_
 
 
 class Package(metaclass=ABCMeta):

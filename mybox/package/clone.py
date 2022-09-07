@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..fs import home, makedirs
-from ..utils import *
+from ..utils import run, run_output
 from .base import Package
 
 

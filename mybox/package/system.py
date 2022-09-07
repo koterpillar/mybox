@@ -7,7 +7,7 @@ from threading import Lock
 from typing import Optional
 
 from ..state import Version
-from ..utils import *
+from ..utils import Some, run, run_output, unsome, url_version, with_os
 from .base import Package
 
 
