@@ -6,6 +6,8 @@ from functools import cache
 from threading import Lock
 from typing import Optional
 
+import requests
+
 from ..state import Version
 from ..utils import Some, run, run_output, unsome, url_version, with_os
 from .base import Package
@@ -40,32 +42,38 @@ class Brew(Installer):
         run("brew", "upgrade", package)
 
     @cache
-    def info(self, package: str) -> tuple[str, Optional[str]]:
+    def installed_version(self, package: str) -> Optional[str]:
         info = json.loads(run_output("brew", "info", "--json=v2", package))
         if info["casks"]:
             cask = info["casks"][0]
-            return cask["version"], cask["installed"]
+            return cask["installed"]
         if info["formulae"]:
             formula = info["formulae"][0]
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
                 installed = None
+            return installed
+        raise ValueError(f"Unexpected output from brew: {info}")
+
+    def api(self, path: str) -> dict:
+        return requests.get(f"https://formulae.brew.sh/api/{path}").json()
+
+    CASK_PREFIX = "homebrew/cask/"
+
+    @cache
+    def latest_version(self, package: str) -> str:
+        if package.startswith(self.CASK_PREFIX):
+            cask_package = package[len(self.CASK_PREFIX) :]
+            cask = self.api(f"cask/{cask_package}.json")
+            return cask["version"]
+        else:
+            formula = self.api(f"formula/{package}.json")
             version = formula["versions"]["stable"]
             revision = formula.get("revision")
             if revision:
                 version += f"_{revision}"
-            return version, installed
-        raise ValueError(f"Unexpected output from brew: {info}")
-
-    def installed_version(self, package: str) -> Optional[str]:
-        try:
-            return self.info(package)[1]
-        except IndexError:
-            return None
-
-    def latest_version(self, package: str) -> str:
-        return self.info(package)[0]
+            return version
 
 
 class DNF(Installer):
