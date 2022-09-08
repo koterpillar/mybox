@@ -17,6 +17,9 @@ class TestBrew:
     def test_cask_version(self, brew):
         assert "4.12" <= brew.latest_version("homebrew/cask/docker") <= "99"
 
+    def test_font_version(self, brew):
+        assert "6.2" <= brew.latest_version("homebrew/cask-fonts/font-fira-code")
+
     def test_not_existing_formula(self, brew):
         with pytest.raises(Exception, match="zzzzzzzz"):
             brew.latest_version("zzzzzzzz")

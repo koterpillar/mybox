@@ -42,8 +42,11 @@ class Brew(Installer):
         run("brew", "upgrade", package)
 
     @cache
+    def brew_info(self, package: str) -> dict:
+        return json.loads(run_output("brew", "info", "--json=v2", package))
+
     def installed_version(self, package: str) -> Optional[str]:
-        info = json.loads(run_output("brew", "info", "--json=v2", package))
+        info = self.brew_info(package)
         if info["casks"]:
             cask = info["casks"][0]
             return cask["installed"]
@@ -66,16 +69,36 @@ class Brew(Installer):
     @cache
     def latest_version(self, package: str) -> str:
         if package.startswith(self.CASK_PREFIX):
+            # Cask
+            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-cask-formula
             cask_package = package[len(self.CASK_PREFIX) :]
             cask = self.api(f"cask/{cask_package}.json")
             return cask["version"]
-        else:
+        elif "/" not in package:
+            # Normal formula
+            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-core-formula
             formula = self.api(f"formula/{package}.json")
-            version = formula["versions"]["stable"]
-            revision = formula.get("revision")
-            if revision:
-                version += f"_{revision}"
-            return version
+            return self.formula_version(formula)
+        else:
+            # Non-core cask or formula?
+            # https://github.com/Homebrew/discussions/discussions/3618
+            info = self.brew_info(package)
+            if info.get("formulae"):
+                formula = info["formulae"][0]
+                return self.formula_version(formula)
+            elif info.get("casks"):
+                cask = info["casks"][0]
+                return cask["version"]
+            else:
+                raise ValueError(f"Unknown package: {package}")
+
+    @staticmethod
+    def formula_version(info: dict) -> str:
+        version = info["versions"]["stable"]
+        revision = info.get("revision")
+        if revision:
+            version += f"_{revision}"
+        return version
 
 
 class DNF(Installer):
