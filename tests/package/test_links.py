@@ -10,7 +10,7 @@ class LinksTestBase(PackageTestBase, metaclass=ABCMeta):
     def constructor_args(self) -> dict[str, Any]:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
-            "dest": "config",
+            "destination": "config",
         }
 
     @property
