@@ -1,4 +1,6 @@
 import os
+import random
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -8,22 +10,30 @@ from .base import PackageTestBase
 
 
 class TestClone(PackageTestBase):
+    @cached_property
+    def dir_name(self) -> str:
+        return f"mybox_test_{random.randint(0, 1000000)}"
+
     @property
     def constructor_args(self) -> dict[str, Any]:
         return {
             "clone": "ohmyzsh/ohmyzsh",
-            "destination": "oh-my-zsh",
+            "destination": self.dir_name,
         }
 
     @property
-    def destination_dir(self) -> str:
-        return os.environ["MYBOX_HOME"]
+    def target_dir(self) -> Path:
+        return Path(os.environ["MYBOX_HOME"])
+
+    @property
+    def destination(self) -> Path:
+        return self.target_dir / self.dir_name
 
     @property
     def check_installed_command(self) -> list[str]:
         return [
             "cat",
-            f"{self.destination_dir}/oh-my-zsh/templates/zshrc.zsh-template",
+            str(self.destination / "templates/zshrc.zsh-template"),
         ]
 
     check_installed_output = "alias ohmyzsh"
@@ -38,11 +48,11 @@ class TestRootClone(TestClone):
         try:
             return super().test_installs()
         finally:
-            run("sudo", "rm", "-rf", f"{self.destination_dir}/oh-my-zsh")
+            run("sudo", "rm", "-rf", str(self.destination))
 
     @property
-    def destination_dir(self) -> str:
-        return str(Path("~root").expanduser())
+    def target_dir(self) -> Path:
+        return Path("~root").expanduser()
 
     @property
     def check_installed_command(self) -> list[str]:
