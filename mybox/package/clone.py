@@ -1,15 +1,13 @@
-from pathlib import Path
 from typing import Optional
 
-from ..fs import home, makedirs
-from ..utils import run, run_output
-from .base import Package
+from ..fs import makedirs
+from ..utils import run, run_ok, run_output
+from .destination import Destination
 
 
-class Clone(Package):
-    def __init__(self, clone: str, destination: str, **kwargs) -> None:
+class Clone(Destination):
+    def __init__(self, clone: str, **kwargs) -> None:
         self.repo = clone
-        self.destination = destination
         super().__init__(**kwargs)
 
     @property
@@ -17,18 +15,23 @@ class Clone(Package):
         return self.repo
 
     @property
-    def directory(self) -> Path:
-        return home() / self.destination
+    def directory_exists(self) -> bool:
+        if self.root:
+            return run_ok("sudo", "test", "-d", str(self.destination))
+        return self.destination.is_dir()
 
     @property
-    def directory_exists(self) -> bool:
-        return self.directory.is_dir()
+    def git_args(self) -> list[str]:
+        result = ["git", "-C", str(self.destination)]
+        if self.root:
+            result.insert(0, "sudo")
+        return result
 
     @property
     def local_version(self) -> Optional[str]:
         if not self.directory_exists:
             return None
-        return run_output("git", "rev-parse", "HEAD", cwd=self.directory)
+        return run_output(*self.git_args, "rev-parse", "HEAD")
 
     @property
     def remote(self):
@@ -38,13 +41,14 @@ class Clone(Package):
         return run_output("git", "ls-remote", self.remote, "HEAD").split()[0]
 
     def install(self) -> None:
-        makedirs(self.directory.parent)
+        makedirs(self.destination.parent, sudo=self.root)
         if not self.directory_exists:
-            run("git", "clone", self.remote, str(self.directory))
-        run("git", "remote", "set-url", "origin", self.remote, cwd=self.directory)
-        run("git", "fetch", cwd=self.directory)
+            prefix = ["sudo"] if self.root else []
+            run(*prefix, "git", "clone", self.remote, str(self.destination))
+        run(*self.git_args, "remote", "set-url", "origin", self.remote)
+        run(*self.git_args, "fetch")
         default_branch = run_output(
-            "git", "rev-parse", "--abbrev-ref", "origin/HEAD", cwd=self.directory
+            *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD"
         ).split("/")[1]
-        run("git", "switch", default_branch, cwd=self.directory)
-        run("git", "reset", "--hard", f"origin/{default_branch}", cwd=self.directory)
+        run(*self.git_args, "switch", default_branch)
+        run(*self.git_args, "reset", "--hard", f"origin/{default_branch}")

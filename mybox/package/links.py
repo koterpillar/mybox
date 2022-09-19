@@ -2,33 +2,22 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from ..fs import home, link
+from ..fs import link
 from ..utils import Some, unsome_
+from .destination import Destination
 from .manual_version import ManualVersion
 
 
-class Links(ManualVersion):
-    dest: Path
-
+class Links(ManualVersion, Destination):
     def __init__(
         self,
         links: str,
-        dest: str,
         dot: bool = False,
-        root: bool = False,
         shallow: bool = False,
         only: Some[str] = None,
         **kwargs,
     ) -> None:
-        self.root = root
         self.source = Path(links).absolute()
-        if dest.startswith("/"):
-            self.dest = Path(dest)
-        else:
-            if self.root:
-                self.dest = Path("~root").expanduser() / dest
-            else:
-                self.dest = home() / dest
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)
@@ -36,7 +25,7 @@ class Links(ManualVersion):
 
     @property
     def name(self) -> str:
-        return f"links-{self.source}-{self.dest}"
+        return f"links-{self.source}-{self.destination}"
 
     def all_paths(self) -> Iterator[Path]:
         if not self.source.is_dir():
@@ -70,7 +59,7 @@ class Links(ManualVersion):
             if self.dot:
                 first_part, *parts = target.parts
                 target = Path("." + first_part, *parts)
-            target = self.dest.joinpath(target)
+            target = self.destination.joinpath(target)
 
             link(path, target, sudo=self.root)
         super().install()
