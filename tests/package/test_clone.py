@@ -38,7 +38,7 @@ class TestRootClone(TestClone):
         try:
             return super().test_installs()
         finally:
-            run("sudo", "-i", "rm", "-rf", "oh-my-zsh")
+            run("sudo", "rm", "-rf", f"{self.destination_dir}/oh-my-zsh")
 
     @property
     def destination_dir(self) -> str:
