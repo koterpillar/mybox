@@ -16,9 +16,6 @@ def is_executable(path: Path) -> bool:
     return run_ok("test", "-x", str(path))
 
 
-LN = find_executable("gln", "ln")
-
-
 def home() -> Path:
     try:
         return Path(os.environ["MYBOX_HOME"])
@@ -68,4 +65,4 @@ def link(
                 print(f'#!/bin/sh\nexec "{source}" "$@"', file=wrapper_file)
         make_executable(target, sudo=sudo)
     else:
-        run(LN, "-s", "-f", "-T", str(source), str(target), sudo=sudo)
+        run("ln", "-s", "-f", str(source), str(target), sudo=sudo)
