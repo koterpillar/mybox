@@ -23,7 +23,7 @@ class FS(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run_output(self, *args: str) -> str:
+    def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
         pass
 
     @abstractmethod
@@ -94,8 +94,8 @@ class LocalFS(FS):
     def run_ok(self, *args: str) -> bool:
         return run_ok(*args, sudo=self.root)
 
-    def run_output(self, *args: str) -> str:
-        return run_output(*args, sudo=self.root)
+    def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
+        return run_output(*args, stderr=stderr, sudo=self.root)
 
     def with_root(self, /, root: bool) -> "LocalFS":
         return LocalFS(root=root)

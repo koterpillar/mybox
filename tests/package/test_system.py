@@ -1,5 +1,6 @@
 import pytest
 
+from mybox.fs import LocalFS
 from mybox.package.system import Brew
 from mybox.utils import CURRENT_OS, run
 
@@ -9,7 +10,8 @@ class TestBrew:
     def brew(self):
         if CURRENT_OS != "darwin":
             pytest.skip("brew is only available on macOS")
-        return Brew()
+        fs = LocalFS()
+        return Brew(fs)
 
     @pytest.fixture(autouse=True)
     def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument

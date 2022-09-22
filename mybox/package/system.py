@@ -2,18 +2,23 @@ import json
 import shutil
 import subprocess
 from abc import ABCMeta, abstractmethod
-from functools import cache
+from functools import cache, cached_property
 from threading import Lock
 from typing import Optional
 
 import requests
 
+from ..fs import FS
 from ..state import Version
-from ..utils import Some, run, run_output, unsome, url_version, with_os
+from ..utils import Some, unsome, url_version, with_os
 from .base import Package
 
 
 class Installer(metaclass=ABCMeta):
+    def __init__(self, fs: FS) -> None:
+        self.fs = fs
+        super().__init__()
+
     @abstractmethod
     def install(self, package: str) -> None:
         pass
@@ -36,14 +41,14 @@ class Installer(metaclass=ABCMeta):
 
 class Brew(Installer):
     def install(self, package: str) -> None:
-        run("brew", "install", package)
+        self.fs.run("brew", "install", package)
 
     def upgrade(self, package: str) -> None:
-        run("brew", "upgrade", package)
+        self.fs.run("brew", "upgrade", package)
 
     @cache
     def brew_info(self, package: str) -> dict:
-        return json.loads(run_output("brew", "info", "--json=v2", package))
+        return json.loads(self.fs.run_output("brew", "info", "--json=v2", package))
 
     def installed_version(self, package: str) -> Optional[str]:
         info = self.brew_info(package)
@@ -103,14 +108,14 @@ class Brew(Installer):
 
 class DNF(Installer):
     def install(self, package: str) -> None:
-        run("dnf", "install", "-y", package, sudo=True)
+        self.fs.with_root(True).run("dnf", "install", "-y", package)
 
     def upgrade(self, package: str) -> None:
-        run("dnf", "upgrade", "-y", package, sudo=True)
+        self.fs.with_root(True).run("dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
         try:
-            output = run_output(
+            output = self.fs.run_output(
                 "rpm",
                 "--query",
                 "--queryformat",
@@ -126,7 +131,7 @@ class DNF(Installer):
         return output
 
     def latest_version(self, package: str) -> str:
-        output = run_output(
+        output = self.fs.run_output(
             "dnf",
             "--quiet",
             "repoquery",
@@ -146,13 +151,13 @@ class DNF(Installer):
 
 class Apt(Installer):
     def install(self, package: str) -> None:
-        run("apt", "install", "--yes", package, sudo=True)
+        self.fs.with_root(True).run("apt", "install", "--yes", package)
 
     def upgrade(self, package: str) -> None:
         self.install(package)
 
     def latest_version(self, package: str) -> str:
-        output = run_output(
+        output = self.fs.run_output(
             "apt-cache", "show", "--quiet", "--no-all-versions", package
         ).strip()
         for line in output.splitlines():
@@ -163,7 +168,7 @@ class Apt(Installer):
 
     def installed_version(self, package: str) -> Optional[str]:
         try:
-            return run_output(
+            return self.fs.run_output(
                 "dpkg-query",
                 "--showformat",
                 "${Version}",
@@ -175,18 +180,14 @@ class Apt(Installer):
             return None
 
 
-def linux_installer() -> Installer:
+def linux_installer(fs: FS) -> Installer:
     if shutil.which("dnf"):
-        return DNF()
+        return DNF(fs)
     elif shutil.which("apt"):
-        return Apt()
+        return Apt(fs)
     else:
         raise NotImplementedError("Cannot find a package manager.")
 
-
-INSTALLER: Installer = with_os(
-    linux=linux_installer, macos=lambda: Brew()  # pylint:disable=unnecessary-lambda
-)()
 
 INSTALLER_LOCK = Lock()
 
@@ -207,6 +208,10 @@ class SystemPackage(Package):
         self.services = unsome(service)
         super().__init__(**kwargs)
 
+    @cached_property
+    def installer(self):
+        return with_os(linux=linux_installer(self.fs), macos=Brew(self.fs))
+
     @property
     def name(self) -> str:
         return self._name
@@ -216,7 +221,7 @@ class SystemPackage(Package):
             return url_version(self.url)
         if self.auto_updates:
             return "latest"
-        return INSTALLER.latest_version(self.name)
+        return self.installer.latest_version(self.name)
 
     @property
     def local_version(self) -> Optional[str]:
@@ -226,14 +231,14 @@ class SystemPackage(Package):
             except KeyError:
                 return None
         if self.auto_updates:
-            return "latest" if INSTALLER.is_installed(self.name) else None
-        return INSTALLER.installed_version(self.name)
+            return "latest" if self.installer.is_installed(self.name) else None
+        return self.installer.installed_version(self.name)
 
     def postinstall_linux(self):
         if self.services:
-            run("systemctl", "daemon-reload", sudo=True)
+            self.fs.with_root(True).run("systemctl", "daemon-reload")
             for service in self.services:
-                run("systemctl", "enable", service, sudo=True)
+                self.fs.with_root(True).run("systemctl", "enable", service)
 
     def postinstall_macos(self):
         pass
@@ -241,10 +246,10 @@ class SystemPackage(Package):
     def install(self):
         with INSTALLER_LOCK:
             if self.url:
-                INSTALLER.install(self.url)
+                self.installer.install(self.url)
                 self.versions[self.name] = Version(version=self.get_remote_version())
             elif self.local_version:
-                INSTALLER.upgrade(self.name)
+                self.installer.upgrade(self.name)
             else:
-                INSTALLER.install(self.name)
+                self.installer.install(self.name)
         with_os(linux=self.postinstall_linux, macos=self.postinstall_macos)()
