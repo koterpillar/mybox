@@ -50,7 +50,9 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
-        self.fs.run("unzip", "-qq", str(source), "-d", str(self.package_directory()))
+        self.fs.run(
+            "unzip", "-o", "-qq", str(source), "-d", str(self.package_directory())
+        )
 
     def extract(self, url: str, source: Path) -> None:
         if self.raw:
