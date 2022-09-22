@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Iterable, Literal, Optional
 
-from .utils import run, run_ok, run_output
+from .utils import TERMINAL_LOCK, run, run_ok, run_output
 
 LinkMethod = Literal["binary_wrapper"]
 
@@ -76,19 +76,29 @@ class FS(metaclass=ABCMeta):
 
 
 class LocalFS(FS):
+    def run_args(self, args: Iterable[str]) -> list[str]:
+        if self.root:
+            # If the sudo prompt is needed, avoid drawing a progress bar over it
+            # with first prompting for a no-op command.
+            with TERMINAL_LOCK:
+                run("sudo", "true")
+            return ["sudo", *args]
+        else:
+            return list(args)
+
     def run(
         self,
         *args: str,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         stdout: Optional[Any] = None,
     ) -> None:
-        run(*args, input=input, stdout=stdout, sudo=self.root)
+        run(*self.run_args(args), input=input, stdout=stdout)
 
     def run_ok(self, *args: str) -> bool:
-        return run_ok(*args, sudo=self.root)
+        return run_ok(*self.run_args(args))
 
     def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
-        return run_output(*args, stderr=stderr, sudo=self.root)
+        return run_output(*self.run_args(args), stderr=stderr)
 
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:

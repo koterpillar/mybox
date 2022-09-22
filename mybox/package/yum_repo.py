@@ -2,7 +2,7 @@ import configparser
 import hashlib
 import tempfile
 
-from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, Optional, run
+from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, Optional
 from .manual_version import ManualVersion
 
 
@@ -42,18 +42,18 @@ class YumRepo(ManualVersion):
             repo[self.repo_name]["gpgkey"] = self.gpg_key
 
         with tempfile.NamedTemporaryFile(mode="w") as repo_file:
+            # FIXME: Use self.fs instead of creating file locally
             repo.write(repo_file, space_around_delimiters=False)
             repo_file.flush()
-            run(
+            self.fs.with_root(True).run(
                 "install",
                 "--mode",
                 "644",
                 repo_file.name,
                 f"/etc/yum.repos.d/{self.repo_name}.repo",
-                sudo=True,
             )
 
         if self.gpg_key:
-            run("rpm", "--import", self.gpg_key, sudo=True)
+            self.fs.with_root(True).run("rpm", "--import", self.gpg_key)
 
         super().install()

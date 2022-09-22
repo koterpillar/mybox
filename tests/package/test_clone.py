@@ -48,7 +48,7 @@ class TestRootClone(TestClone):
         try:
             return super().test_installs()
         finally:
-            run("rm", "-rf", str(self.destination), sudo=True)
+            run("sudo", "rm", "-rf", str(self.destination))
 
     @property
     def target_dir(self) -> Path:
