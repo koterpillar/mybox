@@ -7,7 +7,7 @@ from .utils import run, run_ok
 
 def find_executable(*executables: str) -> str:
     for candidate in executables:
-        if run_ok("command", "-v", candidate):
+        if run_ok("which", candidate):
             return candidate
     raise Exception(f"None of {','.join(executables)} found in PATH.")
 
