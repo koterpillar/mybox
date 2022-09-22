@@ -71,12 +71,12 @@ class GitHubPackage(ArchivePackage):
         regex: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self.repo = repo
         self.prefixes = unsome(prefix)
         self.suffixes = unsome(suffix)
         self.excludes = unsome(exclude)
         self.regex = unsome(regex)
-        super().__init__(**kwargs)
 
     @cache
     def latest_release(self) -> GitHubRelease:

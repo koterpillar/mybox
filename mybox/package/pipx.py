@@ -20,8 +20,8 @@ def get_pipx_versions() -> dict[str, str]:
 
 class PipxPackage(PipBasePackage):
     def __init__(self, *, pipx: str, **kwargs) -> None:
-        self.package = pipx
         super().__init__(**kwargs)
+        self.package = pipx
 
     @property
     def local_version(self) -> Optional[str]:

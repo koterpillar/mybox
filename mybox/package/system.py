@@ -202,11 +202,11 @@ class SystemPackage(Package):
         service: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self._name = name
         self.url = url
         self.auto_updates = auto_updates
         self.services = unsome(service)
-        super().__init__(**kwargs)
 
     @cached_property
     def installer(self):

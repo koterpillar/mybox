@@ -10,10 +10,10 @@ class YumRepo(ManualVersion):
     def __init__(
         self, yum_name: str, yum_url: str, gpg_key: Optional[str] = None, **kwargs
     ) -> None:
+        super().__init__(**kwargs)
         self.repo_name = yum_name
         self.baseurl = yum_url
         self.gpg_key = gpg_key
-        super().__init__(**kwargs)
 
     @property
     def name(self) -> str:

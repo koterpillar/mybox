@@ -6,8 +6,8 @@ from .destination import Destination
 
 class Clone(Destination):
     def __init__(self, clone: str, **kwargs) -> None:
-        self.repo = clone
         super().__init__(**kwargs)
+        self.repo = clone
 
     @property
     def name(self) -> str:

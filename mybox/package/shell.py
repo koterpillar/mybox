@@ -15,8 +15,8 @@ def get_all_shells() -> list[str]:
 
 class Shell(Package):
     def __init__(self, shell: str, **kwargs) -> None:
-        self.shell = Path(shell)
         super().__init__(**kwargs)
+        self.shell = Path(shell)
 
     @property
     def name(self) -> str:

@@ -16,11 +16,11 @@ class Links(ManualVersion, Destination):
         only: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self.source = Path(links).absolute()
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)
-        super().__init__(**kwargs)
 
     @property
     def name(self) -> str:

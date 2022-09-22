@@ -16,10 +16,10 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         strip: int = 0,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self.raw = raw
         self.raw_executable = raw_executable
         self.strip = strip
-        super().__init__(**kwargs)
 
     @abstractmethod
     def archive_url(self) -> str:
