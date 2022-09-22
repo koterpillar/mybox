@@ -1,3 +1,4 @@
+import os
 import subprocess
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -8,6 +9,13 @@ import pytest
 from mybox.fs import LocalFS
 from mybox.package import parse_package
 from mybox.state import DB
+
+
+class OverrideHomeFS(LocalFS):
+    def home(self) -> Path:
+        if self.root:
+            return super().home()
+        return Path(os.environ["MYBOX_HOME"])
 
 
 class PackageTestBase(metaclass=ABCMeta):
@@ -41,7 +49,7 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def test_installs(self):
         db = DB(":memory:")
-        fs = LocalFS()  # FIXME: Use Docker and/or override directories
+        fs = OverrideHomeFS()
         package = parse_package(self.constructor_args, db=db, fs=fs)
         assert package.applicable
         package.install()

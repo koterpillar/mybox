@@ -1,4 +1,3 @@
-import os
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, Literal, Optional
@@ -9,6 +8,13 @@ LinkMethod = Literal["binary_wrapper"]
 
 
 class FS(metaclass=ABCMeta):
+    def __init__(self, root: bool = False) -> None:
+        self.root = root
+        super().__init__()
+
+    def with_root(self, /, root: bool) -> "FS":
+        return type(self)(root=root)
+
     @abstractmethod
     def run(
         self,
@@ -26,10 +32,6 @@ class FS(metaclass=ABCMeta):
     def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
         pass
 
-    @abstractmethod
-    def with_root(self, /, root: bool) -> "FS":
-        pass
-
     def find_executable(self, *executables: str) -> str:
         for candidate in executables:
             if self.run_ok("which", candidate):
@@ -40,13 +42,8 @@ class FS(metaclass=ABCMeta):
         return self.run_ok("test", "-x", str(path))
 
     def home(self) -> Path:
-        # FIXME: root should not use MYBOX_HOME
-        try:
-            return Path(os.environ["MYBOX_HOME"])
-        except KeyError:
-            pass
-
-        return Path.home()
+        path = "~root" if self.root else "~"
+        return Path(self.with_root(False).run_output("sh", "-c", f"eval echo {path}"))
 
     def local(self) -> Path:
         return self.home() / ".local"
@@ -79,10 +76,6 @@ class FS(metaclass=ABCMeta):
 
 
 class LocalFS(FS):
-    def __init__(self, root: bool = False) -> None:
-        self.root = root
-        super().__init__()
-
     def run(
         self,
         *args: str,
@@ -96,9 +89,6 @@ class LocalFS(FS):
 
     def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
         return run_output(*args, stderr=stderr, sudo=self.root)
-
-    def with_root(self, /, root: bool) -> "LocalFS":
-        return LocalFS(root=root)
 
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
