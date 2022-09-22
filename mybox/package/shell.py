@@ -30,7 +30,7 @@ class Shell(Package):
         return pwd.getpwuid(os.getuid()).pw_shell
 
     def install(self) -> None:
-        if not self.shell.is_file():
+        if not self.fs.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
         if not self.fs.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")

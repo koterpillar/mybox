@@ -79,7 +79,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
             candidate = self.package_directory() / Path(*relative_path) / binary
-            if candidate.is_file() and self.fs.is_executable(candidate):
+            if self.fs.is_executable(candidate):
                 return candidate
         raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
 
@@ -87,7 +87,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         candidate = (
             self.package_directory() / "share" / "applications" / f"{name}.desktop"
         )
-        if candidate.is_file():
+        if self.fs.is_file(candidate):
             return candidate
         raise ValueError(
             f"Cannot find application '{name}' in {self.package_directory()}."
@@ -95,13 +95,13 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     def icon_directory(self) -> Optional[Path]:
         candidate = self.package_directory() / "share" / "icons"
-        if candidate.is_dir():
+        if self.fs.is_dir(candidate):
             return candidate
         return None
 
     def font_path(self, name: str) -> Path:
         candidate = self.package_directory() / name
-        if candidate.is_file():
+        if self.fs.is_file(candidate):
             return candidate
         raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
 

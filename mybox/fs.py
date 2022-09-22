@@ -38,8 +38,14 @@ class FS(metaclass=ABCMeta):
                 return candidate
         raise Exception(f"None of {','.join(executables)} found in PATH.")
 
+    def is_file(self, path: Path) -> bool:
+        return self.run_ok("test", "-f", str(path))
+
     def is_executable(self, path: Path) -> bool:
         return self.run_ok("test", "-x", str(path))
+
+    def is_dir(self, path: Path) -> bool:
+        return self.run_ok("test", "-d", str(path))
 
     def home(self) -> Path:
         path = "~root" if self.root else "~"
