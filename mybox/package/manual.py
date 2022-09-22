@@ -73,7 +73,10 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             icons_target = self.local / "share" / "icons"
             icon = self.icon_name(path)
             if icon:
-                for icon_path in icons_source.rglob(f"{icon}.*"):
+                icons = self.fs.run_output(
+                    "find", str(icons_source), "-name", f"{icon}.*"
+                ).splitlines()
+                for icon_path in map(Path, icons):
                     target = transplant_path(icons_source, icons_target, icon_path)
                     self.fs.link(icon_path, target)
 
