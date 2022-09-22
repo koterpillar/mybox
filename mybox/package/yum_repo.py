@@ -45,15 +45,15 @@ class YumRepo(ManualVersion):
             repo.write(repo_file, space_around_delimiters=False)
             repo_file.flush()
             run(
-                "sudo",
                 "install",
                 "--mode",
                 "644",
                 repo_file.name,
                 f"/etc/yum.repos.d/{self.repo_name}.repo",
+                sudo=True,
             )
 
         if self.gpg_key:
-            run("sudo", "rpm", "--import", self.gpg_key)
+            run("rpm", "--import", self.gpg_key, sudo=True)
 
         super().install()

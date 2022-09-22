@@ -37,5 +37,5 @@ class Shell(Package):
         if not is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
         if str(self.shell) not in get_all_shells():
-            run("sudo", "tee", "-a", SHELLS_FILE, input=str(self.shell).encode())
+            run("tee", "-a", SHELLS_FILE, input=str(self.shell).encode(), sudo=True)
         run("chsh", "-s", str(self.shell))

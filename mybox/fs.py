@@ -1,20 +1,19 @@
 import os
-import shutil
 from pathlib import Path
 from typing import Literal, Optional
 
-from .utils import run
+from .utils import run, run_ok
 
 
 def find_executable(*executables: str) -> str:
     for candidate in executables:
-        if shutil.which(candidate):
+        if run_ok("command", "-v", candidate):
             return candidate
     raise Exception(f"None of {','.join(executables)} found in PATH.")
 
 
 def is_executable(path: Path) -> bool:
-    return os.access(path, os.X_OK)
+    return run_ok("test", "-x", str(path))
 
 
 LN = find_executable("gln", "ln")
@@ -38,21 +37,15 @@ def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
 
 
 def makedirs(path: Path, sudo: bool = False) -> None:
-    if sudo:
-        run("sudo", "mkdir", "-p", str(path))
-    else:
-        path.mkdir(parents=True, exist_ok=True)
+    run("mkdir", "-p", str(path), sudo=sudo)
 
 
 def rm(path: Path, sudo: bool = False) -> None:
-    if sudo:
-        run("sudo", "rm", "-r", "-f", str(path))
-    else:
-        path.unlink(missing_ok=True)
+    run("rm", "-r", "-f", str(path), sudo=sudo)
 
 
-def make_executable(path: Path) -> None:
-    run("chmod", "+x", str(path))
+def make_executable(path: Path, sudo: bool = False) -> None:
+    run("chmod", "+x", str(path), sudo=sudo)
 
 
 LinkMethod = Literal["binary_wrapper"]
@@ -73,9 +66,6 @@ def link(
         else:
             with open(target, "w") as wrapper_file:
                 print(f'#!/bin/sh\nexec "{source}" "$@"', file=wrapper_file)
-            make_executable(target)
+        make_executable(target, sudo=sudo)
     else:
-        if sudo:
-            run("sudo", LN, "-s", "-f", "-T", str(source), str(target))
-        else:
-            target.symlink_to(source)
+        run(LN, "-s", "-f", "-T", str(source), str(target), sudo=sudo)

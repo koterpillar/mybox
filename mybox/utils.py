@@ -63,19 +63,25 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run(*args: str, **kwargs) -> subprocess.CompletedProcess:
-    if args[0] == "sudo":
+def run_args(args: Iterable[str], *, sudo: bool) -> list[str]:
+    if sudo:
         # If the sudo prompt is needed, avoid drawing a progress bar over it
         # with first prompting for a no-op command.
         with TERMINAL_LOCK:
             subprocess.run(["sudo", "true"], check=True)
-    return subprocess.run(args, check=True, **kwargs)
+        return ["sudo", *args]
+    else:
+        return list(args)
 
 
-def run_ok(*args: str, **kwargs) -> bool:
+def run(*args: str, sudo: bool = False, **kwargs) -> subprocess.CompletedProcess:
+    return subprocess.run(run_args(args, sudo=sudo), check=True, **kwargs)
+
+
+def run_ok(*args: str, sudo: bool = False, **kwargs) -> bool:
     return (
         subprocess.run(
-            args,
+            run_args(args, sudo=sudo),
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -85,9 +91,11 @@ def run_ok(*args: str, **kwargs) -> bool:
     )
 
 
-def run_output(*args: str, **kwargs) -> str:
+def run_output(*args: str, sudo: bool = False, **kwargs) -> str:
     return (
-        subprocess.run(args, stdout=subprocess.PIPE, check=True, **kwargs)
+        subprocess.run(
+            run_args(args, sudo=sudo), stdout=subprocess.PIPE, check=True, **kwargs
+        )
         .stdout.decode()
         .strip()
     )

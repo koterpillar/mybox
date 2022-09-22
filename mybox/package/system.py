@@ -103,10 +103,10 @@ class Brew(Installer):
 
 class DNF(Installer):
     def install(self, package: str) -> None:
-        run("sudo", "dnf", "install", "-y", package)
+        run("dnf", "install", "-y", package, sudo=True)
 
     def upgrade(self, package: str) -> None:
-        run("sudo", "dnf", "upgrade", "-y", package)
+        run("dnf", "upgrade", "-y", package, sudo=True)
 
     def installed_version(self, package: str) -> Optional[str]:
         try:
@@ -146,7 +146,7 @@ class DNF(Installer):
 
 class Apt(Installer):
     def install(self, package: str) -> None:
-        run("sudo", "apt", "install", "--yes", package)
+        run("apt", "install", "--yes", package, sudo=True)
 
     def upgrade(self, package: str) -> None:
         self.install(package)
@@ -231,9 +231,9 @@ class SystemPackage(Package):
 
     def postinstall_linux(self):
         if self.services:
-            run("sudo", "systemctl", "daemon-reload")
+            run("systemctl", "daemon-reload", sudo=True)
             for service in self.services:
-                run("sudo", "systemctl", "enable", service)
+                run("systemctl", "enable", service, sudo=True)
 
     def postinstall_macos(self):
         pass
