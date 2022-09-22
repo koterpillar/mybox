@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import Optional
 
+from ..fs import FS
 from ..state import DB, VERSIONS, Table, Version
 from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, OS, Distribution, Some, unsome_
 
@@ -14,12 +15,18 @@ class Package(metaclass=ABCMeta):
         self,
         *,
         db: DB,
-        os: Some[OS] = None,  # pylint:disable=redefined-outer-name
+        fs: FS,
+        os: Some[OS] = None,
         distribution: Some[Distribution] = None,
     ) -> None:
         self.db = db
+        self.fs_ = fs
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)
+
+    @property
+    def fs(self) -> FS:
+        return self.fs_
 
     @property
     @abstractmethod

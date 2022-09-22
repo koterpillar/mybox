@@ -5,6 +5,7 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
+from mybox.fs import LocalFS
 from mybox.package import parse_package
 from mybox.state import DB
 
@@ -40,7 +41,8 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def test_installs(self):
         db = DB(":memory:")
-        package = parse_package(db, self.constructor_args)
+        fs = LocalFS()  # FIXME: Use Docker and/or override directories
+        package = parse_package(self.constructor_args, db=db, fs=fs)
         assert package.applicable
         package.install()
         self.check_installed()

@@ -3,8 +3,6 @@ import pwd
 from pathlib import Path
 from typing import Optional
 
-from ..fs import is_executable
-from ..utils import run
 from .base import Package
 
 SHELLS_FILE = "/etc/shells"
@@ -34,8 +32,10 @@ class Shell(Package):
     def install(self) -> None:
         if not self.shell.is_file():
             raise ValueError(f"{self.shell} does not exist.")
-        if not is_executable(self.shell):
+        if not self.fs.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
         if str(self.shell) not in get_all_shells():
-            run("tee", "-a", SHELLS_FILE, input=str(self.shell).encode(), sudo=True)
-        run("chsh", "-s", str(self.shell))
+            self.fs.with_root(True).run(
+                "tee", "-a", SHELLS_FILE, input=str(self.shell).encode()
+            )
+        self.fs.run("chsh", "-s", str(self.shell))

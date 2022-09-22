@@ -1,13 +1,10 @@
 import tempfile
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 from pathlib import Path
 from typing import Optional, Union
 
-from ..fs import find_executable, is_executable, local, make_executable, makedirs
-from ..utils import run
 from .manual import ManualPackage
-
-TAR = find_executable("gtar", "tar")
 
 
 class ArchivePackage(ManualPackage, metaclass=ABCMeta):
@@ -29,13 +26,17 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         pass
 
     def package_directory(self) -> Path:
-        result = local() / f"{self.name.replace('/', '--')}.app"
-        makedirs(result)
+        result = self.fs.local() / f"{self.name.replace('/', '--')}.app"
+        self.fs.makedirs(result)
         return result
 
+    @cached_property
+    def tar(self) -> str:
+        return self.fs.find_executable("gtar", "tar")
+
     def untar(self, source: Path, *extra: str) -> None:
-        run(
-            TAR,
+        self.fs.run(
+            self.tar,
             "-x",
             "--strip",
             str(self.strip),
@@ -49,7 +50,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
-        run("unzip", "-qq", str(source), "-d", str(self.package_directory()))
+        self.fs.run("unzip", "-qq", str(source), "-d", str(self.package_directory()))
 
     def extract(self, url: str, source: Path) -> None:
         if self.raw:
@@ -58,9 +59,9 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             else:
                 filename = url.rsplit("/", 1)[-1]
             target = self.package_directory() / filename
-            run("cp", str(source), str(target))
+            self.fs.run("cp", str(source), str(target))
             if self.raw_executable:
-                make_executable(target)
+                self.fs.make_executable(target)
         elif url.endswith(".tar"):
             self.untar(source)
         elif url.endswith(".tar.gz") or url.endswith(".tgz"):
@@ -78,7 +79,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
             candidate = self.package_directory() / Path(*relative_path) / binary
-            if candidate.is_file() and is_executable(candidate):
+            if candidate.is_file() and self.fs.is_executable(candidate):
                 return candidate
         raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
 
@@ -107,6 +108,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def install(self):
         url = self.archive_url()
         with tempfile.NamedTemporaryFile() as archive_file:
-            run("curl", "-sSL", url, stdout=archive_file)
+            self.fs.run("curl", "-sSL", url, stdout=archive_file)
             self.extract(url, Path(archive_file.name))
         super().install()

@@ -2,7 +2,6 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from ..fs import link
 from ..utils import Some, unsome_
 from .destination import Destination
 from .manual_version import ManualVersion
@@ -61,5 +60,5 @@ class Links(ManualVersion, Destination):
                 target = Path("." + first_part, *parts)
             target = self.destination.joinpath(target)
 
-            link(path, target, sudo=self.root)
+            self.fs.link(path, target)
         super().install()

@@ -4,8 +4,8 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from ..fs import home, link, local, makedirs, transplant_path
-from ..utils import Some, run, unsome, with_os
+from ..fs import transplant_path
+from ..utils import Some, unsome, with_os
 from .manual_version import ManualVersion
 
 
@@ -42,17 +42,16 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         if self.as_global:
             return Path("/usr/local")
         else:
-            return local()
+            return self.fs.local()
 
     @abstractmethod
     def binary_path(self, binary: str) -> Path:
         pass
 
     def install_binary(self, name: str) -> None:
-        link(
+        self.fs.link(
             self.binary_path(name),
             self.local / "bin" / name,
-            sudo=self.as_global,
             method="binary_wrapper" if self.binary_wrapper else None,
         )
 
@@ -69,7 +68,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
     def install_app_linux(self, name: str) -> None:
         path = self.app_path(name)
         target = self.local / "share" / "applications" / f"{name}.desktop"
-        link(path, target, sudo=self.as_global)
+        self.fs.link(path, target)
         icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
         if icons_source:
             icons_target = self.local / "share" / "icons"
@@ -77,7 +76,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
             if icon:
                 for icon_path in icons_source.rglob(f"{icon}.*"):
                     target = transplant_path(icons_source, icons_target, icon_path)
-                    link(icon_path, target, sudo=self.as_global)
+                    self.fs.link(icon_path, target)
 
     def install_app_macos(self, name: str) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,
@@ -90,14 +89,15 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
 
     def install_font(self, name: str) -> None:
         font_dir = with_os(
-            linux=self.local / "share" / "fonts", macos=home() / "Library" / "Fonts"
+            linux=self.local / "share" / "fonts",
+            macos=self.fs.home() / "Library" / "Fonts",
         )
-        makedirs(font_dir)
+        self.fs.makedirs(font_dir)
         source = self.font_path(name)
         target = font_dir / name
-        link(source, target, sudo=self.as_global)
+        self.fs.link(source, target)
         if shutil.which("fc-cache"):
-            run("fc-cache", "-f", str(font_dir))
+            self.fs.run("fc-cache", "-f", str(font_dir))
 
     def install(self) -> None:
         for binary in self.binaries:

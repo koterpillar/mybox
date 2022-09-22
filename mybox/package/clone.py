@@ -1,7 +1,6 @@
 from typing import Optional
 
-from ..fs import makedirs
-from ..utils import run, run_ok, run_output
+from ..utils import run_output
 from .destination import Destination
 
 
@@ -16,20 +15,20 @@ class Clone(Destination):
 
     @property
     def directory_exists(self) -> bool:
-        return run_ok("test", "-d", str(self.destination), sudo=self.root)
+        return self.fs.run_ok("test", "-d", str(self.destination))
 
     @property
     def git_args(self) -> list[str]:
         return ["git", "-C", str(self.destination)]
 
     def run_git(self, *args: str) -> None:
-        run(*self.git_args, *args, sudo=self.root)
+        self.fs.run(*self.git_args, *args)
 
     @property
     def local_version(self) -> Optional[str]:
         if not self.directory_exists:
             return None
-        return run_output(*self.git_args, "rev-parse", "HEAD", sudo=self.root)
+        return self.fs.run_output(*self.git_args, "rev-parse", "HEAD")
 
     @property
     def remote(self):
@@ -39,13 +38,13 @@ class Clone(Destination):
         return run_output("git", "ls-remote", self.remote, "HEAD").split()[0]
 
     def install(self) -> None:
-        makedirs(self.destination.parent, sudo=self.root)
+        self.fs.makedirs(self.destination.parent)
         if not self.directory_exists:
-            run("git", "clone", self.remote, str(self.destination), sudo=self.root)
+            self.fs.run("git", "clone", self.remote, str(self.destination))
         self.run_git("remote", "set-url", "origin", self.remote)
         self.run_git("fetch")
-        default_branch = run_output(
-            *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD", sudo=self.root
+        default_branch = self.fs.run_output(
+            *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD"
         ).split("/")[1]
         self.run_git("switch", default_branch)
         self.run_git("reset", "--hard", f"origin/{default_branch}")
