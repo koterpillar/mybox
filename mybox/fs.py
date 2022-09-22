@@ -16,7 +16,10 @@ def is_executable(path: Path) -> bool:
     return run_ok("test", "-x", str(path))
 
 
-def home() -> Path:
+def home(root: bool = False) -> Path:
+    if root:
+        return Path("~root").expanduser()
+
     try:
         return Path(os.environ["MYBOX_HOME"])
     except KeyError:

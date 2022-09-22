@@ -10,11 +10,5 @@ class Destination(Package, metaclass=ABCMeta):
 
     def __init__(self, destination: str, root: bool = False, **kwargs) -> None:
         self.root = root
-        if destination.startswith("/"):
-            self.destination = Path(destination)
-        else:
-            if self.root:
-                self.destination = Path("~root").expanduser() / destination
-            else:
-                self.destination = home() / destination
+        self.destination = home(root=self.root) / destination
         super().__init__(**kwargs)
