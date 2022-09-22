@@ -57,6 +57,9 @@ class FS(metaclass=ABCMeta):
     def make_executable(self, path: Path) -> None:
         self.run("chmod", "+x", str(path))
 
+    def write_file(self, path: Path, content: str) -> None:
+        self.run("cp", "/dev/stdin", str(path), input=content.encode())
+
     def link(
         self,
         source: Path,
@@ -67,9 +70,7 @@ class FS(metaclass=ABCMeta):
         self.makedirs(target.parent)
         self.rm(target)
         if method == "binary_wrapper":
-            # FIXME: should use run
-            with open(target, "w") as wrapper_file:
-                print(f'#!/bin/sh\nexec "{source}" "$@"', file=wrapper_file)
+            self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
             self.make_executable(target)
         else:
             self.run("ln", "-s", "-f", str(source), str(target))
