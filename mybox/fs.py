@@ -63,6 +63,9 @@ class FS(metaclass=ABCMeta):
     def make_executable(self, path: Path) -> None:
         self.run("chmod", "+x", str(path))
 
+    def read_file(self, path: Path) -> str:
+        return self.run_output("cat", str(path))
+
     def write_file(self, path: Path, content: str) -> None:
         self.run("cp", "/dev/stdin", str(path), input=content.encode())
 

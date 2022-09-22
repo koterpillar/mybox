@@ -10,12 +10,6 @@ from .manual_version import ManualVersion
 from .root import Root
 
 
-def icon_name(app_path: Path) -> Optional[str]:
-    app = configparser.ConfigParser()
-    app.read(app_path)
-    return app["Desktop Entry"].get("Icon")
-
-
 class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     binaries: list[str]
     apps: list[str]
@@ -64,6 +58,12 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     def install_app(self, name: str) -> None:
         with_os(linux=self.install_app_linux, macos=self.install_app_macos)(name)
 
+    def icon_name(self, app_path: Path) -> Optional[str]:
+        config = self.fs.read_file(app_path)
+        app = configparser.ConfigParser()
+        app.read_string(config)
+        return app["Desktop Entry"].get("Icon")
+
     def install_app_linux(self, name: str) -> None:
         path = self.app_path(name)
         target = self.local / "share" / "applications" / f"{name}.desktop"
@@ -71,7 +71,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
         if icons_source:
             icons_target = self.local / "share" / "icons"
-            icon = icon_name(path)
+            icon = self.icon_name(path)
             if icon:
                 for icon_path in icons_source.rglob(f"{icon}.*"):
                     target = transplant_path(icons_source, icons_target, icon_path)
