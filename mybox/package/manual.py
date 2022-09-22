@@ -7,6 +7,7 @@ from typing import Optional
 from ..fs import transplant_path
 from ..utils import Some, unsome, with_os
 from .manual_version import ManualVersion
+from .root import Root
 
 
 def icon_name(app_path: Path) -> Optional[str]:
@@ -15,7 +16,7 @@ def icon_name(app_path: Path) -> Optional[str]:
     return app["Desktop Entry"].get("Icon")
 
 
-class ManualPackage(ManualVersion, metaclass=ABCMeta):
+class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     binaries: list[str]
     apps: list[str]
     fonts: list[str]
@@ -23,23 +24,21 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
     def __init__(
         self,
         *,
-        as_global: bool = False,
         binary: Some[str] = None,
         binary_wrapper: bool = False,
         app: Some[str] = None,
         font: Some[str] = None,
         **kwargs,
     ) -> None:
-        self.as_global = as_global
+        super().__init__(**kwargs)
         self.binaries = unsome(binary)
         self.binary_wrapper = binary_wrapper
         self.apps = unsome(app)
         self.fonts = unsome(font)
-        super().__init__(**kwargs)
 
     @property
     def local(self) -> Path:
-        if self.as_global:
+        if self.root:
             return Path("/usr/local")
         else:
             return self.fs.local()
