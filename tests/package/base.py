@@ -1,3 +1,4 @@
+import os
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -104,9 +105,13 @@ class PackageTestBase(metaclass=ABCMeta):
     def ensure_local_bin_environment(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        local_bin = tmp_path / ".local" / "bin"
-        monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-        self.driver = OverrideHomeDriver(override_home=tmp_path)
+        docker_image = os.environ.get("DOCKER_IMAGE")
+        if docker_image:
+            self.driver = DockerDriver.create(image=docker_image)
+        else:
+            local_bin = tmp_path / ".local" / "bin"
+            monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
+            self.driver = OverrideHomeDriver(override_home=tmp_path)
 
     @property
     def test_driver(self) -> Driver:
