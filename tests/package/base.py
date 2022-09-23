@@ -1,4 +1,3 @@
-import subprocess
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -8,6 +7,7 @@ import pytest
 from mybox.driver import Driver, LocalDriver
 from mybox.package import parse_package
 from mybox.state import DB
+from mybox.utils import run_ok, run_output
 
 
 class OverrideHomeDriver(LocalDriver):
@@ -48,11 +48,10 @@ class PackageTestBase(metaclass=ABCMeta):
         self.driver = OverrideHomeDriver(override_home=tmp_path)
 
     def check_installed(self):
-        result = subprocess.run(
-            self.check_installed_command, check=True, stdout=subprocess.PIPE
-        )
-        if self.check_installed_output is not None:
-            output = result.stdout.decode()
+        if self.check_installed_output is None:
+            run_ok(*self.check_installed_command)
+        else:
+            output = run_output(*self.check_installed_command)
             assert self.check_installed_output in output
 
     def test_installs(self):

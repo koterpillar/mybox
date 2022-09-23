@@ -29,28 +29,25 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run(*args: str, **kwargs) -> subprocess.CompletedProcess:
-    return subprocess.run(args, check=True, **kwargs)
+def run(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(args, check=True)
 
 
-def run_ok(*args: str, **kwargs) -> bool:
+def run_ok(*args: str) -> bool:
     return (
         subprocess.run(
             args,
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            **kwargs,
         ).returncode
         == 0
     )
 
 
-def run_output(*args: str, **kwargs) -> str:
+def run_output(*args: str) -> str:
     return (
-        subprocess.run(args, stdout=subprocess.PIPE, check=True, **kwargs)
-        .stdout.decode()
-        .strip()
+        subprocess.run(args, stdout=subprocess.PIPE, check=True).stdout.decode().strip()
     )
 
 
