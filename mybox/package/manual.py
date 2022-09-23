@@ -23,14 +23,14 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
     def __init__(
         self,
         *,
-        as_global: bool = False,
+        root: bool = False,
         binary: Some[str] = None,
         binary_wrapper: bool = False,
         app: Some[str] = None,
         font: Some[str] = None,
         **kwargs,
     ) -> None:
-        self.as_global = as_global
+        self.root = root
         self.binaries = unsome(binary)
         self.binary_wrapper = binary_wrapper
         self.apps = unsome(app)
@@ -39,7 +39,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
 
     @property
     def local(self) -> Path:
-        if self.as_global:
+        if self.root:
             return Path("/usr/local")
         else:
             return local()
@@ -52,7 +52,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         link(
             self.binary_path(name),
             self.local / "bin" / name,
-            sudo=self.as_global,
+            sudo=self.root,
             method="binary_wrapper" if self.binary_wrapper else None,
         )
 
@@ -69,7 +69,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
     def install_app_linux(self, name: str) -> None:
         path = self.app_path(name)
         target = self.local / "share" / "applications" / f"{name}.desktop"
-        link(path, target, sudo=self.as_global)
+        link(path, target, sudo=self.root)
         icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
         if icons_source:
             icons_target = self.local / "share" / "icons"
@@ -77,7 +77,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
             if icon:
                 for icon_path in icons_source.rglob(f"{icon}.*"):
                     target = transplant_path(icons_source, icons_target, icon_path)
-                    link(icon_path, target, sudo=self.as_global)
+                    link(icon_path, target, sudo=self.root)
 
     def install_app_macos(self, name: str) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,
@@ -95,7 +95,7 @@ class ManualPackage(ManualVersion, metaclass=ABCMeta):
         makedirs(font_dir)
         source = self.font_path(name)
         target = font_dir / name
-        link(source, target, sudo=self.as_global)
+        link(source, target, sudo=self.root)
         if shutil.which("fc-cache"):
             run("fc-cache", "-f", str(font_dir))
 
