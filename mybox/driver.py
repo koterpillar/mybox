@@ -43,6 +43,12 @@ class MacOS(OS):
         return macos
 
 
+@dataclass
+class RunResult:
+    ok: bool
+    output: Optional[str]
+
+
 class Driver(metaclass=ABCMeta):
     def __init__(self, *, root: bool = False) -> None:
         self.root = root
@@ -56,21 +62,29 @@ class Driver(metaclass=ABCMeta):
         return type(self)(**kwargs)
 
     @abstractmethod
+    def run_(
+        self,
+        *args: str,
+        check: bool = True,
+        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
+        capture_output: bool = False,
+        silent: bool = False,
+    ) -> RunResult:
+        pass
+
     def run(
         self,
         *args: str,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         silent: bool = False,
     ) -> None:
-        pass
+        self.run_(*args, input=input, silent=silent)
 
-    @abstractmethod
     def run_ok(self, *args: str) -> bool:
-        pass
+        return self.run_(*args, check=False).ok
 
-    @abstractmethod
     def run_output(self, *args: str, silent: bool = False) -> str:
-        pass
+        return cast(str, self.run_(*args, capture_output=True, silent=silent).output)
 
     def find_executable(self, *executables: str) -> str:
         for candidate in executables:
@@ -135,20 +149,13 @@ class Driver(metaclass=ABCMeta):
             raise ValueError(f"Unsupported OS type {os_type}.")
 
 
-@dataclass
-class RunResult:
-    ok: bool
-    output: Optional[str]
-
-
 class SubprocessDriver(Driver, metaclass=ABCMeta):
     def prepare_command(self, args: Iterable[str]) -> list[str]:
         return list(args)
 
-    def run_internal(
+    def run_(
         self,
-        args: Iterable[str],
-        *,
+        *args: str,
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -172,28 +179,13 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
             command, check=check, input=input, stdout=stdout, stderr=stderr
         )
 
+        ok = result.returncode == 0
         output: Optional[str]
-        if capture_output:
+        if ok and capture_output:
             output = result.stdout.decode().strip()
         else:
             output = None
         return RunResult(ok=result.returncode == 0, output=output)
-
-    def run(
-        self,
-        *args: str,
-        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        silent: bool = False,
-    ) -> None:
-        self.run_internal(args, input=input, silent=silent)
-
-    def run_ok(self, *args: str) -> bool:
-        return self.run_internal(args, check=False).ok
-
-    def run_output(self, *args: str, silent: bool = False) -> str:
-        return cast(
-            str, self.run_internal(args, capture_output=True, silent=silent).output
-        )
 
 
 class LocalDriver(SubprocessDriver):

@@ -1,6 +1,5 @@
 import json
 import shutil
-import subprocess
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from threading import Lock
@@ -114,21 +113,17 @@ class DNF(Installer):
         self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
-        try:
-            output = self.driver.run_output(
-                "rpm",
-                "--query",
-                "--queryformat",
-                "%{VERSION}",
-                "--whatprovides",
-                package,
-                silent=True,
-            ).strip()
-        except subprocess.CalledProcessError:
-            return None
-        if not output:
-            return None
-        return output
+        return self.driver.run_(
+            "rpm",
+            "--query",
+            "--queryformat",
+            "%{VERSION}",
+            "--whatprovides",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        ).output
 
     def latest_version(self, package: str) -> str:
         output = self.driver.run_output(
@@ -143,7 +138,7 @@ class DNF(Installer):
             "x86_64,noarch",
             "--whatprovides",
             package,
-        ).strip()
+        )
         if not output or "\n" in output:
             raise Exception(f"Cannot determine version for {package}.")
         return output
@@ -167,17 +162,16 @@ class Apt(Installer):
         raise Exception(f"Cannot determine version for {package}.")
 
     def installed_version(self, package: str) -> Optional[str]:
-        try:
-            return self.driver.run_output(
-                "dpkg-query",
-                "--showformat",
-                "${Version}",
-                "--show",
-                package,
-                silent=True,
-            ).strip()
-        except subprocess.CalledProcessError:
-            return None
+        return self.driver.run_(
+            "dpkg-query",
+            "--showformat",
+            "${Version}",
+            "--show",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        ).output
 
 
 def linux_installer(driver: Driver) -> Installer:
