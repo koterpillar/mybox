@@ -30,34 +30,41 @@ case "$OSTYPE" in
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
 
+    ensure() {
+      COMMAND="$1"
+      shift
+      if [ "$#" -ge 1 ]
+      then
+        PACKAGES=("$@")
+      else
+        PACKAGES=("$COMMAND")
+      fi
+      if ! command_exists "$COMMAND"
+      then
+        if [ "$EUID" -eq 0 ]
+        then
+          "${INSTALLER[@]}" "${PACKAGES[@]}"
+        else
+          sudo "${INSTALLER[@]}" "${PACKAGES[@]}"
+        fi
+      fi
+    }
+
     case $DISTRO in
-      debian)
-        if ! command_exists python3
-        then
-          sudo apt install --yes python3{,-{pip,venv}}
-        fi
-        if ! command_exists unzip
-        then
-          sudo apt install --yes unzip
-        fi
+      debian|ubuntu)
+        INSTALLER=(apt install --yes)
+        apt update
+        ensure git
+        ensure sudo
+        ensure python3 python3{,-{pip,venv}}
+        ensure unzip
         ;;
       fedora)
-        if ! command_exists bzip2
-        then
-          sudo dnf install --assumeyes bzip2
-        fi
-        if ! command_exists xz
-        then
-          sudo dnf install --assumeyes xz
-        fi
-        if ! command_exists unzip
-        then
-          sudo dnf install --assumeyes unzip
-        fi
-        if ! command_exists chsh
-        then
-          sudo dnf install --assumeyes util-linux-user
-        fi
+        INSTALLER=(dnf install --assumeyes)
+        ensure bzip2
+        ensure xz
+        ensure unzip
+        ensure chsh util-linux-user
         ;;
     esac
 esac
