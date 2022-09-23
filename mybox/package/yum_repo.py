@@ -3,7 +3,7 @@ import hashlib
 from io import StringIO
 from pathlib import Path
 
-from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, Optional
+from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
 
@@ -27,10 +27,12 @@ class YumRepo(ManualVersion):
         return m.hexdigest()
 
     def install(self) -> None:
-        if CURRENT_OS != "linux":
-            raise Exception("YumRepo is only supported on Linux")
-        if CURRENT_DISTRIBUTION != "fedora":
-            raise Exception("YumRepo is only supported on Fedora")
+        self.fs.os.switch_(
+            linux=lambda linux: lambda: None
+            if linux.distribution == "fedora"
+            else raise_(ValueError("YumRepo is only supported on Fedora")),
+            macos=lambda: raise_(ValueError("YumRepo is only supported on Linux")),
+        )()
 
         repo = configparser.ConfigParser()
         repo[self.repo_name] = {

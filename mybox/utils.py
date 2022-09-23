@@ -1,48 +1,14 @@
 import concurrent.futures
 import re
 import subprocess
-import sys
 from threading import Lock
-from typing import Callable, Iterable, Iterator, Literal, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Iterable, Iterator, Optional, TypeVar, Union
 
 import requests
 import tqdm  # type: ignore
 
-OS = Literal["linux", "darwin"]
-
-CURRENT_OS: OS = cast(OS, sys.platform)
-
-
-Distribution = str
-
-
-def get_distro() -> Optional[Distribution]:
-    if CURRENT_OS != "linux":
-        return None
-
-    release_file = "/etc/os-release"
-    with open(release_file) as release:
-        for line in release:
-            k, v = line.strip().split("=", 1)
-            if k == "ID":
-                return v
-
-    raise ValueError(f"Cannot find distribution ID in {release_file}.")
-
-
-CURRENT_DISTRIBUTION = get_distro()
-
 T = TypeVar("T")
 U = TypeVar("U")
-
-
-def with_os(*, linux: T, macos: T) -> T:
-    if CURRENT_OS == "linux":
-        return linux
-    elif CURRENT_OS == "darwin":
-        return macos
-    else:
-        raise ValueError(f"Unexpected OS {CURRENT_OS}.")
 
 
 Some = Optional[Union[T, list[T]]]
@@ -151,3 +117,7 @@ def choose(candidates: list[T], filters: Iterator[Callable[[T], bool]]) -> T:
 def url_version(url: str) -> str:
     head_response = requests.head(url, allow_redirects=True)
     return head_response.headers["etag"]
+
+
+def raise_(exception: BaseException) -> Any:
+    raise exception

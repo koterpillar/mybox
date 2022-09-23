@@ -7,16 +7,8 @@ from typing import Any, Callable, Iterator
 
 import requests
 
-from ..utils import (
-    CURRENT_OS,
-    Filters,
-    Some,
-    choose,
-    run_ok,
-    run_output,
-    unsome,
-    with_os,
-)
+from ..fs import Linux
+from ..utils import Filters, Some, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
 
@@ -104,13 +96,13 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        os_hints = with_os(
+        os_hints = self.fs.os.switch(
             linux=["linux", "gnu"],
             macos=["macos", "darwin", "osx"],
         )
         for hint in os_hints:
             yield Filters.includes(hint)
-        if CURRENT_OS == "linux":
+        if isinstance(self.fs.os, Linux):
             yield Filters.excludes("musl")
         arch_hints = ["x86_64", "amd64"]
         for hint in arch_hints:

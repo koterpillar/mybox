@@ -1,10 +1,44 @@
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 from pathlib import Path
-from typing import Any, Iterable, Literal, Optional
+from typing import Any, Callable, Iterable, Literal, Optional
 
-from .utils import TERMINAL_LOCK, run, run_ok, run_output
+from .utils import TERMINAL_LOCK, T, run, run_ok, run_output
 
 LinkMethod = Literal["binary_wrapper"]
+
+
+class OS(metaclass=ABCMeta):
+    def __init__(self, fs: "FS") -> None:
+        self.fs = fs
+
+    @abstractmethod
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
+        pass
+
+    def switch(self, *, linux: T, macos: T) -> T:
+        return self.switch_(linux=lambda _: linux, macos=macos)
+
+
+class Linux(OS):
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
+        return linux(self)
+
+    RELEASE_FILE = "/etc/os-release"
+
+    @cached_property
+    def distribution(self) -> str:
+        for line in self.fs.read_file(Path(self.RELEASE_FILE)).splitlines():
+            k, v = line.split("=", 1)
+            if k == "ID":
+                return v
+
+        raise ValueError(f"Cannot find distribution ID in {self.RELEASE_FILE}.")
+
+
+class MacOS(OS):
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
+        return macos
 
 
 class FS(metaclass=ABCMeta):
@@ -83,6 +117,16 @@ class FS(metaclass=ABCMeta):
             self.make_executable(target)
         else:
             self.run("ln", "-s", "-f", str(source), str(target))
+
+    @cached_property
+    def os(self) -> OS:
+        os_type = self.run_output("sh", "-c", "echo $OSTYPE")
+        if os_type.startswith("darwin"):
+            return MacOS(self)
+        elif os_type.startswith("linux"):
+            return Linux(self)
+        else:
+            raise ValueError(f"Unsupported OS type {os_type}.")
 
 
 class LocalFS(FS):

@@ -10,7 +10,7 @@ import requests
 
 from ..fs import FS
 from ..state import Version
-from ..utils import Some, unsome, url_version, with_os
+from ..utils import Some, unsome, url_version
 from .base import Package
 
 
@@ -210,7 +210,7 @@ class SystemPackage(Package):
 
     @cached_property
     def installer(self):
-        return with_os(linux=linux_installer(self.fs), macos=Brew(self.fs))
+        return self.fs.os.switch(linux=linux_installer(self.fs), macos=Brew(self.fs))
 
     @property
     def name(self) -> str:
@@ -252,4 +252,4 @@ class SystemPackage(Package):
                 self.installer.upgrade(self.name)
             else:
                 self.installer.install(self.name)
-        with_os(linux=self.postinstall_linux, macos=self.postinstall_macos)()
+        self.fs.os.switch(linux=self.postinstall_linux, macos=self.postinstall_macos)()

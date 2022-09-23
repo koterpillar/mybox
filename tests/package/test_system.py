@@ -1,16 +1,16 @@
 import pytest
 
-from mybox.fs import LocalFS
+from mybox.fs import LocalFS, MacOS
 from mybox.package.system import Brew
-from mybox.utils import CURRENT_OS, run
+from mybox.utils import run
 
 
 class TestBrew:
     @pytest.fixture
     def brew(self):
-        if CURRENT_OS != "darwin":
-            pytest.skip("brew is only available on macOS")
         fs = LocalFS()
+        if not isinstance(fs.os, MacOS):
+            pytest.skip("brew is only available on macOS")
         return Brew(fs)
 
     @pytest.fixture(autouse=True)

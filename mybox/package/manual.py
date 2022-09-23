@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..fs import transplant_path
-from ..utils import Some, unsome, with_os
+from ..utils import Some, unsome
 from .manual_version import ManualVersion
 from .root import Root
 
@@ -55,14 +55,16 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     def icon_directory(self) -> Optional[Path]:
         return None
 
-    def install_app(self, name: str) -> None:
-        with_os(linux=self.install_app_linux, macos=self.install_app_macos)(name)
-
     def icon_name(self, app_path: Path) -> Optional[str]:
         config = self.fs.read_file(app_path)
         app = configparser.ConfigParser()
         app.read_string(config)
         return app["Desktop Entry"].get("Icon")
+
+    def install_app(self, name: str) -> None:
+        self.fs.os.switch(linux=self.install_app_linux, macos=self.install_app_macos)(
+            name
+        )
 
     def install_app_linux(self, name: str) -> None:
         path = self.app_path(name)
@@ -90,7 +92,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         pass
 
     def install_font(self, name: str) -> None:
-        font_dir = with_os(
+        font_dir = self.fs.os.switch(
             linux=self.local / "share" / "fonts",
             macos=self.fs.home() / "Library" / "Fonts",
         )
