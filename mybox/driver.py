@@ -1,9 +1,11 @@
+import subprocess
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Iterable, Literal, Optional
+from typing import Callable, Iterable, Literal, Optional, cast
 
-from .utils import TERMINAL_LOCK, T, run, run_ok, run_output
+from .utils import TERMINAL_LOCK, T
 
 LinkMethod = Literal["binary_wrapper"]
 
@@ -58,7 +60,7 @@ class Driver(metaclass=ABCMeta):
         self,
         *args: str,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        stdout: Optional[Any] = None,
+        silent: bool = False,
     ) -> None:
         pass
 
@@ -67,7 +69,7 @@ class Driver(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
+    def run_output(self, *args: str, silent: bool = False) -> str:
         pass
 
     def find_executable(self, *executables: str) -> str:
@@ -133,30 +135,77 @@ class Driver(metaclass=ABCMeta):
             raise ValueError(f"Unsupported OS type {os_type}.")
 
 
-class LocalDriver(Driver):
-    def run_args(self, args: Iterable[str]) -> list[str]:
-        if self.root:
-            # If the sudo prompt is needed, avoid drawing a progress bar over it
-            # with first prompting for a no-op command.
-            with TERMINAL_LOCK:
-                run("sudo", "true")
-            return ["sudo", *args]
+@dataclass
+class RunResult:
+    ok: bool
+    output: Optional[str]
+
+
+class SubprocessDriver(Driver, metaclass=ABCMeta):
+    def prepare_command(self, args: Iterable[str]) -> list[str]:
+        return list(args)
+
+    def run_internal(
+        self,
+        args: Iterable[str],
+        *,
+        check: bool = True,
+        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
+        capture_output: bool = False,
+        silent: bool = False,
+    ) -> RunResult:
+        command = self.prepare_command(args)
+
+        if capture_output:
+            stdout = subprocess.PIPE
+        elif check:
+            stdout = subprocess.DEVNULL
         else:
-            return list(args)
+            stdout = None
+
+        if check or silent:
+            stderr = subprocess.DEVNULL
+        else:
+            stderr = None
+
+        result = subprocess.run(
+            command, check=check, input=input, stdout=stdout, stderr=stderr
+        )
+
+        output: Optional[str]
+        if capture_output:
+            output = result.stdout.decode().strip()
+        else:
+            output = None
+        return RunResult(ok=result.returncode == 0, output=output)
 
     def run(
         self,
         *args: str,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        stdout: Optional[Any] = None,
+        silent: bool = False,
     ) -> None:
-        run(*self.run_args(args), input=input, stdout=stdout)
+        self.run_internal(args, input=input, silent=silent)
 
     def run_ok(self, *args: str) -> bool:
-        return run_ok(*self.run_args(args))
+        return self.run_internal(args, check=False).ok
 
-    def run_output(self, *args: str, stderr: Optional[Any] = None) -> str:
-        return run_output(*self.run_args(args), stderr=stderr)
+    def run_output(self, *args: str, silent: bool = False) -> str:
+        return cast(
+            str, self.run_internal(args, capture_output=True, silent=silent).output
+        )
+
+
+class LocalDriver(SubprocessDriver):
+    def prepare_command(self, args: Iterable[str]) -> list[str]:
+        if self.root:
+            # If the sudo prompt is needed, avoid drawing a progress bar over it
+            # with first prompting for a no-op command.
+            with TERMINAL_LOCK:
+                subprocess.run(["sudo", "true"], check=True)
+            return super().prepare_command(["sudo", *args])
+        else:
+            return super().prepare_command(args)
 
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:

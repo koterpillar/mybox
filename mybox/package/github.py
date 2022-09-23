@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 from dataclasses import dataclass
 from functools import cache
 from typing import Any, Callable, Iterator
@@ -13,7 +12,7 @@ from .archive import ArchivePackage
 
 @cache
 def have_github_auth() -> bool:
-    return bool(shutil.which("gh")) and run_ok("gh", "auth", "status")
+    return run_ok("gh", "auth", "status")
 
 
 def github_api(url: str) -> Any:

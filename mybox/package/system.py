@@ -122,7 +122,7 @@ class DNF(Installer):
                 "%{VERSION}",
                 "--whatprovides",
                 package,
-                stderr=subprocess.DEVNULL,
+                silent=True,
             ).strip()
         except subprocess.CalledProcessError:
             return None
@@ -174,7 +174,7 @@ class Apt(Installer):
                 "${Version}",
                 "--show",
                 package,
-                stderr=subprocess.DEVNULL,
+                silent=True,
             ).strip()
         except subprocess.CalledProcessError:
             return None

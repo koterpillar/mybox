@@ -1,5 +1,4 @@
 import json
-import subprocess
 from typing import Optional
 
 from .pip_base import PipBasePackage
@@ -14,7 +13,7 @@ class PipxPackage(PipBasePackage):
 
     def get_pipx_versions(self) -> dict[str, str]:
         pipx_list = json.loads(
-            self.driver.run_output(*PIPX, "list", "--json", stderr=subprocess.DEVNULL)
+            self.driver.run_output(*PIPX, "list", "--json", silent=True)
         )
         packages = (
             item["metadata"]["main_package"] for item in pipx_list["venvs"].values()

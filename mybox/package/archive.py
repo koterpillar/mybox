@@ -110,6 +110,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def install(self):
         url = self.archive_url()
         with tempfile.NamedTemporaryFile() as archive_file:
-            self.driver.run("curl", "-sSL", url, stdout=archive_file)
-            self.extract(url, Path(archive_file.name))
+            archive_path = Path(archive_file.name)
+            self.driver.run(
+                "curl",
+                "--silent",
+                "--show-error",
+                "--location",
+                "--output",
+                archive_path,
+                url,
+            )
+            self.extract(url, archive_path)
         super().install()

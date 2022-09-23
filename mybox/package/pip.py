@@ -1,5 +1,4 @@
 import json
-import subprocess
 from typing import Optional
 
 from .pip_base import PipBasePackage
@@ -16,7 +15,7 @@ class PipPackage(PipBasePackage):
 
     def get_pip_versions(self) -> dict[str, str]:
         packages_json = self.driver.run_output(
-            *pip_cmd("list", "--format", "json"), stderr=subprocess.DEVNULL
+            *pip_cmd("list", "--format", "json"), silent=True
         )
         packages = json.loads(packages_json)
         return {package["name"]: package["version"] for package in packages}
