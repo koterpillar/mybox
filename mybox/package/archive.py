@@ -67,7 +67,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             self.untar(source, "-z")
         elif url.endswith(".tar.bz2"):
             self.untar(source, "-j")
-        elif url.endswith(".txz"):
+        elif url.endswith(".tar.xz") or url.endswith(".txz"):
             self.untar(source, "-J")
         elif url.endswith(".zip"):
             self.unzip(source)
