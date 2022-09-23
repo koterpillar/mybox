@@ -4,9 +4,10 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
-from mybox.driver import Driver, LocalDriver
+from mybox.driver import Driver, LocalDriver, SubprocessDriver
 from mybox.package import parse_package
 from mybox.state import DB
+from mybox.utils import run, run_output
 
 
 class OverrideHomeDriver(LocalDriver):
@@ -21,6 +22,67 @@ class OverrideHomeDriver(LocalDriver):
         if self.root:
             return super().home()
         return self.override_home
+
+
+class DockerDriver(SubprocessDriver):
+    def __init__(
+        self,
+        *,
+        root: bool = False,
+        container: str,
+        user: str,
+        docker_sudo: bool = False,
+    ) -> None:
+        super().__init__(root=root)
+        self.container = container
+        self.user = user
+        self.docker_sudo = docker_sudo
+
+    def deconstruct(self) -> dict:
+        return super().deconstruct() | {
+            "container": self.container,
+            "user": self.user,
+            "docker_sudo": self.docker_sudo,
+        }
+
+    @property
+    def docker(self) -> list[str]:
+        return ["sudo", "docker"] if self.docker_sudo else ["docker"]
+
+    def stop(self) -> None:
+        run(*self.docker, "rm", "--force", self.container)
+
+    def prepare_command(self, args: Iterable[str]) -> list[str]:
+        user = "root" if self.root else self.user
+        return super().prepare_command(
+            [*self.docker, "exec", "--user", user, self.container, *args]
+        )
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        image: str,
+        user: str = "regular_user",
+        docker_sudo: bool = False,
+    ) -> "DockerDriver":
+        docker = ["sudo", "docker"] if docker_sudo else ["docker"]
+        bootstrap = (Path(__file__).parents[2] / "bootstrap").absolute()
+        assert bootstrap.is_file()
+        container = run_output(
+            *docker,
+            "run",
+            "--rm",
+            "--detach",
+            "--volume",
+            f"{bootstrap}:/bootstrap",
+            image,
+            "sleep",
+            "300",
+        )
+        run(*docker, "exec", container, "useradd", "--create-home", user)
+        run(*docker, "exec", container, "/bootstrap", "--development")
+        return cls(container=container, user=user, docker_sudo=docker_sudo)
 
 
 class PackageTestBase(metaclass=ABCMeta):
