@@ -1,6 +1,7 @@
 import concurrent.futures
 import re
 import subprocess
+from pathlib import Path
 from threading import Lock
 from typing import Any, Callable, Iterable, Iterator, Optional, TypeVar, Union
 
@@ -118,3 +119,7 @@ def url_version(url: str) -> str:
 
 def raise_(exception: BaseException) -> Any:
     raise exception
+
+
+def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
+    return dir_to.joinpath(path.relative_to(dir_from))

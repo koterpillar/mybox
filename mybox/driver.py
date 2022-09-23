@@ -198,7 +198,3 @@ class LocalDriver(SubprocessDriver):
             return super().prepare_command(["sudo", *args])
         else:
             return super().prepare_command(args)
-
-
-def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
-    return dir_to.joinpath(path.relative_to(dir_from))

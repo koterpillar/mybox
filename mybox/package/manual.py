@@ -4,8 +4,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from ..driver import transplant_path
-from ..utils import Some, unsome
+from ..utils import Some, transplant_path, unsome
 from .manual_version import ManualVersion
 from .root import Root
 
