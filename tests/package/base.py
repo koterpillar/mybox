@@ -7,7 +7,6 @@ import pytest
 from mybox.driver import Driver, LocalDriver
 from mybox.package import parse_package
 from mybox.state import DB
-from mybox.utils import run_ok, run_output
 
 
 class OverrideHomeDriver(LocalDriver):
@@ -49,9 +48,9 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def check_installed(self):
         if self.check_installed_output is None:
-            run_ok(*self.check_installed_command)
+            self.driver.run_ok(*self.check_installed_command)
         else:
-            output = run_output(*self.check_installed_command)
+            output = self.driver.run_output(*self.check_installed_command)
             assert self.check_installed_output in output
 
     def test_installs(self):
