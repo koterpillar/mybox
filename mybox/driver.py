@@ -42,12 +42,16 @@ class MacOS(OS):
 
 
 class Driver(metaclass=ABCMeta):
-    def __init__(self, root: bool = False) -> None:
+    def __init__(self, *, root: bool = False) -> None:
         self.root = root
         super().__init__()
 
+    def deconstruct(self) -> dict:
+        return {"root": self.root}
+
     def with_root(self, /, root: bool) -> "Driver":
-        return type(self)(root=root)
+        kwargs = self.deconstruct() | {"root": root}
+        return type(self)(**kwargs)
 
     @abstractmethod
     def run(

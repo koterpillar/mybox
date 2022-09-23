@@ -1,4 +1,3 @@
-import os
 import random
 from functools import cached_property
 from pathlib import Path
@@ -23,7 +22,7 @@ class TestClone(PackageTestBase):
 
     @property
     def target_dir(self) -> Path:
-        return Path(os.environ["MYBOX_HOME"])
+        return self.driver.home()
 
     @property
     def destination(self) -> Path:

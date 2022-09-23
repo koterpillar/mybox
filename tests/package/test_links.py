@@ -15,7 +15,7 @@ class LinksTestBase(PackageTestBase, metaclass=ABCMeta):
 
     @property
     def check_installed_command(self) -> list[str]:
-        return ["cat", f"{os.environ['MYBOX_HOME']}/{self.destination_file}"]
+        return ["cat", f"{self.driver.home()}/{self.destination_file}"]
 
     check_installed_output = "Linked file"
 

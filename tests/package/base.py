@@ -1,4 +1,3 @@
-import os
 import subprocess
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -6,19 +5,28 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
-from mybox.driver import LocalDriver
+from mybox.driver import Driver, LocalDriver
 from mybox.package import parse_package
 from mybox.state import DB
 
 
 class OverrideHomeDriver(LocalDriver):
+    def __init__(self, *, root: bool = False, override_home: Path) -> None:
+        super().__init__(root=root)
+        self.override_home = override_home
+
+    def deconstruct(self) -> dict:
+        return super().deconstruct() | {"override_home": self.override_home}
+
     def home(self) -> Path:
         if self.root:
             return super().home()
-        return Path(os.environ["MYBOX_HOME"])
+        return self.override_home
 
 
 class PackageTestBase(metaclass=ABCMeta):
+    driver: Driver
+
     @property
     @abstractmethod
     def constructor_args(self) -> dict[str, Any]:
@@ -33,11 +41,11 @@ class PackageTestBase(metaclass=ABCMeta):
 
     @pytest.fixture(autouse=True)
     def ensure_local_bin_environment(
-        self, monkeypatch: pytest.MonkeyPatch, override_home: Path
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        monkeypatch.setenv("MYBOX_HOME", str(override_home))
-        local_bin = override_home / ".local" / "bin"
+        local_bin = tmp_path / ".local" / "bin"
         monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
+        self.driver = OverrideHomeDriver(override_home=tmp_path)
 
     def check_installed(self):
         result = subprocess.run(
@@ -49,8 +57,7 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def test_installs(self):
         db = DB(":memory:")
-        driver = OverrideHomeDriver()
-        package = parse_package(self.constructor_args, db=db, driver=driver)
+        package = parse_package(self.constructor_args, db=db, driver=self.driver)
         assert package.applicable
         package.install()
         self.check_installed()
