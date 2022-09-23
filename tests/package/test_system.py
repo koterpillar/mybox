@@ -1,6 +1,6 @@
 import pytest
 
-from mybox.fs import LocalFS
+from mybox.driver import LocalDriver
 from mybox.package.system import Brew
 from mybox.utils import run
 
@@ -8,12 +8,12 @@ from mybox.utils import run
 class TestBrew:
     @pytest.fixture
     def brew(self):
-        fs = LocalFS()
-        fs.os.switch(
+        driver = LocalDriver()
+        driver.os.switch(
             linux=lambda: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
         )()
-        return Brew(fs)
+        return Brew(driver)
 
     @pytest.fixture(autouse=True)
     def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument

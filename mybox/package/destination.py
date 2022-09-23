@@ -9,4 +9,4 @@ class Destination(Root, metaclass=ABCMeta):
 
     def __init__(self, destination: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.destination = self.fs.home() / destination
+        self.destination = self.driver.home() / destination

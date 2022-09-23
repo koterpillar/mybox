@@ -1,7 +1,7 @@
 from abc import ABCMeta
 from functools import cached_property
 
-from ..fs import FS
+from ..driver import Driver
 from .base import Package
 
 
@@ -13,5 +13,5 @@ class Root(Package, metaclass=ABCMeta):
         self.root = root
 
     @cached_property
-    def fs(self) -> FS:
-        return super().fs.with_root(self.root)
+    def driver(self) -> Driver:
+        return super().driver.with_root(self.root)

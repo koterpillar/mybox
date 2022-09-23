@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import Optional
 
-from ..fs import FS
+from ..driver import Driver
 from ..state import DB, VERSIONS, Table, Version
 from ..utils import Some, unsome_
 
@@ -15,18 +15,18 @@ class Package(metaclass=ABCMeta):
         self,
         *,
         db: DB,
-        fs: FS,
+        driver: Driver,
         os: Some[str] = None,
         distribution: Some[str] = None,
     ) -> None:
         self.db = db
-        self.fs_ = fs
+        self.driver_ = driver
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)
 
     @property
-    def fs(self) -> FS:
-        return self.fs_
+    def driver(self) -> Driver:
+        return self.driver_
 
     @property
     @abstractmethod
@@ -59,7 +59,7 @@ class Package(metaclass=ABCMeta):
         def check_os(name: str) -> bool:
             return self.os is None or name in self.os
 
-        return self.fs.os.switch_(
+        return self.driver.os.switch_(
             linux=lambda linux: check_os("linux")
             and (self.distribution is None or linux.distribution in self.distribution),
             macos=check_os("darwin"),

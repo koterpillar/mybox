@@ -9,8 +9,8 @@ LinkMethod = Literal["binary_wrapper"]
 
 
 class OS(metaclass=ABCMeta):
-    def __init__(self, fs: "FS") -> None:
-        self.fs = fs
+    def __init__(self, driver: "Driver") -> None:
+        self.driver = driver
 
     @abstractmethod
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
@@ -28,7 +28,7 @@ class Linux(OS):
 
     @cached_property
     def distribution(self) -> str:
-        for line in self.fs.read_file(Path(self.RELEASE_FILE)).splitlines():
+        for line in self.driver.read_file(Path(self.RELEASE_FILE)).splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
                 return v
@@ -41,12 +41,12 @@ class MacOS(OS):
         return macos
 
 
-class FS(metaclass=ABCMeta):
+class Driver(metaclass=ABCMeta):
     def __init__(self, root: bool = False) -> None:
         self.root = root
         super().__init__()
 
-    def with_root(self, /, root: bool) -> "FS":
+    def with_root(self, /, root: bool) -> "Driver":
         return type(self)(root=root)
 
     @abstractmethod
@@ -129,7 +129,7 @@ class FS(metaclass=ABCMeta):
             raise ValueError(f"Unsupported OS type {os_type}.")
 
 
-class LocalFS(FS):
+class LocalDriver(Driver):
     def run_args(self, args: Iterable[str]) -> list[str]:
         if self.root:
             # If the sudo prompt is needed, avoid drawing a progress bar over it

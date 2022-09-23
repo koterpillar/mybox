@@ -15,7 +15,7 @@ class PipPackage(PipBasePackage):
         super().__init__(**kwargs)
 
     def get_pip_versions(self) -> dict[str, str]:
-        packages_json = self.fs.run_output(
+        packages_json = self.driver.run_output(
             *pip_cmd("list", "--format", "json"), stderr=subprocess.DEVNULL
         )
         packages = json.loads(packages_json)
@@ -27,4 +27,4 @@ class PipPackage(PipBasePackage):
 
     def install(self) -> None:
         cmd = "install" if self.local_version is None else "upgrade"
-        self.fs.run(*pip_cmd(cmd, self.package))
+        self.driver.run(*pip_cmd(cmd, self.package))

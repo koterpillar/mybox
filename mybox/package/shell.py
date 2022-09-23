@@ -27,15 +27,15 @@ class Shell(Package):
 
     @cached_property
     def all_shells(self) -> list[str]:
-        return self.fs.read_file(SHELLS_FILE).splitlines()
+        return self.driver.read_file(SHELLS_FILE).splitlines()
 
     def install(self) -> None:
-        if not self.fs.is_file(self.shell):
+        if not self.driver.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
-        if not self.fs.is_executable(self.shell):
+        if not self.driver.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
         if str(self.shell) not in self.all_shells:
-            self.fs.with_root(True).run(
+            self.driver.with_root(True).run(
                 "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
             )
-        self.fs.run("chsh", "-s", str(self.shell))
+        self.driver.run("chsh", "-s", str(self.shell))

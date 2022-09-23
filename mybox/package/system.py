@@ -8,15 +8,15 @@ from typing import Optional
 
 import requests
 
-from ..fs import FS
+from ..driver import Driver
 from ..state import Version
 from ..utils import Some, unsome, url_version
 from .base import Package
 
 
 class Installer(metaclass=ABCMeta):
-    def __init__(self, fs: FS) -> None:
-        self.fs = fs
+    def __init__(self, driver: Driver) -> None:
+        self.driver = driver
         super().__init__()
 
     @abstractmethod
@@ -41,14 +41,14 @@ class Installer(metaclass=ABCMeta):
 
 class Brew(Installer):
     def install(self, package: str) -> None:
-        self.fs.run("brew", "install", package)
+        self.driver.run("brew", "install", package)
 
     def upgrade(self, package: str) -> None:
-        self.fs.run("brew", "upgrade", package)
+        self.driver.run("brew", "upgrade", package)
 
     @cache
     def brew_info(self, package: str) -> dict:
-        return json.loads(self.fs.run_output("brew", "info", "--json=v2", package))
+        return json.loads(self.driver.run_output("brew", "info", "--json=v2", package))
 
     def installed_version(self, package: str) -> Optional[str]:
         info = self.brew_info(package)
@@ -108,14 +108,14 @@ class Brew(Installer):
 
 class DNF(Installer):
     def install(self, package: str) -> None:
-        self.fs.with_root(True).run("dnf", "install", "-y", package)
+        self.driver.with_root(True).run("dnf", "install", "-y", package)
 
     def upgrade(self, package: str) -> None:
-        self.fs.with_root(True).run("dnf", "upgrade", "-y", package)
+        self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
         try:
-            output = self.fs.run_output(
+            output = self.driver.run_output(
                 "rpm",
                 "--query",
                 "--queryformat",
@@ -131,7 +131,7 @@ class DNF(Installer):
         return output
 
     def latest_version(self, package: str) -> str:
-        output = self.fs.run_output(
+        output = self.driver.run_output(
             "dnf",
             "--quiet",
             "repoquery",
@@ -151,13 +151,13 @@ class DNF(Installer):
 
 class Apt(Installer):
     def install(self, package: str) -> None:
-        self.fs.with_root(True).run("apt", "install", "--yes", package)
+        self.driver.with_root(True).run("apt", "install", "--yes", package)
 
     def upgrade(self, package: str) -> None:
         self.install(package)
 
     def latest_version(self, package: str) -> str:
-        output = self.fs.run_output(
+        output = self.driver.run_output(
             "apt-cache", "show", "--quiet", "--no-all-versions", package
         ).strip()
         for line in output.splitlines():
@@ -168,7 +168,7 @@ class Apt(Installer):
 
     def installed_version(self, package: str) -> Optional[str]:
         try:
-            return self.fs.run_output(
+            return self.driver.run_output(
                 "dpkg-query",
                 "--showformat",
                 "${Version}",
@@ -180,11 +180,11 @@ class Apt(Installer):
             return None
 
 
-def linux_installer(fs: FS) -> Installer:
+def linux_installer(driver: Driver) -> Installer:
     if shutil.which("dnf"):
-        return DNF(fs)
+        return DNF(driver)
     elif shutil.which("apt"):
-        return Apt(fs)
+        return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")
 
@@ -210,7 +210,9 @@ class SystemPackage(Package):
 
     @cached_property
     def installer(self):
-        return self.fs.os.switch(linux=linux_installer(self.fs), macos=Brew(self.fs))
+        return self.driver.os.switch(
+            linux=linux_installer(self.driver), macos=Brew(self.driver)
+        )
 
     @property
     def name(self) -> str:
@@ -236,9 +238,9 @@ class SystemPackage(Package):
 
     def postinstall_linux(self):
         if self.services:
-            self.fs.with_root(True).run("systemctl", "daemon-reload")
+            self.driver.with_root(True).run("systemctl", "daemon-reload")
             for service in self.services:
-                self.fs.with_root(True).run("systemctl", "enable", service)
+                self.driver.with_root(True).run("systemctl", "enable", service)
 
     def postinstall_macos(self):
         pass
@@ -252,4 +254,6 @@ class SystemPackage(Package):
                 self.installer.upgrade(self.name)
             else:
                 self.installer.install(self.name)
-        self.fs.os.switch(linux=self.postinstall_linux, macos=self.postinstall_macos)()
+        self.driver.os.switch(
+            linux=self.postinstall_linux, macos=self.postinstall_macos
+        )()

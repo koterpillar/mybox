@@ -3,7 +3,7 @@ from typing import Any, Tuple, Type
 
 import yaml
 
-from ..fs import FS
+from ..driver import Driver
 from ..state.base import DB
 from .base import Package
 from .clone import Clone
@@ -29,19 +29,19 @@ TYPES: list[Tuple[str, Type[Package]]] = [
 ]
 
 
-def parse_package(package: Any, *, db: DB, fs: FS) -> Package:
+def parse_package(package: Any, *, db: DB, driver: Driver) -> Package:
     if not isinstance(package, dict):
         raise ValueError(f"Dictionary expected, got: {package}.")
 
     for key, package_type in TYPES:
         if key in package:
-            return package_type(**package, db=db, fs=fs)
+            return package_type(**package, db=db, driver=driver)
 
     keys = ", ".join(f"'{key}'" for key, _ in TYPES)
     raise ValueError(f"Either of {keys} must be present, got: {package}.")
 
 
-def load_packages(component: str, *, db: DB, fs: FS) -> list[Package]:
+def load_packages(component: str, *, db: DB, driver: Driver) -> list[Package]:
     with open(Path("packages") / f"{component}.yaml") as f:
         packages = yaml.safe_load(f)
-        return [parse_package(package, db=db, fs=fs) for package in packages]
+        return [parse_package(package, db=db, driver=driver) for package in packages]

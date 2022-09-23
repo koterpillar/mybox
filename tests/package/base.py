@@ -6,12 +6,12 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
-from mybox.fs import LocalFS
+from mybox.driver import LocalDriver
 from mybox.package import parse_package
 from mybox.state import DB
 
 
-class OverrideHomeFS(LocalFS):
+class OverrideHomeDriver(LocalDriver):
     def home(self) -> Path:
         if self.root:
             return super().home()
@@ -49,8 +49,8 @@ class PackageTestBase(metaclass=ABCMeta):
 
     def test_installs(self):
         db = DB(":memory:")
-        fs = OverrideHomeFS()
-        package = parse_package(self.constructor_args, db=db, fs=fs)
+        driver = OverrideHomeDriver()
+        package = parse_package(self.constructor_args, db=db, driver=driver)
         assert package.applicable
         package.install()
         self.check_installed()

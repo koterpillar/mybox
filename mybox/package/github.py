@@ -95,7 +95,7 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        for os_hint in self.fs.os.switch(
+        for os_hint in self.driver.os.switch(
             linux=[
                 Filters.includes("linux"),
                 Filters.includes("gnu"),

@@ -60,5 +60,5 @@ class Links(ManualVersion, Destination):
                 target = Path("." + first_part, *parts)
             target = self.destination.joinpath(target)
 
-            self.fs.link(path, target)
+            self.driver.link(path, target)
         super().install()

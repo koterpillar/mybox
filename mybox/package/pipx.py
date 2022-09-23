@@ -14,7 +14,7 @@ class PipxPackage(PipBasePackage):
 
     def get_pipx_versions(self) -> dict[str, str]:
         pipx_list = json.loads(
-            self.fs.run_output(*PIPX, "list", "--json", stderr=subprocess.DEVNULL)
+            self.driver.run_output(*PIPX, "list", "--json", stderr=subprocess.DEVNULL)
         )
         packages = (
             item["metadata"]["main_package"] for item in pipx_list["venvs"].values()
@@ -27,4 +27,4 @@ class PipxPackage(PipBasePackage):
 
     def install(self) -> None:
         cmd = "install" if self.local_version is None else "upgrade"
-        self.fs.run(*PIPX, cmd, self.package)
+        self.driver.run(*PIPX, cmd, self.package)

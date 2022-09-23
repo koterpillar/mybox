@@ -26,16 +26,16 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         pass
 
     def package_directory(self) -> Path:
-        result = self.fs.local() / f"{self.name.replace('/', '--')}.app"
-        self.fs.makedirs(result)
+        result = self.driver.local() / f"{self.name.replace('/', '--')}.app"
+        self.driver.makedirs(result)
         return result
 
     @cached_property
     def tar(self) -> str:
-        return self.fs.find_executable("gtar", "tar")
+        return self.driver.find_executable("gtar", "tar")
 
     def untar(self, source: Path, *extra: str) -> None:
-        self.fs.run(
+        self.driver.run(
             self.tar,
             "-x",
             "--strip",
@@ -50,7 +50,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
-        self.fs.run(
+        self.driver.run(
             "unzip", "-o", "-qq", str(source), "-d", str(self.package_directory())
         )
 
@@ -61,9 +61,9 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             else:
                 filename = url.rsplit("/", 1)[-1]
             target = self.package_directory() / filename
-            self.fs.run("cp", str(source), str(target))
+            self.driver.run("cp", str(source), str(target))
             if self.raw_executable:
-                self.fs.make_executable(target)
+                self.driver.make_executable(target)
         elif url.endswith(".tar"):
             self.untar(source)
         elif url.endswith(".tar.gz") or url.endswith(".tgz"):
@@ -81,7 +81,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
             candidate = self.package_directory() / Path(*relative_path) / binary
-            if self.fs.is_executable(candidate):
+            if self.driver.is_executable(candidate):
                 return candidate
         raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
 
@@ -89,7 +89,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         candidate = (
             self.package_directory() / "share" / "applications" / f"{name}.desktop"
         )
-        if self.fs.is_file(candidate):
+        if self.driver.is_file(candidate):
             return candidate
         raise ValueError(
             f"Cannot find application '{name}' in {self.package_directory()}."
@@ -97,19 +97,19 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     def icon_directory(self) -> Optional[Path]:
         candidate = self.package_directory() / "share" / "icons"
-        if self.fs.is_dir(candidate):
+        if self.driver.is_dir(candidate):
             return candidate
         return None
 
     def font_path(self, name: str) -> Path:
         candidate = self.package_directory() / name
-        if self.fs.is_file(candidate):
+        if self.driver.is_file(candidate):
             return candidate
         raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
 
     def install(self):
         url = self.archive_url()
         with tempfile.NamedTemporaryFile() as archive_file:
-            self.fs.run("curl", "-sSL", url, stdout=archive_file)
+            self.driver.run("curl", "-sSL", url, stdout=archive_file)
             self.extract(url, Path(archive_file.name))
         super().install()
