@@ -62,6 +62,7 @@ case "$OSTYPE" in
         ;;
       fedora)
         INSTALLER=(dnf install --assumeyes)
+        ensure git
         ensure bzip2
         ensure xz
         ensure unzip
