@@ -46,11 +46,15 @@ class PackageTestBase(metaclass=ABCMeta):
         monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
         self.driver = OverrideHomeDriver(override_home=tmp_path)
 
+    @property
+    def test_driver(self) -> Driver:
+        return self.driver
+
     def check_installed(self):
         if self.check_installed_output is None:
-            self.driver.run_ok(*self.check_installed_command)
+            self.test_driver.run_ok(*self.check_installed_command)
         else:
-            output = self.driver.run_output(*self.check_installed_command)
+            output = self.test_driver.run_output(*self.check_installed_command)
             assert self.check_installed_output in output
 
     def test_installs(self):

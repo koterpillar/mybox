@@ -3,7 +3,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from mybox.utils import run
+from mybox.driver import Driver
 
 from .base import PackageTestBase
 
@@ -13,16 +13,23 @@ class TestClone(PackageTestBase):
     def dir_name(self) -> str:
         return f"mybox_test_{random.randint(0, 1000000)}"
 
+    root = False
+
     @property
     def constructor_args(self) -> dict[str, Any]:
         return {
             "clone": "ohmyzsh/ohmyzsh",
             "destination": self.dir_name,
+            "root": self.root,
         }
 
     @property
+    def test_driver(self) -> Driver:
+        return super().test_driver.with_root(self.root)
+
+    @property
     def target_dir(self) -> Path:
-        return self.driver.home()
+        return self.test_driver.home()
 
     @property
     def destination(self) -> Path:
@@ -37,22 +44,12 @@ class TestClone(PackageTestBase):
 
     check_installed_output = "alias ohmyzsh"
 
-
-class TestRootClone(TestClone):
-    @property
-    def constructor_args(self) -> dict[str, Any]:
-        return super().constructor_args | {"root": True}
-
     def test_installs(self):
         try:
             return super().test_installs()
         finally:
-            run("sudo", "rm", "-rf", str(self.destination))
+            self.test_driver.run("rm", "-rf", str(self.destination))
 
-    @property
-    def target_dir(self) -> Path:
-        return Path("~root").expanduser()
 
-    @property
-    def check_installed_command(self) -> list[str]:
-        return ["sudo", *super().check_installed_command]
+class TestRootClone(TestClone):
+    root = True
