@@ -7,7 +7,6 @@ from typing import Any, Callable, Iterator
 
 import requests
 
-from ..fs import Linux
 from ..utils import Filters, Some, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
@@ -96,14 +95,15 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        os_hints = self.fs.os.switch(
-            linux=["linux", "gnu"],
-            macos=["macos", "darwin", "osx"],
-        )
-        for hint in os_hints:
-            yield Filters.includes(hint)
-        if isinstance(self.fs.os, Linux):
-            yield Filters.excludes("musl")
+        for os_hint in self.fs.os.switch(
+            linux=[
+                Filters.includes("linux"),
+                Filters.includes("gnu"),
+                Filters.excludes("musl"),
+            ],
+            macos=[Filters.includes(hint) for hint in ["macos", "darwin", "osx"]],
+        ):
+            yield os_hint
         arch_hints = ["x86_64", "amd64"]
         for hint in arch_hints:
             yield Filters.includes(hint)
