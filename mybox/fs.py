@@ -120,11 +120,11 @@ class FS(metaclass=ABCMeta):
 
     @cached_property
     def os(self) -> OS:
-        os_type = self.run_output("sh", "-c", "echo $OSTYPE")
-        if os_type.startswith("darwin"):
-            return MacOS(self)
-        elif os_type.startswith("linux"):
+        os_type = self.run_output("uname")
+        if os_type == "Linux":
             return Linux(self)
+        elif os_type == "Darwin":
+            return MacOS(self)
         else:
             raise ValueError(f"Unsupported OS type {os_type}.")
 
