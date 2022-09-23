@@ -165,12 +165,12 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
 
         if capture_output:
             stdout = subprocess.PIPE
-        elif check:
+        elif not check:
             stdout = subprocess.DEVNULL
         else:
             stdout = None
 
-        if check or silent:
+        if not check or silent:
             stderr = subprocess.DEVNULL
         else:
             stderr = None
