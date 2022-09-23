@@ -54,6 +54,7 @@ case "$OSTYPE" in
       debian|ubuntu)
         INSTALLER=(apt install --yes)
         apt update
+        ensure curl
         ensure git
         ensure sudo
         ensure python3 python3{,-{pip,venv}}
