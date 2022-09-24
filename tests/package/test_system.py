@@ -4,6 +4,8 @@ from mybox.driver import LocalDriver
 from mybox.package.system import Brew
 from mybox.utils import run
 
+from .base import PackageTestBase
+
 
 class TestBrew:
     @pytest.fixture
@@ -35,3 +37,13 @@ class TestBrew:
     def test_non_tapped_cask(self, brew):
         with pytest.raises(Exception, match="homebrew/cask-zzzzzzz/yyyyyyy"):
             brew.latest_version("homebrew/cask-zzzzzzz/yyyyyyy")
+
+
+class TestHtop(PackageTestBase):
+    constructor_args = {
+        "name": "htop",
+    }
+
+    check_installed_command = ["htop", "--help"]
+
+    check_installed_output = "htop dev team"
