@@ -46,14 +46,15 @@ class PackageTestBase(metaclass=ABCMeta):
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self) -> None:
-        self.db = DB(":memory:")
+    def setup_db(self) -> DB:
+        return DB(":memory:")
 
     def parse_package(
         self, constructor_args: PackageArgs, driver: Optional[Driver] = None
     ) -> Package:
-        return parse_package(constructor_args, db=self.db, driver=driver or self.driver)
+        return parse_package(
+            constructor_args, db=self.setup_db(), driver=driver or self.driver
+        )
 
     @property
     def test_driver(self) -> Driver:
