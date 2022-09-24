@@ -61,6 +61,7 @@ class DockerDriver(SubprocessDriver):
                 *self.docker,
                 "exec",
                 *(["--user", "root"] if self.root else []),
+                "--interactive",
                 self.container,
                 *args,
             ]
