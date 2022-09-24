@@ -85,6 +85,7 @@ class PackageTestBase(metaclass=ABCMeta):
         package = self.parse_package(
             self.constructor_args, driver=self.driver.disable_root()
         )
+        assert package.applicable
         assert not package.is_installed
 
     JAVA: list[PackageArgs] = [
