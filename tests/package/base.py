@@ -177,7 +177,7 @@ class PackageTestBase(metaclass=ABCMeta):
 
     JAVA: list[PackageArgs] = [
         {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
-        {"name": "openjdk-17-jre", "os": "linux", "distribution": "ubuntu"},
+        {"name": "openjdk-17-jre", "os": "linux", "distribution": ["debian", "ubuntu"]},
     ]
 
     NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
