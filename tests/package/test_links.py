@@ -1,11 +1,10 @@
 import os
-from abc import ABCMeta, abstractmethod
 from typing import Any
 
 from .base import DestinationPackageTestBase, RootPackageTestBase
 
 
-class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase, metaclass=ABCMeta):
+class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
     @property
     def constructor_args(self) -> dict[str, Any]:
         return {
@@ -20,19 +19,16 @@ class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase, metaclass=A
 
     check_installed_output = "Linked file"
 
-    @property
-    @abstractmethod
-    def destination_file(self) -> str:
-        pass
-
-
-class TestLinks(LinksTestBase):
     destination_file = "myfile"
 
 
-class TestDotLinks(LinksTestBase):
+class TestDotLinks(TestLinks):
     @property
     def constructor_args(self) -> dict[str, Any]:
         return super().constructor_args | {"dot": True}
 
     destination_file = ".myfile"
+
+
+class TestRootLinks(TestLinks):
+    root = True
