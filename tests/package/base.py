@@ -9,14 +9,14 @@ from mybox.driver import Driver
 from mybox.package import Package, parse_package
 from mybox.state import DB
 
-from .driver import DockerDriver, OverrideHomeDriver
+from .driver import DockerDriver, OverrideHomeDriver, RootCheckDriver
 
 PackageArgs = dict[str, Any]
 
 
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
-    driver: Driver
+    driver: RootCheckDriver
 
     @property
     @abstractmethod
@@ -48,8 +48,10 @@ class PackageTestBase(metaclass=ABCMeta):
     def setup_db(self) -> None:
         self.db = DB(":memory:")
 
-    def parse_package(self, constructor_args: PackageArgs) -> Package:
-        return parse_package(constructor_args, db=self.db, driver=self.driver)
+    def parse_package(
+        self, constructor_args: PackageArgs, driver: Optional[Driver] = None
+    ) -> Package:
+        return parse_package(constructor_args, db=self.db, driver=driver or self.driver)
 
     @property
     def test_driver(self) -> Driver:
@@ -71,6 +73,17 @@ class PackageTestBase(metaclass=ABCMeta):
         assert package.applicable
         package.install()
         self.check_installed()
+
+    root_required_for_is_installed = False
+
+    def test_no_root_required_for_is_installed(self):
+        if self.root_required_for_is_installed:
+            return
+
+        package = self.parse_package(
+            self.constructor_args, driver=self.driver.disable_root()
+        )
+        assert not package.is_installed
 
     JAVA: list[PackageArgs] = [
         {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},

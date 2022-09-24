@@ -3,13 +3,31 @@ import tempfile
 from pathlib import Path
 from typing import Iterable
 
-from mybox.driver import LocalDriver, SubprocessDriver
+from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import run, run_output
 
 
-class OverrideHomeDriver(LocalDriver):
-    def __init__(self, *, root: bool = False, override_home: Path) -> None:
-        super().__init__(root=root)
+class RootCheckDriver(Driver):
+    def __init__(self, *, enable_root: bool = True, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.enable_root = enable_root
+
+    def deconstruct(self) -> dict:
+        return super().deconstruct() | {"enable_root": self.enable_root}
+
+    def disable_root(self) -> "Driver":
+        kwargs = self.deconstruct() | {"enable_root": False}
+        return type(self)(**kwargs)
+
+    def run_(self, *args, **kwargs) -> RunResult:
+        if not self.enable_root:
+            assert not self.root, "Root operations are disabled."
+        return super().run_(*args, **kwargs)
+
+
+class OverrideHomeDriver(RootCheckDriver, LocalDriver):
+    def __init__(self, *, override_home: Path, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.override_home = override_home
 
     def deconstruct(self) -> dict:
@@ -21,16 +39,11 @@ class OverrideHomeDriver(LocalDriver):
         return self.override_home
 
 
-class DockerDriver(SubprocessDriver):
+class DockerDriver(RootCheckDriver, SubprocessDriver):
     def __init__(
-        self,
-        *,
-        root: bool = False,
-        container: str,
-        user: str,
-        docker_sudo: bool = False,
+        self, *, container: str, user: str, docker_sudo: bool = False, **kwargs
     ) -> None:
-        super().__init__(root=root)
+        super().__init__(**kwargs)
         self.container = container
         self.user = user
         self.docker_sudo = docker_sudo

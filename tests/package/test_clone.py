@@ -53,3 +53,5 @@ class TestClone(PackageTestBase):
 
 class TestRootClone(TestClone):
     root = True
+
+    root_required_for_is_installed = True
