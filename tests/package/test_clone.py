@@ -1,11 +1,9 @@
-from typing import Any
-
-from .base import DestinationPackageTestBase, RootPackageTestBase
+from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestClone(DestinationPackageTestBase, RootPackageTestBase):
     @property
-    def constructor_args(self) -> dict[str, Any]:
+    def constructor_args(self) -> PackageArgs:
         return {
             "clone": "ohmyzsh/ohmyzsh",
             "destination": self.dir_name,

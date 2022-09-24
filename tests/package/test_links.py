@@ -1,12 +1,11 @@
 import os
-from typing import Any
 
-from .base import DestinationPackageTestBase, RootPackageTestBase
+from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
     @property
-    def constructor_args(self) -> dict[str, Any]:
+    def constructor_args(self) -> PackageArgs:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
             "destination": self.destination,
@@ -24,7 +23,7 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
 
 class TestDotLinks(TestLinks):
     @property
-    def constructor_args(self) -> dict[str, Any]:
+    def constructor_args(self) -> PackageArgs:
         return super().constructor_args | {"dot": True}
 
     destination_file = ".myfile"
