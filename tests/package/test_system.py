@@ -39,11 +39,11 @@ class TestBrew:
             brew.latest_version("homebrew/cask-zzzzzzz/yyyyyyy")
 
 
-class TestHtop(PackageTestBase):
+class TestRipGrep(PackageTestBase):
     constructor_args = {
-        "name": "htop",
+        "name": "ripgrep",
     }
 
-    check_installed_command = ["htop", "--help"]
+    check_installed_command = ["rg", "--help"]
 
-    check_installed_output = "htop dev team"
+    check_installed_output = "ripgrep"
