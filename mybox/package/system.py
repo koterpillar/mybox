@@ -1,5 +1,4 @@
 import json
-import shutil
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from threading import Lock
@@ -175,9 +174,9 @@ class Apt(Installer):
 
 
 def linux_installer(driver: Driver) -> Installer:
-    if shutil.which("dnf"):
+    if driver.executable_exists("dnf"):
         return DNF(driver)
-    elif shutil.which("apt"):
+    elif driver.executable_exists("apt"):
         return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")

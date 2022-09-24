@@ -1,5 +1,4 @@
 import configparser
-import shutil
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional
@@ -99,7 +98,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         source = self.font_path(name)
         target = font_dir / name
         self.driver.link(source, target)
-        if shutil.which("fc-cache"):
+        if self.driver.executable_exists("fc-cache"):
             self.driver.run("fc-cache", "-f", str(font_dir))
 
     def install(self) -> None:

@@ -86,11 +86,14 @@ class Driver(metaclass=ABCMeta):
     def run_output(self, *args: str, silent: bool = False) -> str:
         return cast(str, self.run_(*args, capture_output=True, silent=silent).output)
 
+    def executable_exists(self, executable: str) -> bool:
+        return self.run_ok("sh", "-c", f"command -v {executable}")
+
     def find_executable(self, *executables: str) -> str:
         for candidate in executables:
-            if self.run_ok("which", candidate):
+            if self.executable_exists(candidate):
                 return candidate
-        raise Exception(f"None of {','.join(executables)} found in PATH.")
+        raise Exception(f"None of {', '.join(executables)} found in PATH.")
 
     def is_file(self, path: Path) -> bool:
         return self.run_ok("test", "-f", str(path))
