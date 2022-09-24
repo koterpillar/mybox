@@ -58,6 +58,8 @@ class Driver(metaclass=ABCMeta):
         return {"root": self.root}
 
     def with_root(self, /, root: bool) -> "Driver":
+        if self.root == root:
+            return self
         kwargs = self.deconstruct() | {"root": root}
         return type(self)(**kwargs)
 
@@ -143,11 +145,12 @@ class Driver(metaclass=ABCMeta):
 
     @cached_property
     def os(self) -> OS:
-        os_type = self.run_output("uname")
+        driver = self.with_root(False)
+        os_type = driver.run_output("uname")
         if os_type == "Linux":
-            return Linux(self)
+            return Linux(driver)
         elif os_type == "Darwin":
-            return MacOS(self)
+            return MacOS(driver)
         else:
             raise ValueError(f"Unsupported OS type {os_type}.")
 
