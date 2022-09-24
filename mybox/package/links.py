@@ -2,7 +2,6 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from ..fs import link
 from ..utils import Some, unsome_
 from .destination import Destination
 from .manual_version import ManualVersion
@@ -17,11 +16,11 @@ class Links(ManualVersion, Destination):
         only: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self.source = Path(links).absolute()
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)
-        super().__init__(**kwargs)
 
     @property
     def name(self) -> str:
@@ -61,5 +60,5 @@ class Links(ManualVersion, Destination):
                 target = Path("." + first_part, *parts)
             target = self.destination.joinpath(target)
 
-            link(path, target, sudo=self.root)
+            self.driver.link(path, target)
         super().install()

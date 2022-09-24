@@ -1,15 +1,19 @@
 import pytest
 
+from mybox.driver import LocalDriver
 from mybox.package.system import Brew
-from mybox.utils import CURRENT_OS, run
+from mybox.utils import run
 
 
 class TestBrew:
     @pytest.fixture
     def brew(self):
-        if CURRENT_OS != "darwin":
-            pytest.skip("brew is only available on macOS")
-        return Brew()
+        driver = LocalDriver()
+        driver.os.switch(
+            linux=lambda: pytest.skip("brew is only available on macOS"),
+            macos=lambda: None,
+        )()
+        return Brew(driver)
 
     @pytest.fixture(autouse=True)
     def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument

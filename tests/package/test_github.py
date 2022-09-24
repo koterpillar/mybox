@@ -34,6 +34,8 @@ class TestAmmonite(PackageTestBase):
         "binary": "amm",
     }
 
+    prerequisites = PackageTestBase.JAVA
+
     check_installed_command = ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"

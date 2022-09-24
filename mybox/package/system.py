@@ -1,19 +1,22 @@
 import json
-import shutil
-import subprocess
 from abc import ABCMeta, abstractmethod
-from functools import cache
+from functools import cache, cached_property
 from threading import Lock
 from typing import Optional
 
 import requests
 
+from ..driver import Driver
 from ..state import Version
-from ..utils import Some, run, run_output, unsome, url_version, with_os
+from ..utils import Some, unsome, url_version
 from .base import Package
 
 
 class Installer(metaclass=ABCMeta):
+    def __init__(self, driver: Driver) -> None:
+        self.driver = driver
+        super().__init__()
+
     @abstractmethod
     def install(self, package: str) -> None:
         pass
@@ -36,14 +39,14 @@ class Installer(metaclass=ABCMeta):
 
 class Brew(Installer):
     def install(self, package: str) -> None:
-        run("brew", "install", package)
+        self.driver.run("brew", "install", package)
 
     def upgrade(self, package: str) -> None:
-        run("brew", "upgrade", package)
+        self.driver.run("brew", "upgrade", package)
 
     @cache
     def brew_info(self, package: str) -> dict:
-        return json.loads(run_output("brew", "info", "--json=v2", package))
+        return json.loads(self.driver.run_output("brew", "info", "--json=v2", package))
 
     def installed_version(self, package: str) -> Optional[str]:
         info = self.brew_info(package)
@@ -103,30 +106,26 @@ class Brew(Installer):
 
 class DNF(Installer):
     def install(self, package: str) -> None:
-        run("dnf", "install", "-y", package, sudo=True)
+        self.driver.with_root(True).run("dnf", "install", "-y", package)
 
     def upgrade(self, package: str) -> None:
-        run("dnf", "upgrade", "-y", package, sudo=True)
+        self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
 
     def installed_version(self, package: str) -> Optional[str]:
-        try:
-            output = run_output(
-                "rpm",
-                "--query",
-                "--queryformat",
-                "%{VERSION}",
-                "--whatprovides",
-                package,
-                stderr=subprocess.DEVNULL,
-            ).strip()
-        except subprocess.CalledProcessError:
-            return None
-        if not output:
-            return None
-        return output
+        return self.driver.run_(
+            "rpm",
+            "--query",
+            "--queryformat",
+            "%{VERSION}",
+            "--whatprovides",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        ).output
 
     def latest_version(self, package: str) -> str:
-        output = run_output(
+        output = self.driver.run_output(
             "dnf",
             "--quiet",
             "repoquery",
@@ -138,7 +137,7 @@ class DNF(Installer):
             "x86_64,noarch",
             "--whatprovides",
             package,
-        ).strip()
+        )
         if not output or "\n" in output:
             raise Exception(f"Cannot determine version for {package}.")
         return output
@@ -146,13 +145,13 @@ class DNF(Installer):
 
 class Apt(Installer):
     def install(self, package: str) -> None:
-        run("apt", "install", "--yes", package, sudo=True)
+        self.driver.with_root(True).run("apt", "install", "--yes", package)
 
     def upgrade(self, package: str) -> None:
         self.install(package)
 
     def latest_version(self, package: str) -> str:
-        output = run_output(
+        output = self.driver.run_output(
             "apt-cache", "show", "--quiet", "--no-all-versions", package
         ).strip()
         for line in output.splitlines():
@@ -162,31 +161,26 @@ class Apt(Installer):
         raise Exception(f"Cannot determine version for {package}.")
 
     def installed_version(self, package: str) -> Optional[str]:
-        try:
-            return run_output(
-                "dpkg-query",
-                "--showformat",
-                "${Version}",
-                "--show",
-                package,
-                stderr=subprocess.DEVNULL,
-            ).strip()
-        except subprocess.CalledProcessError:
-            return None
+        return self.driver.run_(
+            "dpkg-query",
+            "--showformat",
+            "${Version}",
+            "--show",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        ).output
 
 
-def linux_installer() -> Installer:
-    if shutil.which("dnf"):
-        return DNF()
-    elif shutil.which("apt"):
-        return Apt()
+def linux_installer(driver: Driver) -> Installer:
+    if driver.executable_exists("dnf"):
+        return DNF(driver)
+    elif driver.executable_exists("apt"):
+        return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")
 
-
-INSTALLER: Installer = with_os(
-    linux=linux_installer, macos=lambda: Brew()  # pylint:disable=unnecessary-lambda
-)()
 
 INSTALLER_LOCK = Lock()
 
@@ -201,11 +195,17 @@ class SystemPackage(Package):
         service: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self._name = name
         self.url = url
         self.auto_updates = auto_updates
         self.services = unsome(service)
-        super().__init__(**kwargs)
+
+    @cached_property
+    def installer(self):
+        return self.driver.os.switch(
+            linux=linux_installer(self.driver), macos=Brew(self.driver)
+        )
 
     @property
     def name(self) -> str:
@@ -216,7 +216,7 @@ class SystemPackage(Package):
             return url_version(self.url)
         if self.auto_updates:
             return "latest"
-        return INSTALLER.latest_version(self.name)
+        return self.installer.latest_version(self.name)
 
     @property
     def local_version(self) -> Optional[str]:
@@ -226,14 +226,14 @@ class SystemPackage(Package):
             except KeyError:
                 return None
         if self.auto_updates:
-            return "latest" if INSTALLER.is_installed(self.name) else None
-        return INSTALLER.installed_version(self.name)
+            return "latest" if self.installer.is_installed(self.name) else None
+        return self.installer.installed_version(self.name)
 
     def postinstall_linux(self):
         if self.services:
-            run("systemctl", "daemon-reload", sudo=True)
+            self.driver.with_root(True).run("systemctl", "daemon-reload")
             for service in self.services:
-                run("systemctl", "enable", service, sudo=True)
+                self.driver.with_root(True).run("systemctl", "enable", service)
 
     def postinstall_macos(self):
         pass
@@ -241,10 +241,12 @@ class SystemPackage(Package):
     def install(self):
         with INSTALLER_LOCK:
             if self.url:
-                INSTALLER.install(self.url)
+                self.installer.install(self.url)
                 self.versions[self.name] = Version(version=self.get_remote_version())
             elif self.local_version:
-                INSTALLER.upgrade(self.name)
+                self.installer.upgrade(self.name)
             else:
-                INSTALLER.install(self.name)
-        with_os(linux=self.postinstall_linux, macos=self.postinstall_macos)()
+                self.installer.install(self.name)
+        self.driver.os.switch(
+            linux=self.postinstall_linux, macos=self.postinstall_macos
+        )()

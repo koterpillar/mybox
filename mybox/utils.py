@@ -1,48 +1,15 @@
 import concurrent.futures
 import re
 import subprocess
-import sys
+from pathlib import Path
 from threading import Lock
-from typing import Callable, Iterable, Iterator, Literal, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Iterable, Iterator, Optional, TypeVar, Union
 
 import requests
 import tqdm  # type: ignore
 
-OS = Literal["linux", "darwin"]
-
-CURRENT_OS: OS = cast(OS, sys.platform)
-
-
-Distribution = str
-
-
-def get_distro() -> Optional[Distribution]:
-    if CURRENT_OS != "linux":
-        return None
-
-    release_file = "/etc/os-release"
-    with open(release_file) as release:
-        for line in release:
-            k, v = line.strip().split("=", 1)
-            if k == "ID":
-                return v
-
-    raise ValueError(f"Cannot find distribution ID in {release_file}.")
-
-
-CURRENT_DISTRIBUTION = get_distro()
-
 T = TypeVar("T")
 U = TypeVar("U")
-
-
-def with_os(*, linux: T, macos: T) -> T:
-    if CURRENT_OS == "linux":
-        return linux
-    elif CURRENT_OS == "darwin":
-        return macos
-    else:
-        raise ValueError(f"Unexpected OS {CURRENT_OS}.")
 
 
 Some = Optional[Union[T, list[T]]]
@@ -63,41 +30,25 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run_args(args: Iterable[str], *, sudo: bool) -> list[str]:
-    if sudo:
-        # If the sudo prompt is needed, avoid drawing a progress bar over it
-        # with first prompting for a no-op command.
-        with TERMINAL_LOCK:
-            subprocess.run(["sudo", "true"], check=True)
-        return ["sudo", *args]
-    else:
-        return list(args)
+def run(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(args, check=True)
 
 
-def run(*args: str, sudo: bool = False, **kwargs) -> subprocess.CompletedProcess:
-    return subprocess.run(run_args(args, sudo=sudo), check=True, **kwargs)
-
-
-def run_ok(*args: str, sudo: bool = False, **kwargs) -> bool:
+def run_ok(*args: str) -> bool:
     return (
         subprocess.run(
-            run_args(args, sudo=sudo),
+            args,
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            **kwargs,
         ).returncode
         == 0
     )
 
 
-def run_output(*args: str, sudo: bool = False, **kwargs) -> str:
+def run_output(*args: str) -> str:
     return (
-        subprocess.run(
-            run_args(args, sudo=sudo), stdout=subprocess.PIPE, check=True, **kwargs
-        )
-        .stdout.decode()
-        .strip()
+        subprocess.run(args, stdout=subprocess.PIPE, check=True).stdout.decode().strip()
     )
 
 
@@ -164,3 +115,11 @@ def choose(candidates: list[T], filters: Iterator[Callable[[T], bool]]) -> T:
 def url_version(url: str) -> str:
     head_response = requests.head(url, allow_redirects=True)
     return head_response.headers["etag"]
+
+
+def raise_(exception: BaseException) -> Any:
+    raise exception
+
+
+def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
+    return dir_to.joinpath(path.relative_to(dir_from))

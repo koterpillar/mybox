@@ -1,8 +1,9 @@
 import configparser
 import hashlib
-import tempfile
+from io import StringIO
+from pathlib import Path
 
-from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, Optional, run
+from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
 
@@ -10,10 +11,10 @@ class YumRepo(ManualVersion):
     def __init__(
         self, yum_name: str, yum_url: str, gpg_key: Optional[str] = None, **kwargs
     ) -> None:
+        super().__init__(**kwargs)
         self.repo_name = yum_name
         self.baseurl = yum_url
         self.gpg_key = gpg_key
-        super().__init__(**kwargs)
 
     @property
     def name(self) -> str:
@@ -26,10 +27,12 @@ class YumRepo(ManualVersion):
         return m.hexdigest()
 
     def install(self) -> None:
-        if CURRENT_OS != "linux":
-            raise Exception("YumRepo is only supported on Linux")
-        if CURRENT_DISTRIBUTION != "fedora":
-            raise Exception("YumRepo is only supported on Fedora")
+        self.driver.os.switch_(
+            linux=lambda linux: lambda: None
+            if linux.distribution == "fedora"
+            else raise_(ValueError("YumRepo is only supported on Fedora")),
+            macos=lambda: raise_(ValueError("YumRepo is only supported on Linux")),
+        )()
 
         repo = configparser.ConfigParser()
         repo[self.repo_name] = {
@@ -41,19 +44,13 @@ class YumRepo(ManualVersion):
             repo[self.repo_name]["gpgcheck"] = "1"
             repo[self.repo_name]["gpgkey"] = self.gpg_key
 
-        with tempfile.NamedTemporaryFile(mode="w") as repo_file:
-            repo.write(repo_file, space_around_delimiters=False)
-            repo_file.flush()
-            run(
-                "install",
-                "--mode",
-                "644",
-                repo_file.name,
-                f"/etc/yum.repos.d/{self.repo_name}.repo",
-                sudo=True,
-            )
+        contents = StringIO()
+        repo.write(contents, space_around_delimiters=False)
+        self.driver.with_root(True).write_file(
+            Path(f"/etc/yum.repos.d/{self.repo_name}.repo"), contents.getvalue()
+        )
 
         if self.gpg_key:
-            run("rpm", "--import", self.gpg_key, sudo=True)
+            self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
 
         super().install()

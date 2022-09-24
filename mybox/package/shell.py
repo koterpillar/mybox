@@ -1,24 +1,18 @@
 import os
 import pwd
+from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
-from ..fs import is_executable
-from ..utils import run
 from .base import Package
 
-SHELLS_FILE = "/etc/shells"
-
-
-def get_all_shells() -> list[str]:
-    with open(SHELLS_FILE) as shells_file:
-        return [shell.strip() for shell in shells_file]
+SHELLS_FILE = Path("/etc/shells")
 
 
 class Shell(Package):
     def __init__(self, shell: str, **kwargs) -> None:
-        self.shell = Path(shell)
         super().__init__(**kwargs)
+        self.shell = Path(shell)
 
     @property
     def name(self) -> str:
@@ -31,11 +25,17 @@ class Shell(Package):
     def local_version(self) -> Optional[str]:
         return pwd.getpwuid(os.getuid()).pw_shell
 
+    @cached_property
+    def all_shells(self) -> list[str]:
+        return self.driver.read_file(SHELLS_FILE).splitlines()
+
     def install(self) -> None:
-        if not self.shell.is_file():
+        if not self.driver.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
-        if not is_executable(self.shell):
+        if not self.driver.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
-        if str(self.shell) not in get_all_shells():
-            run("tee", "-a", SHELLS_FILE, input=str(self.shell).encode(), sudo=True)
-        run("chsh", "-s", str(self.shell))
+        if str(self.shell) not in self.all_shells:
+            self.driver.with_root(True).run(
+                "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
+            )
+        self.driver.run("chsh", "-s", str(self.shell))

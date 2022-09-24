@@ -1,28 +1,18 @@
 import json
 import os
-import shutil
 from dataclasses import dataclass
 from functools import cache
 from typing import Any, Callable, Iterator
 
 import requests
 
-from ..utils import (
-    CURRENT_OS,
-    Filters,
-    Some,
-    choose,
-    run_ok,
-    run_output,
-    unsome,
-    with_os,
-)
+from ..utils import Filters, Some, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
 
 @cache
 def have_github_auth() -> bool:
-    return bool(shutil.which("gh")) and run_ok("gh", "auth", "status")
+    return run_ok("gh", "auth", "status")
 
 
 def github_api(url: str) -> Any:
@@ -71,12 +61,12 @@ class GitHubPackage(ArchivePackage):
         regex: Some[str] = None,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
         self.repo = repo
         self.prefixes = unsome(prefix)
         self.suffixes = unsome(suffix)
         self.excludes = unsome(exclude)
         self.regex = unsome(regex)
-        super().__init__(**kwargs)
 
     @cache
     def latest_release(self) -> GitHubRelease:
@@ -104,14 +94,15 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        os_hints = with_os(
-            linux=["linux", "gnu"],
-            macos=["macos", "darwin", "osx"],
-        )
-        for hint in os_hints:
-            yield Filters.includes(hint)
-        if CURRENT_OS == "linux":
-            yield Filters.excludes("musl")
+        for os_hint in self.driver.os.switch(
+            linux=[
+                Filters.includes("linux"),
+                Filters.includes("gnu"),
+                Filters.excludes("musl"),
+            ],
+            macos=[Filters.includes(hint) for hint in ["macos", "darwin", "osx"]],
+        ):
+            yield os_hint
         arch_hints = ["x86_64", "amd64"]
         for hint in arch_hints:
             yield Filters.includes(hint)

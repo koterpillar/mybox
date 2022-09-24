@@ -2,24 +2,31 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import Optional
 
+from ..driver import Driver
 from ..state import DB, VERSIONS, Table, Version
-from ..utils import CURRENT_DISTRIBUTION, CURRENT_OS, OS, Distribution, Some, unsome_
+from ..utils import Some, unsome_
 
 
 class Package(metaclass=ABCMeta):
-    os: Optional[list[OS]]
-    distribution: Optional[list[Distribution]]
+    os: Optional[list[str]]
+    distribution: Optional[list[str]]
 
     def __init__(
         self,
         *,
         db: DB,
-        os: Some[OS] = None,  # pylint:disable=redefined-outer-name
-        distribution: Some[Distribution] = None,
+        driver: Driver,
+        os: Some[str] = None,
+        distribution: Some[str] = None,
     ) -> None:
         self.db = db
+        self.driver_ = driver
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)
+
+    @property
+    def driver(self) -> Driver:
+        return self.driver_
 
     @property
     @abstractmethod
@@ -49,15 +56,14 @@ class Package(metaclass=ABCMeta):
 
     @property
     def applicable(self) -> bool:
-        if self.os is not None and CURRENT_OS not in self.os:
-            return False
-        if (
-            CURRENT_DISTRIBUTION is not None
-            and self.distribution is not None
-            and CURRENT_DISTRIBUTION not in self.distribution
-        ):
-            return False
-        return True
+        def check_os(name: str) -> bool:
+            return self.os is None or name in self.os
+
+        return self.driver.os.switch_(
+            linux=lambda linux: check_os("linux")
+            and (self.distribution is None or linux.distribution in self.distribution),
+            macos=check_os("darwin"),
+        )
 
     def ensure(self) -> bool:
         if not self.applicable:
