@@ -1,5 +1,7 @@
 import os
+import random
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
@@ -91,3 +93,27 @@ class PackageTestBase(metaclass=ABCMeta):
     ]
 
     NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
+
+
+class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
+    @cached_property
+    def dir_name(self) -> str:
+        return f"mybox_test_{random.randint(0, 1000000)}"
+
+    @property
+    def destination(self) -> Path:
+        return self.test_driver.home() / self.dir_name
+
+    def test_installs(self):
+        try:
+            return super().test_installs()
+        finally:
+            self.test_driver.run("rm", "-rf", str(self.destination))
+
+
+class RootPackageTestBase(PackageTestBase, metaclass=ABCMeta):
+    root = False
+
+    @property
+    def test_driver(self) -> Driver:
+        return super().test_driver.with_root(self.root)

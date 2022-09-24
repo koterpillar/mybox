@@ -2,20 +2,21 @@ import os
 from abc import ABCMeta, abstractmethod
 from typing import Any
 
-from .base import PackageTestBase
+from .base import DestinationPackageTestBase, RootPackageTestBase
 
 
-class LinksTestBase(PackageTestBase, metaclass=ABCMeta):
+class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase, metaclass=ABCMeta):
     @property
     def constructor_args(self) -> dict[str, Any]:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
-            "destination": "config",
+            "destination": self.destination,
+            "root": self.root,
         }
 
     @property
     def check_installed_command(self) -> list[str]:
-        return ["cat", f"{self.driver.home()}/{self.destination_file}"]
+        return ["cat", str(self.destination / self.destination_file)]
 
     check_installed_output = "Linked file"
 
@@ -26,7 +27,7 @@ class LinksTestBase(PackageTestBase, metaclass=ABCMeta):
 
 
 class TestLinks(LinksTestBase):
-    destination_file = "config/myfile"
+    destination_file = "myfile"
 
 
 class TestDotLinks(LinksTestBase):
@@ -34,4 +35,4 @@ class TestDotLinks(LinksTestBase):
     def constructor_args(self) -> dict[str, Any]:
         return super().constructor_args | {"dot": True}
 
-    destination_file = "config/.myfile"
+    destination_file = ".myfile"
