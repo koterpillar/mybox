@@ -56,9 +56,14 @@ class DockerDriver(SubprocessDriver):
         run(*self.docker, "rm", "--force", self.container)
 
     def prepare_command(self, args: Iterable[str]) -> list[str]:
-        user = "root" if self.root else self.user
         return super().prepare_command(
-            [*self.docker, "exec", "--user", user, self.container, *args]
+            [
+                *self.docker,
+                "exec",
+                *(["--user", "root"] if self.root else []),
+                self.container,
+                *args,
+            ]
         )
 
     @classmethod
@@ -87,6 +92,7 @@ class DockerDriver(SubprocessDriver):
                     COPY bootstrap /bootstrap
                     RUN /bootstrap --development
                     ENV PATH /home/{user}/.local/bin:$PATH
+                    USER {user}
                 """
                 )
             run(*docker, "build", "--tag", target_image, str(tmppath))
