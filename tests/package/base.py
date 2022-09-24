@@ -76,7 +76,9 @@ class DockerDriver(SubprocessDriver):
     ) -> "DockerDriver":
         docker = ["sudo", "docker"] if docker_sudo else ["docker"]
 
-        bootstrap = (Path(__file__).parents[2] / "bootstrap").absolute()
+        package_root = Path(__file__).parent.parent.parent.absolute()
+
+        bootstrap = package_root / "bootstrap"
         assert bootstrap.is_file()
 
         target_image = f"mybox-test-{image}"
@@ -102,6 +104,8 @@ class DockerDriver(SubprocessDriver):
             "run",
             "--rm",
             "--detach",
+            "--volume",
+            f"{package_root}:{package_root}",
             target_image,
             "sleep",
             "300",
