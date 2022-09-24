@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -68,21 +70,36 @@ class DockerDriver(SubprocessDriver):
         docker_sudo: bool = False,
     ) -> "DockerDriver":
         docker = ["sudo", "docker"] if docker_sudo else ["docker"]
+
         bootstrap = (Path(__file__).parents[2] / "bootstrap").absolute()
         assert bootstrap.is_file()
+
+        target_image = f"mybox-test-{image}"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            shutil.copy(bootstrap, tmppath / "bootstrap")
+            with open(tmppath / "Dockerfile", "w") as dockerfile:
+                dockerfile.write(
+                    f"""
+                    FROM {image}
+                    RUN useradd --create-home {user}
+                    COPY bootstrap /bootstrap
+                    RUN /bootstrap --development
+                    ENV PATH /home/{user}/.local/bin:$PATH
+                """
+                )
+            run(*docker, "build", "--tag", target_image, str(tmppath))
+
         container = run_output(
             *docker,
             "run",
             "--rm",
             "--detach",
-            "--volume",
-            f"{bootstrap}:/bootstrap",
-            image,
+            target_image,
             "sleep",
             "300",
         )
-        run(*docker, "exec", container, "useradd", "--create-home", user)
-        run(*docker, "exec", container, "/bootstrap", "--development")
         return cls(container=container, user=user, docker_sudo=docker_sudo)
 
 

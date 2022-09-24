@@ -80,7 +80,7 @@ then
   python3 -m pip install --user pipx
 fi
 
-if [ "$1" != "--development" ]
+if [ "${1:-}" != "--development" ]
 then
   if python3 -m pipx list --short | grep -qE '^mybox ' >/dev/null 2>&1
   then
