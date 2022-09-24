@@ -9,6 +9,8 @@ class TestYarn(PackageTestBase):
         "strip": 1,
     }
 
+    prerequisites = PackageTestBase.NODE
+
     check_installed_command = ["yarn", "--help"]
 
     check_installed_output = "Usage: yarn"

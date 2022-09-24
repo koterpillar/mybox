@@ -8,7 +8,7 @@ from typing import Any, Iterable, Optional
 import pytest
 
 from mybox.driver import Driver, LocalDriver, SubprocessDriver
-from mybox.package import parse_package
+from mybox.package import Package, parse_package
 from mybox.state import DB
 from mybox.utils import run, run_output
 
@@ -114,12 +114,16 @@ class DockerDriver(SubprocessDriver):
         return cls(container=container, user=user, docker_sudo=docker_sudo)
 
 
+PackageArgs = dict[str, Any]
+
+
 class PackageTestBase(metaclass=ABCMeta):
+    db: DB
     driver: Driver
 
     @property
     @abstractmethod
-    def constructor_args(self) -> dict[str, Any]:
+    def constructor_args(self) -> PackageArgs:
         pass
 
     @property
@@ -129,10 +133,12 @@ class PackageTestBase(metaclass=ABCMeta):
 
     check_installed_output: Optional[str] = None
 
+    @property
+    def prerequisites(self) -> Iterable[PackageArgs]:
+        return []
+
     @pytest.fixture(autouse=True)
-    def ensure_local_bin_environment(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def setup_driver(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
             self.driver = DockerDriver.create(image=docker_image)
@@ -140,6 +146,13 @@ class PackageTestBase(metaclass=ABCMeta):
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
+
+    @pytest.fixture(autouse=True)
+    def setup_db(self) -> None:
+        self.db = DB(":memory:")
+
+    def parse_package(self, constructor_args: PackageArgs) -> Package:
+        return parse_package(constructor_args, db=self.db, driver=self.driver)
 
     @property
     def test_driver(self) -> Driver:
@@ -153,8 +166,18 @@ class PackageTestBase(metaclass=ABCMeta):
             assert self.check_installed_output in output
 
     def test_installs(self):
-        db = DB(":memory:")
-        package = parse_package(self.constructor_args, db=db, driver=self.driver)
+        for prerequisite in self.prerequisites:
+            package = self.parse_package(prerequisite)
+            package.ensure()
+
+        package = self.parse_package(self.constructor_args)
         assert package.applicable
         package.install()
         self.check_installed()
+
+    JAVA: list[PackageArgs] = [
+        {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
+        {"name": "openjdk-17-jre", "os": "linux", "distribution": "ubuntu"},
+    ]
+
+    NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
