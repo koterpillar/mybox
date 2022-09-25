@@ -87,7 +87,10 @@ class PackageTestBase(metaclass=ABCMeta):
             self.constructor_args, driver=self.driver.disable_root()
         )
         assert package.applicable
-        assert not package.is_installed
+        # Check that the property works, installation status doesn't matter
+        # (if running on the host machine system packages might or might not
+        # be installed)
+        assert package.is_installed in {True, False}
 
     JAVA: list[PackageArgs] = [
         {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
