@@ -30,6 +30,15 @@ case "$OSTYPE" in
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
 
+    sudo_() {
+      if [ "$EUID" -eq 0 ]
+      then
+        "$@"
+      else
+        sudo "$@"
+      fi
+    }
+
     ensure() {
       COMMAND="$1"
       shift
@@ -41,19 +50,14 @@ case "$OSTYPE" in
       fi
       if ! command_exists "$COMMAND"
       then
-        if [ "$EUID" -eq 0 ]
-        then
-          "${INSTALLER[@]}" "${PACKAGES[@]}"
-        else
-          sudo "${INSTALLER[@]}" "${PACKAGES[@]}"
-        fi
+        sudo_ "${INSTALLER[@]}" "${PACKAGES[@]}"
       fi
     }
 
     case $DISTRO in
       debian|ubuntu)
         INSTALLER=(apt install --yes)
-        apt update
+        sudo_ apt update
         ensure curl
         ensure git
         ensure sudo
