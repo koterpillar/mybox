@@ -6,27 +6,32 @@ command_exists() {
   type -f "$1" >/dev/null 2>&1
 }
 
+ensure() {
+  COMMAND="$1"
+  shift
+  if [ "$#" -ge 1 ]
+  then
+    PACKAGES=("$@")
+  else
+    PACKAGES=("$COMMAND")
+  fi
+  if ! command_exists "$COMMAND"
+  then
+    "${INSTALLER[@]}" "${PACKAGES[@]}"
+  fi
+}
+
 case "$OSTYPE" in
   darwin*)
     if ! command_exists brew
     then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
+    INSTALLER=(brew install)
 
-    if ! command_exists python3
-    then
-      brew install python3
-    fi
-
-    for PACKAGE in coreutils gnu-tar
-    do
-      if [ ! -d "/usr/local/opt/$PACKAGE" ]
-      then
-        brew install "$PACKAGE"
-      fi
-      PATH="/usr/local/opt/$PACKAGE/libexec/gnubin:$PATH"
-    done
- ;;
+    ensure python3
+    ensure gtar gnu-tar
+    ;;
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
 
@@ -39,25 +44,11 @@ case "$OSTYPE" in
       fi
     }
 
-    ensure() {
-      COMMAND="$1"
-      shift
-      if [ "$#" -ge 1 ]
-      then
-        PACKAGES=("$@")
-      else
-        PACKAGES=("$COMMAND")
-      fi
-      if ! command_exists "$COMMAND"
-      then
-        sudo_ "${INSTALLER[@]}" "${PACKAGES[@]}"
-      fi
-    }
-
     case $DISTRO in
       debian|ubuntu)
-        INSTALLER=(apt install --yes)
+        INSTALLER=(sudo_ apt install --yes)
         sudo_ apt update
+
         ensure curl
         ensure git
         ensure sudo
@@ -65,7 +56,8 @@ case "$OSTYPE" in
         ensure unzip
         ;;
       fedora)
-        INSTALLER=(dnf install --assumeyes)
+        INSTALLER=(sudo_ dnf install --assumeyes)
+
         ensure git
         ensure bzip2
         ensure xz
@@ -73,6 +65,7 @@ case "$OSTYPE" in
         ensure chsh util-linux-user
         ;;
     esac
+    ;;
 esac
 
 if ! python3 -c 'import pipx' >/dev/null 2>&1
