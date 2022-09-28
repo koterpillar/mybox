@@ -98,8 +98,7 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                 dockerfile.write(
                     f"""
                     FROM {image}
-                    RUN useradd --create-home {user}
-                    RUN passwd --delete {user}
+                    RUN useradd --create-home --password '' {user}
                     COPY bootstrap /bootstrap
                     RUN /bootstrap --development
                     ENV PATH /home/{user}/.local/bin:$PATH
