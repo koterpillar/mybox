@@ -83,6 +83,7 @@ class PackageTestBase(metaclass=ABCMeta):
         package = self.parse_package(self.constructor_args)
         assert package.applicable
         package.install()
+        assert package.is_installed
         self.check_installed()
 
     root_required_for_is_installed = False
