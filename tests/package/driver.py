@@ -99,6 +99,7 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                     f"""
                     FROM {image}
                     RUN useradd --create-home {user}
+                    RUN passwd --delete {user}
                     COPY bootstrap /bootstrap
                     RUN /bootstrap --development
                     ENV PATH /home/{user}/.local/bin:$PATH
