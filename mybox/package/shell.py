@@ -53,4 +53,4 @@ class Shell(Root):
             self.driver.with_root(True).run(
                 "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
             )
-        self.driver.run("chsh", "--shell", str(self.shell))
+        self.driver.run("chsh", "-s", str(self.shell))
