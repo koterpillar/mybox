@@ -36,12 +36,16 @@ class PackageTestBase(metaclass=ABCMeta):
     def prerequisites(self) -> Iterable[PackageArgs]:
         return []
 
+    skip_if_local = False
+
     @pytest.fixture(autouse=True)
     def setup_driver(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
             self.driver = DockerDriver.create(image=docker_image)
         else:
+            if self.skip_if_local:
+                pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
