@@ -8,7 +8,7 @@ class TestShell(RootPackageTestBase):
     def constructor_args(self) -> PackageArgs:
         return {"shell": "/bin/sh"}
 
-    skip_if_local = True
+    affects_system = True
 
     @property
     def check_installed_command(self) -> Iterable[str]:

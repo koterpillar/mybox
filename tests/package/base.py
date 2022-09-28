@@ -36,7 +36,7 @@ class PackageTestBase(metaclass=ABCMeta):
     def prerequisites(self) -> Iterable[PackageArgs]:
         return []
 
-    skip_if_local = False
+    affects_system = False  # If True, local tests won't run unless in Docker
 
     @pytest.fixture(autouse=True)
     def setup_driver(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -44,7 +44,7 @@ class PackageTestBase(metaclass=ABCMeta):
         if docker_image:
             self.driver = DockerDriver.create(image=docker_image)
         else:
-            if self.skip_if_local:
+            if self.affects_system and not os.environ.get("CI"):
                 pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
