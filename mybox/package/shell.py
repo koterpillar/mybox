@@ -4,12 +4,12 @@ from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
-from .base import Package
+from .root import Root
 
 SHELLS_FILE = Path("/etc/shells")
 
 
-class Shell(Package):
+class Shell(Root):
     def __init__(self, shell: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.shell = Path(shell)
