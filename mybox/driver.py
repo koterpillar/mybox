@@ -1,9 +1,10 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Callable, Iterable, Literal, Optional, cast
+from typing import Callable, Iterable, Iterator, Literal, Optional, cast
 
 from .utils import TERMINAL_LOCK, T
 
@@ -118,6 +119,14 @@ class Driver(metaclass=ABCMeta):
 
     def local(self) -> Path:
         return self.home() / ".local"
+
+    @contextmanager
+    def tempfile(self) -> Iterator[Path]:
+        path = Path(self.run_output("mktemp"))
+        try:
+            yield path
+        finally:
+            self.rm(path)
 
     def makedirs(self, path: Path) -> None:
         self.run("mkdir", "-p", str(path))
