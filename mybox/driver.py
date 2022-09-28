@@ -106,6 +106,12 @@ class Driver(metaclass=ABCMeta):
     def is_dir(self, path: Path) -> bool:
         return self.run_ok("test", "-d", str(path))
 
+    @property
+    def username(self) -> str:
+        if self.root:
+            return "root"
+        return self.run_output("whoami")
+
     def home(self) -> Path:
         path = "~root" if self.root else "~"
         return Path(self.with_root(False).run_output("sh", "-c", f"eval echo {path}"))

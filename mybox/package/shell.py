@@ -1,5 +1,3 @@
-import os
-import pwd
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
@@ -21,9 +19,26 @@ class Shell(Root):
     def get_remote_version(self) -> str:
         return str(self.shell)
 
+    def get_local_version_linux(self) -> str:
+        return (
+            self.driver.with_root(False)
+            .run_output("getent", "passwd", self.driver.username)
+            .split(":")[6]
+        )
+
+    def get_local_version_macos(self) -> str:
+        return (
+            self.driver.with_root(False)
+            .run_output("dscl", ".", "-read", str(self.driver.home), "UserShell")
+            .split(": ")[1]
+        )
+
     @property
     def local_version(self) -> Optional[str]:
-        return pwd.getpwuid(os.getuid()).pw_shell
+        return self.driver.os.switch(
+            linux=self.get_local_version_linux,
+            macos=self.get_local_version_macos,
+        )()
 
     @cached_property
     def all_shells(self) -> list[str]:
@@ -38,4 +53,4 @@ class Shell(Root):
             self.driver.with_root(True).run(
                 "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
             )
-        self.driver.run("chsh", "-s", str(self.shell))
+        self.driver.run("chsh", "--shell", str(self.shell))

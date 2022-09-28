@@ -50,10 +50,6 @@ class PackageTestBase(metaclass=ABCMeta):
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
 
-    @cached_property
-    def username(self) -> str:
-        return self.driver.run_output("whoami")
-
     def setup_db(self) -> DB:
         return DB(":memory:")
 
