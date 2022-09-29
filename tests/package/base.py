@@ -54,10 +54,14 @@ class PackageTestBase(metaclass=ABCMeta):
         return DB(":memory:")
 
     def parse_package(
-        self, constructor_args: PackageArgs, driver: Optional[Driver] = None
+        self,
+        constructor_args: PackageArgs,
+        *,
+        db: Optional[DB] = None,
+        driver: Optional[Driver] = None,
     ) -> Package:
         return parse_package(
-            constructor_args, db=self.setup_db(), driver=driver or self.driver
+            constructor_args, db=db or self.setup_db(), driver=driver or self.driver
         )
 
     @property
@@ -76,14 +80,16 @@ class PackageTestBase(metaclass=ABCMeta):
             package = self.parse_package(prerequisite)
             package.ensure()
 
-        package = self.parse_package(self.constructor_args)
+        db = self.setup_db()
+
+        package = self.parse_package(self.constructor_args, db=db)
         assert package.applicable
 
         package.install()
         self.check_installed()
 
         # Create the package again to reset cached properties
-        package = self.parse_package(self.constructor_args)
+        package = self.parse_package(self.constructor_args, db=db)
         assert package.is_installed
 
     root_required_for_is_installed = False
