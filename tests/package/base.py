@@ -78,9 +78,13 @@ class PackageTestBase(metaclass=ABCMeta):
 
         package = self.parse_package(self.constructor_args)
         assert package.applicable
+
         package.install()
-        assert package.is_installed
         self.check_installed()
+
+        # Create the package again to reset cached properties
+        package = self.parse_package(self.constructor_args)
+        assert package.is_installed
 
     root_required_for_is_installed = False
 
