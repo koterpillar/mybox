@@ -12,7 +12,7 @@ class TestShell(RootPackageTestBase):
 
     @property
     def check_installed_command(self) -> Iterable[str]:
-        return ["sh", "-c", f"cat /etc/passwd | grep {self.driver.username}"]
+        return ["sh", "-c", f"cat /etc/passwd | grep {self.test_driver.username}"]
 
     check_installed_output = "/bin/sh"
 
