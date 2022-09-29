@@ -29,7 +29,9 @@ class Shell(Root):
     def get_local_version_macos(self) -> str:
         return (
             self.driver.with_root(False)
-            .run_output("dscl", ".", "-read", str(self.driver.home), "UserShell")
+            .run_output(
+                "dscl", ".", "-read", f"/Users/{self.driver.username}", "UserShell"
+            )
             .split(": ")[1]
         )
 
