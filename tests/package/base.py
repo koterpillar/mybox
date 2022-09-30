@@ -16,6 +16,9 @@ from .driver import DockerDriver, OverrideHomeDriver, RootCheckDriver
 PackageArgs = dict[str, Any]
 
 
+CI: bool = "CI" in os.environ
+
+
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
     driver: RootCheckDriver
@@ -44,7 +47,7 @@ class PackageTestBase(metaclass=ABCMeta):
         if docker_image:
             self.driver = DockerDriver.create(image=docker_image)
         else:
-            if self.affects_system and not os.environ.get("CI"):
+            if self.affects_system and not CI:
                 pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
