@@ -47,7 +47,10 @@ case "$OSTYPE" in
     case $DISTRO in
       debian|ubuntu)
         INSTALLER=(sudo_ apt install --yes)
-        sudo_ apt update
+        if [ -z "$(ls -A /var/lib/apt/lists)" ]
+        then
+          sudo_ apt update
+        fi
 
         ensure curl
         ensure git
