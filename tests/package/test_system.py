@@ -40,6 +40,8 @@ class TestBrew:
 
 
 class TestRipGrep(PackageTestBase):
+    affects_system = True
+
     constructor_args = {
         "name": "ripgrep",
     }

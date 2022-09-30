@@ -16,6 +16,9 @@ from .driver import DockerDriver, OverrideHomeDriver, RootCheckDriver
 PackageArgs = dict[str, Any]
 
 
+CI: bool = "CI" in os.environ
+
+
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
     driver: RootCheckDriver
@@ -36,12 +39,16 @@ class PackageTestBase(metaclass=ABCMeta):
     def prerequisites(self) -> Iterable[PackageArgs]:
         return []
 
+    affects_system = False  # If True, local tests won't run unless in Docker
+
     @pytest.fixture(autouse=True)
     def setup_driver(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
             self.driver = DockerDriver.create(image=docker_image)
         else:
+            if self.affects_system and not CI:
+                pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
@@ -50,10 +57,14 @@ class PackageTestBase(metaclass=ABCMeta):
         return DB(":memory:")
 
     def parse_package(
-        self, constructor_args: PackageArgs, driver: Optional[Driver] = None
+        self,
+        constructor_args: PackageArgs,
+        *,
+        db: Optional[DB] = None,
+        driver: Optional[Driver] = None,
     ) -> Package:
         return parse_package(
-            constructor_args, db=self.setup_db(), driver=driver or self.driver
+            constructor_args, db=db or self.setup_db(), driver=driver or self.driver
         )
 
     @property
@@ -72,10 +83,17 @@ class PackageTestBase(metaclass=ABCMeta):
             package = self.parse_package(prerequisite)
             package.ensure()
 
-        package = self.parse_package(self.constructor_args)
+        db = self.setup_db()
+
+        package = self.parse_package(self.constructor_args, db=db)
         assert package.applicable
+
         package.install()
         self.check_installed()
+
+        # Create the package again to reset cached properties
+        package = self.parse_package(self.constructor_args, db=db)
+        assert package.is_installed
 
     root_required_for_is_installed = False
 

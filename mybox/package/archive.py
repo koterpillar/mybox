@@ -1,4 +1,3 @@
-import tempfile
 from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from pathlib import Path
@@ -109,15 +108,14 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     def install(self):
         url = self.archive_url()
-        with tempfile.NamedTemporaryFile() as archive_file:
-            archive_path = Path(archive_file.name)
+        with self.driver.tempfile() as archive_path:
             self.driver.run(
                 "curl",
                 "--silent",
                 "--show-error",
                 "--location",
                 "--output",
-                archive_path,
+                str(archive_path),
                 url,
             )
             self.extract(url, archive_path)
