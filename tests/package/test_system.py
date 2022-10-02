@@ -49,3 +49,23 @@ class TestRipGrep(PackageTestBase):
     check_installed_command = ["rg", "--help"]
 
     check_installed_output = "ripgrep"
+
+
+class TestRPMFusion(PackageTestBase):
+    affects_system = True
+
+    constructor_args = {
+        "name": "rpmfusion-free-release",
+        "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-36.noarch.rpm",
+    }
+
+    check_installed_command = ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]
+
+    check_installed_output = "RPM Fusion for Fedora"
+
+    @pytest.fixture(autouse=True)
+    def is_applicable(self) -> None:
+        if not self.os.switch_(
+            linux=lambda os: os.distribution == "fedora", macos=False
+        ):
+            pytest.skip("This test is only applicable on Fedora.")

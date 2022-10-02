@@ -2,8 +2,6 @@ from typing import Iterable
 
 import pytest
 
-from mybox.driver import LocalDriver
-
 from .base import CI, PackageArgs, RootPackageTestBase
 
 
@@ -23,7 +21,7 @@ class ShellTestBase(RootPackageTestBase):
 
 class TestShell(ShellTestBase):
     def test_installs(self):
-        if LocalDriver().os.switch(linux=False, macos=CI):
+        if self.os.switch(linux=False, macos=CI):
             pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
         return super().test_installs()
 
