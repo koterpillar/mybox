@@ -35,15 +35,18 @@ def run(*args: str) -> subprocess.CompletedProcess:
 
 
 def run_ok(*args: str) -> bool:
-    return (
-        subprocess.run(
-            args,
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode
-        == 0
-    )
+    try:
+        return (
+            subprocess.run(
+                args,
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ).returncode
+            == 0
+        )
+    except FileNotFoundError:
+        return False
 
 
 def run_output(*args: str) -> str:
