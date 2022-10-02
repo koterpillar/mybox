@@ -25,7 +25,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         pass
 
     def package_directory(self) -> Path:
-        result = self.driver.local() / f"{self.name.replace('/', '--')}.app"
+        result = self.local / "mybox" / self.name.replace("/", "--")
         self.driver.makedirs(result)
         return result
 
