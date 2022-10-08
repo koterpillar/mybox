@@ -7,7 +7,7 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
-from mybox.driver import Driver
+from mybox.driver import OS, Driver, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
 
@@ -116,6 +116,10 @@ class PackageTestBase(metaclass=ABCMeta):
     ]
 
     NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
+
+    @property
+    def os(self) -> OS:
+        return LocalDriver().os
 
 
 class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):

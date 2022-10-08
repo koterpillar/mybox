@@ -35,6 +35,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-data
+          path: .coverage*
+
+  coverage:
+    needs: ci
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9"]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: ./install-dev
+      - name: Download coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-data
+      - name: Coverage report
+        run: ./coverage-report
+      - name: Upload coverage report
+        run: poetry run coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     needs: ci
