@@ -52,6 +52,10 @@ class PackageTestBase(metaclass=ABCMeta):
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             self.driver = OverrideHomeDriver(override_home=tmp_path)
+        self.check_applicable()
+
+    def check_applicable(self) -> None:
+        pass
 
     def setup_db(self) -> DB:
         return DB(":memory:")

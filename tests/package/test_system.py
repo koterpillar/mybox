@@ -63,9 +63,8 @@ class TestRPMFusion(PackageTestBase):
 
     check_installed_output = "RPM Fusion for Fedora"
 
-    @pytest.fixture(autouse=True)
-    def is_applicable(self) -> None:
-        if not self.os.switch_(
+    def check_applicable(self) -> None:
+        if not self.driver.os.switch_(
             linux=lambda os: os.distribution == "fedora", macos=False
         ):
             pytest.skip("This test is only applicable on Fedora.")
