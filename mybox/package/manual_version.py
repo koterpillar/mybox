@@ -1,17 +1,39 @@
 from abc import ABCMeta
+from dataclasses import dataclass
+from functools import cached_property
 from typing import Optional
 
-from .base import Package, Version
+from ..state import Storage, storage
+from .base import Package
+
+
+@dataclass
+class Version:
+    version: str
+
+
+VERSIONS = storage("version", Version)
 
 
 class ManualVersion(Package, metaclass=ABCMeta):
+    @cached_property
+    def versions(self) -> Storage[Version]:
+        return VERSIONS(self.db)
+
     @property
-    def local_version(self) -> Optional[str]:
+    def cached_version(self) -> Optional[str]:
         try:
             return self.versions[self.name].version
         except KeyError:
             return None
 
+    @property
+    def local_version(self) -> Optional[str]:
+        return self.cached_version
+
+    def cache_version(self) -> None:
+        self.versions[self.name] = Version(version=self.get_remote_version())
+
     def install(self) -> None:
         super().install()
-        self.versions[self.name] = Version(version=self.get_remote_version())
+        self.cache_version()

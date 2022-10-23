@@ -1,19 +1,10 @@
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional
 
 from ..driver import Driver
-from ..state import DB, Storage, storage
+from ..state import DB
 from ..utils import Some, unsome_
-
-
-@dataclass
-class Version:
-    version: str
-
-
-VERSIONS = storage("version", Version)
 
 
 class Package(metaclass=ABCMeta):
@@ -81,7 +72,3 @@ class Package(metaclass=ABCMeta):
             return False
         self.install()
         return True
-
-    @cached_property
-    def versions(self) -> Storage[Version]:
-        return VERSIONS(self.db)
