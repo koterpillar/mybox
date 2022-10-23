@@ -7,9 +7,8 @@ from typing import Optional
 import requests
 
 from ..driver import Driver
-from ..state import Version
 from ..utils import Some, unsome, url_version
-from .base import Package
+from .base import Package, Version
 
 
 class Installer(metaclass=ABCMeta):

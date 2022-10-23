@@ -2,7 +2,7 @@ import argparse
 
 from .driver import LocalDriver
 from .package import load_packages
-from .state.base import DB, DB_PATH
+from .state import DB, DB_PATH
 from .utils import flatten, parallel_map_tqdm
 
 
