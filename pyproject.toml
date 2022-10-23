@@ -41,6 +41,7 @@ disable = [
     "fixme",
     "invalid-name",
     "method-cache-max-size-none",
+    "missing-timeout",
     "no-else-raise",
     "no-else-return",
     "unspecified-encoding",
