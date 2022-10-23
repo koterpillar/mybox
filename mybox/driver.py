@@ -1,12 +1,11 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from functools import cached_property
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, Literal, Optional, cast
+from typing import AsyncIterator, Callable, Iterable, Literal, Optional, cast
 
-from .utils import TERMINAL_LOCK, T
+from .utils import TERMINAL_LOCK, T, async_cached
 
 LinkMethod = Literal["binary_wrapper"]
 
@@ -29,9 +28,10 @@ class Linux(OS):
 
     RELEASE_FILE = "/etc/os-release"
 
-    @cached_property
-    def distribution(self) -> str:
-        for line in self.driver.read_file(Path(self.RELEASE_FILE)).splitlines():
+    @async_cached
+    async def distribution(self) -> str:
+        release_file = await self.driver.read_file(Path(self.RELEASE_FILE))
+        for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
                 return v
@@ -65,7 +65,7 @@ class Driver(metaclass=ABCMeta):
         return type(self)(**kwargs)
 
     @abstractmethod
-    def run_(
+    async def run_(
         self,
         *args: str,
         check: bool = True,
@@ -75,93 +75,95 @@ class Driver(metaclass=ABCMeta):
     ) -> RunResult:
         pass
 
-    def run(
+    async def run(
         self,
         *args: str,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         silent: bool = False,
     ) -> None:
-        self.run_(*args, input=input, silent=silent)
+        await self.run_(*args, input=input, silent=silent)
 
-    def run_ok(self, *args: str) -> bool:
-        return self.run_(*args, check=False).ok
+    async def run_ok(self, *args: str) -> bool:
+        result = await self.run_(*args, check=False)
+        return result.ok
 
-    def run_output(self, *args: str, silent: bool = False) -> str:
-        return cast(str, self.run_(*args, capture_output=True, silent=silent).output)
+    async def run_output(self, *args: str, silent: bool = False) -> str:
+        result = await self.run_(*args, capture_output=True, silent=silent)
+        return cast(str, result.output)
 
-    def executable_exists(self, executable: str) -> bool:
-        return self.run_ok("sh", "-c", f"command -v {executable}")
+    async def executable_exists(self, executable: str) -> bool:
+        return await self.run_ok("sh", "-c", f"command -v {executable}")
 
-    def find_executable(self, *executables: str) -> str:
+    async def find_executable(self, *executables: str) -> str:
         for candidate in executables:
-            if self.executable_exists(candidate):
+            if await self.executable_exists(candidate):
                 return candidate
         raise Exception(f"None of {', '.join(executables)} found in PATH.")
 
-    def is_file(self, path: Path) -> bool:
-        return self.run_ok("test", "-f", str(path))
+    async def is_file(self, path: Path) -> bool:
+        return await self.run_ok("test", "-f", str(path))
 
-    def is_executable(self, path: Path) -> bool:
-        return self.run_ok("test", "-x", str(path))
+    async def is_executable(self, path: Path) -> bool:
+        return await self.run_ok("test", "-x", str(path))
 
-    def is_dir(self, path: Path) -> bool:
-        return self.run_ok("test", "-d", str(path))
+    async def is_dir(self, path: Path) -> bool:
+        return await self.run_ok("test", "-d", str(path))
 
-    @property
-    def username(self) -> str:
+    async def username(self) -> str:
         if self.root:
             return "root"
-        return self.run_output("whoami")
+        return await self.run_output("whoami")
 
-    def home(self) -> Path:
+    async def home(self) -> Path:
         path = "~root" if self.root else "~"
-        return Path(self.with_root(False).run_output("sh", "-c", f"eval echo {path}"))
+        result = await self.with_root(False).run_output("sh", "-c", f"eval echo {path}")
+        return Path(result)
 
-    def local(self) -> Path:
-        return self.home() / ".local"
+    async def local(self) -> Path:
+        return await self.home() / ".local"
 
-    @contextmanager
-    def tempfile(self) -> Iterator[Path]:
-        path = Path(self.run_output("mktemp"))
+    @asynccontextmanager
+    async def tempfile(self) -> AsyncIterator[Path]:
+        path = Path(await self.run_output("mktemp"))
         try:
             yield path
         finally:
-            self.rm(path)
+            await self.rm(path)
 
-    def makedirs(self, path: Path) -> None:
-        self.run("mkdir", "-p", str(path))
+    async def makedirs(self, path: Path) -> None:
+        await self.run("mkdir", "-p", str(path))
 
-    def rm(self, path: Path) -> None:
-        self.run("rm", "-r", "-f", str(path))
+    async def rm(self, path: Path) -> None:
+        await self.run("rm", "-r", "-f", str(path))
 
-    def make_executable(self, path: Path) -> None:
-        self.run("chmod", "+x", str(path))
+    async def make_executable(self, path: Path) -> None:
+        await self.run("chmod", "+x", str(path))
 
-    def read_file(self, path: Path) -> str:
-        return self.run_output("cat", str(path))
+    async def read_file(self, path: Path) -> str:
+        return await self.run_output("cat", str(path))
 
-    def write_file(self, path: Path, content: str) -> None:
-        self.run("cp", "/dev/stdin", str(path), input=content.encode())
+    async def write_file(self, path: Path, content: str) -> None:
+        await self.run("cp", "/dev/stdin", str(path), input=content.encode())
 
-    def link(
+    async def link(
         self,
         source: Path,
         target: Path,
         *,
         method: Optional[LinkMethod] = None,
     ) -> None:
-        self.makedirs(target.parent)
-        self.rm(target)
+        await self.makedirs(target.parent)
+        await self.rm(target)
         if method == "binary_wrapper":
-            self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
-            self.make_executable(target)
+            await self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
+            await self.make_executable(target)
         else:
-            self.run("ln", "-s", "-f", str(source), str(target))
+            await self.run("ln", "-s", "-f", str(source), str(target))
 
-    @cached_property
-    def os(self) -> OS:
+    @async_cached
+    async def os(self) -> OS:
         driver = self.with_root(False)
-        os_type = driver.run_output("uname")
+        os_type = await driver.run_output("uname")
         if os_type == "Linux":
             return Linux(driver)
         elif os_type == "Darwin":
@@ -174,7 +176,7 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
     def prepare_command(self, args: Iterable[str]) -> list[str]:
         return list(args)
 
-    def run_(
+    async def run_(
         self,
         *args: str,
         check: bool = True,

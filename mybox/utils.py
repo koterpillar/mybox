@@ -3,7 +3,16 @@ import re
 import subprocess
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, Iterable, Iterator, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Iterable,
+    Iterator,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import requests
 import tqdm  # type: ignore
@@ -126,3 +135,16 @@ def raise_(exception: BaseException) -> Any:
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
     return dir_to.joinpath(path.relative_to(dir_from))
+
+
+def async_cached(
+    fn: Callable[[U], Coroutine[Any, Any, T]]
+) -> Callable[[U], Coroutine[Any, Any, T]]:
+    cache: dict[U, T] = {}
+
+    async def cached_fn(self: U) -> T:
+        if self not in cache:
+            cache[self] = await fn(self)
+        return cache[self]
+
+    return cached_fn

@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from typing import Optional
 
 from typed_argparse import TypedArgs
@@ -23,7 +24,7 @@ def parse_args(args: Optional[list[str]] = None) -> Args:
     return Args.from_argparse(result.parse_args(args))
 
 
-def main():
+async def main():
     db = DB(DB_PATH)
     driver = LocalDriver()
     args = parse_args()
@@ -47,3 +48,7 @@ def main():
         print(f"{len(installed)} packages installed or updated: {', '.join(installed)}")
     else:
         print("Everything up to date.")
+
+
+def sync_main():
+    asyncio.run(main())

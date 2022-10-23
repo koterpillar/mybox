@@ -19,10 +19,10 @@ class RootCheckDriver(Driver):
         kwargs = self.deconstruct() | {"enable_root": False}
         return type(self)(**kwargs)
 
-    def run_(self, *args, **kwargs) -> RunResult:
+    async def run_(self, *args, **kwargs) -> RunResult:
         if not self.enable_root:
             assert not self.root, "Root operations are disabled."
-        return super().run_(*args, **kwargs)
+        return await super().run_(*args, **kwargs)
 
 
 class OverrideHomeDriver(RootCheckDriver, LocalDriver):
@@ -33,9 +33,9 @@ class OverrideHomeDriver(RootCheckDriver, LocalDriver):
     def deconstruct(self) -> dict:
         return super().deconstruct() | {"override_home": self.override_home}
 
-    def home(self) -> Path:
+    async def home(self) -> Path:
         if self.root:
-            return super().home()
+            return await super().home()
         return self.override_home
 
 

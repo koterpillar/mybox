@@ -59,7 +59,7 @@ class Package(metaclass=ABCMeta):
         def check_os(name: str) -> bool:
             return self.os is None or name in self.os
 
-        return self.driver.os.switch_(
+        return self.driver.os().switch_(
             linux=lambda linux: check_os("linux")
             and (self.distribution is None or linux.distribution in self.distribution),
             macos=check_os("darwin"),
