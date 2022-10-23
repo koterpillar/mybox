@@ -12,6 +12,7 @@ python = "^3.9"
 PyYAML = "^6.0"
 requests = "^2.28.1"
 tqdm = "^4.64.0"
+typed-argparse = "^0.2.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
@@ -41,6 +42,7 @@ disable = [
     "fixme",
     "invalid-name",
     "method-cache-max-size-none",
+    "missing-timeout",
     "no-else-raise",
     "no-else-return",
     "unspecified-encoding",

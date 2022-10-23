@@ -8,7 +8,7 @@ import requests
 
 from ..driver import Driver
 from ..utils import Some, unsome, url_version
-from .base import Package, Version
+from .manual_version import ManualVersion
 
 
 class Installer(metaclass=ABCMeta):
@@ -184,7 +184,7 @@ def linux_installer(driver: Driver) -> Installer:
 INSTALLER_LOCK = Lock()
 
 
-class SystemPackage(Package):
+class SystemPackage(ManualVersion):
     def __init__(
         self,
         *,
@@ -220,10 +220,7 @@ class SystemPackage(Package):
     @property
     def local_version(self) -> Optional[str]:
         if self.url:
-            try:
-                return self.versions[self.name].version
-            except KeyError:
-                return None
+            return self.cached_version
         if self.auto_updates:
             return "latest" if self.installer.is_installed(self.name) else None
         return self.installer.installed_version(self.name)
@@ -241,7 +238,7 @@ class SystemPackage(Package):
         with INSTALLER_LOCK:
             if self.url:
                 self.installer.install(self.url)
-                self.versions[self.name] = Version(version=self.get_remote_version())
+                self.cache_version()
             elif self.local_version:
                 self.installer.upgrade(self.name)
             else:
