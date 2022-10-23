@@ -4,7 +4,7 @@ from typing import Optional
 from typed_argparse import TypedArgs
 
 from .driver import LocalDriver
-from .package import load_packages
+from .package import Package, load_packages
 from .state import DB, DB_PATH
 from .utils import flatten, parallel_map_tqdm
 
@@ -32,11 +32,18 @@ def main():
         load_packages(component, db=db, driver=driver) for component in components
     )
     map_fn = map if args.sequential else parallel_map_tqdm
-    results = map_fn(lambda p: p.name if p.ensure() else None, packages)
+
+    def process(package: Package) -> bool:
+        return package.ensure()
+
+    def process_and_record(package: Package) -> Optional[str]:
+        if process(package):
+            return package.name
+        return None
+
+    results = map_fn(process_and_record, packages)
     installed = list(filter(None, results))
     if installed:
-        print(
-            f"{len(installed)} packages installed or updated: {', '   .join(installed)}"
-        )
+        print(f"{len(installed)} packages installed or updated: {', '.join(installed)}")
     else:
         print("Everything up to date.")
