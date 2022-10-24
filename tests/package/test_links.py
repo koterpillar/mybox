@@ -12,9 +12,8 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
             "root": self.root,
         }
 
-    @property
-    def check_installed_command(self) -> list[str]:
-        return ["cat", str(self.destination / self.destination_file)]
+    async def check_installed_command(self) -> list[str]:
+        return ["cat", str(await self.destination() / self.destination_file)]
 
     check_installed_output = "Linked file"
 

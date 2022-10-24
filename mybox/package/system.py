@@ -1,6 +1,6 @@
 import json
 from abc import ABCMeta, abstractmethod
-from functools import cache, cached_property
+from functools import cache
 from threading import Lock
 from typing import Optional
 

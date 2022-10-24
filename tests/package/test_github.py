@@ -19,7 +19,8 @@ class TestNeovim(RootPackageTestBase):
         # Ordinary users should be able to use the package even if installed as root
         return super().test_driver.with_root(False)
 
-    check_installed_command = ["nvim", "--version"]
+    async def check_installed_command(self):
+        return ["nvim", "--version"]
 
     check_installed_output = "NVIM"
 
@@ -35,7 +36,8 @@ class TestExa(PackageTestBase):
         "binary": "exa",
     }
 
-    check_installed_command = ["exa", "--version"]
+    async def check_installed_command(self):
+        return ["exa", "--version"]
 
     check_installed_output = "exa - list files"
 
@@ -51,6 +53,7 @@ class TestAmmonite(PackageTestBase):
 
     prerequisites = PackageTestBase.JAVA
 
-    check_installed_command = ["amm", "--version"]
+    async def check_installed_command(self):
+        return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"

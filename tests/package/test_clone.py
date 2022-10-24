@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
@@ -10,11 +12,10 @@ class TestClone(DestinationPackageTestBase, RootPackageTestBase):
             "root": self.root,
         }
 
-    @property
-    def check_installed_command(self) -> list[str]:
+    async def check_installed_command(self) -> Iterable[str]:
         return [
             "cat",
-            str(self.destination / "templates/zshrc.zsh-template"),
+            str(await self.destination() / "templates/zshrc.zsh-template"),
         ]
 
     check_installed_output = "alias ohmyzsh"

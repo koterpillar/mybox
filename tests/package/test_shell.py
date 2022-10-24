@@ -12,18 +12,21 @@ class ShellTestBase(RootPackageTestBase):
 
     affects_system = True
 
-    @property
-    def check_installed_command(self) -> Iterable[str]:
-        return ["sh", "-c", f"cat /etc/passwd | grep {self.test_driver.username}"]
+    async def check_installed_command(self) -> Iterable[str]:
+        return [
+            "sh",
+            "-c",
+            f"cat /etc/passwd | grep {await self.test_driver.username()}",
+        ]
 
     check_installed_output = "/bin/sh"
 
 
 class TestShell(ShellTestBase):
-    def test_installs(self):
-        if self.os.switch(linux=False, macos=CI):
+    async def test_installs(self):
+        if (await self.os()).switch(linux=False, macos=CI):
             pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
-        return super().test_installs()
+        return await super().test_installs()
 
 
 class TestRootShell(ShellTestBase):

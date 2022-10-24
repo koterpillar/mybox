@@ -9,9 +9,9 @@ from .base import PackageTestBase
 
 class TestBrew:
     @pytest.fixture
-    def brew(self):
+    async def brew(self):
         driver = LocalDriver()
-        driver.os.switch(
+        (await driver.os()).switch(
             linux=lambda: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
         )()
@@ -46,7 +46,8 @@ class TestRipGrep(PackageTestBase):
         "name": "ripgrep",
     }
 
-    check_installed_command = ["rg", "--help"]
+    async def check_installed_command(self):
+        return ["rg", "--help"]
 
     check_installed_output = "ripgrep"
 
@@ -59,12 +60,13 @@ class TestRPMFusion(PackageTestBase):
         "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-36.noarch.rpm",
     }
 
-    check_installed_command = ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]
+    async def check_installed_command(self):
+        return ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]
 
     check_installed_output = "RPM Fusion for Fedora"
 
-    def check_applicable(self) -> None:
-        if not self.driver.os.switch_(
+    async def check_applicable(self) -> None:
+        if not (await self.driver.os()).switch_(
             linux=lambda os: os.distribution == "fedora", macos=False
         ):
             pytest.skip("This test is only applicable on Fedora.")

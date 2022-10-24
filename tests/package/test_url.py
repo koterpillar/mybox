@@ -11,6 +11,7 @@ class TestYarn(PackageTestBase):
 
     prerequisites = PackageTestBase.NODE
 
-    check_installed_command = ["yarn", "--help"]
+    async def check_installed_command(self):
+        return ["yarn", "--help"]
 
     check_installed_output = "Usage: yarn"
