@@ -110,7 +110,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
 
     async def install(self):
-        url = self.archive_url()
+        url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
             await self.driver.run(
                 "curl",

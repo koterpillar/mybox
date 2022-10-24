@@ -2,6 +2,8 @@ from typing import Iterable
 
 import pytest
 
+from tests.package.driver import RootCheckDriver
+
 from .base import CI, PackageArgs, RootPackageTestBase
 
 
@@ -12,21 +14,22 @@ class ShellTestBase(RootPackageTestBase):
 
     affects_system = True
 
-    async def check_installed_command(self) -> Iterable[str]:
+    async def check_installed_command(self, driver: RootCheckDriver) -> Iterable[str]:
         return [
             "sh",
             "-c",
-            f"cat /etc/passwd | grep {await self.test_driver.username()}",
+            f"cat /etc/passwd | grep {await self.check_driver(driver).username()}",
         ]
 
     check_installed_output = "/bin/sh"
 
 
 class TestShell(ShellTestBase):
-    async def test_installs(self):
+    @pytest.mark.trio
+    async def test_installs(self, driver: RootCheckDriver):
         if (await self.os()).switch(linux=False, macos=CI):
             pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
-        return await super().test_installs()
+        return await super().test_installs(driver)
 
 
 class TestRootShell(ShellTestBase):

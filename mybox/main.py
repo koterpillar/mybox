@@ -1,7 +1,7 @@
 import argparse
-import asyncio
 from typing import Optional
 
+import trio
 from typed_argparse import TypedArgs
 
 from .driver import LocalDriver
@@ -46,4 +46,4 @@ async def main():
 
 
 def sync_main():
-    asyncio.run(main())
+    trio.run(main())

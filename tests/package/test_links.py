@@ -1,5 +1,7 @@
 import os
 
+from tests.package.driver import RootCheckDriver
+
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
@@ -12,8 +14,8 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
             "root": self.root,
         }
 
-    async def check_installed_command(self) -> list[str]:
-        return ["cat", str(await self.destination() / self.destination_file)]
+    async def check_installed_command(self, driver: RootCheckDriver) -> list[str]:
+        return ["cat", str(await self.destination(driver) / self.destination_file)]
 
     check_installed_output = "Linked file"
 

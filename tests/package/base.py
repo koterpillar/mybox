@@ -6,13 +6,12 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import pytest
-import pytest_asyncio
 
-from mybox.driver import OS, Driver, LocalDriver
+from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
 
-from .driver import DockerDriver, OverrideHomeDriver, RootCheckDriver
+from .driver import DockerDriver, Driver, OverrideHomeDriver, RootCheckDriver
 
 PackageArgs = dict[str, Any]
 
@@ -22,7 +21,6 @@ CI: bool = "CI" in os.environ
 
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
-    driver: RootCheckDriver
 
     @property
     @abstractmethod
@@ -30,7 +28,7 @@ class PackageTestBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def check_installed_command(self) -> Iterable[str]:
+    async def check_installed_command(self, driver: RootCheckDriver) -> Iterable[str]:
         pass
 
     check_installed_output: Optional[str] = None
@@ -41,22 +39,24 @@ class PackageTestBase(metaclass=ABCMeta):
 
     affects_system = False  # If True, local tests won't run unless in Docker
 
-    @pytest_asyncio.fixture(autouse=True)
-    async def setup_driver(
+    @pytest.fixture
+    async def driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    ) -> RootCheckDriver:
+        driver: RootCheckDriver
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
-            self.driver = DockerDriver.create(image=docker_image)
+            driver = DockerDriver.create(image=docker_image)
         else:
             if self.affects_system and not CI:
                 pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-            self.driver = OverrideHomeDriver(override_home=tmp_path)
-        await self.check_applicable()
+            driver = OverrideHomeDriver(override_home=tmp_path)
+        await self.check_applicable(driver)
+        return driver
 
-    async def check_applicable(self) -> None:
+    async def check_applicable(self, driver: RootCheckDriver) -> None:
         pass
 
     def setup_db(self) -> DB:
@@ -66,56 +66,55 @@ class PackageTestBase(metaclass=ABCMeta):
         self,
         constructor_args: PackageArgs,
         *,
+        driver: Driver,
         db: Optional[DB] = None,
-        driver: Optional[Driver] = None,
     ) -> Package:
-        return parse_package(
-            constructor_args, db=db or self.setup_db(), driver=driver or self.driver
-        )
+        return parse_package(constructor_args, db=db or self.setup_db(), driver=driver)
 
-    @property
-    def test_driver(self) -> Driver:
-        return self.driver
+    def check_driver(self, driver: RootCheckDriver) -> Driver:
+        return driver
 
-    async def check_installed(self):
-        command = await self.check_installed_command()
+    async def check_installed(self, driver: RootCheckDriver):
+        command = await self.check_installed_command(driver)
         if self.check_installed_output is None:
-            await self.test_driver.run_ok(*command)
+            await self.check_driver(driver).run_ok(*command)
         else:
-            output = await self.test_driver.run_output(*command)
+            output = await self.check_driver(driver).run_output(*command)
             assert self.check_installed_output in output
 
-    async def test_installs(self):
+    @pytest.mark.trio
+    async def test_installs(self, driver: RootCheckDriver):
         for prerequisite in self.prerequisites:
-            package = self.parse_package(prerequisite)
+            package = self.parse_package(prerequisite, driver=driver)
             await package.ensure()
 
         db = self.setup_db()
 
-        package = self.parse_package(self.constructor_args, db=db)
+        package = self.parse_package(self.constructor_args, driver=driver, db=db)
         assert await package.applicable()
 
         await package.install()
-        await self.check_installed()
+        await self.check_installed(driver)
 
         # Create the package again to reset cached properties
-        package = self.parse_package(self.constructor_args, db=db)
+        package = self.parse_package(self.constructor_args, driver=driver, db=db)
         assert await package.is_installed()
 
     root_required_for_is_installed = False
 
-    def test_no_root_required_for_is_installed(self):
+    @pytest.mark.trio
+    async def test_no_root_required_for_is_installed(self, driver: RootCheckDriver):
         if self.root_required_for_is_installed:
             return
 
         package = self.parse_package(
-            self.constructor_args, driver=self.driver.disable_root()
+            self.constructor_args, driver=driver.disable_root()
         )
-        assert package.applicable
+        assert await package.applicable()
         # Check that the property works, installation status doesn't matter
         # (if running on the host machine system packages might or might not
         # be installed)
-        assert package.is_installed in {True, False}
+        assert await package.is_installed() in {True, False}
 
     JAVA: list[PackageArgs] = [
         {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
@@ -133,19 +132,21 @@ class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
     def dir_name(self) -> str:
         return f"mybox_test_{random.randint(0, 1000000)}"
 
-    async def destination(self) -> Path:
-        return (await self.test_driver.home()) / self.dir_name
+    async def destination(self, driver: RootCheckDriver) -> Path:
+        return (await self.check_driver(driver).home()) / self.dir_name
 
-    async def test_installs(self):
+    @pytest.mark.trio
+    async def test_installs(self, driver: RootCheckDriver):
         try:
-            return await super().test_installs()
+            return await super().test_installs(driver)
         finally:
-            self.test_driver.run("rm", "-rf", str(await self.destination()))
+            await self.check_driver(driver).run(
+                "rm", "-rf", str(await self.destination(driver))
+            )
 
 
 class RootPackageTestBase(PackageTestBase, metaclass=ABCMeta):
     root = False
 
-    @property
-    def test_driver(self) -> Driver:
-        return super().test_driver.with_root(self.root)
+    def check_driver(self, driver: RootCheckDriver) -> Driver:
+        return super().check_driver(driver).with_root(self.root)

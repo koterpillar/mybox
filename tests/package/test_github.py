@@ -1,4 +1,5 @@
 from mybox.driver import Driver
+from tests.package.driver import RootCheckDriver
 
 from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
@@ -14,12 +15,11 @@ class TestNeovim(RootPackageTestBase):
             "root": self.root,
         }
 
-    @property
-    def test_driver(self) -> Driver:
+    def check_driver(self, driver: RootCheckDriver) -> Driver:
         # Ordinary users should be able to use the package even if installed as root
-        return super().test_driver.with_root(False)
+        return super().check_driver(driver).with_root(False)
 
-    async def check_installed_command(self):
+    async def check_installed_command(self, driver: Driver):
         return ["nvim", "--version"]
 
     check_installed_output = "NVIM"
@@ -36,7 +36,7 @@ class TestExa(PackageTestBase):
         "binary": "exa",
     }
 
-    async def check_installed_command(self):
+    async def check_installed_command(self, driver: Driver):
         return ["exa", "--version"]
 
     check_installed_output = "exa - list files"
@@ -53,7 +53,7 @@ class TestAmmonite(PackageTestBase):
 
     prerequisites = PackageTestBase.JAVA
 
-    async def check_installed_command(self):
+    async def check_installed_command(self, driver: Driver):
         return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"

@@ -1,4 +1,3 @@
-import asyncio
 import re
 import subprocess
 from pathlib import Path
@@ -18,6 +17,7 @@ from typing import (
 
 import requests
 import tqdm  # type: ignore
+import trio
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -72,15 +72,21 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
 
 
 async def parallel_map_tqdm(items: list[Awaitable[T]]) -> list[T]:
+    results = []
+
     with tqdm.tqdm(total=len(items)) as progress:
+        async with trio.open_nursery() as nursery:
 
-        async def action_and_update(item: Awaitable[T]) -> T:
-            result = await item
-            with TERMINAL_LOCK:
-                progress.update(1)
-            return result
+            async def action_and_update(item: Awaitable[T]) -> None:
+                result = await item
+                with TERMINAL_LOCK:
+                    progress.update(1)
+                results.append(result)
 
-        return await asyncio.gather(*map(action_and_update, items))
+            for item in items:
+                nursery.start_soon(action_and_update, item)
+
+            return results
 
 
 class Filters:

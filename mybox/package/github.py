@@ -16,7 +16,7 @@ async def have_github_auth() -> bool:
 
 
 async def github_api(url: str) -> Any:
-    if have_github_auth():
+    if await have_github_auth():
         return json.loads(run_output("gh", "api", url))
     else:
         try:

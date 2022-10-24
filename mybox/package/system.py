@@ -180,10 +180,10 @@ class Apt(Installer):
         ).output
 
 
-def linux_installer(driver: Driver) -> Installer:
-    if driver.executable_exists("dnf"):
+async def linux_installer(driver: Driver) -> Installer:
+    if await driver.executable_exists("dnf"):
         return DNF(driver)
-    elif driver.executable_exists("apt"):
+    elif await driver.executable_exists("apt"):
         return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")
@@ -211,7 +211,7 @@ class SystemPackage(ManualVersion):
     @async_cached
     async def installer(self):
         return (await self.driver.os()).switch(
-            linux=linux_installer(self.driver), macos=Brew(self.driver)
+            linux=await linux_installer(self.driver), macos=Brew(self.driver)
         )
 
     @property

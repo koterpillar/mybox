@@ -1,3 +1,5 @@
+from mybox.driver import Driver
+
 from .base import PackageTestBase
 
 
@@ -11,7 +13,7 @@ class TestYarn(PackageTestBase):
 
     prerequisites = PackageTestBase.NODE
 
-    async def check_installed_command(self):
+    async def check_installed_command(self, driver: Driver):
         return ["yarn", "--help"]
 
     check_installed_output = "Usage: yarn"
