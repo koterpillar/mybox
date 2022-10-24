@@ -2,8 +2,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Optional, Union
 
-from mybox.utils import async_cached
-
+from ..utils import async_cached
 from .manual import ManualPackage
 
 
