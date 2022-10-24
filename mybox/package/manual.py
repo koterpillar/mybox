@@ -36,21 +36,21 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             return await self.driver.local()
 
     @abstractmethod
-    def binary_path(self, binary: str) -> Path:
+    async def binary_path(self, binary: str) -> Path:
         pass
 
     async def install_binary(self, name: str) -> None:
         await self.driver.link(
-            self.binary_path(name),
+            await self.binary_path(name),
             await self.local() / "bin" / name,
             method="binary_wrapper" if self.binary_wrapper else None,
         )
 
     @abstractmethod
-    def app_path(self, name: str) -> Path:
+    async def app_path(self, name: str) -> Path:
         pass
 
-    def icon_directory(self) -> Optional[Path]:
+    async def icon_directory(self) -> Optional[Path]:
         return None
 
     async def icon_name(self, app_path: Path) -> Optional[str]:
@@ -65,13 +65,15 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         )(name)
 
     async def install_app_linux(self, name: str) -> None:
-        path = self.app_path(name)
+        path = await self.app_path(name)
         target = await self.local() / "share" / "applications" / f"{name}.desktop"
         await self.driver.link(path, target)
-        icons_source = self.icon_directory()  # pylint:disable=assignment-from-none
+        icons_source = (
+            await self.icon_directory()
+        )  # pylint:disable=assignment-from-none
         if icons_source:
             icons_target = await self.local() / "share" / "icons"
-            icon = self.icon_name(path)
+            icon = await self.icon_name(path)
             if icon:
                 icons = (
                     await self.driver.run_output(
@@ -88,7 +90,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def font_path(self, name: str) -> Path:
+    async def font_path(self, name: str) -> Path:
         pass
 
     async def install_font(self, name: str) -> None:
@@ -97,7 +99,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             macos=await self.driver.home() / "Library" / "Fonts",
         )
         await self.driver.makedirs(font_dir)
-        source = self.font_path(name)
+        source = await self.font_path(name)
         target = font_dir / name
         await self.driver.link(source, target)
         if await self.driver.executable_exists("fc-cache"):

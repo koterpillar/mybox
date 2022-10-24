@@ -30,9 +30,9 @@ class ManualVersion(Package, metaclass=ABCMeta):
     async def local_version(self) -> Optional[str]:
         return self.cached_version
 
-    def cache_version(self) -> None:
-        self.versions[self.name] = Version(version=self.get_remote_version())
+    async def cache_version(self) -> None:
+        self.versions[self.name] = Version(version=await self.get_remote_version())
 
     async def install(self) -> None:
         await super().install()
-        self.cache_version()
+        await self.cache_version()

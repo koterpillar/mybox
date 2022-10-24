@@ -6,16 +6,16 @@ from typing import Any, Callable, Iterator
 
 import requests
 
-from ..utils import Filters, Some, choose, run_ok, run_output, unsome
+from ..utils import Filters, Some, async_cached, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
 
-@cache
-def have_github_auth() -> bool:
+@async_cached
+async def have_github_auth() -> bool:
     return run_ok("gh", "auth", "status")
 
 
-def github_api(url: str) -> Any:
+async def github_api(url: str) -> Any:
     if have_github_auth():
         return json.loads(run_output("gh", "api", url))
     else:
@@ -68,8 +68,8 @@ class GitHubPackage(ArchivePackage):
         self.excludes = unsome(exclude)
         self.regex = unsome(regex)
 
-    @cache
-    def latest_release(self) -> GitHubRelease:
+    @async_cached
+    async def latest_release(self) -> GitHubRelease:
         latest = github_api(f"repos/{self.repo}/releases/latest")
         return GitHubRelease(
             tag_name=latest["tag_name"],
@@ -107,8 +107,8 @@ class GitHubPackage(ArchivePackage):
         for hint in arch_hints:
             yield Filters.includes(hint)
 
-    def artifact(self) -> GitHubReleaseArtifact:
-        candidates = self.latest_release().assets
+    async def artifact(self) -> GitHubReleaseArtifact:
+        candidates = (await self.latest_release()).assets
 
         def candidate_filter(
             name_filter: Callable[[str], bool]
@@ -117,12 +117,12 @@ class GitHubPackage(ArchivePackage):
 
         return choose(candidates, map(candidate_filter, self.filters()))
 
-    def archive_url(self) -> str:
-        return self.artifact().url
+    async def archive_url(self) -> str:
+        return (await self.artifact()).url
 
     @property
     def name(self) -> str:
         return self.repo
 
-    def get_remote_version(self) -> str:
-        return self.latest_release().tag_name
+    async def get_remote_version(self) -> str:
+        return (await self.latest_release()).tag_name

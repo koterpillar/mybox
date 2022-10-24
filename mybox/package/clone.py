@@ -36,13 +36,15 @@ class Clone(Destination):
         return run_output("git", "ls-remote", self.remote, "HEAD").split()[0]
 
     async def install(self) -> None:
-        await self.driver.makedirs(self.destination.parent)
+        await self.driver.makedirs((await self.destination()).parent)
         if not await self.directory_exists():
             await self.driver.run("git", "clone", self.remote, str(self.destination))
         await self.run_git("remote", "set-url", "origin", self.remote)
         await self.run_git("fetch")
-        default_branch = await self.driver.run_output(
-            *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD"
+        default_branch = (
+            await self.driver.run_output(
+                *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD"
+            )
         ).split("/")[1]
         await self.run_git("switch", default_branch)
         await self.run_git("reset", "--hard", f"origin/{default_branch}")

@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
-from functools import cached_property
 from pathlib import Path
 from typing import Optional, Union
+
+from mybox.utils import async_cached
 
 from .manual import ManualPackage
 
@@ -21,95 +22,98 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         self.strip = strip
 
     @abstractmethod
-    def archive_url(self) -> str:
+    async def archive_url(self) -> str:
         pass
 
-    def package_directory(self) -> Path:
-        result = self.local / "mybox" / self.name.replace("/", "--")
-        self.driver.makedirs(result)
+    async def package_directory(self) -> Path:
+        result = (await self.local()) / "mybox" / self.name.replace("/", "--")
+        await self.driver.makedirs(result)
         return result
 
-    @cached_property
-    def tar(self) -> str:
-        return self.driver.find_executable("gtar", "tar")
+    @async_cached
+    async def tar(self) -> str:
+        return await self.driver.find_executable("gtar", "tar")
 
-    def untar(self, source: Path, *extra: str) -> None:
-        self.driver.run(
-            self.tar,
+    async def untar(self, source: Path, *extra: str) -> None:
+        await self.driver.run(
+            await self.tar(),
             "-x",
             "--strip",
             str(self.strip),
             "-C",
-            str(self.package_directory()),
+            str(await self.package_directory()),
             *extra,
             "-f",
             str(source),
         )
 
-    def unzip(self, source: Path) -> None:
+    async def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
-        self.driver.run(
+        await self.driver.run(
             "unzip", "-o", "-qq", str(source), "-d", str(self.package_directory())
         )
 
-    def extract(self, url: str, source: Path) -> None:
+    async def extract(self, url: str, source: Path) -> None:
         if self.raw:
             if isinstance(self.raw, str):
                 filename = self.raw
             else:
                 filename = url.rsplit("/", 1)[-1]
-            target = self.package_directory() / filename
-            self.driver.run("cp", str(source), str(target))
+            target = await self.package_directory() / filename
+            await self.driver.run("cp", str(source), str(target))
             if self.raw_executable:
-                self.driver.make_executable(target)
+                await self.driver.make_executable(target)
         elif url.endswith(".tar"):
-            self.untar(source)
+            await self.untar(source)
         elif url.endswith(".tar.gz") or url.endswith(".tgz"):
-            self.untar(source, "-z")
+            await self.untar(source, "-z")
         elif url.endswith(".tar.bz2"):
-            self.untar(source, "-j")
+            await self.untar(source, "-j")
         elif url.endswith(".tar.xz") or url.endswith(".txz"):
-            self.untar(source, "-J")
+            await self.untar(source, "-J")
         elif url.endswith(".zip"):
-            self.unzip(source)
+            await self.unzip(source)
         else:
             raise ValueError(f"Unknown archive format: {url}")
 
-    def binary_path(self, binary: str) -> Path:
+    async def binary_path(self, binary: str) -> Path:
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
-            candidate = self.package_directory() / Path(*relative_path) / binary
-            if self.driver.is_executable(candidate):
+            candidate = await self.package_directory() / Path(*relative_path) / binary
+            if await self.driver.is_executable(candidate):
                 return candidate
         raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
 
-    def app_path(self, name: str) -> Path:
+    async def app_path(self, name: str) -> Path:
         candidate = (
-            self.package_directory() / "share" / "applications" / f"{name}.desktop"
+            await self.package_directory()
+            / "share"
+            / "applications"
+            / f"{name}.desktop"
         )
-        if self.driver.is_file(candidate):
+        if await self.driver.is_file(candidate):
             return candidate
         raise ValueError(
             f"Cannot find application '{name}' in {self.package_directory()}."
         )
 
-    def icon_directory(self) -> Optional[Path]:
-        candidate = self.package_directory() / "share" / "icons"
-        if self.driver.is_dir(candidate):
+    async def icon_directory(self) -> Optional[Path]:
+        candidate = await self.package_directory() / "share" / "icons"
+        if await self.driver.is_dir(candidate):
             return candidate
         return None
 
-    def font_path(self, name: str) -> Path:
-        candidate = self.package_directory() / name
-        if self.driver.is_file(candidate):
+    async def font_path(self, name: str) -> Path:
+        candidate = await self.package_directory() / name
+        if await self.driver.is_file(candidate):
             return candidate
         raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
 
-    def install(self):
+    async def install(self):
         url = self.archive_url()
-        with self.driver.tempfile() as archive_path:
-            self.driver.run(
+        async with self.driver.tempfile() as archive_path:
+            await self.driver.run(
                 "curl",
                 "--silent",
                 "--show-error",
@@ -119,4 +123,4 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 url,
             )
             self.extract(url, archive_path)
-        super().install()
+        await super().install()
