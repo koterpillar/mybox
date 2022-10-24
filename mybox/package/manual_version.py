@@ -27,13 +27,12 @@ class ManualVersion(Package, metaclass=ABCMeta):
         except KeyError:
             return None
 
-    @property
-    def local_version(self) -> Optional[str]:
+    async def local_version(self) -> Optional[str]:
         return self.cached_version
 
     def cache_version(self) -> None:
         self.versions[self.name] = Version(version=self.get_remote_version())
 
-    def install(self) -> None:
-        super().install()
+    async def install(self) -> None:
+        await super().install()
         self.cache_version()

@@ -4,7 +4,7 @@ from typing import Optional
 
 from ..driver import Driver
 from ..state import DB
-from ..utils import Some, unsome_
+from ..utils import Some, async_cached, unsome_
 
 
 class Package(metaclass=ABCMeta):
@@ -34,41 +34,39 @@ class Package(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_remote_version(self) -> str:
+    async def get_remote_version(self) -> str:
         pass
 
-    @cached_property
-    def remote_version(self) -> str:
-        return self.get_remote_version()
-
-    @property
-    @abstractmethod
-    def local_version(self) -> Optional[str]:
-        pass
-
-    @property
-    def is_installed(self) -> bool:
-        return self.remote_version == self.local_version
+    @async_cached
+    async def remote_version(self) -> str:
+        return await self.get_remote_version()
 
     @abstractmethod
-    def install(self) -> None:
+    async def local_version(self) -> Optional[str]:
         pass
 
-    @property
-    def applicable(self) -> bool:
+    async def is_installed(self) -> bool:
+        return await self.remote_version() == await self.local_version()
+
+    @abstractmethod
+    async def install(self) -> None:
+        pass
+
+    async def applicable(self) -> bool:
         def check_os(name: str) -> bool:
             return self.os is None or name in self.os
 
-        return self.driver.os().switch_(
+        os = await self.driver.os()
+        return os.switch_(
             linux=lambda linux: check_os("linux")
             and (self.distribution is None or linux.distribution in self.distribution),
             macos=check_os("darwin"),
         )
 
-    def ensure(self) -> bool:
-        if not self.applicable:
+    async def ensure(self) -> bool:
+        if not await self.applicable():
             return False
-        if self.is_installed:
+        if await self.is_installed():
             return False
-        self.install()
+        await self.install()
         return True

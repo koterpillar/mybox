@@ -11,9 +11,6 @@ LinkMethod = Literal["binary_wrapper"]
 
 
 class OS(metaclass=ABCMeta):
-    def __init__(self, driver: "Driver") -> None:
-        self.driver = driver
-
     @abstractmethod
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         pass
@@ -22,23 +19,27 @@ class OS(metaclass=ABCMeta):
         return self.switch_(linux=lambda _: linux, macos=macos)
 
 
+@dataclass
 class Linux(OS):
+    distribution: str
+
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         return linux(self)
 
     RELEASE_FILE = "/etc/os-release"
 
-    @async_cached
-    async def distribution(self) -> str:
-        release_file = await self.driver.read_file(Path(self.RELEASE_FILE))
+    @classmethod
+    async def get_distribution(cls, driver: "Driver") -> str:
+        release_file = await driver.read_file(Path(cls.RELEASE_FILE))
         for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
                 return v
 
-        raise ValueError(f"Cannot find distribution ID in {self.RELEASE_FILE}.")
+        raise ValueError(f"Cannot find distribution ID in {cls.RELEASE_FILE}.")
 
 
+@dataclass
 class MacOS(OS):
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         return macos
@@ -165,9 +166,10 @@ class Driver(metaclass=ABCMeta):
         driver = self.with_root(False)
         os_type = await driver.run_output("uname")
         if os_type == "Linux":
-            return Linux(driver)
+            distribution = await Linux.get_distribution(driver)
+            return Linux(distribution=distribution)
         elif os_type == "Darwin":
-            return MacOS(driver)
+            return MacOS()
         else:
             raise ValueError(f"Unsupported OS type {os_type}.")
 
