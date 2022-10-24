@@ -1,11 +1,11 @@
 import json
 import os
 from dataclasses import dataclass
-from functools import cache
 from typing import Any, Callable, Iterator
 
 import requests
 
+from ..driver import OS
 from ..utils import Filters, Some, async_cached, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
@@ -70,7 +70,7 @@ class GitHubPackage(ArchivePackage):
 
     @async_cached
     async def latest_release(self) -> GitHubRelease:
-        latest = github_api(f"repos/{self.repo}/releases/latest")
+        latest = await github_api(f"repos/{self.repo}/releases/latest")
         return GitHubRelease(
             tag_name=latest["tag_name"],
             assets=[
@@ -81,7 +81,7 @@ class GitHubPackage(ArchivePackage):
             ],
         )
 
-    def filters(self) -> Iterator[Callable[[str], bool]]:
+    def filters(self, target_os: OS) -> Iterator[Callable[[str], bool]]:
         for prefix in self.prefixes:
             yield Filters.startswith(prefix)
         for suffix in self.suffixes:
@@ -94,7 +94,7 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        for os_hint in self.driver.os.switch(
+        for os_hint in target_os.switch(
             linux=[
                 Filters.includes("linux"),
                 Filters.includes("gnu"),
@@ -115,7 +115,8 @@ class GitHubPackage(ArchivePackage):
         ) -> Callable[[GitHubReleaseArtifact], bool]:
             return lambda candidate: name_filter(candidate.name)
 
-        return choose(candidates, map(candidate_filter, self.filters()))
+        target_os = await self.driver.os()
+        return choose(candidates, map(candidate_filter, self.filters(target_os)))
 
     async def archive_url(self) -> str:
         return (await self.artifact()).url

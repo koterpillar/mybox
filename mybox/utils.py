@@ -1,10 +1,11 @@
-import concurrent.futures
+import asyncio
 import re
 import subprocess
 from pathlib import Path
 from threading import Lock
 from typing import (
     Any,
+    Awaitable,
     Callable,
     Coroutine,
     Iterable,
@@ -12,6 +13,7 @@ from typing import (
     Optional,
     TypeVar,
     Union,
+    overload,
 )
 
 import requests
@@ -19,6 +21,7 @@ import tqdm  # type: ignore
 
 T = TypeVar("T")
 U = TypeVar("U")
+V = TypeVar("V")
 
 
 Some = Optional[Union[T, list[T]]]
@@ -68,17 +71,16 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-def parallel_map_tqdm(action: Callable[[T], U], items: list[T]) -> list[U]:
+async def parallel_map_tqdm(items: list[Awaitable[T]]) -> list[T]:
     with tqdm.tqdm(total=len(items)) as progress:
-        with concurrent.futures.ThreadPoolExecutor(20) as executor:
 
-            def action_and_update(item: T) -> U:
-                result = action(item)
-                with TERMINAL_LOCK:
-                    progress.update(1)
-                return result
+        async def action_and_update(item: Awaitable[T]) -> T:
+            result = await item
+            with TERMINAL_LOCK:
+                progress.update(1)
+            return result
 
-            return list(executor.map(action_and_update, items))
+        return await asyncio.gather(*map(action_and_update, items))
 
 
 class Filters:
@@ -137,14 +139,35 @@ def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
     return dir_to.joinpath(path.relative_to(dir_from))
 
 
+@overload
+def async_cached(
+    fn: Callable[[], Coroutine[Any, Any, T]]
+) -> Callable[[], Coroutine[Any, Any, T]]:
+    ...
+
+
+@overload
 def async_cached(
     fn: Callable[[U], Coroutine[Any, Any, T]]
 ) -> Callable[[U], Coroutine[Any, Any, T]]:
-    cache: dict[U, T] = {}
+    ...
 
-    async def cached_fn(self: U) -> T:
-        if self not in cache:
-            cache[self] = await fn(self)
-        return cache[self]
+
+@overload
+def async_cached(
+    fn: Callable[[U, V], Coroutine[Any, Any, T]]
+) -> Callable[[U, V], Coroutine[Any, Any, T]]:
+    ...
+
+
+def async_cached(
+    fn: Callable[..., Coroutine[Any, Any, T]]
+) -> Callable[..., Coroutine[Any, Any, T]]:
+    cache: dict[Any, T] = {}
+
+    async def cached_fn(*args: Any) -> T:
+        if args not in cache:
+            cache[args] = await fn(*args)
+        return cache[args]
 
     return cached_fn
