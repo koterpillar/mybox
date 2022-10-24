@@ -40,17 +40,17 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             "--strip",
             str(self.strip),
             "-C",
-            str(await self.package_directory()),
+            await self.package_directory(),
             *extra,
             "-f",
-            str(source),
+            source,
         )
 
     async def unzip(self, source: Path) -> None:
         if self.strip > 0:
             raise NotImplementedError("Strip is not supported for unzip.")
         await self.driver.run(
-            "unzip", "-o", "-qq", str(source), "-d", str(self.package_directory())
+            "unzip", "-o", "-qq", source, "-d", await self.package_directory()
         )
 
     async def extract(self, url: str, source: Path) -> None:
@@ -60,7 +60,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             else:
                 filename = url.rsplit("/", 1)[-1]
             target = await self.package_directory() / filename
-            await self.driver.run("cp", str(source), str(target))
+            await self.driver.run("cp", source, target)
             if self.raw_executable:
                 await self.driver.make_executable(target)
         elif url.endswith(".tar"):
@@ -82,7 +82,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             candidate = await self.package_directory() / Path(*relative_path) / binary
             if await self.driver.is_executable(candidate):
                 return candidate
-        raise ValueError(f"Cannot find {binary} in {self.package_directory()}.")
+        raise ValueError(f"Cannot find {binary} in {await self.package_directory()}.")
 
     async def app_path(self, name: str) -> Path:
         candidate = (
@@ -118,8 +118,8 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 "--show-error",
                 "--location",
                 "--output",
-                str(archive_path),
+                archive_path,
                 url,
             )
-            self.extract(url, archive_path)
+            await self.extract(url, archive_path)
         await super().install()

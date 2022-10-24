@@ -1,6 +1,7 @@
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
-from ..utils import run_output
+from ..utils import async_cached, run_output
 from .destination import Destination
 
 
@@ -14,19 +15,19 @@ class Clone(Destination):
         return self.repo
 
     async def directory_exists(self) -> bool:
-        return await self.driver.run_ok("test", "-d", str(self.destination))
+        return await self.driver.run_ok("test", "-d", await self.destination())
 
-    @property
-    def git_args(self) -> list[str]:
-        return ["git", "-C", str(self.destination)]
+    @async_cached
+    async def git_args(self) -> list[Union[str, Path]]:
+        return ["git", "-C", await self.destination()]
 
-    async def run_git(self, *args: str) -> None:
-        await self.driver.run(*self.git_args, *args)
+    async def run_git(self, *args: Union[str, Path]) -> None:
+        await self.driver.run(*await self.git_args(), *args)
 
     async def local_version(self) -> Optional[str]:
         if not await self.directory_exists():
             return None
-        return await self.driver.run_output(*self.git_args, "rev-parse", "HEAD")
+        return await self.driver.run_output(*await self.git_args(), "rev-parse", "HEAD")
 
     @property
     def remote(self):
@@ -38,12 +39,12 @@ class Clone(Destination):
     async def install(self) -> None:
         await self.driver.makedirs((await self.destination()).parent)
         if not await self.directory_exists():
-            await self.driver.run("git", "clone", self.remote, str(self.destination))
+            await self.driver.run("git", "clone", self.remote, await self.destination())
         await self.run_git("remote", "set-url", "origin", self.remote)
         await self.run_git("fetch")
         default_branch = (
             await self.driver.run_output(
-                *self.git_args, "rev-parse", "--abbrev-ref", "origin/HEAD"
+                *await self.git_args(), "rev-parse", "--abbrev-ref", "origin/HEAD"
             )
         ).split("/")[1]
         await self.run_git("switch", default_branch)

@@ -42,11 +42,11 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run(*args: str) -> subprocess.CompletedProcess:
+def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
     return subprocess.run(args, check=True)
 
 
-def run_ok(*args: str) -> bool:
+def run_ok(*args: Union[str, Path]) -> bool:
     try:
         return (
             subprocess.run(
@@ -61,7 +61,7 @@ def run_ok(*args: str) -> bool:
         return False
 
 
-def run_output(*args: str) -> str:
+def run_output(*args: Union[str, Path]) -> str:
     return (
         subprocess.run(args, stdout=subprocess.PIPE, check=True).stdout.decode().strip()
     )

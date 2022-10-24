@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Union
 
 from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import run, run_output
@@ -62,7 +62,9 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
     def stop(self) -> None:
         run(*self.docker, "rm", "--force", self.container)
 
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         return super().prepare_command(
             [
                 *self.docker,
@@ -105,7 +107,7 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                     USER {user}
                 """
                 )
-            run(*docker, "build", "--tag", target_image, str(tmppath))
+            run(*docker, "build", "--tag", target_image, tmppath)
 
         container = run_output(
             *docker,

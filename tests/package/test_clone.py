@@ -1,5 +1,3 @@
-from typing import Iterable
-
 from tests.package.driver import RootCheckDriver
 
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
@@ -14,11 +12,8 @@ class TestClone(DestinationPackageTestBase, RootPackageTestBase):
             "root": self.root,
         }
 
-    async def check_installed_command(self, driver: RootCheckDriver) -> Iterable[str]:
-        return [
-            "cat",
-            str(await self.destination(driver) / "templates/zshrc.zsh-template"),
-        ]
+    async def check_installed_command(self, driver: RootCheckDriver):
+        return ["cat", await self.destination(driver) / "templates/zshrc.zsh-template"]
 
     check_installed_output = "alias ohmyzsh"
 

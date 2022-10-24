@@ -77,7 +77,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             if icon:
                 icons = (
                     await self.driver.run_output(
-                        "find", str(icons_source), "-name", f"{icon}.*"
+                        "find", icons_source, "-name", f"{icon}.*"
                     )
                 ).splitlines()
                 for icon_path in map(Path, icons):
@@ -103,7 +103,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         target = font_dir / name
         await self.driver.link(source, target)
         if await self.driver.executable_exists("fc-cache"):
-            await self.driver.run("fc-cache", "-f", str(font_dir))
+            await self.driver.run("fc-cache", "-f", font_dir)
 
     async def install(self) -> None:
         for binary in self.binaries:

@@ -1,5 +1,3 @@
-from typing import Iterable
-
 import pytest
 
 from tests.package.driver import RootCheckDriver
@@ -14,7 +12,7 @@ class ShellTestBase(RootPackageTestBase):
 
     affects_system = True
 
-    async def check_installed_command(self, driver: RootCheckDriver) -> Iterable[str]:
+    async def check_installed_command(self, driver: RootCheckDriver):
         return [
             "sh",
             "-c",

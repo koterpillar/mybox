@@ -49,6 +49,6 @@ class Shell(Root):
             raise ValueError(f"{self.shell} is not executable.")
         if str(self.shell) not in await self.all_shells():
             await self.driver.with_root(True).run(
-                "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
+                "tee", "-a", SHELLS_FILE, input=str(self.shell).encode()
             )
-        await self.driver.run("chsh", "-s", str(self.shell))
+        await self.driver.run("chsh", "-s", self.shell)

@@ -3,7 +3,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Union
 
 import pytest
 
@@ -28,7 +28,9 @@ class PackageTestBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def check_installed_command(self, driver: RootCheckDriver) -> Iterable[str]:
+    async def check_installed_command(
+        self, driver: RootCheckDriver
+    ) -> Iterable[Union[str, Path]]:
         pass
 
     check_installed_output: Optional[str] = None
@@ -141,7 +143,7 @@ class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
             return await super().test_installs(driver)
         finally:
             await self.check_driver(driver).run(
-                "rm", "-rf", str(await self.destination(driver))
+                "rm", "-rf", await self.destination(driver)
             )
 
 

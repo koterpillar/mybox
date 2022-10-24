@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Literal, Optional, cast
+from typing import AsyncIterator, Callable, Iterable, Literal, Optional, Union, cast
 
 from .utils import TERMINAL_LOCK, T, async_cached
 
@@ -68,7 +68,7 @@ class Driver(metaclass=ABCMeta):
     @abstractmethod
     async def run_(
         self,
-        *args: str,
+        *args: Union[str, Path],
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -78,17 +78,17 @@ class Driver(metaclass=ABCMeta):
 
     async def run(
         self,
-        *args: str,
+        *args: Union[str, Path],
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         silent: bool = False,
     ) -> None:
         await self.run_(*args, input=input, silent=silent)
 
-    async def run_ok(self, *args: str) -> bool:
+    async def run_ok(self, *args: Union[str, Path]) -> bool:
         result = await self.run_(*args, check=False)
         return result.ok
 
-    async def run_output(self, *args: str, silent: bool = False) -> str:
+    async def run_output(self, *args: Union[str, Path], silent: bool = False) -> str:
         result = await self.run_(*args, capture_output=True, silent=silent)
         return cast(str, result.output)
 
@@ -102,10 +102,10 @@ class Driver(metaclass=ABCMeta):
         raise Exception(f"None of {', '.join(executables)} found in PATH.")
 
     async def is_file(self, path: Path) -> bool:
-        return await self.run_ok("test", "-f", str(path))
+        return await self.run_ok("test", "-f", path)
 
     async def is_executable(self, path: Path) -> bool:
-        return await self.run_ok("test", "-x", str(path))
+        return await self.run_ok("test", "-x", path)
 
     async def is_dir(self, path: Path) -> bool:
         return await self.run_ok("test", "-d", str(path))
@@ -175,12 +175,14 @@ class Driver(metaclass=ABCMeta):
 
 
 class SubprocessDriver(Driver, metaclass=ABCMeta):
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         return list(args)
 
     async def run_(
         self,
-        *args: str,
+        *args: Union[str, Path],
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -214,7 +216,9 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
 
 
 class LocalDriver(SubprocessDriver):
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         if self.root:
             # If the sudo prompt is needed, avoid drawing a progress bar over it
             # with first prompting for a no-op command.
