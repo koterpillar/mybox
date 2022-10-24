@@ -11,20 +11,22 @@ license = "GPL-3.0-or-later"
 python = "^3.9"
 PyYAML = "^6.0"
 requests = "^2.28.1"
+trio = "^0.22.0"
 tqdm = "^4.64.0"
 typed-argparse = "^0.2.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
+coverage = {extras = ["toml"], version = "^6.4.3"}
+coveralls = "^3.3.1"
 isort = "^5.10.1"
 mypy = "^0.961"
-types-PyYAML = "^6.0.9"
-types-requests = "^2.28.0"
 pylint = "^2.14.5"
 pytest = "^7.1.2"
-pytest-asyncio = "^0.20.1"
-coveralls = "^3.3.1"
-coverage = {extras = ["toml"], version = "^6.4.3"}
+pytest-trio = "^0.7.0"
+trio-typing = {extras = ["mypy"], version = "^0.7.0"}
+types-PyYAML = "^6.0.9"
+types-requests = "^2.28.0"
 
 [tool.poetry.scripts]
 mybox = "mybox.main:sync_main"
@@ -53,7 +55,7 @@ disable = [
 output-format = "colorized"
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
+trio_mode = true
 
 [tool.coverage.run]
 parallel = true
