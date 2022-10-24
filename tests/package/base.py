@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import pytest
+import pytest_asyncio
 
 from mybox.driver import OS, Driver, LocalDriver
 from mybox.package import Package, parse_package
@@ -40,7 +41,7 @@ class PackageTestBase(metaclass=ABCMeta):
 
     affects_system = False  # If True, local tests won't run unless in Docker
 
-    @pytest.fixture(autouse=True)
+    @pytest_asyncio.fixture(autouse=True)
     async def setup_driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:

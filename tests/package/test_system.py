@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 
 from mybox.driver import LocalDriver
 from mybox.package.system import Brew
@@ -8,7 +9,7 @@ from .base import PackageTestBase
 
 
 class TestBrew:
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def brew(self):
         driver = LocalDriver()
         (await driver.os()).switch(
