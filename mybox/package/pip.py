@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from .pip_base import PipBasePackage
 
@@ -13,17 +12,13 @@ class PipPackage(PipBasePackage):
         self.package = pip
         super().__init__(**kwargs)
 
-    def get_pip_versions(self) -> dict[str, str]:
-        packages_json = self.driver.run_output(
+    async def get_all_versions(self) -> dict[str, str]:
+        packages_json = await self.driver.run_output(
             *pip_cmd("list", "--format", "json"), silent=True
         )
         packages = json.loads(packages_json)
         return {package["name"]: package["version"] for package in packages}
 
-    @property
-    def local_version(self) -> Optional[str]:
-        return self.get_pip_versions().get(self.package)
-
-    def install(self) -> None:
-        cmd = "install" if self.local_version is None else "upgrade"
-        self.driver.run(*pip_cmd(cmd, self.package))
+    async def install(self) -> None:
+        cmd = "install" if await self.local_version() is None else "upgrade"
+        await self.driver.run(*pip_cmd(cmd, self.package))
