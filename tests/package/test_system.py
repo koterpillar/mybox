@@ -3,8 +3,9 @@ import pytest
 from mybox.driver import Driver, LocalDriver
 from mybox.package.system import Brew
 from mybox.utils import run
+from tests.package.driver import RootCheckDriver
 
-from .base import PackageTestBase
+from .base import PackageArgs, PackageTestBase
 
 
 class TestBrew:
@@ -47,9 +48,8 @@ class TestBrew:
 class TestRipGrep(PackageTestBase):
     affects_system = True
 
-    constructor_args = {
-        "name": "ripgrep",
-    }
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return {"name": "ripgrep"}
 
     async def check_installed_command(self, driver: Driver):
         return ["rg", "--help"]
@@ -60,10 +60,11 @@ class TestRipGrep(PackageTestBase):
 class TestRPMFusion(PackageTestBase):
     affects_system = True
 
-    constructor_args = {
-        "name": "rpmfusion-free-release",
-        "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-36.noarch.rpm",
-    }
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return {
+            "name": "rpmfusion-free-release",
+            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-36.noarch.rpm",
+        }
 
     async def check_installed_command(self, driver: Driver):
         return ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]

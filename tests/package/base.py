@@ -3,7 +3,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Iterable, Optional, Union
+from typing import Iterable, Optional, Union
 
 import pytest
 
@@ -13,7 +13,7 @@ from mybox.state import DB
 
 from .driver import DockerDriver, Driver, OverrideHomeDriver, RootCheckDriver
 
-PackageArgs = dict[str, Any]
+PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
 
 
 CI: bool = "CI" in os.environ
@@ -22,9 +22,8 @@ CI: bool = "CI" in os.environ
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
 
-    @property
     @abstractmethod
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
         pass
 
     @abstractmethod
@@ -92,14 +91,16 @@ class PackageTestBase(metaclass=ABCMeta):
 
         db = self.setup_db()
 
-        package = self.parse_package(self.constructor_args, driver=driver, db=db)
+        args = await self.constructor_args(driver)
+
+        package = self.parse_package(args, driver=driver, db=db)
         assert await package.applicable()
 
         await package.install()
         await self.check_installed(driver)
 
         # Create the package again to reset cached properties
-        package = self.parse_package(self.constructor_args, driver=driver, db=db)
+        package = self.parse_package(args, driver=driver, db=db)
         assert await package.is_installed()
 
     root_required_for_is_installed = False
@@ -109,9 +110,9 @@ class PackageTestBase(metaclass=ABCMeta):
         if self.root_required_for_is_installed:
             return
 
-        package = self.parse_package(
-            self.constructor_args, driver=driver.disable_root()
-        )
+        args = await self.constructor_args(driver)
+
+        package = self.parse_package(args, driver=driver.disable_root())
         assert await package.applicable()
         # Check that the property works, installation status doesn't matter
         # (if running on the host machine system packages might or might not

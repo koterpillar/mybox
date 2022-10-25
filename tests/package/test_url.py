@@ -1,15 +1,17 @@
 from mybox.driver import Driver
+from tests.package.driver import RootCheckDriver
 
-from .base import PackageTestBase
+from .base import PackageArgs, PackageTestBase
 
 
 class TestYarn(PackageTestBase):
-    constructor_args = {
-        "url": "https://yarnpkg.com/latest.tar.gz",
-        "binary": "yarn",
-        "binary_wrapper": True,
-        "strip": 1,
-    }
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return {
+            "url": "https://yarnpkg.com/latest.tar.gz",
+            "binary": "yarn",
+            "binary_wrapper": True,
+            "strip": 1,
+        }
 
     prerequisites = PackageTestBase.NODE
 

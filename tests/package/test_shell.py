@@ -6,8 +6,7 @@ from .base import CI, PackageArgs, RootPackageTestBase
 
 
 class ShellTestBase(RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
         return {"shell": "/bin/sh", "root": self.root}
 
     affects_system = True

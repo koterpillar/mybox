@@ -4,8 +4,7 @@ from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestClone(DestinationPackageTestBase, RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
         return {
             "clone": "ohmyzsh/ohmyzsh",
             "destination": self.dir_name,

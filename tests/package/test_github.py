@@ -5,8 +5,7 @@ from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
 
 class TestNeovim(RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
         return {
             "repo": "neovim/neovim",
             "strip": 1,
@@ -31,10 +30,11 @@ class TestRootNeovim(TestNeovim):
 
 
 class TestExa(PackageTestBase):
-    constructor_args = {
-        "repo": "ogham/exa",
-        "binary": "exa",
-    }
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return {
+            "repo": "ogham/exa",
+            "binary": "exa",
+        }
 
     async def check_installed_command(self, driver: Driver):
         return ["exa", "--version"]
@@ -43,17 +43,18 @@ class TestExa(PackageTestBase):
 
 
 class TestAmmonite(PackageTestBase):
-    constructor_args = {
-        "repo": "com-lihaoyi/Ammonite",
-        "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
-        "raw": "amm",
-        "raw_executable": True,
-        "binary": "amm",
-    }
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return {
+            "repo": "com-lihaoyi/Ammonite",
+            "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
+            "raw": "amm",
+            "raw_executable": True,
+            "binary": "amm",
+        }
 
     prerequisites = PackageTestBase.JAVA
 
-    async def check_installed_command(self, driver: Driver):
+    async def check_installed_command(self, driver: RootCheckDriver):
         return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"

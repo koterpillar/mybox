@@ -1,16 +1,16 @@
 import os
 
+from mybox.driver import Driver
 from tests.package.driver import RootCheckDriver
 
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
-            "destination": self.destination,
+            "destination": await self.destination(driver),
             "root": self.root,
         }
 
@@ -23,9 +23,8 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
 
 
 class TestDotLinks(TestLinks):
-    @property
-    def constructor_args(self) -> PackageArgs:
-        return super().constructor_args | {"dot": True}
+    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+        return await super().constructor_args(driver) | {"dot": True}
 
     destination_file = ".myfile"
 
