@@ -18,7 +18,7 @@ class TestBrew:
         )()
         return Brew(driver)
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument
         run("brew", "tap", "homebrew/cask-fonts")
 
@@ -31,7 +31,9 @@ class TestBrew:
         assert "4.12" <= await brew.latest_version("homebrew/cask/docker") <= "99"
 
     @pytest.mark.trio
-    async def test_font_version(self, brew: Brew):
+    async def test_font_version(
+        self, brew: Brew, brew_tap_fonts: None  # pylint:disable=unused-argument
+    ):
         assert "6.2" <= await brew.latest_version("homebrew/cask-fonts/font-fira-code")
 
     @pytest.mark.trio
