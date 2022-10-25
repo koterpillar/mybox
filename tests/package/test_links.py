@@ -1,6 +1,5 @@
 import os
 
-from mybox.driver import Driver
 from tests.package.driver import RootCheckDriver
 
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
