@@ -1,8 +1,8 @@
 import re
 import subprocess
+from asyncio import Lock
 from functools import wraps
 from pathlib import Path
-from threading import Lock
 from typing import (
     Any,
     Awaitable,
@@ -82,7 +82,7 @@ async def parallel_map_tqdm(
 
             async def action_and_update(item: T) -> None:
                 result = await action(item)
-                with TERMINAL_LOCK:
+                async with TERMINAL_LOCK:
                     progress.update(1)
                 results.append(result)
 

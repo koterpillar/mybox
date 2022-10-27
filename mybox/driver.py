@@ -220,10 +220,27 @@ class LocalDriver(SubprocessDriver):
         self, args: Iterable[Union[str, Path]]
     ) -> list[Union[str, Path]]:
         if self.root:
-            # If the sudo prompt is needed, avoid drawing a progress bar over it
-            # with first prompting for a no-op command.
-            with TERMINAL_LOCK:
-                subprocess.run(["sudo", "true"], check=True)
             return super().prepare_command(["sudo", *args])
         else:
             return super().prepare_command(args)
+
+    async def run_(
+        self,
+        *args: Union[str, Path],
+        check: bool = True,
+        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
+        capture_output: bool = False,
+        silent: bool = False,
+    ) -> RunResult:
+        if args and args[0] == "sudo":
+            # If the sudo prompt is needed, avoid drawing a progress bar over it
+            # with first prompting for a no-op command.
+            async with TERMINAL_LOCK:
+                await super().run("sudo", "true")
+        return await super().run_(
+            *args,
+            check=check,
+            input=input,
+            capture_output=capture_output,
+            silent=silent,
+        )

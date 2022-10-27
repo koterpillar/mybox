@@ -1,7 +1,7 @@
 import json
 from abc import ABCMeta, abstractmethod
+from asyncio import Lock
 from functools import cache
-from threading import Lock
 from typing import Optional
 
 import requests
@@ -243,7 +243,7 @@ class SystemPackage(ManualVersion):
         pass
 
     async def install(self):
-        with INSTALLER_LOCK:
+        async with INSTALLER_LOCK:
             installer = await self.installer()
             if self.url:
                 await installer.install(self.url)
