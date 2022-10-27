@@ -73,6 +73,7 @@ class TestRPMFusion(PackageTestBase):
     check_installed_output = "RPM Fusion for Fedora"
 
     async def check_applicable(self) -> None:
+        await super().check_applicable()
         if not (await self.driver.os()).switch_(
             linux=lambda os: os.distribution == "fedora", macos=False
         ):

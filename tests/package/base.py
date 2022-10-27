@@ -25,7 +25,6 @@ def requires_driver(
 ) -> Callable[[T, RootCheckDriver], Coroutine[Any, Any, None]]:
     @wraps(test_fn)
     async def wrapper(self, make_driver):
-        self.driver = make_driver
         return await test_fn(self, make_driver)
 
     return wrapper
@@ -54,22 +53,20 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.fixture
     async def make_driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> RootCheckDriver:
-        driver: RootCheckDriver
+    ) -> None:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
-            driver = DockerDriver.create(image=docker_image)
+            self.driver = DockerDriver.create(image=docker_image)
         else:
-            if self.affects_system and not CI:
-                pytest.skip("Skipping test on local machine")
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-            driver = OverrideHomeDriver(override_home=tmp_path)
+            self.driver = OverrideHomeDriver(override_home=tmp_path)
+
         await self.check_applicable()
-        return driver
 
     async def check_applicable(self) -> None:
-        pass
+        if self.affects_system and not isinstance(self.driver, DockerDriver) and not CI:
+            pytest.skip("Test affects local system.")
 
     def setup_db(self) -> DB:
         return DB(":memory:")
