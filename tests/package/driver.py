@@ -59,8 +59,8 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
     def docker(self) -> list[str]:
         return ["sudo", "docker"] if self.docker_sudo else ["docker"]
 
-    def stop(self) -> None:
-        run(*self.docker, "rm", "--force", self.container)
+    async def stop(self) -> None:
+        await run(*self.docker, "rm", "--force", self.container)
 
     def prepare_command(
         self, args: Iterable[Union[str, Path]]
@@ -77,7 +77,7 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
         )
 
     @classmethod
-    def create(
+    async def create(
         cls,
         *,
         image: str,
@@ -107,9 +107,9 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                     USER {user}
                 """
                 )
-            run(*docker, "build", "--tag", target_image, tmppath)
+            await run(*docker, "build", "--tag", target_image, tmppath)
 
-        container = run_output(
+        container = await run_output(
             *docker,
             "run",
             "--rm",

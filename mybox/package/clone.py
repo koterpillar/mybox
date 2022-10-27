@@ -34,7 +34,7 @@ class Clone(Destination):
         return f"https://github.com/{self.repo}.git"
 
     async def get_remote_version(self) -> str:
-        return run_output("git", "ls-remote", self.remote, "HEAD").split()[0]
+        return (await run_output("git", "ls-remote", self.remote, "HEAD")).split()[0]
 
     async def install(self) -> None:
         await self.driver.makedirs((await self.destination()).parent)

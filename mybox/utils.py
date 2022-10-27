@@ -43,28 +43,29 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
-    return subprocess.run(args, check=True)
+async def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
+    return await trio.run_process(args, check=True)
 
 
-def run_ok(*args: Union[str, Path]) -> bool:
+async def run_ok(*args: Union[str, Path]) -> bool:
     try:
         return (
-            subprocess.run(
+            await trio.run_process(
                 args,
                 check=False,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-            ).returncode
-            == 0
-        )
+            )
+        ).returncode == 0
     except FileNotFoundError:
         return False
 
 
-def run_output(*args: Union[str, Path]) -> str:
+async def run_output(*args: Union[str, Path]) -> str:
     return (
-        subprocess.run(args, stdout=subprocess.PIPE, check=True).stdout.decode().strip()
+        (await trio.run_process(args, capture_stdout=True, check=True))
+        .stdout.decode()
+        .strip()
     )
 
 

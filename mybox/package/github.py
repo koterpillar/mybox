@@ -12,12 +12,12 @@ from .archive import ArchivePackage
 
 @async_cached
 async def have_github_auth() -> bool:
-    return run_ok("gh", "auth", "status")
+    return await run_ok("gh", "auth", "status")
 
 
 async def github_api(url: str) -> Any:
     if await have_github_auth():
-        return json.loads(run_output("gh", "api", url))
+        return json.loads(await run_output("gh", "api", url))
     else:
         try:
             token = os.environ["GITHUB_TOKEN"]

@@ -18,8 +18,8 @@ class TestBrew:
         return Brew(driver)
 
     @pytest.fixture
-    def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument
-        run("brew", "tap", "homebrew/cask-fonts")
+    async def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument
+        await run("brew", "tap", "homebrew/cask-fonts")
 
     @pytest.mark.trio
     async def test_formula_version(self, brew: Brew):

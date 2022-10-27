@@ -24,14 +24,17 @@ class TestChoose:
 
 
 class TestRunOK:
-    def test_success(self):
-        assert run_ok("true")
+    @pytest.mark.trio
+    async def test_success(self):
+        assert await run_ok("true")
 
-    def test_failure(self):
-        assert not run_ok("false")
+    @pytest.mark.trio
+    async def test_failure(self):
+        assert not await run_ok("false")
 
-    def test_executable_not_found(self):
-        assert not run_ok("nonexistent")
+    @pytest.mark.trio
+    async def test_executable_not_found(self):
+        assert not await run_ok("nonexistent")
 
 
 @pytest.mark.trio

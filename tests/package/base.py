@@ -59,7 +59,7 @@ class PackageTestBase(metaclass=ABCMeta):
     ) -> RootCheckDriver:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
-            return DockerDriver.create(image=docker_image)
+            return await DockerDriver.create(image=docker_image)
         else:
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
