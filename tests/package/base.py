@@ -93,14 +93,17 @@ class PackageTestBase(metaclass=ABCMeta):
             output = await self.check_driver.run_output(*command)
             assert self.check_installed_output in output
 
+    async def install_prerequisites(self) -> None:
+        for args in self.prerequisites:
+            package = self.parse_package(args, driver=self.driver)
+            await package.ensure()
+
     @pytest.mark.trio
     @requires_driver
     async def test_installs(
         self, make_driver: RootCheckDriver  # pylint:disable=unused-argument
     ):
-        for prerequisite in self.prerequisites:
-            package = self.parse_package(prerequisite, driver=self.driver)
-            await package.ensure()
+        await self.install_prerequisites()
 
         db = self.setup_db()
 
@@ -114,7 +117,9 @@ class PackageTestBase(metaclass=ABCMeta):
 
         # Create the package again to reset cached properties
         package = self.parse_package(args, driver=self.driver, db=db)
-        assert await package.is_installed()
+        assert (
+            await package.is_installed()
+        ), "Package should be reported installed after installation."
 
     root_required_for_is_installed = False
 
@@ -125,6 +130,8 @@ class PackageTestBase(metaclass=ABCMeta):
     ):
         if self.root_required_for_is_installed:
             return
+
+        await self.install_prerequisites()
 
         args = await self.constructor_args()
 
@@ -141,6 +148,8 @@ class PackageTestBase(metaclass=ABCMeta):
     ]
 
     NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
+
+    PIPX: list[PackageArgs] = [{"pip": "pipx"}]
 
     async def os(self) -> OS:
         return await LocalDriver().os()
