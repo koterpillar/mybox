@@ -3,14 +3,13 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Iterable, Optional, Union
+from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, Union
 
 import pytest
 
 from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
-from mybox.utils import T
 
 from .driver import DockerDriver, Driver, OverrideHomeDriver, RootCheckDriver
 
@@ -19,12 +18,16 @@ PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
 
 CI: bool = "CI" in os.environ
 
+TEST = TypeVar("TEST", bound="PackageTestBase")
+
 
 def requires_driver(
-    test_fn: Callable[[T, RootCheckDriver], Coroutine[Any, Any, None]]
-) -> Callable[[T, RootCheckDriver], Coroutine[Any, Any, None]]:
+    test_fn: Callable[[TEST, RootCheckDriver], Coroutine[Any, Any, None]]
+) -> Callable[[TEST, RootCheckDriver], Coroutine[Any, Any, None]]:
     @wraps(test_fn)
-    async def wrapper(self, make_driver):
+    async def wrapper(self: TEST, make_driver: RootCheckDriver) -> None:
+        self.driver = make_driver
+        await self.check_applicable()
         return await test_fn(self, make_driver)
 
     return wrapper
@@ -53,16 +56,14 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.fixture
     async def make_driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    ) -> RootCheckDriver:
         docker_image = os.environ.get("DOCKER_IMAGE")
         if docker_image:
-            self.driver = DockerDriver.create(image=docker_image)
+            return DockerDriver.create(image=docker_image)
         else:
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-            self.driver = OverrideHomeDriver(override_home=tmp_path)
-
-        await self.check_applicable()
+            return OverrideHomeDriver(override_home=tmp_path)
 
     async def check_applicable(self) -> None:
         if self.affects_system and not isinstance(self.driver, DockerDriver) and not CI:
