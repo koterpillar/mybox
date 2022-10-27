@@ -94,7 +94,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         if await self.driver.is_file(candidate):
             return candidate
         raise ValueError(
-            f"Cannot find application '{name}' in {self.package_directory()}."
+            f"Cannot find application '{name}' in {await self.package_directory()}."
         )
 
     async def icon_directory(self) -> Optional[Path]:
@@ -107,7 +107,9 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         candidate = await self.package_directory() / name
         if await self.driver.is_file(candidate):
             return candidate
-        raise ValueError(f"Cannot find font '{name}' in {self.package_directory()}.")
+        raise ValueError(
+            f"Cannot find font '{name}' in {await self.package_directory()}."
+        )
 
     async def install(self):
         url = await self.archive_url()
