@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from mybox.utils import choose, parallel_map_tqdm, run_ok
+from mybox.utils import choose, flatten, parallel_map_tqdm, run_ok
 
 
 class TestChoose:
@@ -41,3 +41,7 @@ async def test_parallel_map_tqdm():
 
     results = set(await parallel_map_tqdm(alen, ["one", "two", "three", "four"]))
     assert results == {3, 4, 5}
+
+
+async def test_flatten():
+    assert flatten([[1, 2], [3, 4]]) == [1, 2, 3, 4]
