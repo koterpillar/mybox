@@ -1,20 +1,18 @@
 import os
 
-from tests.package.driver import RootCheckDriver
-
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
-            "destination": await self.destination(driver),
+            "destination": await self.destination(),
             "root": self.root,
         }
 
-    async def check_installed_command(self, driver: RootCheckDriver):
-        return ["cat", await self.destination(driver) / self.destination_file]
+    async def check_installed_command(self):
+        return ["cat", await self.destination() / self.destination_file]
 
     check_installed_output = "Linked file"
 
@@ -22,8 +20,8 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
 
 
 class TestDotLinks(TestLinks):
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
-        return await super().constructor_args(driver) | {"dot": True}
+    async def constructor_args(self) -> PackageArgs:
+        return await super().constructor_args() | {"dot": True}
 
     destination_file = ".myfile"
 

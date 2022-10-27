@@ -1,21 +1,20 @@
 import pytest
 
-from tests.package.driver import RootCheckDriver
-
-from .base import CI, PackageArgs, RootPackageTestBase
+from .base import CI, PackageArgs, RootPackageTestBase, requires_driver
+from .driver import RootCheckDriver
 
 
 class ShellTestBase(RootPackageTestBase):
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {"shell": "/bin/sh", "root": self.root}
 
     affects_system = True
 
-    async def check_installed_command(self, driver: RootCheckDriver):
+    async def check_installed_command(self):
         return [
             "sh",
             "-c",
-            f"cat /etc/passwd | grep {await self.check_driver(driver).username()}",
+            f"cat /etc/passwd | grep {await self.check_driver.username()}",
         ]
 
     check_installed_output = "/bin/sh"
@@ -23,10 +22,11 @@ class ShellTestBase(RootPackageTestBase):
 
 class TestShell(ShellTestBase):
     @pytest.mark.trio
-    async def test_installs(self, driver: RootCheckDriver):
+    @requires_driver
+    async def test_installs(self, make_driver: RootCheckDriver):
         if (await self.os()).switch(linux=False, macos=CI):
             pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
-        return await super().test_installs(driver)
+        return await super().test_installs(make_driver)
 
 
 class TestRootShell(ShellTestBase):

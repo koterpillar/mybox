@@ -1,5 +1,6 @@
 import re
 import subprocess
+from functools import wraps
 from pathlib import Path
 from threading import Lock
 from typing import (
@@ -171,6 +172,7 @@ def async_cached(
 ) -> Callable[..., Coroutine[Any, Any, T]]:
     cache: dict[Any, T] = {}
 
+    @wraps(fn)
     async def cached_fn(*args: Any) -> T:
         if args not in cache:
             cache[args] = await fn(*args)

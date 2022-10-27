@@ -1,11 +1,8 @@
-from mybox.driver import Driver
-from tests.package.driver import RootCheckDriver
-
 from .base import PackageArgs, PackageTestBase
 
 
 class TestYarn(PackageTestBase):
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {
             "url": "https://yarnpkg.com/latest.tar.gz",
             "binary": "yarn",
@@ -15,7 +12,7 @@ class TestYarn(PackageTestBase):
 
     prerequisites = PackageTestBase.NODE
 
-    async def check_installed_command(self, driver: Driver):
+    async def check_installed_command(self):
         return ["yarn", "--help"]
 
     check_installed_output = "Usage: yarn"

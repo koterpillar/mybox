@@ -1,9 +1,8 @@
 import pytest
 
-from mybox.driver import Driver, LocalDriver
+from mybox.driver import LocalDriver
 from mybox.package.system import Brew
 from mybox.utils import run
-from tests.package.driver import RootCheckDriver
 
 from .base import PackageArgs, PackageTestBase
 
@@ -50,10 +49,10 @@ class TestBrew:
 class TestRipGrep(PackageTestBase):
     affects_system = True
 
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {"name": "ripgrep"}
 
-    async def check_installed_command(self, driver: Driver):
+    async def check_installed_command(self):
         return ["rg", "--help"]
 
     check_installed_output = "ripgrep"
@@ -62,19 +61,19 @@ class TestRipGrep(PackageTestBase):
 class TestRPMFusion(PackageTestBase):
     affects_system = True
 
-    async def constructor_args(self, driver: RootCheckDriver) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {
             "name": "rpmfusion-free-release",
             "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-36.noarch.rpm",
         }
 
-    async def check_installed_command(self, driver: Driver):
+    async def check_installed_command(self):
         return ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]
 
     check_installed_output = "RPM Fusion for Fedora"
 
-    async def check_applicable(self, driver) -> None:
-        if not (await driver.os()).switch_(
+    async def check_applicable(self) -> None:
+        if not (await self.driver.os()).switch_(
             linux=lambda os: os.distribution == "fedora", macos=False
         ):
             pytest.skip("This test is only applicable on Fedora.")
