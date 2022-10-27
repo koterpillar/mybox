@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import AsyncIterator, Callable, Iterable, Literal, Optional, Union, cast
 
+from trio import run_process
+
 from .utils import TERMINAL_LOCK, T, async_cached
 
 LinkMethod = Literal["binary_wrapper"]
@@ -190,20 +192,13 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
     ) -> RunResult:
         command = self.prepare_command(args)
 
-        if capture_output:
-            stdout = subprocess.PIPE
-        elif not check:
-            stdout = subprocess.DEVNULL
-        else:
-            stdout = None
-
         if not check or silent:
             stderr = subprocess.DEVNULL
         else:
             stderr = None
 
-        result = subprocess.run(
-            command, check=check, input=input, stdout=stdout, stderr=stderr
+        result = await run_process(
+            command, check=check, stdin=input, capture_stdout=True, stderr=stderr
         )
 
         ok = result.returncode == 0
