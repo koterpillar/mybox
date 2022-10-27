@@ -37,7 +37,7 @@ async def main():
             return package.name
         return None
 
-    results = parallel_map_tqdm(map(process_and_record, packages))
+    results = await parallel_map_tqdm(process_and_record, packages)
     installed = list(filter(None, results))
     if installed:
         print(f"{len(installed)} packages installed or updated: {', '.join(installed)}")
@@ -46,4 +46,4 @@ async def main():
 
 
 def sync_main():
-    trio.run(main())
+    trio.run(main)

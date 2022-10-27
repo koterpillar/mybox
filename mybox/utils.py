@@ -72,14 +72,16 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-async def parallel_map_tqdm(items: list[Awaitable[T]]) -> list[T]:
-    results = []
+async def parallel_map_tqdm(
+    action: Callable[[T], Awaitable[U]], items: list[T]
+) -> list[U]:
+    results: list[U] = []
 
     with tqdm.tqdm(total=len(items)) as progress:
         async with trio.open_nursery() as nursery:
 
-            async def action_and_update(item: Awaitable[T]) -> None:
-                result = await item
+            async def action_and_update(item: T) -> None:
+                result = await action(item)
                 with TERMINAL_LOCK:
                     progress.update(1)
                 results.append(result)
