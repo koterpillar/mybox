@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from mybox.utils import choose, run_ok
+from mybox.utils import choose, parallel_map_tqdm, run_ok
 
 
 class TestChoose:
@@ -32,3 +32,12 @@ class TestRunOK:
 
     def test_executable_not_found(self):
         assert not run_ok("nonexistent")
+
+
+@pytest.mark.trio
+async def test_parallel_map_tqdm():
+    async def alen(item: str) -> int:
+        return len(item)
+
+    results = set(await parallel_map_tqdm(alen, ["one", "two", "three", "four"]))
+    assert results == {3, 4, 5}
