@@ -108,7 +108,7 @@ class Driver(metaclass=ABCMeta):
         return await self.run_ok("test", "-x", path)
 
     async def is_dir(self, path: Path) -> bool:
-        return await self.run_ok("test", "-d", str(path))
+        return await self.run_ok("test", "-d", path)
 
     async def username(self) -> str:
         if self.root:
@@ -132,19 +132,19 @@ class Driver(metaclass=ABCMeta):
             await self.rm(path)
 
     async def makedirs(self, path: Path) -> None:
-        await self.run("mkdir", "-p", str(path))
+        await self.run("mkdir", "-p", path)
 
     async def rm(self, path: Path) -> None:
-        await self.run("rm", "-r", "-f", str(path))
+        await self.run("rm", "-r", "-f", path)
 
     async def make_executable(self, path: Path) -> None:
-        await self.run("chmod", "+x", str(path))
+        await self.run("chmod", "+x", path)
 
     async def read_file(self, path: Path) -> str:
-        return await self.run_output("cat", str(path))
+        return await self.run_output("cat", path)
 
     async def write_file(self, path: Path, content: str) -> None:
-        await self.run("cp", "/dev/stdin", str(path), input=content.encode())
+        await self.run("cp", "/dev/stdin", path, input=content.encode())
 
     async def link(
         self,
@@ -159,7 +159,7 @@ class Driver(metaclass=ABCMeta):
             await self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
             await self.make_executable(target)
         else:
-            await self.run("ln", "-s", "-f", str(source), str(target))
+            await self.run("ln", "-s", "-f", source, target)
 
     @async_cached
     async def os(self) -> OS:

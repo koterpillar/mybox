@@ -38,16 +38,16 @@ class Shell(Root):
         )()
 
     @async_cached
-    async def all_shells(self) -> list[str]:
+    async def all_shells(self) -> list[Path]:
         shells_file = await self.driver.read_file(SHELLS_FILE)
-        return shells_file.splitlines()
+        return [Path(shell) for shell in shells_file.splitlines()]
 
     async def install(self) -> None:
         if not await self.driver.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
         if not await self.driver.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
-        if str(self.shell) not in await self.all_shells():
+        if self.shell not in await self.all_shells():
             await self.driver.with_root(True).run(
                 "tee", "-a", SHELLS_FILE, input=str(self.shell).encode()
             )
