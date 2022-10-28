@@ -65,5 +65,7 @@ relative_files = true
 exclude_lines = [
     "pragma: no cover",
     "@abstract",
+    "@overload",
+    "pytest.skip",
     "raise NotImplementedError"
 ]
