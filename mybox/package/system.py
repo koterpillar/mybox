@@ -1,10 +1,10 @@
 import json
 from abc import ABCMeta, abstractmethod
-from asyncio import Lock
 from functools import cache
 from typing import Optional
 
 import requests
+import trio
 
 from ..driver import Driver
 from ..utils import Some, async_cached, unsome, url_version
@@ -189,7 +189,7 @@ async def linux_installer(driver: Driver) -> Installer:
         raise NotImplementedError("Cannot find a package manager.")
 
 
-INSTALLER_LOCK = Lock()
+INSTALLER_LOCK = trio.Lock()
 
 
 class SystemPackage(ManualVersion):
