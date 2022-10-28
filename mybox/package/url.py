@@ -7,7 +7,7 @@ class URLPackage(ArchivePackage):
         self.url = url
         super().__init__(**kwargs)
 
-    def archive_url(self) -> str:
+    async def archive_url(self) -> str:
         return self.url
 
     @property
@@ -23,5 +23,5 @@ class URLPackage(ArchivePackage):
             else:
                 return parts[0]
 
-    def get_remote_version(self) -> str:
+    async def get_remote_version(self) -> str:
         return url_version(self.url)

@@ -24,7 +24,7 @@ class Links(ManualVersion, Destination):
 
     @property
     def name(self) -> str:
-        return f"links-{self.source}-{self.destination}"
+        return f"links-{self.source}-{self.destination_}"
 
     def all_paths(self) -> Iterator[Path]:
         if not self.source.is_dir():
@@ -45,20 +45,21 @@ class Links(ManualVersion, Destination):
                 continue
             yield path
 
-    def get_remote_version(self) -> str:
+    async def get_remote_version(self) -> str:
         m = hashlib.sha256()
         for path in self.paths():
             m.update(str(path).encode())
         return m.hexdigest()
 
-    def install(self) -> None:
+    async def install(self) -> None:
         # TODO: remove links that were created before but no longer exist
+        destination = await self.destination()
         for path in self.paths():
             target = path.relative_to(self.source)
             if self.dot:
                 first_part, *parts = target.parts
                 target = Path("." + first_part, *parts)
-            target = self.destination.joinpath(target)
+            target = destination.joinpath(target)
 
-            self.driver.link(path, target)
-        super().install()
+            await self.driver.link(path, target)
+        await super().install()

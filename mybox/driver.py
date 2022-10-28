@@ -1,20 +1,18 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from functools import cached_property
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, Literal, Optional, cast
+from typing import AsyncIterator, Callable, Iterable, Literal, Optional, Union, cast
 
-from .utils import TERMINAL_LOCK, T
+from trio import run_process
+
+from .utils import TERMINAL_LOCK, T, async_cached
 
 LinkMethod = Literal["binary_wrapper"]
 
 
 class OS(metaclass=ABCMeta):
-    def __init__(self, driver: "Driver") -> None:
-        self.driver = driver
-
     @abstractmethod
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         pass
@@ -23,22 +21,27 @@ class OS(metaclass=ABCMeta):
         return self.switch_(linux=lambda _: linux, macos=macos)
 
 
+@dataclass
 class Linux(OS):
+    distribution: str
+
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         return linux(self)
 
     RELEASE_FILE = "/etc/os-release"
 
-    @cached_property
-    def distribution(self) -> str:
-        for line in self.driver.read_file(Path(self.RELEASE_FILE)).splitlines():
+    @classmethod
+    async def get_distribution(cls, driver: "Driver") -> str:
+        release_file = await driver.read_file(Path(cls.RELEASE_FILE))
+        for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
                 return v
 
-        raise ValueError(f"Cannot find distribution ID in {self.RELEASE_FILE}.")
+        raise ValueError(f"Cannot find distribution ID in {cls.RELEASE_FILE}.")
 
 
+@dataclass
 class MacOS(OS):
     def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
         return macos
@@ -65,9 +68,9 @@ class Driver(metaclass=ABCMeta):
         return type(self)(**kwargs)
 
     @abstractmethod
-    def run_(
+    async def run_(
         self,
-        *args: str,
+        *args: Union[str, Path],
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -75,108 +78,113 @@ class Driver(metaclass=ABCMeta):
     ) -> RunResult:
         pass
 
-    def run(
+    async def run(
         self,
-        *args: str,
+        *args: Union[str, Path],
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         silent: bool = False,
     ) -> None:
-        self.run_(*args, input=input, silent=silent)
+        await self.run_(*args, input=input, silent=silent)
 
-    def run_ok(self, *args: str) -> bool:
-        return self.run_(*args, check=False).ok
+    async def run_ok(self, *args: Union[str, Path]) -> bool:
+        result = await self.run_(*args, check=False)
+        return result.ok
 
-    def run_output(self, *args: str, silent: bool = False) -> str:
-        return cast(str, self.run_(*args, capture_output=True, silent=silent).output)
+    async def run_output(self, *args: Union[str, Path], silent: bool = False) -> str:
+        result = await self.run_(*args, capture_output=True, silent=silent)
+        return cast(str, result.output)
 
-    def executable_exists(self, executable: str) -> bool:
-        return self.run_ok("sh", "-c", f"command -v {executable}")
+    async def executable_exists(self, executable: str) -> bool:
+        return await self.run_ok("sh", "-c", f"command -v {executable}")
 
-    def find_executable(self, *executables: str) -> str:
+    async def find_executable(self, *executables: str) -> str:
         for candidate in executables:
-            if self.executable_exists(candidate):
+            if await self.executable_exists(candidate):
                 return candidate
         raise Exception(f"None of {', '.join(executables)} found in PATH.")
 
-    def is_file(self, path: Path) -> bool:
-        return self.run_ok("test", "-f", str(path))
+    async def is_file(self, path: Path) -> bool:
+        return await self.run_ok("test", "-f", path)
 
-    def is_executable(self, path: Path) -> bool:
-        return self.run_ok("test", "-x", str(path))
+    async def is_executable(self, path: Path) -> bool:
+        return await self.run_ok("test", "-x", path)
 
-    def is_dir(self, path: Path) -> bool:
-        return self.run_ok("test", "-d", str(path))
+    async def is_dir(self, path: Path) -> bool:
+        return await self.run_ok("test", "-d", path)
 
-    @property
-    def username(self) -> str:
+    async def username(self) -> str:
         if self.root:
             return "root"
-        return self.run_output("whoami")
+        return await self.run_output("whoami")
 
-    def home(self) -> Path:
+    async def home(self) -> Path:
         path = "~root" if self.root else "~"
-        return Path(self.with_root(False).run_output("sh", "-c", f"eval echo {path}"))
+        result = await self.with_root(False).run_output("sh", "-c", f"eval echo {path}")
+        return Path(result)
 
-    def local(self) -> Path:
-        return self.home() / ".local"
+    async def local(self) -> Path:
+        return await self.home() / ".local"
 
-    @contextmanager
-    def tempfile(self) -> Iterator[Path]:
-        path = Path(self.run_output("mktemp"))
+    @asynccontextmanager
+    async def tempfile(self) -> AsyncIterator[Path]:
+        path = Path(await self.run_output("mktemp"))
         try:
             yield path
         finally:
-            self.rm(path)
+            await self.rm(path)
 
-    def makedirs(self, path: Path) -> None:
-        self.run("mkdir", "-p", str(path))
+    async def makedirs(self, path: Path) -> None:
+        await self.run("mkdir", "-p", path)
 
-    def rm(self, path: Path) -> None:
-        self.run("rm", "-r", "-f", str(path))
+    async def rm(self, path: Path) -> None:
+        await self.run("rm", "-r", "-f", path)
 
-    def make_executable(self, path: Path) -> None:
-        self.run("chmod", "+x", str(path))
+    async def make_executable(self, path: Path) -> None:
+        await self.run("chmod", "+x", path)
 
-    def read_file(self, path: Path) -> str:
-        return self.run_output("cat", str(path))
+    async def read_file(self, path: Path) -> str:
+        return await self.run_output("cat", path)
 
-    def write_file(self, path: Path, content: str) -> None:
-        self.run("cp", "/dev/stdin", str(path), input=content.encode())
+    async def write_file(self, path: Path, content: str) -> None:
+        await self.run("cp", "/dev/stdin", path, input=content.encode())
 
-    def link(
+    async def link(
         self,
         source: Path,
         target: Path,
         *,
         method: Optional[LinkMethod] = None,
     ) -> None:
-        self.makedirs(target.parent)
-        self.rm(target)
+        await self.makedirs(target.parent)
+        await self.rm(target)
         if method == "binary_wrapper":
-            self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
-            self.make_executable(target)
+            await self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
+            await self.make_executable(target)
         else:
-            self.run("ln", "-s", "-f", str(source), str(target))
+            await self.run("ln", "-s", "-f", source, target)
 
-    @cached_property
-    def os(self) -> OS:
+    @async_cached
+    async def os(self) -> OS:
         driver = self.with_root(False)
-        os_type = driver.run_output("uname")
+        os_type = await driver.run_output("uname")
         if os_type == "Linux":
-            return Linux(driver)
+            distribution = await Linux.get_distribution(driver)
+            return Linux(distribution=distribution)
         elif os_type == "Darwin":
-            return MacOS(driver)
+            return MacOS()
         else:
             raise ValueError(f"Unsupported OS type {os_type}.")
 
 
 class SubprocessDriver(Driver, metaclass=ABCMeta):
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         return list(args)
 
-    def run_(
+    async def run_(
         self,
-        *args: str,
+        *args: Union[str, Path],
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -184,20 +192,13 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
     ) -> RunResult:
         command = self.prepare_command(args)
 
-        if capture_output:
-            stdout = subprocess.PIPE
-        elif not check:
-            stdout = subprocess.DEVNULL
-        else:
-            stdout = None
-
         if not check or silent:
             stderr = subprocess.DEVNULL
         else:
             stderr = None
 
-        result = subprocess.run(
-            command, check=check, input=input, stdout=stdout, stderr=stderr
+        result = await run_process(
+            command, check=check, stdin=input, capture_stdout=True, stderr=stderr
         )
 
         ok = result.returncode == 0
@@ -210,12 +211,31 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
 
 
 class LocalDriver(SubprocessDriver):
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         if self.root:
-            # If the sudo prompt is needed, avoid drawing a progress bar over it
-            # with first prompting for a no-op command.
-            with TERMINAL_LOCK:
-                subprocess.run(["sudo", "true"], check=True)
             return super().prepare_command(["sudo", *args])
         else:
             return super().prepare_command(args)
+
+    async def run_(
+        self,
+        *args: Union[str, Path],
+        check: bool = True,
+        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
+        capture_output: bool = False,
+        silent: bool = False,
+    ) -> RunResult:
+        if args and args[0] == "sudo":
+            # If the sudo prompt is needed, avoid drawing a progress bar over it
+            # with first prompting for a no-op command.
+            async with TERMINAL_LOCK:
+                await super().run("sudo", "true")
+        return await super().run_(
+            *args,
+            check=check,
+            input=input,
+            capture_output=capture_output,
+            silent=silent,
+        )

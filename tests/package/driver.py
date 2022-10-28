@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Union
 
 from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import run, run_output
@@ -19,10 +19,10 @@ class RootCheckDriver(Driver):
         kwargs = self.deconstruct() | {"enable_root": False}
         return type(self)(**kwargs)
 
-    def run_(self, *args, **kwargs) -> RunResult:
+    async def run_(self, *args, **kwargs) -> RunResult:
         if not self.enable_root:
             assert not self.root, "Root operations are disabled."
-        return super().run_(*args, **kwargs)
+        return await super().run_(*args, **kwargs)
 
 
 class OverrideHomeDriver(RootCheckDriver, LocalDriver):
@@ -33,9 +33,9 @@ class OverrideHomeDriver(RootCheckDriver, LocalDriver):
     def deconstruct(self) -> dict:
         return super().deconstruct() | {"override_home": self.override_home}
 
-    def home(self) -> Path:
+    async def home(self) -> Path:
         if self.root:
-            return super().home()
+            return await super().home()
         return self.override_home
 
 
@@ -59,10 +59,12 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
     def docker(self) -> list[str]:
         return ["sudo", "docker"] if self.docker_sudo else ["docker"]
 
-    def stop(self) -> None:
-        run(*self.docker, "rm", "--force", self.container)
+    async def stop(self) -> None:
+        await run(*self.docker, "rm", "--force", self.container)
 
-    def prepare_command(self, args: Iterable[str]) -> list[str]:
+    def prepare_command(
+        self, args: Iterable[Union[str, Path]]
+    ) -> list[Union[str, Path]]:
         return super().prepare_command(
             [
                 *self.docker,
@@ -75,7 +77,7 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
         )
 
     @classmethod
-    def create(
+    async def create(
         cls,
         *,
         image: str,
@@ -105,9 +107,9 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                     USER {user}
                 """
                 )
-            run(*docker, "build", "--tag", target_image, str(tmppath))
+            await run(*docker, "build", "--tag", target_image, tmppath)
 
-        container = run_output(
+        container = await run_output(
             *docker,
             "run",
             "--rm",

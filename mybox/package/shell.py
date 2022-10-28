@@ -1,7 +1,7 @@
-from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
+from ..utils import async_cached
 from .root import Root
 
 SHELLS_FILE = Path("/etc/shells")
@@ -16,43 +16,39 @@ class Shell(Root):
     def name(self) -> str:
         return "_shell"
 
-    def get_remote_version(self) -> str:
+    async def get_remote_version(self) -> str:
         return str(self.shell)
 
-    def get_local_version_linux(self) -> str:
-        return (
-            self.driver.with_root(False)
-            .run_output("getent", "passwd", self.driver.username)
-            .split(":")[6]
+    async def get_local_version_linux(self) -> str:
+        result = await self.driver.with_root(False).run_output(
+            "getent", "passwd", await self.driver.username()
         )
+        return result.split(":")[6]
 
-    def get_local_version_macos(self) -> str:
-        return (
-            self.driver.with_root(False)
-            .run_output(
-                "dscl", ".", "-read", f"/Users/{self.driver.username}", "UserShell"
-            )
-            .split(": ")[1]
+    async def get_local_version_macos(self) -> str:
+        result = await self.driver.with_root(False).run_output(
+            "dscl", ".", "-read", f"/Users/{await self.driver.username()}", "UserShell"
         )
+        return result.split(": ")[1]
 
-    @property
-    def local_version(self) -> Optional[str]:
-        return self.driver.os.switch(
+    async def local_version(self) -> Optional[str]:
+        return await (await self.driver.os()).switch(
             linux=self.get_local_version_linux,
             macos=self.get_local_version_macos,
         )()
 
-    @cached_property
-    def all_shells(self) -> list[str]:
-        return self.driver.read_file(SHELLS_FILE).splitlines()
+    @async_cached
+    async def all_shells(self) -> list[Path]:
+        shells_file = await self.driver.read_file(SHELLS_FILE)
+        return [Path(shell) for shell in shells_file.splitlines()]
 
-    def install(self) -> None:
-        if not self.driver.is_file(self.shell):
+    async def install(self) -> None:
+        if not await self.driver.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
-        if not self.driver.is_executable(self.shell):
+        if not await self.driver.is_executable(self.shell):
             raise ValueError(f"{self.shell} is not executable.")
-        if str(self.shell) not in self.all_shells:
-            self.driver.with_root(True).run(
-                "tee", "-a", str(SHELLS_FILE), input=str(self.shell).encode()
+        if self.shell not in await self.all_shells():
+            await self.driver.with_root(True).run(
+                "tee", "-a", SHELLS_FILE, input=str(self.shell).encode()
             )
-        self.driver.run("chsh", "-s", str(self.shell))
+        await self.driver.run("chsh", "-s", self.shell)

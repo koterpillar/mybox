@@ -4,8 +4,7 @@ from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
 
 class TestNeovim(RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "neovim/neovim",
             "strip": 1,
@@ -15,11 +14,12 @@ class TestNeovim(RootPackageTestBase):
         }
 
     @property
-    def test_driver(self) -> Driver:
+    def check_driver(self) -> Driver:
         # Ordinary users should be able to use the package even if installed as root
-        return super().test_driver.with_root(False)
+        return super().check_driver.with_root(False)
 
-    check_installed_command = ["nvim", "--version"]
+    async def check_installed_command(self):
+        return ["nvim", "--version"]
 
     check_installed_output = "NVIM"
 
@@ -30,27 +30,31 @@ class TestRootNeovim(TestNeovim):
 
 
 class TestExa(PackageTestBase):
-    constructor_args = {
-        "repo": "ogham/exa",
-        "binary": "exa",
-    }
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "ogham/exa",
+            "binary": "exa",
+        }
 
-    check_installed_command = ["exa", "--version"]
+    async def check_installed_command(self):
+        return ["exa", "--version"]
 
     check_installed_output = "exa - list files"
 
 
 class TestAmmonite(PackageTestBase):
-    constructor_args = {
-        "repo": "com-lihaoyi/Ammonite",
-        "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
-        "raw": "amm",
-        "raw_executable": True,
-        "binary": "amm",
-    }
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "com-lihaoyi/Ammonite",
+            "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
+            "raw": "amm",
+            "raw_executable": True,
+            "binary": "amm",
+        }
 
     prerequisites = PackageTestBase.JAVA
 
-    check_installed_command = ["amm", "--version"]
+    async def check_installed_command(self):
+        return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"

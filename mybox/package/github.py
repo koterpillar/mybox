@@ -1,23 +1,23 @@
 import json
 import os
 from dataclasses import dataclass
-from functools import cache
 from typing import Any, Callable, Iterator
 
 import requests
 
-from ..utils import Filters, Some, choose, run_ok, run_output, unsome
+from ..driver import OS
+from ..utils import Filters, Some, async_cached, choose, run_ok, run_output, unsome
 from .archive import ArchivePackage
 
 
-@cache
-def have_github_auth() -> bool:
-    return run_ok("gh", "auth", "status")
+@async_cached
+async def have_github_auth() -> bool:
+    return await run_ok("gh", "auth", "status")
 
 
-def github_api(url: str) -> Any:
-    if have_github_auth():
-        return json.loads(run_output("gh", "api", url))
+async def github_api(url: str) -> Any:
+    if await have_github_auth():
+        return json.loads(await run_output("gh", "api", url))
     else:
         try:
             token = os.environ["GITHUB_TOKEN"]
@@ -68,9 +68,9 @@ class GitHubPackage(ArchivePackage):
         self.excludes = unsome(exclude)
         self.regex = unsome(regex)
 
-    @cache
-    def latest_release(self) -> GitHubRelease:
-        latest = github_api(f"repos/{self.repo}/releases/latest")
+    @async_cached
+    async def latest_release(self) -> GitHubRelease:
+        latest = await github_api(f"repos/{self.repo}/releases/latest")
         return GitHubRelease(
             tag_name=latest["tag_name"],
             assets=[
@@ -81,7 +81,7 @@ class GitHubPackage(ArchivePackage):
             ],
         )
 
-    def filters(self) -> Iterator[Callable[[str], bool]]:
+    def filters(self, target_os: OS) -> Iterator[Callable[[str], bool]]:
         for prefix in self.prefixes:
             yield Filters.startswith(prefix)
         for suffix in self.suffixes:
@@ -94,7 +94,7 @@ class GitHubPackage(ArchivePackage):
             yield Filters.includes(hint)
         for signature_hint in [".asc", ".sig", "sha256"]:
             yield Filters.excludes(signature_hint)
-        for os_hint in self.driver.os.switch(
+        for os_hint in target_os.switch(
             linux=[
                 Filters.includes("linux"),
                 Filters.includes("gnu"),
@@ -107,22 +107,23 @@ class GitHubPackage(ArchivePackage):
         for hint in arch_hints:
             yield Filters.includes(hint)
 
-    def artifact(self) -> GitHubReleaseArtifact:
-        candidates = self.latest_release().assets
+    async def artifact(self) -> GitHubReleaseArtifact:
+        candidates = (await self.latest_release()).assets
 
         def candidate_filter(
             name_filter: Callable[[str], bool]
         ) -> Callable[[GitHubReleaseArtifact], bool]:
             return lambda candidate: name_filter(candidate.name)
 
-        return choose(candidates, map(candidate_filter, self.filters()))
+        target_os = await self.driver.os()
+        return choose(candidates, map(candidate_filter, self.filters(target_os)))
 
-    def archive_url(self) -> str:
-        return self.artifact().url
+    async def archive_url(self) -> str:
+        return (await self.artifact()).url
 
     @property
     def name(self) -> str:
         return self.repo
 
-    def get_remote_version(self) -> str:
-        return self.latest_release().tag_name
+    async def get_remote_version(self) -> str:
+        return (await self.latest_release()).tag_name

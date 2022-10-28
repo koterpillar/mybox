@@ -2,20 +2,15 @@ from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
 class TestClone(DestinationPackageTestBase, RootPackageTestBase):
-    @property
-    def constructor_args(self) -> PackageArgs:
+    async def constructor_args(self) -> PackageArgs:
         return {
             "clone": "ohmyzsh/ohmyzsh",
             "destination": self.dir_name,
             "root": self.root,
         }
 
-    @property
-    def check_installed_command(self) -> list[str]:
-        return [
-            "cat",
-            str(self.destination / "templates/zshrc.zsh-template"),
-        ]
+    async def check_installed_command(self):
+        return ["cat", await self.destination() / "templates/zshrc.zsh-template"]
 
     check_installed_output = "alias ohmyzsh"
 

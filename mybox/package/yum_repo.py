@@ -20,14 +20,14 @@ class YumRepo(ManualVersion):
     def name(self) -> str:
         return f"yum-{self.repo_name}"
 
-    def get_remote_version(self) -> str:
+    async def get_remote_version(self) -> str:
         m = hashlib.sha256()
         m.update(self.baseurl.encode())
         m.update((self.gpg_key or "").encode())
         return m.hexdigest()
 
-    def install(self) -> None:
-        self.driver.os.switch_(
+    async def install(self) -> None:
+        (await self.driver.os()).switch_(
             linux=lambda linux: lambda: None
             if linux.distribution == "fedora"
             else raise_(ValueError("YumRepo is only supported on Fedora")),
@@ -46,11 +46,11 @@ class YumRepo(ManualVersion):
 
         contents = StringIO()
         repo.write(contents, space_around_delimiters=False)
-        self.driver.with_root(True).write_file(
+        await self.driver.with_root(True).write_file(
             Path(f"/etc/yum.repos.d/{self.repo_name}.repo"), contents.getvalue()
         )
 
         if self.gpg_key:
-            self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
+            await self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
 
-        super().install()
+        await super().install()

@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from mybox.utils import choose, run_ok
+from mybox.utils import choose, flatten, parallel_map_tqdm, run_ok
 
 
 class TestChoose:
@@ -24,11 +24,27 @@ class TestChoose:
 
 
 class TestRunOK:
-    def test_success(self):
-        assert run_ok("true")
+    @pytest.mark.trio
+    async def test_success(self):
+        assert await run_ok("true")
 
-    def test_failure(self):
-        assert not run_ok("false")
+    @pytest.mark.trio
+    async def test_failure(self):
+        assert not await run_ok("false")
 
-    def test_executable_not_found(self):
-        assert not run_ok("nonexistent")
+    @pytest.mark.trio
+    async def test_executable_not_found(self):
+        assert not await run_ok("nonexistent")
+
+
+@pytest.mark.trio
+async def test_parallel_map_tqdm():
+    async def alen(item: str) -> int:
+        return len(item)
+
+    results = set(await parallel_map_tqdm(alen, ["one", "two", "three", "four"]))
+    assert results == {3, 4, 5}
+
+
+async def test_flatten():
+    assert flatten([[1, 2], [3, 4]]) == [1, 2, 3, 4]

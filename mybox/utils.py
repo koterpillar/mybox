@@ -1,15 +1,28 @@
-import concurrent.futures
 import re
 import subprocess
+from asyncio import Lock
+from functools import wraps
 from pathlib import Path
-from threading import Lock
-from typing import Any, Callable, Iterable, Iterator, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Iterable,
+    Iterator,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import requests
 import tqdm  # type: ignore
+import trio
 
 T = TypeVar("T")
 U = TypeVar("U")
+V = TypeVar("V")
 
 
 Some = Optional[Union[T, list[T]]]
@@ -30,28 +43,29 @@ def unsome(x: Some[T]) -> list[T]:
 TERMINAL_LOCK = Lock()
 
 
-def run(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(args, check=True)
+async def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
+    return await trio.run_process(args, check=True)
 
 
-def run_ok(*args: str) -> bool:
+async def run_ok(*args: Union[str, Path]) -> bool:
     try:
         return (
-            subprocess.run(
+            await trio.run_process(
                 args,
                 check=False,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-            ).returncode
-            == 0
-        )
+            )
+        ).returncode == 0
     except FileNotFoundError:
         return False
 
 
-def run_output(*args: str) -> str:
+async def run_output(*args: Union[str, Path]) -> str:
     return (
-        subprocess.run(args, stdout=subprocess.PIPE, check=True).stdout.decode().strip()
+        (await trio.run_process(args, capture_stdout=True, check=True))
+        .stdout.decode()
+        .strip()
     )
 
 
@@ -59,17 +73,24 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-def parallel_map_tqdm(action: Callable[[T], U], items: list[T]) -> list[U]:
+async def parallel_map_tqdm(
+    action: Callable[[T], Awaitable[U]], items: list[T]
+) -> list[U]:
+    results: list[U] = []
+
     with tqdm.tqdm(total=len(items)) as progress:
-        with concurrent.futures.ThreadPoolExecutor(20) as executor:
+        async with trio.open_nursery() as nursery:
 
-            def action_and_update(item: T) -> U:
-                result = action(item)
-                with TERMINAL_LOCK:
+            async def action_and_update(item: T) -> None:
+                result = await action(item)
+                async with TERMINAL_LOCK:
                     progress.update(1)
-                return result
+                results.append(result)
 
-            return list(executor.map(action_and_update, items))
+            for item in items:
+                nursery.start_soon(action_and_update, item)
+
+            return results
 
 
 class Filters:
@@ -126,3 +147,38 @@ def raise_(exception: BaseException) -> Any:
 
 def transplant_path(dir_from: Path, dir_to: Path, path: Path) -> Path:
     return dir_to.joinpath(path.relative_to(dir_from))
+
+
+@overload
+def async_cached(
+    fn: Callable[[], Coroutine[Any, Any, T]]
+) -> Callable[[], Coroutine[Any, Any, T]]:
+    ...
+
+
+@overload
+def async_cached(
+    fn: Callable[[U], Coroutine[Any, Any, T]]
+) -> Callable[[U], Coroutine[Any, Any, T]]:
+    ...
+
+
+@overload
+def async_cached(
+    fn: Callable[[U, V], Coroutine[Any, Any, T]]
+) -> Callable[[U, V], Coroutine[Any, Any, T]]:
+    ...
+
+
+def async_cached(
+    fn: Callable[..., Coroutine[Any, Any, T]]
+) -> Callable[..., Coroutine[Any, Any, T]]:
+    cache: dict[Any, T] = {}
+
+    @wraps(fn)
+    async def cached_fn(*args: Any) -> T:
+        if args not in cache:
+            cache[args] = await fn(*args)
+        return cache[args]
+
+    return cached_fn
