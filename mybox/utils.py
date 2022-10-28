@@ -1,6 +1,5 @@
 import re
 import subprocess
-from asyncio import Lock
 from functools import wraps
 from pathlib import Path
 from typing import (
@@ -40,7 +39,7 @@ def unsome(x: Some[T]) -> list[T]:
     return unsome_(x) or []
 
 
-TERMINAL_LOCK = Lock()
+TERMINAL_LOCK = trio.Lock()
 
 
 async def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
