@@ -24,7 +24,7 @@ class Links(ManualVersion, Destination):
 
     @property
     def name(self) -> str:
-        return f"links-{self.source}-{self.destination_}"
+        return f"links-{self.source}-{self.destination_}-{self.dot}-{self.root}"
 
     def all_paths(self) -> Iterator[Path]:
         if not self.source.is_dir():
