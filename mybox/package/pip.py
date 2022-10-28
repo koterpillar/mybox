@@ -12,7 +12,12 @@ class PipPackage(PipBasePackage):
         packages_json = await self.driver.run_output(
             *self.cmd("list", "--format", "json"), silent=True
         )
+
+        # https://github.com/pypa/pip/issues/11282
+        packages_json = packages_json.split("\n\n[notice]", maxsplit=1)[0]
+
         packages = json.loads(packages_json)
+
         return {package["name"].lower(): package["version"] for package in packages}
 
     def cmd(self, cmd: str, /, *args: str) -> list[str]:
