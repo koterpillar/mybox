@@ -18,6 +18,10 @@ PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
 
 CI: bool = "CI" in os.environ
 
+DOCKER_IMAGE: Optional[str] = os.environ.get("DOCKER_IMAGE") or None
+
+DOCKER: bool = DOCKER_IMAGE is not None
+
 TEST = TypeVar("TEST", bound="PackageTestBase")
 
 
@@ -57,16 +61,15 @@ class PackageTestBase(metaclass=ABCMeta):
     async def make_driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> RootCheckDriver:
-        docker_image = os.environ.get("DOCKER_IMAGE")
-        if docker_image:
-            return await DockerDriver.create(image=docker_image)
+        if DOCKER_IMAGE:
+            return await DockerDriver.create(image=DOCKER_IMAGE)
         else:
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
             return OverrideHomeDriver(override_home=tmp_path)
 
     async def check_applicable(self) -> None:
-        if self.affects_system and not isinstance(self.driver, DockerDriver) and not CI:
+        if self.affects_system and not DOCKER and not CI:
             pytest.skip("Test affects local system.")
 
     def setup_db(self) -> DB:

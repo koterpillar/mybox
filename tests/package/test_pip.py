@@ -1,6 +1,8 @@
 from abc import abstractmethod
 
-from .base import PackageArgs, PackageTestBase
+import pytest
+
+from .base import DOCKER, PackageArgs, PackageTestBase
 
 
 class DjangoTestBase(PackageTestBase):
@@ -18,6 +20,11 @@ class DjangoTestBase(PackageTestBase):
     check_installed_output = (
         "Type 'django-admin help <subcommand>' for help on a specific subcommand."
     )
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not DOCKER:
+            pytest.skip("Cannot test pip packages without Docker.")
 
 
 class TestPip(DjangoTestBase):
