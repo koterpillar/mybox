@@ -92,6 +92,19 @@ async def parallel_map_tqdm(
             return results
 
 
+async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
+    async def collect(
+        index: int, task: Callable[[], Awaitable[T]], results: dict[int, T]
+    ):
+        results[index] = await task()
+
+    results: dict[int, T] = {}
+    async with trio.open_nursery() as nursery:
+        for index, task in enumerate(tasks):
+            nursery.start_soon(collect, index, task, results)
+    return [results[i] for i in range(len(tasks))]
+
+
 class Filters:
     @staticmethod
     def includes(substring: str) -> Callable[[str], bool]:
