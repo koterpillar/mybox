@@ -7,7 +7,7 @@ import requests
 import trio
 
 from ..driver import Driver
-from ..utils import Some, async_cached, unsome, url_version
+from ..utils import Some, async_cached, async_cached_lock, unsome, url_version
 from .manual_version import ManualVersion
 
 
@@ -113,37 +113,70 @@ class DNF(Installer):
         await self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
 
     async def installed_version(self, package: str) -> Optional[str]:
-        return (
-            await self.driver.run_(
-                "rpm",
-                "--query",
-                "--queryformat",
-                "%{VERSION}",
-                "--whatprovides",
-                package,
-                check=False,
-                silent=True,
-                capture_output=True,
-            )
-        ).output
+        check = await self.driver.run_(
+            "rpm",
+            "--query",
+            "--queryformat",
+            "%{VERSION}",
+            "--whatprovides",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        )
+        return check.output
 
-    async def latest_version(self, package: str) -> str:
-        output = await self.driver.run_output(
+    @staticmethod
+    @async_cached_lock
+    async def dnf_repoquery(driver: Driver, package: Optional[str]) -> dict[str, str]:
+        """
+        Query DNF for the versions of installed packages.
+
+        @param package: If specified, only query this package; otherwise,
+        return all packages' versions.
+        """
+        args = [
             "dnf",
             "--quiet",
             "repoquery",
             "--queryformat",
-            "%{VERSION}",
+            "%{NAME} %{VERSION}",
             "--latest-limit",
             "1",
             "--arch",
             "x86_64,noarch",
-            "--whatprovides",
-            package,
-        )
-        if not output or "\n" in output:
-            raise Exception(f"Cannot determine version for {package}.")
-        return output
+        ]
+
+        if package:
+            args += [
+                "--whatprovides",
+                package,
+            ]
+
+        output = await driver.run_output(*args)
+
+        versions = {}
+        for line in output.splitlines():
+            name, version = line.split()
+            versions[name] = version
+        return versions
+
+    async def latest_version(self, package: str) -> str:
+        all_versions = await self.dnf_repoquery(self.driver, None)
+        try:
+            version = all_versions[package]
+            return version
+        except KeyError:
+            pass
+        # Virtual packages won't be returned in the full list of packages, query
+        # them individually.
+        versions = await self.dnf_repoquery(self.driver, package)
+        if len(versions) > 1:
+            raise ValueError(f"Multiple versions for {package}: {versions}.")
+        if len(versions) == 0:
+            raise ValueError(f"No versions for {package}.")
+        (version,) = versions.values()
+        return version
 
 
 class Apt(Installer):
