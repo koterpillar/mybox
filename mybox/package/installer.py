@@ -1,6 +1,5 @@
 import json
 from abc import ABCMeta, abstractmethod
-from functools import cache
 from typing import Optional
 
 import requests
@@ -41,7 +40,6 @@ class Brew(Installer):
     async def upgrade(self, package: str) -> None:
         await self.driver.run("brew", "upgrade", package)
 
-    @cache
     async def brew_info(self, package: str) -> dict:
         return json.loads(
             await self.driver.run_output("brew", "info", "--json=v2", package)
