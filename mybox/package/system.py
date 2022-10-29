@@ -2,8 +2,8 @@ from typing import Optional
 
 import trio
 
-from ..utils import Some, async_cached, unsome, url_version
-from .installer import Brew, linux_installer
+from ..utils import Some, unsome, url_version
+from .installer import make_installer
 from .manual_version import ManualVersion
 
 INSTALLER_LOCK = trio.Lock()
@@ -25,11 +25,8 @@ class SystemPackage(ManualVersion):
         self.auto_updates = auto_updates
         self.services = unsome(service)
 
-    @async_cached
     async def installer(self):
-        return (await self.driver.os()).switch(
-            linux=await linux_installer(self.driver), macos=Brew(self.driver)
-        )
+        return await make_installer(self.driver)
 
     @property
     def name(self) -> str:

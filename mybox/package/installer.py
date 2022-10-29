@@ -124,9 +124,8 @@ class DNF(Installer):
         )
         return check.output
 
-    @staticmethod
     @async_cached_lock
-    async def dnf_repoquery(driver: Driver, package: Optional[str]) -> dict[str, str]:
+    async def dnf_repoquery(self, package: Optional[str]) -> dict[str, str]:
         """
         Query DNF for the versions of installed packages.
 
@@ -151,7 +150,7 @@ class DNF(Installer):
                 package,
             ]
 
-        output = await driver.run_output(*args)
+        output = await self.driver.run_output(*args)
 
         versions = {}
         for line in output.splitlines():
@@ -160,7 +159,7 @@ class DNF(Installer):
         return versions
 
     async def latest_version(self, package: str) -> str:
-        all_versions = await self.dnf_repoquery(self.driver, None)
+        all_versions = await self.dnf_repoquery(None)
         try:
             version = all_versions[package]
             return version
@@ -168,7 +167,7 @@ class DNF(Installer):
             pass
         # Virtual packages won't be returned in the full list of packages, query
         # them individually.
-        versions = await self.dnf_repoquery(self.driver, package)
+        versions = await self.dnf_repoquery(package)
         if len(versions) > 1:
             raise ValueError(f"Multiple versions for {package}: {versions}.")
         if len(versions) == 0:
@@ -218,3 +217,14 @@ async def linux_installer(driver: Driver) -> Installer:
         return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")
+
+
+async def macos_installer(driver: Driver) -> Installer:
+    return Brew(driver)
+
+
+@async_cached_lock
+async def make_installer(driver: Driver) -> Installer:
+    os = await driver.os()
+    installer_fn = os.switch(linux=linux_installer, macos=macos_installer)
+    return await installer_fn(driver)
