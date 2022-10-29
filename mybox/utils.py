@@ -185,12 +185,59 @@ def async_cached(
 def async_cached(
     fn: Callable[..., Coroutine[Any, Any, T]]
 ) -> Callable[..., Coroutine[Any, Any, T]]:
+    return _async_cached_lock(None, fn)
+
+
+@overload
+def async_cached_lock(
+    fn: Callable[[], Coroutine[Any, Any, T]]
+) -> Callable[[], Coroutine[Any, Any, T]]:
+    ...
+
+
+@overload
+def async_cached_lock(
+    fn: Callable[[U], Coroutine[Any, Any, T]]
+) -> Callable[[U], Coroutine[Any, Any, T]]:
+    ...
+
+
+@overload
+def async_cached_lock(
+    fn: Callable[[U, V], Coroutine[Any, Any, T]]
+) -> Callable[[U, V], Coroutine[Any, Any, T]]:
+    ...
+
+
+def async_cached_lock(
+    fn: Callable[..., Coroutine[Any, Any, T]]
+) -> Callable[..., Coroutine[Any, Any, T]]:
+    return _async_cached_lock(trio.Lock(), fn)
+
+
+class NoLock:
+    async def __aenter__(self) -> None:
+        pass
+
+    async def __aexit__(self, *args: Any) -> None:
+        pass
+
+
+NO_LOCK = NoLock()
+
+
+def _async_cached_lock(
+    lock: Optional[trio.Lock], fn: Callable[..., Coroutine[Any, Any, T]]
+) -> Callable[..., Coroutine[Any, Any, T]]:
     cache: dict[Any, T] = {}
 
     @wraps(fn)
     async def cached_fn(*args: Any) -> T:
         if args not in cache:
-            cache[args] = await fn(*args)
+            async with lock or NO_LOCK:
+                # Check again, someone holding the lock might have updated the cache
+                if args not in cache:
+                    cache[args] = await fn(*args)
         return cache[args]
 
     return cached_fn
