@@ -35,3 +35,20 @@ class TestRPMFusion(PackageTestBase):
             linux=lambda os: os.distribution == "fedora", macos=False
         ):
             pytest.skip("This test is only applicable on Fedora.")
+
+
+class TestVirtualPackage(PackageTestBase):
+    affects_system = True
+
+    async def constructor_args(self) -> PackageArgs:
+        return {"name": "g++"}
+
+    async def check_installed_command(self):
+        return ["g++", "--version"]
+
+    check_installed_output = "Free Software Foundation, Inc."
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("This test is only applicable on Linux.")
