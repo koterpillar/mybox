@@ -22,7 +22,7 @@ class Installer(metaclass=ABCMeta):
         pass
 
     async def is_installed(self, package: str) -> bool:
-        return self.installed_version(package) is not None
+        return await self.installed_version(package) is not None
 
     @abstractmethod
     async def installed_version(self, package: str) -> Optional[str]:
