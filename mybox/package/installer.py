@@ -3,8 +3,6 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
-import requests
-
 from ..driver import Driver
 from ..utils import async_cached, async_cached_lock
 
@@ -45,7 +43,13 @@ class Brew(Installer):
         await self.driver.run("brew", "upgrade", package)
 
     @async_cached_lock
+    async def brew_update(self) -> None:
+        await self.driver.run("brew", "update")
+
+    @async_cached_lock
     async def brew_info(self, package: Optional[str]) -> dict[str, BrewRecord]:
+        await self.brew_update()
+
         args = ["brew", "info", "--json=v2"]
         if package:
             args.append(package)
@@ -81,34 +85,23 @@ class Brew(Installer):
         except KeyError:
             return None
 
-    async def api(self, path: str) -> dict:
-        result = requests.get(f"https://formulae.brew.sh/api/{path}")
-        result.raise_for_status()
-        return result.json()
-
     CASK_PREFIX = "homebrew/cask/"
 
     @async_cached
     async def latest_version(self, package: str) -> str:
-        if package.startswith(self.CASK_PREFIX):
-            # Cask
-            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-cask-formula
-            cask_package = package[len(self.CASK_PREFIX) :]
-            cask = await self.api(f"cask/{cask_package}.json")
-            return cask["version"]
-        elif "/" not in package:
-            # Normal formula
-            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-core-formula
-            formula = await self.api(f"formula/{package}.json")
-            return self.formula_version(formula)
-        else:
-            # Non-core cask or formula?
-            # https://github.com/Homebrew/discussions/discussions/3618
-            info = await self.brew_info(package)
-            try:
-                return info[package].latest
-            except KeyError:
-                raise ValueError(f"Unknown package: {package}") from None
+        info = await self.brew_info(None)
+        try:
+            return info[package].latest
+        except KeyError:
+            pass
+
+        # Non-core cask or formula?
+        # https://github.com/Homebrew/discussions/discussions/3618
+        info = await self.brew_info(package)
+        try:
+            return info[package].latest
+        except KeyError:
+            raise ValueError(f"Unknown package: {package}") from None
 
     @staticmethod
     def formula_version(info: dict) -> str:
