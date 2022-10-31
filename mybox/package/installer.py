@@ -1,5 +1,6 @@
 import json
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
 from typing import Optional
 
 import requests
@@ -21,9 +22,6 @@ class Installer(metaclass=ABCMeta):
     async def upgrade(self, package: str) -> None:
         pass
 
-    async def is_installed(self, package: str) -> bool:
-        return await self.installed_version(package) is not None
-
     @abstractmethod
     async def installed_version(self, package: str) -> Optional[str]:
         pass
@@ -33,6 +31,12 @@ class Installer(metaclass=ABCMeta):
         pass
 
 
+@dataclass
+class BrewRecord:
+    installed: Optional[str]
+    latest: str
+
+
 class Brew(Installer):
     async def install(self, package: str) -> None:
         await self.driver.run("brew", "install", package)
@@ -40,24 +44,42 @@ class Brew(Installer):
     async def upgrade(self, package: str) -> None:
         await self.driver.run("brew", "upgrade", package)
 
-    async def brew_info(self, package: str) -> dict:
-        return json.loads(
-            await self.driver.run_output("brew", "info", "--json=v2", package)
-        )
+    @async_cached_lock
+    async def brew_info(self, package: Optional[str]) -> dict[str, BrewRecord]:
+        args = ["brew", "info", "--json=v2"]
+        if package:
+            args.append(package)
+        else:
+            args.append("--installed")
 
-    async def installed_version(self, package: str) -> Optional[str]:
-        info = await self.brew_info(package)
-        if info["casks"]:
-            cask = info["casks"][0]
-            return cask["installed"]
-        if info["formulae"]:
-            formula = info["formulae"][0]
+        info = json.loads(await self.driver.run_output(*args))
+
+        result = {}
+
+        for cask in info["casks"]:
+            name = f"{cask['tap']}/{cask['token']}"
+            result[name] = BrewRecord(
+                installed=cask["installed"], latest=cask["version"]
+            )
+
+        for formula in info["formulae"]:
+            name = formula["name"]
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
                 installed = None
-            return installed
-        raise ValueError(f"Unexpected output from brew: {info}")
+            result[name] = BrewRecord(
+                installed=installed, latest=self.formula_version(formula)
+            )
+
+        return result
+
+    async def installed_version(self, package: str) -> Optional[str]:
+        info = await self.brew_info(None)
+        try:
+            return info[package].installed
+        except KeyError:
+            return None
 
     async def api(self, path: str) -> dict:
         result = requests.get(f"https://formulae.brew.sh/api/{path}")
@@ -83,14 +105,10 @@ class Brew(Installer):
             # Non-core cask or formula?
             # https://github.com/Homebrew/discussions/discussions/3618
             info = await self.brew_info(package)
-            if info.get("formulae"):
-                formula = info["formulae"][0]
-                return self.formula_version(formula)
-            elif info.get("casks"):
-                cask = info["casks"][0]
-                return cask["version"]
-            else:
-                raise ValueError(f"Unknown package: {package}")
+            try:
+                return info[package].latest
+            except KeyError:
+                raise ValueError(f"Unknown package: {package}") from None
 
     @staticmethod
     def formula_version(info: dict) -> str:
