@@ -3,7 +3,16 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, Union
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Iterable,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import pytest
 
@@ -11,7 +20,7 @@ from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
 
-from .driver import DockerDriver, Driver, OverrideHomeDriver, RootCheckDriver
+from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
 PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
 
@@ -26,10 +35,10 @@ TEST = TypeVar("TEST", bound="PackageTestBase")
 
 
 def requires_driver(
-    test_fn: Callable[[TEST, RootCheckDriver], Coroutine[Any, Any, None]]
-) -> Callable[[TEST, RootCheckDriver], Coroutine[Any, Any, None]]:
+    test_fn: Callable[[TEST, TestDriver], Coroutine[Any, Any, None]]
+) -> Callable[[TEST, TestDriver], Coroutine[Any, Any, None]]:
     @wraps(test_fn)
-    async def wrapper(self: TEST, make_driver: RootCheckDriver) -> None:
+    async def wrapper(self: TEST, make_driver: TestDriver) -> None:
         self.driver = make_driver
         await self.check_applicable()
         return await test_fn(self, make_driver)
@@ -39,7 +48,7 @@ def requires_driver(
 
 class PackageTestBase(metaclass=ABCMeta):
     db: DB
-    driver: RootCheckDriver
+    driver: TestDriver
 
     @abstractmethod
     async def constructor_args(self) -> PackageArgs:
@@ -60,13 +69,16 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.fixture
     async def make_driver(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> RootCheckDriver:
+    ) -> AsyncIterator[TestDriver]:
+        driver: TestDriver
         if DOCKER_IMAGE:
-            return await DockerDriver.create(image=DOCKER_IMAGE)
+            driver = await DockerDriver.create(image=DOCKER_IMAGE)
         else:
             local_bin = tmp_path / ".local" / "bin"
             monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-            return OverrideHomeDriver(override_home=tmp_path)
+            driver = OverrideHomeDriver(override_home=tmp_path)
+        yield driver
+        await driver.stop()
 
     async def check_applicable(self) -> None:
         if self.affects_system and not DOCKER and not CI:
@@ -104,7 +116,7 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.mark.trio
     @requires_driver
     async def test_installs(
-        self, make_driver: RootCheckDriver  # pylint:disable=unused-argument
+        self, make_driver: TestDriver  # pylint:disable=unused-argument
     ):
         await self.install_prerequisites()
 
@@ -129,7 +141,7 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.mark.trio
     @requires_driver
     async def test_no_root_required_for_is_installed(
-        self, make_driver: RootCheckDriver  # pylint:disable=unused-argument
+        self, make_driver: TestDriver  # pylint:disable=unused-argument
     ):
         if self.root_required_for_is_installed:
             return
@@ -168,7 +180,7 @@ class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
 
     @pytest.mark.trio
     @requires_driver
-    async def test_installs(self, make_driver: RootCheckDriver):
+    async def test_installs(self, make_driver: TestDriver):
         try:
             return await super().test_installs(make_driver)
         finally:

@@ -1,7 +1,7 @@
 import pytest
 
 from .base import CI, PackageArgs, RootPackageTestBase, requires_driver
-from .driver import RootCheckDriver
+from .driver import TestDriver
 
 
 class ShellTestBase(RootPackageTestBase):
@@ -23,7 +23,7 @@ class ShellTestBase(RootPackageTestBase):
 class TestShell(ShellTestBase):
     @pytest.mark.trio
     @requires_driver
-    async def test_installs(self, make_driver: RootCheckDriver):
+    async def test_installs(self, make_driver: TestDriver):
         if (await self.os()).switch(linux=False, macos=CI):
             pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
         return await super().test_installs(make_driver)
