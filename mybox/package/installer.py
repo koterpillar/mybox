@@ -193,6 +193,8 @@ class DNF(PackageCacheInstaller):
         check = await self.driver.run_(
             *args, check=False, silent=True, capture_output=True
         )
+        if not check.ok:
+            return {}
         output = cast(str, check.output)
         return self.parse_versions(output, package)
 
