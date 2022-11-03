@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from os import getpid
 from pathlib import Path
 from typing import Iterable, Union
 
@@ -7,7 +8,9 @@ from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import run, run_output
 
 
-class RootCheckDriver(Driver):
+class TestDriver(Driver):
+    __test__ = False
+
     def __init__(self, *, enable_root: bool = True, **kwargs) -> None:
         super().__init__(**kwargs)
         self.enable_root = enable_root
@@ -24,8 +27,11 @@ class RootCheckDriver(Driver):
             assert not self.root, "Root operations are disabled."
         return await super().run_(*args, **kwargs)
 
+    async def stop(self) -> None:
+        pass
 
-class OverrideHomeDriver(RootCheckDriver, LocalDriver):
+
+class OverrideHomeDriver(TestDriver, LocalDriver):
     def __init__(self, *, override_home: Path, **kwargs) -> None:
         super().__init__(**kwargs)
         self.override_home = override_home
@@ -39,7 +45,10 @@ class OverrideHomeDriver(RootCheckDriver, LocalDriver):
         return self.override_home
 
 
-class DockerDriver(RootCheckDriver, SubprocessDriver):
+DOCKER_DRIVER_CONTAINER_NUMBER: int = 0
+
+
+class DockerDriver(TestDriver, SubprocessDriver):
     def __init__(
         self, *, container: str, user: str, docker_sudo: bool = False, **kwargs
     ) -> None:
@@ -76,6 +85,8 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
             ]
         )
 
+    container_number = 0
+
     @classmethod
     async def create(
         cls,
@@ -109,6 +120,8 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
                 )
             await run(*docker, "build", "--tag", target_image, tmppath)
 
+        cls.container_number += 1
+
         container = await run_output(
             *docker,
             "run",
@@ -116,8 +129,10 @@ class DockerDriver(RootCheckDriver, SubprocessDriver):
             "--detach",
             "--volume",
             f"{package_root}:{package_root}",
+            "--name",
+            f"mybox-test-{getpid()}-{cls.container_number}",
             target_image,
             "sleep",
-            "300",
+            "86400000",
         )
         return cls(container=container, user=user, docker_sudo=docker_sudo)
