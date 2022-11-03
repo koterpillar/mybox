@@ -1,11 +1,12 @@
 import json
 from abc import ABCMeta, abstractmethod
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, cast
 
-import requests
+import trio
 
 from ..driver import Driver
-from ..utils import async_cached, async_cached_lock
+from ..utils import async_cached_lock
 
 
 class Installer(metaclass=ABCMeta):
@@ -21,9 +22,6 @@ class Installer(metaclass=ABCMeta):
     async def upgrade(self, package: str) -> None:
         pass
 
-    async def is_installed(self, package: str) -> bool:
-        return await self.installed_version(package) is not None
-
     @abstractmethod
     async def installed_version(self, package: str) -> Optional[str]:
         pass
@@ -33,64 +31,107 @@ class Installer(metaclass=ABCMeta):
         pass
 
 
-class Brew(Installer):
+@dataclass
+class PackageVersionInfo:
+    installed: Optional[str]
+    latest: str
+
+
+class PackageCacheInstaller(Installer, metaclass=ABCMeta):
+    cache: Optional[dict[str, PackageVersionInfo]]
+
+    def __init__(self, driver: Driver) -> None:
+        self.cache = None
+        self.lock = trio.Lock()
+        super().__init__(driver)
+
+    @abstractmethod
+    async def get_package_info(
+        self, package: Optional[str]
+    ) -> dict[str, PackageVersionInfo]:
+        pass
+
+    async def package_info(self, package: str) -> PackageVersionInfo:
+        async with self.lock:
+            if self.cache is None:
+                self.cache = await self.get_package_info(None)
+
+        async with self.lock:
+            if package not in self.cache:
+                self.cache.update(await self.get_package_info(package))
+
+        try:
+            return self.cache[package]
+        except KeyError:
+            raise ValueError(f"Unknown package: {package}") from None
+
+    async def installed_version(self, package: str) -> Optional[str]:
+        info = await self.package_info(package)
+        return info.installed
+
+    async def latest_version(self, package: str) -> str:
+        info = await self.package_info(package)
+        return info.latest
+
+    async def invalidate_cache(self, package: str) -> None:
+        async with self.lock:
+            if self.cache:
+                self.cache.pop(package, None)
+
+    async def install(self, package: str) -> None:
+        await super().install(package)
+        await self.invalidate_cache(package)
+
+    async def upgrade(self, package: str) -> None:
+        await super().upgrade(package)
+        await self.invalidate_cache(package)
+
+
+class Brew(PackageCacheInstaller):
     async def install(self, package: str) -> None:
         await self.driver.run("brew", "install", package)
+        await super().install(package)
 
     async def upgrade(self, package: str) -> None:
         await self.driver.run("brew", "upgrade", package)
+        await super().upgrade(package)
 
-    async def brew_info(self, package: str) -> dict:
-        return json.loads(
-            await self.driver.run_output("brew", "info", "--json=v2", package)
-        )
+    @async_cached_lock
+    async def brew_update(self) -> None:
+        await self.driver.run("brew", "update")
 
-    async def installed_version(self, package: str) -> Optional[str]:
-        info = await self.brew_info(package)
-        if info["casks"]:
-            cask = info["casks"][0]
-            return cask["installed"]
-        if info["formulae"]:
-            formula = info["formulae"][0]
+    async def get_package_info(
+        self, package: Optional[str]
+    ) -> dict[str, PackageVersionInfo]:
+        await self.brew_update()
+
+        args = ["brew", "info", "--json=v2"]
+        if package:
+            args.append(package)
+        else:
+            args.append("--installed")
+
+        info = json.loads(await self.driver.run_output(*args))
+
+        result = {}
+
+        for cask in info["casks"]:
+            name = f"{cask['tap']}/{cask['token']}"
+            result[name] = PackageVersionInfo(
+                installed=cask["installed"], latest=cask["version"]
+            )
+
+        for formula in info["formulae"]:
+            name = formula["name"]
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
                 installed = None
-            return installed
-        raise ValueError(f"Unexpected output from brew: {info}")
+            result[name] = PackageVersionInfo(
+                installed=installed, latest=self.formula_version(formula)
+            )
 
-    async def api(self, path: str) -> dict:
-        result = requests.get(f"https://formulae.brew.sh/api/{path}")
-        result.raise_for_status()
-        return result.json()
-
-    CASK_PREFIX = "homebrew/cask/"
-
-    @async_cached
-    async def latest_version(self, package: str) -> str:
-        if package.startswith(self.CASK_PREFIX):
-            # Cask
-            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-cask-formula
-            cask_package = package[len(self.CASK_PREFIX) :]
-            cask = await self.api(f"cask/{cask_package}.json")
-            return cask["version"]
-        elif "/" not in package:
-            # Normal formula
-            # https://formulae.brew.sh/docs/api/#get-formula-metadata-for-a-core-formula
-            formula = await self.api(f"formula/{package}.json")
-            return self.formula_version(formula)
-        else:
-            # Non-core cask or formula?
-            # https://github.com/Homebrew/discussions/discussions/3618
-            info = await self.brew_info(package)
-            if info.get("formulae"):
-                formula = info["formulae"][0]
-                return self.formula_version(formula)
-            elif info.get("casks"):
-                cask = info["casks"][0]
-                return cask["version"]
-            else:
-                raise ValueError(f"Unknown package: {package}")
+        return result
 
     @staticmethod
     def formula_version(info: dict) -> str:
@@ -101,31 +142,65 @@ class Brew(Installer):
         return version
 
 
-class DNF(Installer):
+class DNF(PackageCacheInstaller):
     async def install(self, package: str) -> None:
         await self.driver.with_root(True).run("dnf", "install", "-y", package)
+        await super().install(package)
 
     async def upgrade(self, package: str) -> None:
         await self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
+        await super().upgrade(package)
 
-    async def installed_version(self, package: str) -> Optional[str]:
-        check = await self.driver.run_(
+    @staticmethod
+    def parse_versions(output: str, package: Optional[str]) -> dict[str, str]:
+        versions = {}
+        for line in output.splitlines():
+            name, version = line.split()
+            versions[name] = version
+
+        if package is not None:
+            # If querying for a specific package, the name might be different
+            # because of virtual packages and --whatprovides option.
+            # Assume the only version and extract it.
+            if len(versions) > 1:
+                raise ValueError(f"Multiple versions for {package}: {versions}.")
+            if len(versions) == 0:
+                raise ValueError(f"No versions for {package}.")
+            (version,) = versions.values()
+            return {package: version}
+
+        return versions
+
+    async def rpm_query(self, package: Optional[str]) -> dict[str, str]:
+        """
+        Query RPM for the installed package versions.
+
+        @param package: If specified, only query this package; otherwise,
+        return all packages' versions.
+        """
+        args = [
             "rpm",
             "--query",
             "--queryformat",
-            "%{VERSION}",
-            "--whatprovides",
-            package,
-            check=False,
-            silent=True,
-            capture_output=True,
-        )
-        return check.output
+            "%{NAME} %{VERSION}\n",
+        ]
 
-    @async_cached_lock
+        if package:
+            args += ["--whatprovides", package]
+        else:
+            args += ["--all"]
+
+        check = await self.driver.run_(
+            *args, check=False, silent=True, capture_output=True
+        )
+        if not check.ok:
+            return {}
+        output = cast(str, check.output)
+        return self.parse_versions(output, package)
+
     async def dnf_repoquery(self, package: Optional[str]) -> dict[str, str]:
         """
-        Query DNF for the versions of installed packages.
+        Query DNF for the latest package versions.
 
         @param package: If specified, only query this package; otherwise,
         return all packages' versions.
@@ -143,35 +218,23 @@ class DNF(Installer):
         ]
 
         if package:
-            args += [
-                "--whatprovides",
-                package,
-            ]
+            args += ["--whatprovides", package]
 
         output = await self.driver.run_output(*args)
+        return self.parse_versions(output, package)
 
-        versions = {}
-        for line in output.splitlines():
-            name, version = line.split()
-            versions[name] = version
-        return versions
+    async def get_package_info(
+        self, package: Optional[str]
+    ) -> dict[str, PackageVersionInfo]:
+        latest = await self.dnf_repoquery(package)
+        installed = await self.rpm_query(package)
 
-    async def latest_version(self, package: str) -> str:
-        all_versions = await self.dnf_repoquery(None)
-        try:
-            version = all_versions[package]
-            return version
-        except KeyError:
-            pass
-        # Virtual packages won't be returned in the full list of packages, query
-        # them individually.
-        versions = await self.dnf_repoquery(package)
-        if len(versions) > 1:
-            raise ValueError(f"Multiple versions for {package}: {versions}.")
-        if len(versions) == 0:
-            raise ValueError(f"No versions for {package}.")
-        (version,) = versions.values()
-        return version
+        return {
+            name: PackageVersionInfo(
+                installed=installed.get(name), latest=latest_version
+            )
+            for name, latest_version in latest.items()
+        }
 
 
 class Apt(Installer):

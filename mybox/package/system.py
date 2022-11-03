@@ -43,9 +43,10 @@ class SystemPackage(ManualVersion):
         if self.url:
             return self.cached_version
         installer = await self.installer()
+        version = await installer.installed_version(self.name)
         if self.auto_updates:
-            return "latest" if await installer.is_installed(self.name) else None
-        return await installer.installed_version(self.name)
+            return "latest" if version else None
+        return version
 
     async def postinstall_linux(self):
         if self.services:

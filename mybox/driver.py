@@ -202,12 +202,11 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         )
 
         ok = result.returncode == 0
-        output: Optional[str]
-        if ok and capture_output:
+        if capture_output:
             output = result.stdout.decode().strip()
         else:
             output = None
-        return RunResult(ok=result.returncode == 0, output=output)
+        return RunResult(ok=ok, output=output)
 
 
 class LocalDriver(SubprocessDriver):
