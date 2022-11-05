@@ -19,6 +19,7 @@ import pytest
 from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
+from mybox.utils import async_cached
 
 from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
@@ -166,8 +167,13 @@ class PackageTestBase(metaclass=ABCMeta):
 
     PIPX: list[PackageArgs] = [{"pip": "pipx"}]
 
+    @async_cached
     async def os(self) -> OS:
         return await LocalDriver().os()
+
+    @async_cached
+    async def local(self) -> Path:
+        return await self.driver.local()
 
 
 class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
@@ -193,3 +199,9 @@ class RootPackageTestBase(PackageTestBase, metaclass=ABCMeta):
     @property
     def check_driver(self) -> Driver:
         return super().check_driver.with_root(self.root)
+
+    @async_cached
+    async def local(self) -> Path:
+        if self.root:
+            return Path("/usr/local")
+        return await super().local()
