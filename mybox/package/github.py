@@ -49,6 +49,7 @@ class GitHubRelease:
 class GitHubPackage(ArchivePackage):
     prefixes: list[str]
     suffixes: list[str]
+    includes: list[str]
     excludes: list[str]
 
     def __init__(
@@ -57,6 +58,7 @@ class GitHubPackage(ArchivePackage):
         repo: str,
         prefix: Some[str] = None,
         suffix: Some[str] = None,
+        include: Some[str] = None,
         exclude: Some[str] = None,
         regex: Some[str] = None,
         **kwargs,
@@ -65,6 +67,7 @@ class GitHubPackage(ArchivePackage):
         self.repo = repo
         self.prefixes = unsome(prefix)
         self.suffixes = unsome(suffix)
+        self.includes = unsome(include)
         self.excludes = unsome(exclude)
         self.regex = unsome(regex)
 
@@ -86,6 +89,8 @@ class GitHubPackage(ArchivePackage):
             yield Filters.startswith(prefix)
         for suffix in self.suffixes:
             yield Filters.endswith(suffix)
+        for include in self.includes:
+            yield Filters.includes(include)
         for exclude in self.excludes:
             yield Filters.excludes(exclude)
         for regex in self.regex:
