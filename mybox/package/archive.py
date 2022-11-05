@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 from ..utils import async_cached
 from .manual import ManualPackage
@@ -96,6 +96,22 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         raise ValueError(
             f"Cannot find application '{name}' in {await self.package_directory()}."
         )
+
+    async def icon_paths(self, name: str) -> Iterable[Path]:
+        return [
+            Path(path)
+            for path in (
+                await self.driver.run_output(
+                    "find",
+                    await self.package_directory(),
+                    "-name",
+                    f"{name}.svg",
+                    "-o",
+                    "-name",
+                    f"{name}.png",
+                )
+            ).splitlines()
+        ]
 
     async def icon_directory(self) -> Optional[Path]:
         candidate = await self.package_directory() / "share" / "icons"

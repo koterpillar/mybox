@@ -1,9 +1,10 @@
 import configparser
+import re
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
-from ..utils import Some, async_cached, transplant_path, unsome
+from ..utils import Some, async_cached, unsome
 from .manual_version import ManualVersion
 from .root import Root
 
@@ -50,8 +51,36 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     async def app_path(self, name: str) -> Path:
         pass
 
-    async def icon_directory(self) -> Optional[Path]:
-        return None
+    @abstractmethod
+    async def icon_paths(self, name: str) -> Iterable[Path]:
+        pass
+
+    RESOLUTION_RE = re.compile(r"(\d+)x(\d+)")
+
+    async def icon_target_path(self, path: Path) -> Path:
+        resolution: str
+        if path.suffix == ".svg":
+            resolution = "scalable"
+        elif path.suffix == ".png":
+            for part in path.parts:
+                if self.RESOLUTION_RE.match(part):
+                    resolution = part
+                    break
+            else:
+                # Give a low resolution to prefer ones given explicitly
+                resolution = "16x16"
+        else:
+            raise ValueError(f"Unknown icon type: '{path}'")
+
+        return (
+            (await self.local())
+            / "share"
+            / "icons"
+            / "hicolor"
+            / resolution
+            / "apps"
+            / path.name
+        )
 
     async def icon_name(self, app_path: Path) -> Optional[str]:
         config = await self.driver.read_file(app_path)
@@ -68,21 +97,12 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         path = await self.app_path(name)
         target = await self.local() / "share" / "applications" / f"{name}.desktop"
         await self.driver.link(path, target)
-        icons_source = (
-            await self.icon_directory()
-        )  # pylint:disable=assignment-from-none
-        if icons_source:
-            icons_target = await self.local() / "share" / "icons"
-            icon = await self.icon_name(path)
-            if icon:
-                icons = (
-                    await self.driver.run_output(
-                        "find", icons_source, "-name", f"{icon}.*"
-                    )
-                ).splitlines()
-                for icon_path in map(Path, icons):
-                    target = transplant_path(icons_source, icons_target, icon_path)
-                    await self.driver.link(icon_path, target)
+
+        icon = await self.icon_name(path)
+        if icon:
+            for icon_path in await self.icon_paths(name):
+                target = await self.icon_target_path(icon_path)
+                await self.driver.link(icon_path, target)
 
     async def install_app_macos(self, name: str) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,
