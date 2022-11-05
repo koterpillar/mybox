@@ -175,6 +175,53 @@ class PackageTestBase(metaclass=ABCMeta):
     async def local(self) -> Path:
         return await self.driver.local()
 
+    async def assert_desktop_file_exists(self, name: str, title: str) -> None:
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            return
+
+        local = await self.local()
+
+        desktop_file = await self.check_driver.run_output(
+            "cat", local / "share" / "applications" / f"{name}.desktop"
+        )
+        assert f"Name={title}" in desktop_file
+
+        icon = next(
+            (
+                line.split("=", 1)[1]
+                for line in desktop_file.splitlines()
+                if line.startswith("Icon=")
+            ),
+            None,
+        )
+        if icon:
+            await self.assert_icon_exists(icon)
+
+    async def assert_icon_exists(self, name: str) -> None:
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            return
+
+        local = await self.local()
+        icons = local / "share" / "icons"
+
+        assert await self.check_driver.is_dir(
+            icons
+        ), f"Icon directory {icons} doesn't exist."
+
+        for extension, resolution in [
+            ("svg", "scalable"),
+            *[("png", f"{size}x{size}") for size in [2**i for i in range(4, 9)]],
+        ]:
+            if await self.check_driver.is_file(
+                icons / "hicolor" / resolution / "apps" / f"{name}.{extension}"
+            ):
+                return
+
+        files = (
+            await self.check_driver.run_output("find", icons, "-not", "-type", "d")
+        ).splitlines()
+        assert False, f"Icon '{name}' not found. Files in icons directory: {files}"
+
 
 class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
     @cached_property

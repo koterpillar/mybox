@@ -25,19 +25,7 @@ class TestNeovim(RootPackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        if (await self.driver.os()).switch(linux=True, macos=False):
-            local = await self.local()
-
-            # Check desktop file
-            desktop_file = await self.check_driver.run_output(
-                "cat", f"{local}/share/applications/nvim.desktop"
-            )
-            assert "Name=Neovim" in desktop_file
-
-            # Check icon
-            assert await self.check_driver.is_file(
-                f"{local}/share/icons/hicolor/128x128/apps/nvim.png"
-            )
+        await super().assert_desktop_file_exists("nvim", "Neovim")
 
 
 class TestRootNeovim(TestNeovim):
