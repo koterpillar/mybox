@@ -1,3 +1,5 @@
+import pytest
+
 from mybox.driver import Driver
 
 from .base import PackageArgs, PackageTestBase, RootPackageTestBase
@@ -31,6 +33,29 @@ class TestNeovim(RootPackageTestBase):
 class TestRootNeovim(TestNeovim):
     root = True
     affects_system = True
+
+
+class TestKitty(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "kovidgoyal/kitty",
+            "binary": "kitty",
+            "app": "kitty",
+        }
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("This test is only applicable on Linux.")
+
+    async def check_installed_command(self):
+        return ["kitty", "--version"]
+
+    check_installed_output = "kitty"
+
+    async def check_installed(self):
+        await super().check_installed()
+        await super().assert_desktop_file_exists("kitty", "kitty")
 
 
 class TestExa(PackageTestBase):
