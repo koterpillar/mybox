@@ -87,3 +87,22 @@ class TestAmmonite(PackageTestBase):
         return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"
+
+
+class TestCura(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "Ultimaker/Cura",
+            "include": "modern",
+            "binary": "Ultimaker-Cura",
+            "app": "cura",
+        }
+
+    async def check_installed_command(self):
+        return ["Ultimaker-Cura", "--debug", "--version"]
+
+    check_installed_output = "cura version"
+
+    async def check_installed(self):
+        await super().check_installed()
+        await super().assert_desktop_file_exists("cura", "Cura")
