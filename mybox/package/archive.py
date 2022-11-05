@@ -24,8 +24,12 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     async def archive_url(self) -> str:
         pass
 
+    @property
+    def pathname(self) -> str:
+        return self.name.replace("/", "--")
+
     async def package_directory(self) -> Path:
-        result = (await self.local()) / "mybox" / self.name.replace("/", "--")
+        result = (await self.local()) / "mybox" / self.pathname
         await self.driver.makedirs(result)
         return result
 
@@ -53,6 +57,16 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             "unzip", "-o", "-qq", source, "-d", await self.package_directory()
         )
 
+    @async_cached
+    async def appimage_path(self) -> Path:
+        return await self.package_directory() / f"{self.pathname}.appimage"
+
+    async def appimage(self, source: Path) -> None:
+        target = await self.appimage_path()
+        await self.driver.run("cp", source, target)
+        await self.driver.make_executable(target)
+        # TODO: extract desktop file and icons from appimage
+
     async def extract(self, url: str, source: Path) -> None:
         if self.raw:
             if isinstance(self.raw, str):
@@ -73,10 +87,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             await self.untar(source, "-J")
         elif url.endswith(".zip"):
             await self.unzip(source)
+        elif url.endswith(".AppImage"):
+            await self.appimage(source)
         else:
             raise ValueError(f"Unknown archive format: {url}")
 
     async def binary_path(self, binary: str) -> Path:
+        appimage_candidate = await self.appimage_path()
+        if await self.driver.is_executable(appimage_candidate):
+            return appimage_candidate
         paths: list[list[str]] = [[], ["bin"]]
         for relative_path in paths:
             candidate = await self.package_directory() / Path(*relative_path) / binary
