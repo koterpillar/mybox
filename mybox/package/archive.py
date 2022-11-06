@@ -1,3 +1,4 @@
+import shlex
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union
@@ -65,7 +66,14 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         target = await self.appimage_path()
         await self.driver.run("cp", source, target)
         await self.driver.make_executable(target)
-        # TODO: extract desktop file and icons from appimage
+        for extension in ["desktop", "svg", "png"]:
+            cmd = " && ".join(
+                [
+                    shlex.join(["cd", str(await self.package_directory())]),
+                    shlex.join([str(target), "--appimage-extract", f"*.{extension}"]),
+                ]
+            )
+            await self.driver.run("sh", "-c", cmd)
 
     async def extract(self, url: str, source: Path) -> None:
         if self.raw:
@@ -92,28 +100,42 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         else:
             raise ValueError(f"Unknown archive format: {url}")
 
+    async def find_in_package_directory(
+        self,
+        paths: list[list[str]],
+        name: str,
+        *,
+        require_executable: bool = False,
+        target_desc: str,
+    ) -> Path:
+        for relative_path in paths:
+            candidate = await self.package_directory() / Path(*relative_path) / name
+            if require_executable:
+                candidate_ok = await self.driver.is_executable(candidate)
+            else:
+                candidate_ok = await self.driver.is_file(candidate)
+            if candidate_ok:
+                return candidate
+        raise ValueError(
+            f"Cannot find {target_desc} '{name}' in {await self.package_directory()}."
+        )
+
     async def binary_path(self, binary: str) -> Path:
         appimage_candidate = await self.appimage_path()
         if await self.driver.is_executable(appimage_candidate):
             return appimage_candidate
-        paths: list[list[str]] = [[], ["bin"]]
-        for relative_path in paths:
-            candidate = await self.package_directory() / Path(*relative_path) / binary
-            if await self.driver.is_executable(candidate):
-                return candidate
-        raise ValueError(f"Cannot find {binary} in {await self.package_directory()}.")
+        return await self.find_in_package_directory(
+            paths=[[], ["bin"]],
+            name=binary,
+            require_executable=True,
+            target_desc="binary",
+        )
 
     async def app_path(self, name: str) -> Path:
-        candidate = (
-            await self.package_directory()
-            / "share"
-            / "applications"
-            / f"{name}.desktop"
-        )
-        if await self.driver.is_file(candidate):
-            return candidate
-        raise ValueError(
-            f"Cannot find application '{name}' in {await self.package_directory()}."
+        return await self.find_in_package_directory(
+            paths=[["share", "applications"], ["squashfs-root"]],
+            name=f"{name}.desktop",
+            target_desc="application",
         )
 
     async def icon_paths(self, name: str) -> Iterable[Path]:
