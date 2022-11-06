@@ -102,6 +102,11 @@ class TestCura(PackageTestBase):
             "app": "cura",
         }
 
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("This test is only applicable on Linux.")
+
     async def check_installed_command(self):
         return ["xvfb-run", "Ultimaker-Cura", "--debug", "--version"]
 
