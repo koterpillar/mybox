@@ -60,7 +60,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     @async_cached
     async def appimage_path(self) -> Path:
-        return await self.package_directory() / f"{self.pathname}.appimage"
+        return await self.package_directory() / f"{self.pathname}.AppImage"
 
     async def appimage(self, source: Path) -> None:
         target = await self.appimage_path()
