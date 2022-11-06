@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Union
 
 from ..utils import async_cached
 from .manual import ManualPackage
@@ -112,12 +112,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 )
             ).splitlines()
         ]
-
-    async def icon_directory(self) -> Optional[Path]:
-        candidate = await self.package_directory() / "share" / "icons"
-        if await self.driver.is_dir(candidate):
-            return candidate
-        return None
 
     async def font_path(self, name: str) -> Path:
         candidate = await self.package_directory() / name
