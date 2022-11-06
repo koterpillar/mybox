@@ -31,13 +31,9 @@ class Links(ManualVersion, Destination):
             raise ValueError(f"Source is not a directory: {self.source}")
 
         if self.shallow:
-            candidates = self.source.glob("*")
+            return (path for path in self.source.glob("*"))
         else:
-            candidates = self.source.rglob("*")
-
-        for path in candidates:
-            if path.is_file():
-                yield path
+            return (path for path in self.source.rglob("*") if path.is_file())
 
     def paths(self) -> Iterator[Path]:
         for path in self.all_paths():
