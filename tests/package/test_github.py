@@ -121,15 +121,26 @@ class TestCura(PackageTestBase):
     prerequisites = [
         {
             "name": "libgl1-mesa-glx",
-            "os": "linux",
             "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "mesa-libGL",
+            "distribution": "fedora",
         },
         {
             "name": "libegl1",
-            "os": "linux",
             "distribution": ["debian", "ubuntu"],
         },
         {
+            "name": "mesa-libEGL",
+            "distribution": "fedora",
+        },
+        {
             "name": "xvfb",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "xorg-x11-server-Xvfb",
+            "distribution": "fedora",
         },
     ]

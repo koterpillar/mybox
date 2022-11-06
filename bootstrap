@@ -67,6 +67,7 @@ case "$OSTYPE" in
         ensure xz
         ensure unzip
         ensure chsh util-linux-user
+        ensure fusermount fuse fuse-libs
         ;;
     esac
     ;;
