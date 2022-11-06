@@ -97,7 +97,7 @@ class TestCura(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "Ultimaker/Cura",
-            "include": "modern",
+            "exclude": "modern",
             "binary": "Ultimaker-Cura",
             "app": "cura",
         }
