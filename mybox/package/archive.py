@@ -58,19 +58,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             "unzip", "-o", "-qq", source, "-d", await self.package_directory()
         )
 
-    @async_cached
-    async def appimage_path(self) -> Path:
-        return await self.package_directory() / f"{self.pathname}.AppImage"
-
     async def appimage(self, source: Path) -> None:
-        target = await self.appimage_path()
-        await self.driver.run("cp", source, target)
-        await self.driver.make_executable(target)
-        for extension in ["desktop", "svg", "png"]:
+        async with self.driver.tempfile() as target:
+            await self.driver.run("cp", source, target)
+            await self.driver.make_executable(target)
+
             cmd = " && ".join(
                 [
                     shlex.join(["cd", str(await self.package_directory())]),
-                    shlex.join([str(target), "--appimage-extract", f"*.{extension}"]),
+                    shlex.join([str(target), "--appimage-extract"]),
                 ]
             )
             await self.driver.run("sh", "-c", cmd)
@@ -121,7 +117,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         )
 
     async def binary_path(self, binary: str) -> Path:
-        appimage_candidate = await self.appimage_path()
+        appimage_candidate = await self.package_directory() / "squashfs-root" / "AppRun"
         if await self.driver.is_executable(appimage_candidate):
             return appimage_candidate
         return await self.find_in_package_directory(
