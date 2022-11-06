@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Union
 
 from ..utils import async_cached
 from .manual import ManualPackage
