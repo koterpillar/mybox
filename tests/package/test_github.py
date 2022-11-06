@@ -27,7 +27,9 @@ class TestNeovim(RootPackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        await super().assert_desktop_file_exists("nvim", "Neovim")
+        await super().assert_desktop_file_exists(
+            "nvim", name="Neovim", executable="nvim"
+        )
 
 
 class TestRootNeovim(TestNeovim):
@@ -55,7 +57,9 @@ class TestKitty(PackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        await super().assert_desktop_file_exists("kitty", "kitty")
+        await super().assert_desktop_file_exists(
+            "kitty", name="kitty", executable="kitty"
+        )
 
 
 class TestExa(PackageTestBase):
@@ -105,4 +109,6 @@ class TestCura(PackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        await super().assert_desktop_file_exists("cura", "Cura")
+        await super().assert_desktop_file_exists(
+            "cura", name="Ultimaker Cura", executable="Ultimaker-Cura"
+        )

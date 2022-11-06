@@ -175,16 +175,20 @@ class PackageTestBase(metaclass=ABCMeta):
     async def local(self) -> Path:
         return await self.driver.local()
 
-    async def assert_desktop_file_exists(self, name: str, title: str) -> None:
+    async def assert_desktop_file_exists(
+        self, file_name: str, *, name: str, executable: Optional[str] = None
+    ) -> None:
         if not (await self.driver.os()).switch(linux=True, macos=False):
             return
 
         local = await self.local()
 
         desktop_file = await self.check_driver.run_output(
-            "cat", local / "share" / "applications" / f"{name}.desktop"
+            "cat", local / "share" / "applications" / f"{file_name}.desktop"
         )
-        assert f"Name={title}" in desktop_file
+        assert f"Name={name}" in desktop_file
+        if executable:
+            assert f"Exec={executable}" in desktop_file
 
         icon = next(
             (
