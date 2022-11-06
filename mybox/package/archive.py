@@ -113,12 +113,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             ).splitlines()
         ]
 
-    async def icon_directory(self) -> Optional[Path]:
-        candidate = await self.package_directory() / "share" / "icons"
-        if await self.driver.is_dir(candidate):
-            return candidate
-        return None
-
     async def font_path(self, name: str) -> Path:
         candidate = await self.package_directory() / name
         if await self.driver.is_file(candidate):
