@@ -99,6 +99,7 @@ class TestCura(PackageTestBase):
             "repo": "Ultimaker/Cura",
             "exclude": "modern",
             "binary": "Ultimaker-Cura",
+            "binary_wrapper": True,
             "app": "cura",
         }
 
