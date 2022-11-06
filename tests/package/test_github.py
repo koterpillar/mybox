@@ -103,7 +103,7 @@ class TestCura(PackageTestBase):
         }
 
     async def check_installed_command(self):
-        return ["Ultimaker-Cura", "--debug", "--version"]
+        return ["xvfb-run", "Ultimaker-Cura", "--debug", "--version"]
 
     check_installed_output = "cura version"
 
@@ -112,3 +112,19 @@ class TestCura(PackageTestBase):
         await super().assert_desktop_file_exists(
             "cura", name="Ultimaker Cura", executable="Ultimaker-Cura"
         )
+
+    prerequisites = [
+        {
+            "name": "libgl1-mesa-glx",
+            "os": "linux",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "libegl1",
+            "os": "linux",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "xvfb",
+        },
+    ]

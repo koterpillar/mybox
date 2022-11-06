@@ -57,6 +57,7 @@ case "$OSTYPE" in
         ensure sudo
         ensure python3 python3{,-{pip,venv}}
         ensure unzip
+        ensure fusermount fuse libfuse2
         ;;
       fedora)
         INSTALLER=(sudo_ dnf install --assumeyes)
