@@ -27,7 +27,9 @@ class TestNeovim(RootPackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        await super().assert_desktop_file_exists("nvim", "Neovim")
+        await super().assert_desktop_file_exists(
+            "nvim", name="Neovim", executable="nvim"
+        )
 
 
 class TestRootNeovim(TestNeovim):
@@ -55,7 +57,9 @@ class TestKitty(PackageTestBase):
 
     async def check_installed(self):
         await super().check_installed()
-        await super().assert_desktop_file_exists("kitty", "kitty")
+        await super().assert_desktop_file_exists(
+            "kitty", name="kitty", executable="kitty"
+        )
 
 
 class TestExa(PackageTestBase):
@@ -87,3 +91,57 @@ class TestAmmonite(PackageTestBase):
         return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"
+
+
+class TestCura(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "Ultimaker/Cura",
+            "exclude": "modern",
+            "binary": "Ultimaker-Cura",
+            "binary_wrapper": True,
+            "app": "cura",
+        }
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("This test is only applicable on Linux.")
+
+    async def check_installed_command(self):
+        return ["xvfb-run", "Ultimaker-Cura", "--debug", "--version"]
+
+    check_installed_output = "cura version"
+
+    async def check_installed(self):
+        await super().check_installed()
+        await super().assert_desktop_file_exists(
+            "cura", name="Ultimaker Cura", executable="Ultimaker-Cura"
+        )
+
+    prerequisites = [
+        {
+            "name": "libgl1-mesa-glx",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "mesa-libGL",
+            "distribution": "fedora",
+        },
+        {
+            "name": "libegl1",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "mesa-libEGL",
+            "distribution": "fedora",
+        },
+        {
+            "name": "xvfb",
+            "distribution": ["debian", "ubuntu"],
+        },
+        {
+            "name": "xorg-x11-server-Xvfb",
+            "distribution": "fedora",
+        },
+    ]
