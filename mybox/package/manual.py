@@ -100,7 +100,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
 
         icon = await self.icon_name(path)
         if icon:
-            for icon_path in await self.icon_paths(name):
+            for icon_path in await self.icon_paths(icon):
                 target = await self.icon_target_path(icon_path)
                 await self.driver.link(icon_path, target)
 
