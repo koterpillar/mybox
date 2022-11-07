@@ -97,8 +97,10 @@ class GitHubPackage(ArchivePackage):
             yield Filters.regex(regex)
         for hint in [".tar.gz"]:
             yield Filters.includes(hint)
-        for signature_hint in [".asc", ".sig", "sha256"]:
+        for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield Filters.excludes(signature_hint)
+        for other_os_hint in [".exe", ".dmg"]:
+            yield Filters.excludes(other_os_hint)
         for os_hint in target_os.switch(
             linux=[
                 Filters.includes("linux"),
