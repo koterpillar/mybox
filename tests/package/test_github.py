@@ -95,13 +95,7 @@ class TestAmmonite(PackageTestBase):
 
 class TestCura(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {
-            "repo": "Ultimaker/Cura",
-            "exclude": "modern",
-            "binary": "Ultimaker-Cura",
-            "binary_wrapper": True,
-            "app": "cura",
-        }
+        return {"repo": "Ultimaker/Cura", "exclude": "modern"}
 
     async def check_applicable(self) -> None:
         await super().check_applicable()
