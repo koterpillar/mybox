@@ -221,9 +221,7 @@ class PackageTestBase(metaclass=ABCMeta):
             ):
                 return
 
-        files = (
-            await self.check_driver.run_output("find", icons, "-not", "-type", "d")
-        ).splitlines()
+        files = await self.check_driver.find(icons, file_type=["f", "l"])
         assert False, f"Icon '{name}' not found. Files in icons directory: {files}"
 
 

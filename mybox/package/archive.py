@@ -135,20 +135,9 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         )
 
     async def icon_paths(self, name: str) -> Iterable[Path]:
-        return [
-            Path(path)
-            for path in (
-                await self.driver.run_output(
-                    "find",
-                    await self.package_directory(),
-                    "-name",
-                    f"{name}.svg",
-                    "-o",
-                    "-name",
-                    f"{name}.png",
-                )
-            ).splitlines()
-        ]
+        return await self.driver.find(
+            await self.package_directory(), name=[f"{name}.svg", f"{name}.png"]
+        )
 
     async def font_path(self, name: str) -> Path:
         candidate = await self.package_directory() / name
