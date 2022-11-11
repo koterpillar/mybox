@@ -1,8 +1,7 @@
-import configparser
 import hashlib
-from io import StringIO
 from pathlib import Path
 
+from ..configparser import ConfigParser
 from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
@@ -34,7 +33,7 @@ class YumRepo(ManualVersion):
             macos=lambda: raise_(ValueError("YumRepo is only supported on Linux")),
         )()
 
-        repo = configparser.ConfigParser()
+        repo = ConfigParser()
         repo[self.repo_name] = {
             "name": self.repo_name,
             "baseurl": self.baseurl,
@@ -44,10 +43,8 @@ class YumRepo(ManualVersion):
             repo[self.repo_name]["gpgcheck"] = "1"
             repo[self.repo_name]["gpgkey"] = self.gpg_key
 
-        contents = StringIO()
-        repo.write(contents, space_around_delimiters=False)
         await self.driver.with_root(True).write_file(
-            Path(f"/etc/yum.repos.d/{self.repo_name}.repo"), contents.getvalue()
+            Path(f"/etc/yum.repos.d/{self.repo_name}.repo"), repo.to_string()
         )
 
         if self.gpg_key:

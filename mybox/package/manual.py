@@ -1,9 +1,9 @@
-import configparser
 import re
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Optional
 
+from ..configparser import ConfigParser
 from ..utils import Some, async_cached, unsome
 from .manual_version import ManualVersion
 from .root import Root
@@ -90,9 +90,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
 
     async def icon_name(self, app_path: Path) -> Optional[str]:
         config = await self.driver.read_file(app_path)
-        app = configparser.ConfigParser()
-        app.read_string(config)
-        return app["Desktop Entry"].get("Icon")
+        return ConfigParser.from_string(config)["Desktop Entry"].get("Icon")
 
     async def install_app(self, name: str) -> None:
         await (await self.driver.os()).switch(
