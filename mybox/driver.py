@@ -3,13 +3,11 @@ from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Literal, Optional, Union, cast
+from typing import AsyncIterator, Callable, Iterable, Optional, Union, cast
 
 from trio import run_process
 
 from .utils import TERMINAL_LOCK, T, async_cached
-
-LinkMethod = Literal["binary_wrapper"]
 
 
 class OS(metaclass=ABCMeta):
@@ -147,22 +145,18 @@ class Driver(metaclass=ABCMeta):
         return await self.run_output("cat", path)
 
     async def write_file(self, path: Path, content: str) -> None:
+        await self.makedirs(path.parent)
+        await self.rm(path)
         await self.run("cp", "/dev/stdin", path, input=content.encode())
 
     async def link(
         self,
         source: Path,
         target: Path,
-        *,
-        method: Optional[LinkMethod] = None,
     ) -> None:
         await self.makedirs(target.parent)
         await self.rm(target)
-        if method == "binary_wrapper":
-            await self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
-            await self.make_executable(target)
-        else:
-            await self.run("ln", "-s", "-f", source, target)
+        await self.run("ln", "-s", "-f", source, target)
 
     @async_cached
     async def os(self) -> OS:

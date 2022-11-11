@@ -41,11 +41,17 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         pass
 
     async def install_binary(self, name: str) -> None:
-        await self.driver.link(
-            await self.binary_path(name),
-            await self.local() / "bin" / name,
-            method="binary_wrapper" if self.binary_wrapper else None,
-        )
+        binary = await self.binary_path(name)
+        if self.binary_wrapper:
+            await self.install_binary_wrapper(name, binary)
+        else:
+            target = await self.local() / "bin" / name
+            await self.driver.link(binary, target)
+
+    async def install_binary_wrapper(self, name: str, binary: Path) -> None:
+        target = await self.local() / "bin" / name
+        await self.driver.write_file(target, f'#!/bin/sh\nexec "{binary}" "$@"')
+        await self.driver.make_executable(target)
 
     @abstractmethod
     async def app_path(self, name: str) -> Path:
