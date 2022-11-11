@@ -1,5 +1,8 @@
 from configparser import ConfigParser as BaseConfigParser
 from io import StringIO
+from typing import Optional, TypeVar
+
+CP = TypeVar("CP", bound="ConfigParser")
 
 
 class ConfigParser(BaseConfigParser):
@@ -9,7 +12,21 @@ class ConfigParser(BaseConfigParser):
         return contents.getvalue()
 
     @classmethod
-    def from_string(cls, config: str) -> "ConfigParser":
+    def from_string(cls: type[CP], config: str) -> CP:
         parser = cls()
         parser.read_string(config)
         return parser
+
+
+class DesktopEntry(ConfigParser):
+    @property
+    def exec(self) -> str:
+        return self["Desktop Entry"]["Exec"]
+
+    @exec.setter
+    def exec(self, value: str) -> None:
+        self["Desktop Entry"]["Exec"] = value
+
+    @property
+    def icon(self) -> Optional[str]:
+        return self["Desktop Entry"].get("Icon")

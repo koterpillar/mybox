@@ -1,9 +1,9 @@
 import re
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
-from ..configparser import ConfigParser
+from ..configparser import DesktopEntry
 from ..utils import Some, async_cached, unsome
 from .manual_version import ManualVersion
 from .root import Root
@@ -88,24 +88,25 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             / path.name
         )
 
-    async def icon_name(self, app_path: Path) -> Optional[str]:
-        config = await self.driver.read_file(app_path)
-        return ConfigParser.from_string(config)["Desktop Entry"].get("Icon")
-
     async def install_app(self, name: str) -> None:
         await (await self.driver.os()).switch(
             linux=self.install_app_linux, macos=self.install_app_macos
         )(name)
 
-    async def install_desktop_file(self, path: Path) -> None:
-        target = await self.local() / "share" / "applications" / path.name
-        await self.driver.link(path, target)
+    async def application_path(self) -> Path:
+        return await self.local() / "share" / "applications"
 
-        icon = await self.icon_name(path)
-        if icon:
-            for icon_path in await self.icon_paths(icon):
-                target = await self.icon_target_path(icon_path)
-                await self.driver.link(icon_path, target)
+    async def install_desktop_file(self, path: Path) -> None:
+        target = await self.application_path() / path.name
+        await self.driver.link(path, target)
+        desktop_entry = DesktopEntry.from_string(await self.driver.read_file(target))
+        if desktop_entry.icon:
+            await self.install_icon(desktop_entry.icon)
+
+    async def install_icon(self, icon: str) -> None:
+        for icon_path in await self.icon_paths(icon):
+            target = await self.icon_target_path(icon_path)
+            await self.driver.link(icon_path, target)
 
     async def install_app_linux(self, name: str) -> None:
         path = await self.app_path(name)
