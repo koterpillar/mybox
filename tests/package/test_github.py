@@ -103,7 +103,7 @@ class TestCura(PackageTestBase):
             pytest.skip("This test is only applicable on Linux.")
 
     async def check_installed_command(self):
-        return ["xvfb-run", "Ultimaker-Cura", "--debug", "--version"]
+        return ["xvfb-run", "Ultimaker--Cura", "--debug", "--version"]
 
     check_installed_output = "cura version"
 

@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union
 
+from ..configparser import DesktopEntry
 from ..utils import async_cached
 from .manual import ManualPackage
 
@@ -150,10 +151,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         if not await self.driver.is_executable(app_run):
             raise ValueError("AppImage does not have an executable named 'AppRun'.")
 
-        try:
-            binary_name = self.binaries[0]
-        except IndexError:
-            binary_name = self.pathname
+        binary_name = self.pathname
         await self.install_binary_wrapper(binary_name, app_run)
 
         desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
@@ -162,7 +160,21 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         if len(desktop_files) > 1:
             raise ValueError(f"AppImage has multiple .desktop files: {desktop_files}")
         desktop_file = desktop_files[0]
-        await self.install_desktop_file(desktop_file)
+
+        desktop_entry = DesktopEntry.from_string(
+            await self.driver.read_file(desktop_file)
+        )
+        desktop_entry.exec = " ".join(
+            [binary_name, desktop_entry.exec.split(" ", 1)[1]]
+        )
+
+        target_desktop_file = await self.application_path() / desktop_file.name
+        await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
+        print(
+            f"Desktop file {target_desktop_file} installed:\n{desktop_entry.to_string()}"
+        )
+        if desktop_entry.icon:
+            await self.install_icon(desktop_entry.icon)
 
     async def install(self):
         url = await self.archive_url()
