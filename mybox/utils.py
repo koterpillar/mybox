@@ -39,6 +39,18 @@ def unsome(x: Some[T]) -> list[T]:
     return unsome_(x) or []
 
 
+def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
+    it = iter(items)
+    try:
+        result = list(next(it))
+    except StopIteration:
+        return []
+    for x in it:
+        result.append(delimiter)
+        result.extend(list(x))
+    return result
+
+
 TERMINAL_LOCK = trio.Lock()
 
 
