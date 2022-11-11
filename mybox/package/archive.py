@@ -117,9 +117,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         )
 
     async def binary_path(self, binary: str) -> Path:
-        appimage_candidate = await self.package_directory() / "squashfs-root" / "AppRun"
-        if await self.driver.is_executable(appimage_candidate):
-            return appimage_candidate
         return await self.find_in_package_directory(
             paths=[[], ["bin"]],
             name=binary,
@@ -129,7 +126,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     async def app_path(self, name: str) -> Path:
         return await self.find_in_package_directory(
-            paths=[["share", "applications"], ["squashfs-root"]],
+            paths=[["share", "applications"]],
             name=f"{name}.desktop",
             target_desc="application",
         )
@@ -147,6 +144,26 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             f"Cannot find font '{name}' in {await self.package_directory()}."
         )
 
+    async def install_appimage(self) -> None:
+        app_dir = await self.package_directory() / "squashfs-root"
+        app_run = app_dir / "AppRun"
+        if not await self.driver.is_executable(app_run):
+            raise ValueError("AppImage does not have an executable named 'AppRun'.")
+
+        try:
+            binary_name = self.binaries[0]
+        except IndexError:
+            binary_name = self.pathname
+        await self.install_binary_wrapper(binary_name, app_run)
+
+        desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
+        if not desktop_files:
+            raise ValueError("AppImage does not have a .desktop file.")
+        if len(desktop_files) > 1:
+            raise ValueError(f"AppImage has multiple .desktop files: {desktop_files}")
+        desktop_file = desktop_files[0]
+        await self.install_desktop_file(desktop_file)
+
     async def install(self):
         url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
@@ -160,4 +177,8 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 url,
             )
             await self.extract(url, archive_path)
+
+        if url.endswith(".AppImage"):
+            await self.install_appimage()
+
         await super().install()

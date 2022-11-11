@@ -99,9 +99,8 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             linux=self.install_app_linux, macos=self.install_app_macos
         )(name)
 
-    async def install_app_linux(self, name: str) -> None:
-        path = await self.app_path(name)
-        target = await self.local() / "share" / "applications" / f"{name}.desktop"
+    async def install_desktop_file(self, path: Path) -> None:
+        target = await self.local() / "share" / "applications" / path.name
         await self.driver.link(path, target)
 
         icon = await self.icon_name(path)
@@ -109,6 +108,10 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             for icon_path in await self.icon_paths(icon):
                 target = await self.icon_target_path(icon_path)
                 await self.driver.link(icon_path, target)
+
+    async def install_app_linux(self, name: str) -> None:
+        path = await self.app_path(name)
+        await self.install_desktop_file(path)
 
     async def install_app_macos(self, name: str) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,
