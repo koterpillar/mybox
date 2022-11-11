@@ -16,7 +16,7 @@ class ConfigParser(BaseConfigParser):
 
     @classmethod
     def from_string(cls: type[CP], config: str) -> CP:
-        parser = cls()
+        parser = cls(interpolation=None)
         parser.read_string(config)
         return parser
 
