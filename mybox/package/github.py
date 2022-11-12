@@ -1,37 +1,41 @@
-import json
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Iterator
+from subprocess import CalledProcessError
+from typing import Any, Callable, Iterator, Optional
 
 import requests
 
 from ..driver import OS
-from ..utils import Filters, Some, async_cached, choose, run_ok, run_output, unsome
+from ..utils import Filters, Some, async_cached, choose, run_output, unsome
 from .archive import ArchivePackage
 
 
 @async_cached
-async def have_github_auth() -> bool:
-    return await run_ok("gh", "auth", "status")
+async def github_auth_token() -> Optional[str]:
+    try:
+        return os.environ["GITHUB_TOKEN"]
+    except KeyError:
+        pass
+
+    try:
+        return await run_output("gh", "auth", "token")
+    except (CalledProcessError, FileNotFoundError):
+        pass
+
+    return None
 
 
 async def github_api(url: str) -> Any:
-    if await have_github_auth():
-        return json.loads(await run_output("gh", "api", url))
-    else:
-        try:
-            token = os.environ["GITHUB_TOKEN"]
-        except KeyError:
-            token = None
+    token = await github_auth_token()
 
-        headers = {}
-        if token:
-            headers["Authorization"] = f"token {token}"
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
 
-        result = requests.get(f"https://api.github.com/{url}", headers=headers)
-        result.raise_for_status()
+    result = requests.get(f"https://api.github.com/{url}", headers=headers)
+    result.raise_for_status()
 
-        return result.json()
+    return result.json()
 
 
 @dataclass
