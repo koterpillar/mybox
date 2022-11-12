@@ -66,6 +66,7 @@ exclude_lines = [
     "pragma: no cover",
     "@abstract",
     "@overload",
+    "assert False",
     "pytest.skip",
     "raise NotImplementedError"
 ]
