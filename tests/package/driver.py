@@ -116,6 +116,8 @@ class DockerDriver(TestDriver, SubprocessDriver):
                     RUN /bootstrap --development
                     ENV PATH /home/{user}/.local/bin:$PATH
                     USER {user}
+                    # populate dnf cache so each test doesn't have to do it
+                    RUN command -v dnf >/dev/null && dnf check-update || true
                 """
                 )
             await run(*docker, "build", "--tag", target_image, tmppath)

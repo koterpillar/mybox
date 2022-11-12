@@ -117,6 +117,7 @@ class Driver(metaclass=ABCMeta):
             return "root"
         return await self.run_output("whoami")
 
+    @async_cached
     async def home(self) -> Path:
         path = "~root" if self.root else "~"
         result = await self.with_root(False).run_output("sh", "-c", f"eval echo {path}")
