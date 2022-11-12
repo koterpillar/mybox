@@ -140,10 +140,11 @@ class Driver(metaclass=ABCMeta):
                 args.extend(intercalate("-o", ([arg, v] for v in values)))
                 args.append(")")
 
-        add_arg("-name", unsome(name))
-        add_arg("-type", unsome(file_type))
         if maxdepth is not None:
             args.extend(["-maxdepth", str(maxdepth)])
+
+        add_arg("-name", unsome(name))
+        add_arg("-type", unsome(file_type))
 
         args.append("-print0")
 
