@@ -1,3 +1,4 @@
+import shlex
 import shutil
 import tempfile
 from os import getpid
@@ -22,10 +23,18 @@ class TestDriver(Driver):
         kwargs = self.deconstruct() | {"enable_root": False}
         return type(self)(**kwargs)
 
+    def log_command(self, args: Iterable[Union[str, Path]]) -> None:
+        def show_arg(arg: Union[str, Path]) -> str:
+            return shlex.quote(str(arg))
+
+        print("->", *map(show_arg, args))
+
     async def run_(self, *args, **kwargs) -> RunResult:
         if not self.enable_root:
             assert not self.root, "Root operations are disabled."
-        return await super().run_(*args, **kwargs)
+        self.log_command(args)
+        result = await super().run_(*args, **kwargs)
+        return result
 
     async def stop(self) -> None:
         pass
