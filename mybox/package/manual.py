@@ -1,9 +1,9 @@
-import configparser
 import re
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
+from ..configparser import DesktopEntry
 from ..utils import Some, async_cached, unsome
 from .manual_version import ManualVersion
 from .root import Root
@@ -41,11 +41,17 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         pass
 
     async def install_binary(self, name: str) -> None:
-        await self.driver.link(
-            await self.binary_path(name),
-            await self.local() / "bin" / name,
-            method="binary_wrapper" if self.binary_wrapper else None,
-        )
+        binary = await self.binary_path(name)
+        if self.binary_wrapper:
+            await self.install_binary_wrapper(name, binary)
+        else:
+            target = await self.local() / "bin" / name
+            await self.driver.link(binary, target)
+
+    async def install_binary_wrapper(self, name: str, binary: Path) -> None:
+        target = await self.local() / "bin" / name
+        await self.driver.write_file(target, f'#!/bin/sh\nexec "{binary}" "$@"')
+        await self.driver.make_executable(target)
 
     @abstractmethod
     async def app_path(self, name: str) -> Path:
@@ -82,27 +88,29 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             / path.name
         )
 
-    async def icon_name(self, app_path: Path) -> Optional[str]:
-        config = await self.driver.read_file(app_path)
-        app = configparser.ConfigParser()
-        app.read_string(config)
-        return app["Desktop Entry"].get("Icon")
-
     async def install_app(self, name: str) -> None:
         await (await self.driver.os()).switch(
             linux=self.install_app_linux, macos=self.install_app_macos
         )(name)
 
+    async def application_path(self) -> Path:
+        return await self.local() / "share" / "applications"
+
+    async def install_desktop_file(self, path: Path) -> None:
+        target = await self.application_path() / path.name
+        await self.driver.link(path, target)
+        desktop_entry = DesktopEntry.from_string(await self.driver.read_file(target))
+        if desktop_entry.icon:
+            await self.install_icon(desktop_entry.icon)
+
+    async def install_icon(self, icon: str) -> None:
+        for icon_path in await self.icon_paths(icon):
+            target = await self.icon_target_path(icon_path)
+            await self.driver.link(icon_path, target)
+
     async def install_app_linux(self, name: str) -> None:
         path = await self.app_path(name)
-        target = await self.local() / "share" / "applications" / f"{name}.desktop"
-        await self.driver.link(path, target)
-
-        icon = await self.icon_name(path)
-        if icon:
-            for icon_path in await self.icon_paths(icon):
-                target = await self.icon_target_path(icon_path)
-                await self.driver.link(icon_path, target)
+        await self.install_desktop_file(path)
 
     async def install_app_macos(self, name: str) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,

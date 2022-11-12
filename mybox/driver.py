@@ -3,13 +3,11 @@ from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Literal, Optional, Union, cast
+from typing import AsyncIterator, Callable, Iterable, Optional, Union, cast
 
 from trio import run_process
 
-from .utils import TERMINAL_LOCK, T, async_cached
-
-LinkMethod = Literal["binary_wrapper"]
+from .utils import TERMINAL_LOCK, Some, T, async_cached, intercalate, unsome
 
 
 class OS(metaclass=ABCMeta):
@@ -126,6 +124,32 @@ class Driver(metaclass=ABCMeta):
     async def local(self) -> Path:
         return await self.home() / ".local"
 
+    async def find(
+        self,
+        path: Path,
+        *,
+        name: Some[str] = None,
+        file_type: Some[str] = None,
+        maxdepth: Optional[int] = None,
+    ) -> list[Path]:
+        args: list[Union[Path, str]] = ["find", path]
+
+        def add_arg(arg: str, values: list[str]) -> None:
+            if values:
+                args.append("(")
+                args.extend(intercalate("-o", ([arg, v] for v in values)))
+                args.append(")")
+
+        add_arg("-name", unsome(name))
+        add_arg("-type", unsome(file_type))
+        if maxdepth is not None:
+            args.extend(["-maxdepth", str(maxdepth)])
+
+        args.append("-print0")
+
+        output = await self.run_output(*args)
+        return [Path(result) for result in output.split("\0") if result]
+
     @asynccontextmanager
     async def tempfile(self) -> AsyncIterator[Path]:
         path = Path(await self.run_output("mktemp"))
@@ -147,22 +171,18 @@ class Driver(metaclass=ABCMeta):
         return await self.run_output("cat", path)
 
     async def write_file(self, path: Path, content: str) -> None:
+        await self.makedirs(path.parent)
+        await self.rm(path)
         await self.run("cp", "/dev/stdin", path, input=content.encode())
 
     async def link(
         self,
         source: Path,
         target: Path,
-        *,
-        method: Optional[LinkMethod] = None,
     ) -> None:
         await self.makedirs(target.parent)
         await self.rm(target)
-        if method == "binary_wrapper":
-            await self.write_file(target, f'#!/bin/sh\nexec "{source}" "$@"')
-            await self.make_executable(target)
-        else:
-            await self.run("ln", "-s", "-f", source, target)
+        await self.run("ln", "-s", "-f", source, target)
 
     @async_cached
     async def os(self) -> OS:

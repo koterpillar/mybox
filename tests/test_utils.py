@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from mybox.utils import choose, flatten, parallel_map_tqdm, run_ok
+from mybox.utils import choose, flatten, intercalate, parallel_map_tqdm, run_ok
 
 
 class TestChoose:
@@ -46,5 +46,19 @@ async def test_parallel_map_tqdm():
     assert results == {3, 4, 5}
 
 
-async def test_flatten():
+def test_flatten():
     assert flatten([[1, 2], [3, 4]]) == [1, 2, 3, 4]
+
+
+def test_intercalate():
+    assert list(intercalate(0, (x for x in []))) == []
+    assert list(intercalate(0, ((x, x + 10) for x in range(1, 4)))) == [
+        1,
+        11,
+        0,
+        2,
+        12,
+        0,
+        3,
+        13,
+    ]

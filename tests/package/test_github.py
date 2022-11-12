@@ -95,13 +95,7 @@ class TestAmmonite(PackageTestBase):
 
 class TestCura(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {
-            "repo": "Ultimaker/Cura",
-            "exclude": "modern",
-            "binary": "Ultimaker-Cura",
-            "binary_wrapper": True,
-            "app": "cura",
-        }
+        return {"repo": "Ultimaker/Cura", "exclude": "modern"}
 
     async def check_applicable(self) -> None:
         await super().check_applicable()
@@ -109,14 +103,14 @@ class TestCura(PackageTestBase):
             pytest.skip("This test is only applicable on Linux.")
 
     async def check_installed_command(self):
-        return ["xvfb-run", "Ultimaker-Cura", "--debug", "--version"]
+        return ["xvfb-run", "Ultimaker--Cura", "--debug", "--version"]
 
     check_installed_output = "cura version"
 
     async def check_installed(self):
         await super().check_installed()
         await super().assert_desktop_file_exists(
-            "cura", name="Ultimaker Cura", executable="Ultimaker-Cura"
+            "cura", name="Ultimaker Cura", executable="Ultimaker--Cura"
         )
 
     prerequisites = [

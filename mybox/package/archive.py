@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union
 
+from ..configparser import DesktopEntry
 from ..utils import async_cached
 from .manual import ManualPackage
 
@@ -117,9 +118,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         )
 
     async def binary_path(self, binary: str) -> Path:
-        appimage_candidate = await self.package_directory() / "squashfs-root" / "AppRun"
-        if await self.driver.is_executable(appimage_candidate):
-            return appimage_candidate
         return await self.find_in_package_directory(
             paths=[[], ["bin"]],
             name=binary,
@@ -129,26 +127,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     async def app_path(self, name: str) -> Path:
         return await self.find_in_package_directory(
-            paths=[["share", "applications"], ["squashfs-root"]],
+            paths=[["share", "applications"]],
             name=f"{name}.desktop",
             target_desc="application",
         )
 
     async def icon_paths(self, name: str) -> Iterable[Path]:
-        return [
-            Path(path)
-            for path in (
-                await self.driver.run_output(
-                    "find",
-                    await self.package_directory(),
-                    "-name",
-                    f"{name}.svg",
-                    "-o",
-                    "-name",
-                    f"{name}.png",
-                )
-            ).splitlines()
-        ]
+        return await self.driver.find(
+            await self.package_directory(), name=[f"{name}.svg", f"{name}.png"]
+        )
 
     async def font_path(self, name: str) -> Path:
         candidate = await self.package_directory() / name
@@ -157,6 +144,37 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         raise ValueError(
             f"Cannot find font '{name}' in {await self.package_directory()}."
         )
+
+    async def install_appimage(self) -> None:
+        app_dir = await self.package_directory() / "squashfs-root"
+        app_run = app_dir / "AppRun"
+        if not await self.driver.is_executable(app_run):
+            raise ValueError("AppImage does not have an executable named 'AppRun'.")
+
+        binary_name = self.pathname
+        await self.install_binary_wrapper(binary_name, app_run)
+
+        desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
+        if not desktop_files:
+            raise ValueError("AppImage does not have a .desktop file.")
+        if len(desktop_files) > 1:
+            raise ValueError(f"AppImage has multiple .desktop files: {desktop_files}")
+        desktop_file = desktop_files[0]
+
+        desktop_entry = DesktopEntry.from_string(
+            await self.driver.read_file(desktop_file)
+        )
+        desktop_entry.exec = " ".join(
+            [binary_name, desktop_entry.exec.split(" ", 1)[1]]
+        )
+
+        target_desktop_file = await self.application_path() / desktop_file.name
+        await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
+        print(
+            f"Desktop file {target_desktop_file} installed:\n{desktop_entry.to_string()}"
+        )
+        if desktop_entry.icon:
+            await self.install_icon(desktop_entry.icon)
 
     async def install(self):
         url = await self.archive_url()
@@ -171,4 +189,8 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 url,
             )
             await self.extract(url, archive_path)
+
+        if url.endswith(".AppImage"):
+            await self.install_appimage()
+
         await super().install()
