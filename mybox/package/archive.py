@@ -170,9 +170,6 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
         target_desktop_file = await self.application_path() / desktop_file.name
         await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
-        print(
-            f"Desktop file {target_desktop_file} installed:\n{desktop_entry.to_string()}"
-        )
         if desktop_entry.icon:
             await self.install_icon(desktop_entry.icon)
 
