@@ -30,6 +30,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
     def pathname(self) -> str:
         return self.name.replace("/", "--")
 
+    @async_cached
     async def package_directory(self) -> Path:
         result = (await self.local()) / "mybox" / self.pathname
         await self.driver.makedirs(result)
