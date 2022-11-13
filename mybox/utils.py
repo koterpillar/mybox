@@ -54,11 +54,14 @@ def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
 TERMINAL_LOCK = trio.Lock()
 
 
-async def run(*args: Union[str, Path]) -> subprocess.CompletedProcess:
+RunArg = Union[str, Path]
+
+
+async def run(*args: RunArg) -> subprocess.CompletedProcess:
     return await trio.run_process(args, check=True)
 
 
-async def run_ok(*args: Union[str, Path]) -> bool:
+async def run_ok(*args: RunArg) -> bool:
     try:
         return (
             await trio.run_process(
@@ -72,7 +75,7 @@ async def run_ok(*args: Union[str, Path]) -> bool:
         return False
 
 
-async def run_output(*args: Union[str, Path]) -> str:
+async def run_output(*args: RunArg) -> str:
     return (
         (await trio.run_process(args, capture_stdout=True, check=True))
         .stdout.decode()

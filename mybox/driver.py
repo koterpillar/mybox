@@ -3,11 +3,11 @@ from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Optional, Union, cast
+from typing import AsyncIterator, Callable, Iterable, Optional, cast
 
 from trio import run_process
 
-from .utils import TERMINAL_LOCK, Some, T, async_cached, intercalate, unsome
+from .utils import TERMINAL_LOCK, RunArg, Some, T, async_cached, intercalate, unsome
 
 
 class OS(metaclass=ABCMeta):
@@ -68,7 +68,7 @@ class Driver(metaclass=ABCMeta):
     @abstractmethod
     async def run_(
         self,
-        *args: Union[str, Path],
+        *args: RunArg,
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -78,17 +78,17 @@ class Driver(metaclass=ABCMeta):
 
     async def run(
         self,
-        *args: Union[str, Path],
+        *args: RunArg,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         silent: bool = False,
     ) -> None:
         await self.run_(*args, input=input, silent=silent)
 
-    async def run_ok(self, *args: Union[str, Path]) -> bool:
+    async def run_ok(self, *args: RunArg) -> bool:
         result = await self.run_(*args, check=False)
         return result.ok
 
-    async def run_output(self, *args: Union[str, Path], silent: bool = False) -> str:
+    async def run_output(self, *args: RunArg, silent: bool = False) -> str:
         result = await self.run_(*args, capture_output=True, silent=silent)
         return cast(str, result.output)
 
@@ -132,7 +132,7 @@ class Driver(metaclass=ABCMeta):
         file_type: Some[str] = None,
         maxdepth: Optional[int] = None,
     ) -> list[Path]:
-        args: list[Union[Path, str]] = ["find", path]
+        args: list[RunArg] = ["find", path]
 
         def add_arg(arg: str, values: list[str]) -> None:
             if values:
@@ -199,14 +199,12 @@ class Driver(metaclass=ABCMeta):
 
 
 class SubprocessDriver(Driver, metaclass=ABCMeta):
-    def prepare_command(
-        self, args: Iterable[Union[str, Path]]
-    ) -> list[Union[str, Path]]:
+    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
         return list(args)
 
     async def run_(
         self,
-        *args: Union[str, Path],
+        *args: RunArg,
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
@@ -232,9 +230,7 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
 
 
 class LocalDriver(SubprocessDriver):
-    def prepare_command(
-        self, args: Iterable[Union[str, Path]]
-    ) -> list[Union[str, Path]]:
+    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
         if self.root:
             return super().prepare_command(["sudo", *args])
         else:
@@ -242,7 +238,7 @@ class LocalDriver(SubprocessDriver):
 
     async def run_(
         self,
-        *args: Union[str, Path],
+        *args: RunArg,
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,

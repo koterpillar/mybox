@@ -3,10 +3,10 @@ import shutil
 import tempfile
 from os import getpid
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Iterable
 
 from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
-from mybox.utils import run, run_output
+from mybox.utils import RunArg, run, run_output
 
 
 class TestDriver(Driver):
@@ -23,8 +23,8 @@ class TestDriver(Driver):
         kwargs = self.deconstruct() | {"enable_root": False}
         return type(self)(**kwargs)
 
-    def log_command(self, args: Iterable[Union[str, Path]]) -> None:
-        def show_arg(arg: Union[str, Path]) -> str:
+    def log_command(self, args: Iterable[RunArg]) -> None:
+        def show_arg(arg: RunArg) -> str:
             return shlex.quote(str(arg))
 
         print("->", *map(show_arg, args))
@@ -80,9 +80,7 @@ class DockerDriver(TestDriver, SubprocessDriver):
     async def stop(self) -> None:
         await run(*self.docker, "rm", "--force", self.container)
 
-    def prepare_command(
-        self, args: Iterable[Union[str, Path]]
-    ) -> list[Union[str, Path]]:
+    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
         return super().prepare_command(
             [
                 *self.docker,

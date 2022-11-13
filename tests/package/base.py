@@ -19,7 +19,7 @@ import pytest
 from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
-from mybox.utils import async_cached
+from mybox.utils import RunArg, async_cached
 
 from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
@@ -56,7 +56,7 @@ class PackageTestBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def check_installed_command(self) -> Iterable[Union[str, Path]]:
+    async def check_installed_command(self) -> Iterable[RunArg]:
         pass
 
     check_installed_output: Optional[str] = None
