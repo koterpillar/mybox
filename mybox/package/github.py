@@ -6,11 +6,19 @@ from typing import Any, Callable, Iterator, Optional
 import requests
 
 from ..driver import OS
-from ..utils import Filters, Some, async_cached, choose, run_output, unsome
+from ..utils import (
+    Filters,
+    Some,
+    async_cached,
+    async_cached_lock,
+    choose,
+    run_output,
+    unsome,
+)
 from .archive import ArchivePackage
 
 
-@async_cached
+@async_cached_lock
 async def github_auth_token() -> Optional[str]:
     try:
         return os.environ["GITHUB_TOKEN"]
@@ -18,7 +26,7 @@ async def github_auth_token() -> Optional[str]:
         pass
 
     try:
-        return await run_output("gh", "auth", "token")
+        return await run_output("gh", "auth", "token", silent=True)
     except (CalledProcessError, FileNotFoundError):
         pass
 
