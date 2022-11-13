@@ -63,24 +63,19 @@ async def run(*args: RunArg) -> subprocess.CompletedProcess:
 
 async def run_ok(*args: RunArg) -> bool:
     try:
-        return (
-            await trio.run_process(
-                args,
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        ).returncode == 0
+        result = await trio.run_process(
+            args, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        return result.returncode == 0
     except FileNotFoundError:
         return False
 
 
-async def run_output(*args: RunArg) -> str:
-    return (
-        (await trio.run_process(args, capture_stdout=True, check=True))
-        .stdout.decode()
-        .strip()
+async def run_output(*args: RunArg, silent: bool = False) -> str:
+    result = await trio.run_process(
+        args, capture_stdout=True, capture_stderr=silent, check=True
     )
+    return result.stdout.decode().strip()
 
 
 def flatten(items: Iterable[Iterable[T]]) -> list[T]:
