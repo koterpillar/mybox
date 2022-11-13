@@ -1,7 +1,6 @@
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
-from ..utils import async_cached, run_output
+from ..utils import RunArg, async_cached, run_output
 from .destination import Destination
 
 
@@ -18,10 +17,10 @@ class Clone(Destination):
         return await self.driver.run_ok("test", "-d", await self.destination())
 
     @async_cached
-    async def git_args(self) -> list[Union[str, Path]]:
+    async def git_args(self) -> list[RunArg]:
         return ["git", "-C", await self.destination()]
 
-    async def run_git(self, *args: Union[str, Path]) -> None:
+    async def run_git(self, *args: RunArg) -> None:
         await self.driver.run(*await self.git_args(), *args)
 
     async def local_version(self) -> Optional[str]:
