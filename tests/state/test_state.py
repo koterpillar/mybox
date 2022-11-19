@@ -54,3 +54,15 @@ def test_storage_append(tmp_path: Path) -> None:
     widgets = make_widgets(tmp_path)
     items = list(widgets.find())
     assert items == [Widget("red", 10)]
+
+
+def test_storage_delete(tmp_path: Path) -> None:
+    widgets = make_widgets(tmp_path)
+    widgets["one"] = Widget("red", 10)
+    widgets["two"] = Widget("blue", 20)
+    widgets["three"] = Widget("red", 30)
+
+    widgets = make_widgets(tmp_path)
+    widgets.delete(color="red")
+    items = list(widgets.find())
+    assert items == [Widget("blue", 20)]

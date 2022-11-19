@@ -3,7 +3,7 @@ import sqlite3
 import threading
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, Type, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Tuple, Type, TypeVar, Union
 from uuid import uuid4
 
 T = TypeVar("T")
@@ -52,6 +52,10 @@ class Storage(Generic[T], metaclass=ABCMeta):
     def find(self, **kwargs: Any) -> Iterable[T]:
         pass
 
+    @abstractmethod
+    def delete(self, **kwargs: Any) -> None:
+        pass
+
 
 StorageDefinition = Callable[[DB], Storage[T]]
 
@@ -65,14 +69,20 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
         )
 
         class StorageImpl(Storage[T]):
-            def find(self, **kwargs: Any) -> Iterable[T]:
-                query = f"SELECT * FROM {name} WHERE 1=1"
+            def where_clause(self, **kwargs: Any) -> Tuple[str, list[Any]]:
+                result = "1=1"
                 values = []
                 for key, value in kwargs.items():
-                    query += f" AND {key} = ?"
+                    result += f" AND {key} = ?"
                     values.append(value)
+                return result, values
 
-                cursor = db.instance.execute(query, values)
+            def find(self, **kwargs: Any) -> Iterable[T]:
+                where, values = self.where_clause(**kwargs)
+
+                cursor = db.instance.execute(
+                    f"SELECT * FROM {name} WHERE {where}", values
+                )
 
                 while rows := cursor.fetchmany():
                     for row in rows:
@@ -89,7 +99,11 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
                     raise KeyError(key) from None
 
             def __delitem__(self, key: str) -> None:
-                db.instance.execute(f"DELETE FROM {name} WHERE id = ?", (key,))
+                self.delete(id=key)
+
+            def delete(self, **kwargs: Any) -> None:
+                where, values = self.where_clause(**kwargs)
+                db.instance.execute(f"DELETE FROM {name} WHERE {where}", values)
 
             def __setitem__(self, key: str, value: T) -> None:
                 with db.instance:
