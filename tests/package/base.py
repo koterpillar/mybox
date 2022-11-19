@@ -3,23 +3,14 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Coroutine,
-    Iterable,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, overload
 
 import pytest
 
 from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
 from mybox.state import DB
-from mybox.utils import RunArg, async_cached
+from mybox.utils import AsyncRet, RunArg, T, async_cached
 
 from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
@@ -35,14 +26,28 @@ DOCKER: bool = DOCKER_IMAGE is not None
 TEST = TypeVar("TEST", bound="PackageTestBase")
 
 
+@overload
 def requires_driver(
-    test_fn: Callable[[TEST, TestDriver], Coroutine[Any, Any, None]]
-) -> Callable[[TEST, TestDriver], Coroutine[Any, Any, None]]:
+    test_fn: Callable[[TEST, TestDriver], AsyncRet[None]]
+) -> Callable[[TEST, TestDriver], AsyncRet[None]]:
+    ...
+
+
+@overload
+def requires_driver(
+    test_fn: Callable[[TEST, TestDriver, T], AsyncRet[None]]
+) -> Callable[[TEST, TestDriver, T], AsyncRet[None]]:
+    ...
+
+
+def requires_driver(
+    test_fn: Callable[..., AsyncRet[None]]
+) -> Callable[..., AsyncRet[None]]:
     @wraps(test_fn)
-    async def wrapper(self: TEST, make_driver: TestDriver) -> None:
+    async def wrapper(self: TEST, make_driver: TestDriver, *args, **kwargs) -> None:
         self.driver = make_driver
         await self.check_applicable()
-        return await test_fn(self, make_driver)
+        return await test_fn(self, make_driver, *args, **kwargs)
 
     return wrapper
 

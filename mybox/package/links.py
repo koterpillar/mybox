@@ -4,6 +4,7 @@ from typing import Iterator
 
 from ..utils import Some, unsome_
 from .destination import Destination
+from .installed_files import track_files
 from .manual_version import ManualVersion
 
 
@@ -48,14 +49,16 @@ class Links(ManualVersion, Destination):
         return m.hexdigest()
 
     async def install(self) -> None:
-        # TODO: remove links that were created before but no longer exist
         destination = await self.destination()
-        for path in self.paths():
-            target = path.relative_to(self.source)
-            if self.dot:
-                first_part, *parts = target.parts
-                target = Path("." + first_part, *parts)
-            target = destination.joinpath(target)
 
-            await self.driver.link(path, target)
+        async with track_files(self.db, self.driver, self.name) as tracker:
+            for path in self.paths():
+                target = path.relative_to(self.source)
+                if self.dot:
+                    first_part, *parts = target.parts
+                    target = Path("." + first_part, *parts)
+                target = destination.joinpath(target)
+
+                await tracker.link(path, target)
+
         await super().install()

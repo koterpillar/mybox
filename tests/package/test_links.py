@@ -1,9 +1,20 @@
 import os
+from pathlib import Path
 
-from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
+import pytest
+
+from mybox.package import Links
+
+from .base import (
+    DestinationPackageTestBase,
+    PackageArgs,
+    RootPackageTestBase,
+    requires_driver,
+)
+from .driver import TestDriver
 
 
-class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
+class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "links": f"{os.path.dirname(__file__)}/test_links_content",
@@ -25,17 +36,58 @@ class TestLinks(DestinationPackageTestBase, RootPackageTestBase):
     destination_files: list[str] = ["myfile", "deep/space/nine/ncc-1701.txt"]
 
 
-class TestShallowLinks(TestLinks):
+class TestLinks(LinksTestBase):
+    @pytest.mark.trio
+    @requires_driver
+    async def test_links_removed(
+        self, make_driver: TestDriver, tmp_path: Path  # pylint:disable=unused-argument
+    ):
+        await self.install_prerequisites()
+        db = self.setup_db()
+
+        source = tmp_path / "source"
+        source.mkdir()
+
+        async def make_package() -> Links:
+            return Links(
+                links=str(source),
+                destination=await self.destination(),
+                db=db,
+                driver=self.driver,
+            )
+
+        async def list_files() -> list[str]:
+            output = await self.check_driver.run_output("ls", await self.destination())
+            return output.split()
+
+        for name in ["one", "two"]:
+            (source / name).touch()
+
+        package = await make_package()
+        await package.install()
+
+        assert await list_files() == ["one", "two"]
+
+        (source / "two").unlink()
+        (source / "three").touch()
+
+        package = await make_package()
+        await package.install()
+
+        assert await list_files() == ["one", "three"]
+
+
+class TestShallowLinks(LinksTestBase):
     async def constructor_args(self) -> PackageArgs:
         return await super().constructor_args() | {"shallow": True}
 
 
-class TestDotLinks(TestLinks):
+class TestDotLinks(LinksTestBase):
     async def constructor_args(self) -> PackageArgs:
         return await super().constructor_args() | {"dot": True}
 
     destination_files = [".myfile", ".deep/space/nine/ncc-1701.txt"]
 
 
-class TestRootLinks(TestLinks):
+class TestRootLinks(LinksTestBase):
     root = True
