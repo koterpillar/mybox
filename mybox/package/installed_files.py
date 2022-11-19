@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator
 
 from ..driver import Driver
-from ..state import DB, storage
+from ..state import DB, Storage, storage
 
 
 @dataclass
@@ -24,24 +24,39 @@ class InstalledFile:
 INSTALLED_FILES = storage("installed_file", InstalledFile)
 
 
+@dataclass
+class Tracker:
+    package: str
+    driver: Driver
+    storage: Storage[InstalledFile]
+    current: set[Path]
+    previous: set[Path]
+
+    def track(self, target: Path) -> None:
+        self.current.add(target)
+        if target not in self.previous:
+            self.storage.append(InstalledFile(package=self.package, path=str(target)))
+
+    async def link(self, source: Path, target: Path) -> None:
+        await self.driver.link(source, target)
+        self.track(target)
+
+
 @asynccontextmanager
-async def track_files(
-    db: DB, driver: Driver, package: str
-) -> AsyncIterator[Callable[[Path], None]]:
+async def track_files(db: DB, driver: Driver, package: str) -> AsyncIterator[Tracker]:
     installed_files = INSTALLED_FILES(db)
 
-    currently_installed: set[Path] = set()
-    previously_installed: set[Path] = {
-        f.path_ for f in installed_files.find(package=package)
-    }
+    current: set[Path] = set()
+    previous: set[Path] = {f.path_ for f in installed_files.find(package=package)}
 
-    def track_file(path: Path) -> None:
-        currently_installed.add(path)
-        if path not in previously_installed:
-            installed_files.append(InstalledFile(package=package, path=str(path)))
+    yield Tracker(
+        package=package,
+        driver=driver,
+        storage=installed_files,
+        current=current,
+        previous=previous,
+    )
 
-    yield track_file
-
-    for removed in previously_installed - currently_installed:
+    for removed in previous - current:
         await driver.rm(removed)
         installed_files.delete(package=package, path=str(removed))

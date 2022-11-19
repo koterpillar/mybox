@@ -51,7 +51,7 @@ class Links(ManualVersion, Destination):
     async def install(self) -> None:
         destination = await self.destination()
 
-        async with track_files(self.db, self.driver, self.name) as track_file:
+        async with track_files(self.db, self.driver, self.name) as tracker:
             for path in self.paths():
                 target = path.relative_to(self.source)
                 if self.dot:
@@ -59,7 +59,6 @@ class Links(ManualVersion, Destination):
                     target = Path("." + first_part, *parts)
                 target = destination.joinpath(target)
 
-                await self.driver.link(path, target)
-                track_file(target)
+                await tracker.link(path, target)
 
         await super().install()
