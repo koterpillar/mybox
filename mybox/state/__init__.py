@@ -2,7 +2,8 @@ import dataclasses
 import sqlite3
 import threading
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Generic, Type, TypeVar
+from pathlib import Path
+from typing import Callable, Generic, Type, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -12,7 +13,7 @@ DB_PATH = "state.sqlite"
 class DB:
     """Thread-safe SQLite database connection."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: Union[str, Path]) -> None:
         self.path = path
         self.cache = threading.local()
 
