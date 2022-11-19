@@ -1,30 +1,11 @@
 import hashlib
-from dataclasses import dataclass
-from functools import cached_property
 from pathlib import Path
 from typing import Iterator
 
-from ..state import Storage, storage
 from ..utils import Some, unsome_
 from .destination import Destination
+from .installed_files import track_files
 from .manual_version import ManualVersion
-
-
-@dataclass
-class InstalledFile:
-    package: str
-    path: str
-
-    @property
-    def path_(self) -> Path:
-        return Path(self.path)
-
-    @path_.setter
-    def path_(self, value: Path) -> None:
-        self.path = str(value)
-
-
-INSTALLED_FILES = storage("installed_file", InstalledFile)
 
 
 class Links(ManualVersion, Destination):
@@ -41,10 +22,6 @@ class Links(ManualVersion, Destination):
         self.dot = dot
         self.shallow = shallow
         self.only = unsome_(only)
-
-    @cached_property
-    def installed_files(self) -> Storage[InstalledFile]:
-        return INSTALLED_FILES(self.db)
 
     @property
     def name(self) -> str:
@@ -74,27 +51,15 @@ class Links(ManualVersion, Destination):
     async def install(self) -> None:
         destination = await self.destination()
 
-        currently_installed: set[Path] = set()
-        previously_installed: set[Path] = {
-            f.path_ for f in self.installed_files.find(package=self.name)
-        }
+        async with track_files(self.db, self.driver, self.name) as track_file:
+            for path in self.paths():
+                target = path.relative_to(self.source)
+                if self.dot:
+                    first_part, *parts = target.parts
+                    target = Path("." + first_part, *parts)
+                target = destination.joinpath(target)
 
-        for path in self.paths():
-            target = path.relative_to(self.source)
-            if self.dot:
-                first_part, *parts = target.parts
-                target = Path("." + first_part, *parts)
-            target = destination.joinpath(target)
-
-            await self.driver.link(path, target)
-            currently_installed.add(target)
-            if target not in previously_installed:
-                self.installed_files.append(
-                    InstalledFile(package=self.name, path=str(target))
-                )
-
-        for removed in previously_installed - currently_installed:
-            await self.driver.rm(removed)
-            self.installed_files.delete(package=self.name, path=str(removed))
+                await self.driver.link(path, target)
+                track_file(target)
 
         await super().install()
