@@ -10,7 +10,7 @@ class TestNodeSource(RootPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "yum_name": "nodesource",
-            "yum_url": "https://rpm.nodesource.com/pub_19.x/fc/36/$basearch",
+            "yum_url": "https://rpm.nodesource.com/pub_19.x/fc/37/$basearch",
             "gpg_key": "https://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL",
         }
 
