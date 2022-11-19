@@ -34,3 +34,14 @@ def test_storage_non_existent(tmp_path: Path) -> None:
     widgets = make_widgets(tmp_path)
     with pytest.raises(KeyError):
         widgets["three"]  # pylint:disable=pointless-statement
+
+
+def test_storage_index(tmp_path: Path) -> None:
+    widgets = make_widgets(tmp_path)
+    widgets["one"] = Widget("red", 10)
+    widgets["two"] = Widget("blue", 20)
+    widgets["three"] = Widget("red", 30)
+
+    widgets = make_widgets(tmp_path)
+    reds = list(widgets.find(color="red"))
+    assert reds == [Widget("red", 10), Widget("red", 30)]

@@ -3,7 +3,7 @@ import sqlite3
 import threading
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Callable, Generic, Type, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Type, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -43,6 +43,10 @@ class Storage(Generic[T], metaclass=ABCMeta):
     def __setitem__(self, key: str, value: T) -> None:
         pass
 
+    @abstractmethod
+    def find(self, **kwargs: Any) -> Iterable[T]:
+        pass
+
 
 StorageDefinition = Callable[[DB], Storage[T]]
 
@@ -56,14 +60,28 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
         )
 
         class StorageImpl(Storage[T]):
+            def find(self, **kwargs: Any) -> Iterable[T]:
+                query = f"SELECT * FROM {name} WHERE 1=1"
+                values = []
+                for key, value in kwargs.items():
+                    query += f" AND {key} = ?"
+                    values.append(value)
+
+                cursor = db.instance.execute(query, values)
+
+                while rows := cursor.fetchmany():
+                    for row in rows:
+                        attributes = {
+                            key: row[key] for key in row.keys() if key != "id"
+                        }
+                        yield klass(**attributes)
+
             def __getitem__(self, key: str) -> T:
-                row = db.instance.execute(
-                    f"SELECT * FROM {name} WHERE id = ?", (key,)
-                ).fetchone()
-                if row:
-                    attributes = {key: row[key] for key in row.keys() if key != "id"}
-                    return klass(**attributes)
-                raise KeyError(key)
+                items = self.find(id=key)
+                try:
+                    return next(iter(items))
+                except StopIteration:
+                    raise KeyError(key) from None
 
             def __delitem__(self, key: str) -> None:
                 db.instance.execute(f"DELETE FROM {name} WHERE id = ?", (key,))
