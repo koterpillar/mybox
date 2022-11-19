@@ -167,57 +167,46 @@ def raise_(exception: BaseException) -> Any:
     raise exception
 
 
+AsyncRet = Coroutine[Any, Any, T]
+
+
 @overload
-def async_cached(
-    fn: Callable[[], Coroutine[Any, Any, T]]
-) -> Callable[[], Coroutine[Any, Any, T]]:
+def async_cached(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]:
     ...
 
 
 @overload
-def async_cached(
-    fn: Callable[[U], Coroutine[Any, Any, T]]
-) -> Callable[[U], Coroutine[Any, Any, T]]:
+def async_cached(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]:
     ...
 
 
 @overload
-def async_cached(
-    fn: Callable[[U, V], Coroutine[Any, Any, T]]
-) -> Callable[[U, V], Coroutine[Any, Any, T]]:
+def async_cached(fn: Callable[[U, V], AsyncRet[T]]) -> Callable[[U, V], AsyncRet[T]]:
     ...
 
 
-def async_cached(
-    fn: Callable[..., Coroutine[Any, Any, T]]
-) -> Callable[..., Coroutine[Any, Any, T]]:
+def async_cached(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
     return _async_cached_lock(None, fn)
 
 
 @overload
-def async_cached_lock(
-    fn: Callable[[], Coroutine[Any, Any, T]]
-) -> Callable[[], Coroutine[Any, Any, T]]:
+def async_cached_lock(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]:
+    ...
+
+
+@overload
+def async_cached_lock(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]:
     ...
 
 
 @overload
 def async_cached_lock(
-    fn: Callable[[U], Coroutine[Any, Any, T]]
-) -> Callable[[U], Coroutine[Any, Any, T]]:
+    fn: Callable[[U, V], AsyncRet[T]]
+) -> Callable[[U, V], AsyncRet[T]]:
     ...
 
 
-@overload
-def async_cached_lock(
-    fn: Callable[[U, V], Coroutine[Any, Any, T]]
-) -> Callable[[U, V], Coroutine[Any, Any, T]]:
-    ...
-
-
-def async_cached_lock(
-    fn: Callable[..., Coroutine[Any, Any, T]]
-) -> Callable[..., Coroutine[Any, Any, T]]:
+def async_cached_lock(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
     return _async_cached_lock(trio.Lock(), fn)
 
 
@@ -233,8 +222,8 @@ NO_LOCK = NoLock()
 
 
 def _async_cached_lock(
-    lock: Optional[trio.Lock], fn: Callable[..., Coroutine[Any, Any, T]]
-) -> Callable[..., Coroutine[Any, Any, T]]:
+    lock: Optional[trio.Lock], fn: Callable[..., AsyncRet[T]]
+) -> Callable[..., AsyncRet[T]]:
     cache: dict[Any, T] = {}
 
     @wraps(fn)
