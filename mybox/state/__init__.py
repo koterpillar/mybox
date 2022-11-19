@@ -4,6 +4,7 @@ import threading
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Generic, Iterable, Type, TypeVar, Union
+from uuid import uuid4
 
 T = TypeVar("T")
 
@@ -41,6 +42,10 @@ class Storage(Generic[T], metaclass=ABCMeta):
 
     @abstractmethod
     def __setitem__(self, key: str, value: T) -> None:
+        pass
+
+    @abstractmethod
+    def append(self, value: T) -> None:
         pass
 
     @abstractmethod
@@ -97,6 +102,9 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
                     db.instance.execute(
                         f"INSERT INTO {name} VALUES ({attr_clause})", attr_values
                     )
+
+            def append(self, value: T) -> None:
+                self[str(uuid4())] = value
 
         return StorageImpl()
 

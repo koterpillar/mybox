@@ -36,12 +36,21 @@ def test_storage_non_existent(tmp_path: Path) -> None:
         widgets["three"]  # pylint:disable=pointless-statement
 
 
-def test_storage_index(tmp_path: Path) -> None:
+def test_storage_find(tmp_path: Path) -> None:
     widgets = make_widgets(tmp_path)
     widgets["one"] = Widget("red", 10)
     widgets["two"] = Widget("blue", 20)
     widgets["three"] = Widget("red", 30)
 
     widgets = make_widgets(tmp_path)
-    reds = list(widgets.find(color="red"))
-    assert reds == [Widget("red", 10), Widget("red", 30)]
+    items = list(widgets.find(color="red"))
+    assert items == [Widget("red", 10), Widget("red", 30)]
+
+
+def test_storage_append(tmp_path: Path) -> None:
+    widgets = make_widgets(tmp_path)
+    widgets.append(Widget("red", 10))
+
+    widgets = make_widgets(tmp_path)
+    items = list(widgets.find())
+    assert items == [Widget("red", 10)]
