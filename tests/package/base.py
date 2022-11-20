@@ -8,8 +8,8 @@ from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, 
 import pytest
 
 from mybox.driver import OS, LocalDriver
-from mybox.installed_files import INSTALLED_FILES, Tracker, track_files
 from mybox.package import Package, parse_package
+from mybox.package.tracked import INSTALLED_FILES
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
 
@@ -115,10 +115,10 @@ class PackageTestBase(metaclass=ABCMeta):
             output = await self.check_driver.run_output(*command)
             assert self.check_installed_output in output
 
-    async def install_prerequisites(self, *, tracker: Tracker) -> None:
+    async def install_prerequisites(self) -> None:
         for args in self.prerequisites:
             package = self.parse_package(args, driver=self.driver)
-            await package.ensure(tracker=tracker)
+            await package.ensure()
 
     async def all_files(self) -> set[Path]:
         return {
@@ -144,15 +144,14 @@ class PackageTestBase(metaclass=ABCMeta):
 
         preexisting_files = await self.all_files()
 
-        async with track_files(db=db, driver=self.driver) as tracker:
-            await self.install_prerequisites(tracker=tracker)
+        await self.install_prerequisites()
 
-            args = await self.constructor_args()
+        args = await self.constructor_args()
 
-            package = self.parse_package(args, driver=self.driver, db=db)
-            assert await package.applicable()
+        package = self.parse_package(args, driver=self.driver, db=db)
+        assert await package.applicable()
 
-            await package.install(tracker=tracker)
+        await package.install()
 
         await self.check_installed()
 
@@ -162,7 +161,9 @@ class PackageTestBase(metaclass=ABCMeta):
             await package.is_installed()
         ), "Package should be reported installed after installation."
 
-        installed_files = list(f.path_ for f in INSTALLED_FILES(db).find())
+        installed_files = list(
+            f.path_ for f in INSTALLED_FILES(db).find(package=package.name)
+        )
 
         for existing in await self.all_files() - preexisting_files:
             if not any(
@@ -180,8 +181,7 @@ class PackageTestBase(metaclass=ABCMeta):
         if self.root_required_for_is_installed:
             return
 
-        async with track_files(db=self.setup_db(), driver=self.driver) as tracker:
-            await self.install_prerequisites(tracker=tracker)
+        await self.install_prerequisites()
 
         args = await self.constructor_args()
 

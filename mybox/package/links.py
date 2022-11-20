@@ -2,13 +2,13 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from ..installed_files import Tracker
 from ..utils import Some, unsome_
 from .destination import Destination
 from .manual_version import ManualVersion
+from .tracked import Tracked, Tracker
 
 
-class Links(ManualVersion, Destination):
+class Links(ManualVersion, Destination, Tracked):
     def __init__(
         self,
         links: str,
@@ -48,7 +48,7 @@ class Links(ManualVersion, Destination):
             m.update(str(path).encode())
         return m.hexdigest()
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install_tracked(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
 
         for path in self.paths():
@@ -61,4 +61,4 @@ class Links(ManualVersion, Destination):
             await self.driver.link(path, target)
             tracker.track(target, root=self.root)
 
-        await super().install(tracker=tracker)
+        await super().install_tracked(tracker=tracker)
