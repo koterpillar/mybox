@@ -41,16 +41,16 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     async def binary_path(self, binary: str) -> Path:
         pass
 
-    async def install_binary(self, name: str) -> None:
+    async def install_binary(self, name: str, tracker: Tracker) -> None:
         binary = await self.binary_path(name)
-        if self.binary_wrapper:
-            await self.install_binary_wrapper(name, binary)
-        else:
-            target = await self.local() / "bin" / name
-            await self.driver.link(binary, target)
-
-    async def install_binary_wrapper(self, name: str, binary: Path) -> None:
         target = await self.local() / "bin" / name
+        if self.binary_wrapper:
+            await self.install_binary_wrapper(binary, target)
+        else:
+            await self.driver.link(binary, target)
+        tracker.track(target)
+
+    async def install_binary_wrapper(self, binary: Path, target: Path) -> None:
         await self.driver.write_file(target, f'#!/bin/sh\nexec "{binary}" "$@"')
         await self.driver.make_executable(target)
 
@@ -89,31 +89,33 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
             / path.name
         )
 
-    async def install_app(self, name: str) -> None:
+    async def install_app(self, name: str, tracker: Tracker) -> None:
         await (await self.driver.os()).switch(
             linux=self.install_app_linux, macos=self.install_app_macos
-        )(name)
+        )(name, tracker)
 
     async def application_path(self) -> Path:
         return await self.local() / "share" / "applications"
 
-    async def install_desktop_file(self, path: Path) -> None:
+    async def install_desktop_file(self, path: Path, tracker: Tracker) -> None:
         target = await self.application_path() / path.name
         await self.driver.link(path, target)
+        tracker.track(target)
         desktop_entry = DesktopEntry.from_string(await self.driver.read_file(target))
         if desktop_entry.icon:
-            await self.install_icon(desktop_entry.icon)
+            await self.install_icon(desktop_entry.icon, tracker)
 
-    async def install_icon(self, icon: str) -> None:
+    async def install_icon(self, icon: str, tracker: Tracker) -> None:
         for icon_path in await self.icon_paths(icon):
             target = await self.icon_target_path(icon_path)
             await self.driver.link(icon_path, target)
+            tracker.track(target)
 
-    async def install_app_linux(self, name: str) -> None:
+    async def install_app_linux(self, name: str, tracker: Tracker) -> None:
         path = await self.app_path(name)
-        await self.install_desktop_file(path)
+        await self.install_desktop_file(path, tracker)
 
-    async def install_app_macos(self, name: str) -> None:
+    async def install_app_macos(self, name: str, tracker: Tracker) -> None:
         # FIXME: copy to /Applications and/or ~/Applications; ensure names,
         # etc. are correct
         pass
@@ -122,7 +124,7 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
     async def font_path(self, name: str) -> Path:
         pass
 
-    async def install_font(self, name: str) -> None:
+    async def install_font(self, name: str, tracker: Tracker) -> None:
         font_dir = (await self.driver.os()).switch(
             linux=await self.local() / "share" / "fonts",
             macos=await self.driver.home() / "Library" / "Fonts",
@@ -131,14 +133,15 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         source = await self.font_path(name)
         target = font_dir / name
         await self.driver.link(source, target)
+        tracker.track(target)
         if await self.driver.executable_exists("fc-cache"):
             await self.driver.run("fc-cache", "-f", font_dir)
 
     async def install(self, *, tracker: Tracker) -> None:
         for binary in self.binaries:
-            await self.install_binary(binary)
+            await self.install_binary(binary, tracker)
         for app in self.apps:
-            await self.install_app(app)
+            await self.install_app(app, tracker)
         for font in self.fonts:
-            await self.install_font(font)
+            await self.install_font(font, tracker)
         await super().install(tracker=tracker)
