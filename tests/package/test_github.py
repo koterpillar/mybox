@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from mybox.driver import Driver
@@ -30,6 +32,11 @@ class TestNeovim(RootPackageTestBase):
         await super().assert_desktop_file_exists(
             "nvim", name="Neovim", executable="nvim"
         )
+
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".local" / "state" / "nvim"
+        }
 
 
 class TestRootNeovim(TestNeovim):
@@ -91,6 +98,11 @@ class TestAmmonite(PackageTestBase):
         return ["amm", "--version"]
 
     check_installed_output = "Ammonite REPL"
+
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".ammonite"
+        }
 
 
 class TestCura(PackageTestBase):

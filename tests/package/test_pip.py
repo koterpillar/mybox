@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from pathlib import Path
 
 import pytest
 
@@ -32,6 +33,12 @@ class TestPip(DjangoTestBase):
     def installation_method(self) -> str:
         return "pip"
 
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".local" / "bin",
+            await self.check_driver.home() / ".local" / "lib",
+        }
+
 
 class TestPipx(DjangoTestBase):
     @property
@@ -39,3 +46,9 @@ class TestPipx(DjangoTestBase):
         return "pipx"
 
     prerequisites = PackageTestBase.PIPX
+
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".pipx",
+            await self.check_driver.home() / ".local" / "pipx",
+        }

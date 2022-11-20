@@ -124,8 +124,16 @@ class PackageTestBase(metaclass=ABCMeta):
         return {
             path
             for base_path in [await self.check_driver.home()]
-            for path in await self.check_driver.find(base_path, mindepth=1)
+            for path in await self.check_driver.find(
+                base_path, mindepth=1, file_type="f"
+            )
+            if not any(
+                path.is_relative_to(ignored) for ignored in await self.ignored_paths()
+            )
         }
+
+    async def ignored_paths(self) -> set[Path]:
+        return set([await self.driver.home() / ".cache"])
 
     @pytest.mark.trio
     @requires_driver
@@ -158,8 +166,7 @@ class PackageTestBase(metaclass=ABCMeta):
 
         for existing in await self.all_files() - preexisting_files:
             if not any(
-                existing == installed or existing.is_relative_to(installed)
-                for installed in installed_files
+                existing.is_relative_to(installed) for installed in installed_files
             ):
                 assert False, f"File {existing} was not tracked."
 
