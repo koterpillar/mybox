@@ -7,17 +7,14 @@ from .driver import Driver
 from .state import DB, Storage, storage
 
 
-@dataclass
+@dataclass(frozen=True)
 class InstalledFile:
     path: str
+    root: bool
 
     @property
     def path_(self) -> Path:
         return Path(self.path)
-
-    @path_.setter
-    def path_(self, value: Path) -> None:
-        self.path = str(value)
 
 
 INSTALLED_FILES = storage("installed_file", InstalledFile)
@@ -26,21 +23,22 @@ INSTALLED_FILES = storage("installed_file", InstalledFile)
 @dataclass
 class Tracker:
     storage: Storage[InstalledFile]
-    current: set[Path]
-    previous: set[Path]
+    current: set[InstalledFile]
+    previous: set[InstalledFile]
 
-    def track(self, target: Path) -> None:
-        self.current.add(target)
-        if target not in self.previous:
-            self.storage.append(InstalledFile(path=str(target)))
+    def track(self, target: Path, *, root: bool = False) -> None:
+        installed = InstalledFile(path=str(target), root=root)
+        self.current.add(installed)
+        if installed not in self.previous:
+            self.storage.append(installed)
 
 
 @asynccontextmanager
 async def track_files(db: DB, driver: Driver) -> AsyncIterator[Tracker]:
     installed_files = INSTALLED_FILES(db)
 
-    current: set[Path] = set()
-    previous: set[Path] = {f.path_ for f in installed_files.find()}
+    current: set[InstalledFile] = set()
+    previous: set[InstalledFile] = set(installed_files.find())
 
     yield Tracker(
         storage=installed_files,
@@ -49,5 +47,5 @@ async def track_files(db: DB, driver: Driver) -> AsyncIterator[Tracker]:
     )
 
     for removed in previous - current:
-        await driver.rm(removed)
-        installed_files.delete(path=str(removed))
+        await driver.with_root(removed.root).rm(removed.path_)
+        installed_files.delete(path=removed.path)

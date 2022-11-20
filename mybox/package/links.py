@@ -59,6 +59,6 @@ class Links(ManualVersion, Destination):
             target = destination.joinpath(target)
 
             await self.driver.link(path, target)
-            tracker.track(target)
+            tracker.track(target, root=self.root)
 
         await super().install(tracker=tracker)

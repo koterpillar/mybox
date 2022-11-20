@@ -37,7 +37,7 @@ class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase):
     destination_files: list[str] = ["myfile", "deep/space/nine/ncc-1701.txt"]
 
 
-class TestLinks(LinksTestBase):
+class RemoveLinksTestBase(LinksTestBase):
     @pytest.mark.trio
     @requires_driver
     async def test_links_removed(
@@ -54,6 +54,7 @@ class TestLinks(LinksTestBase):
                 destination=await self.destination(),
                 db=db,
                 driver=self.driver,
+                root=self.root,
             )
 
         async def list_files() -> list[str]:
@@ -79,6 +80,10 @@ class TestLinks(LinksTestBase):
         assert await list_files() == ["one", "three"]
 
 
+class TestLinks(RemoveLinksTestBase):
+    pass
+
+
 class TestShallowLinks(LinksTestBase):
     async def constructor_args(self) -> PackageArgs:
         return await super().constructor_args() | {"shallow": True}
@@ -91,5 +96,5 @@ class TestDotLinks(LinksTestBase):
     destination_files = [".myfile", ".deep/space/nine/ncc-1701.txt"]
 
 
-class TestRootLinks(LinksTestBase):
+class TestRootLinks(RemoveLinksTestBase):
     root = True
