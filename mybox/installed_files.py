@@ -28,9 +28,10 @@ class Tracker:
 
     def track(self, target: Path, *, root: bool = False) -> None:
         installed = InstalledFile(path=str(target), root=root)
-        self.current.add(installed)
-        if installed not in self.previous:
-            self.storage.append(installed)
+        if installed not in self.current:
+            self.current.add(installed)
+            if installed not in self.previous:
+                self.storage.append(installed)
 
 
 @asynccontextmanager
