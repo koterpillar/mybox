@@ -29,18 +29,17 @@ async def main():
         load_packages(component, db=db, driver=driver) for component in components
     )
 
-    async def process(package: Package) -> bool:
-        return await package.ensure()
-
-    async def process_and_record(package: Package) -> Optional[str]:
-        if await process(package):
-            return package.name
+    async def process_and_record(package: Package) -> Optional[Package]:
+        if await package.ensure():
+            return package
         return None
 
     results = await parallel_map_tqdm(process_and_record, packages)
     installed = list(filter(None, results))
     if installed:
-        print(f"{len(installed)} packages installed or updated: {', '.join(installed)}")
+        print(
+            f"{len(installed)} packages installed or updated: {', '.join(p.name for p in installed)}"
+        )
     else:
         print("Everything up to date.")
 
