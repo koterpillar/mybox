@@ -137,9 +137,11 @@ class Driver(metaclass=ABCMeta):
 
         def add_some_arg(arg: str, values: list[str]) -> None:
             if values:
-                args.append("(")
+                if len(values) > 1:
+                    args.append("(")
                 args.extend(intercalate("-o", ([arg, v] for v in values)))
-                args.append(")")
+                if len(values) > 1:
+                    args.append(")")
 
         def add_optional_arg(arg: str, value: Optional[Any]) -> None:
             if value is not None:
