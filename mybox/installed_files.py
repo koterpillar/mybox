@@ -25,7 +25,6 @@ INSTALLED_FILES = storage("installed_file", InstalledFile)
 
 @dataclass
 class Tracker:
-    driver: Driver
     storage: Storage[InstalledFile]
     current: set[Path]
     previous: set[Path]
@@ -34,10 +33,6 @@ class Tracker:
         self.current.add(target)
         if target not in self.previous:
             self.storage.append(InstalledFile(path=str(target)))
-
-    async def link(self, source: Path, target: Path) -> None:
-        await self.driver.link(source, target)
-        self.track(target)
 
 
 @asynccontextmanager
@@ -48,7 +43,6 @@ async def track_files(db: DB, driver: Driver) -> AsyncIterator[Tracker]:
     previous: set[Path] = {f.path_ for f in installed_files.find()}
 
     yield Tracker(
-        driver=driver,
         storage=installed_files,
         current=current,
         previous=previous,
