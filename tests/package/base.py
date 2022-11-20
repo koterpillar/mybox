@@ -8,7 +8,7 @@ from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, 
 import pytest
 
 from mybox.driver import OS, LocalDriver
-from mybox.installed_files import Tracker, track_files
+from mybox.installed_files import INSTALLED_FILES, Tracker, track_files
 from mybox.package import Package, parse_package
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
@@ -120,12 +120,21 @@ class PackageTestBase(metaclass=ABCMeta):
             package = self.parse_package(args, driver=self.driver)
             await package.ensure(tracker=tracker)
 
+    async def all_files(self) -> set[Path]:
+        return {
+            path
+            for base_path in [await self.check_driver.home()]
+            for path in await self.check_driver.find(base_path, mindepth=1)
+        }
+
     @pytest.mark.trio
     @requires_driver
     async def test_installs(
         self, make_driver: TestDriver  # pylint:disable=unused-argument
     ):
         db = self.setup_db()
+
+        preexisting_files = await self.all_files()
 
         async with track_files(db=db, driver=self.driver) as tracker:
             await self.install_prerequisites(tracker=tracker)
@@ -144,6 +153,15 @@ class PackageTestBase(metaclass=ABCMeta):
         assert (
             await package.is_installed()
         ), "Package should be reported installed after installation."
+
+        installed_files = list(f.path_ for f in INSTALLED_FILES(db).find())
+
+        for existing in await self.all_files() - preexisting_files:
+            if not any(
+                existing == installed or existing.is_relative_to(installed)
+                for installed in installed_files
+            ):
+                assert False, f"File {existing} was not tracked."
 
     root_required_for_is_installed = False
 
