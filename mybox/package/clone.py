@@ -1,11 +1,11 @@
 from typing import Optional
 
-from ..installed_files import Tracker
 from ..utils import RunArg, async_cached, run_output
 from .destination import Destination
+from .tracked import Tracked, Tracker
 
 
-class Clone(Destination):
+class Clone(Destination, Tracked):
     def __init__(self, clone: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.repo = clone
@@ -36,12 +36,14 @@ class Clone(Destination):
     async def get_remote_version(self) -> str:
         return (await run_output("git", "ls-remote", self.remote, "HEAD")).split()[0]
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install_tracked(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
+
         await self.driver.makedirs(destination.parent)
+
         if not await self.directory_exists():
             await self.driver.run("git", "clone", self.remote, destination)
-        tracker.track(destination)
+
         await self.run_git("remote", "set-url", "origin", self.remote)
         await self.run_git("fetch")
         default_branch = (
@@ -51,3 +53,7 @@ class Clone(Destination):
         ).split("/")[1]
         await self.run_git("switch", default_branch)
         await self.run_git("reset", "--hard", f"origin/{default_branch}")
+
+        tracker.track(destination)
+
+        await super().install_tracked(tracker=tracker)

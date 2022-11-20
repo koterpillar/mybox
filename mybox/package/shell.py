@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Optional
 
-from ..installed_files import Tracker
 from ..utils import async_cached
 from .root import Root
 
@@ -43,7 +42,7 @@ class Shell(Root):
         shells_file = await self.driver.read_file(SHELLS_FILE)
         return [Path(shell) for shell in shells_file.splitlines()]
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install(self) -> None:
         if not await self.driver.is_file(self.shell):
             raise ValueError(f"{self.shell} does not exist.")
 
@@ -57,4 +56,4 @@ class Shell(Root):
 
         await self.driver.run("chsh", "-s", self.shell)
 
-        await super().install(tracker=tracker)
+        await super().install()

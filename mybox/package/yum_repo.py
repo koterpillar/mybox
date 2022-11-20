@@ -2,7 +2,6 @@ import hashlib
 from pathlib import Path
 
 from ..configparser import ConfigParser
-from ..installed_files import Tracker
 from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
@@ -26,7 +25,7 @@ class YumRepo(ManualVersion):
         m.update((self.gpg_key or "").encode())
         return m.hexdigest()
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install(self) -> None:
         (await self.driver.os()).switch_(
             linux=lambda linux: lambda: None
             if linux.distribution == "fedora"
@@ -51,4 +50,4 @@ class YumRepo(ManualVersion):
         if self.gpg_key:
             await self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
 
-        await super().install(tracker=tracker)
+        await super().install()

@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 
-from mybox.installed_files import track_files
 from mybox.package import Links
 
 from .base import (
@@ -65,8 +64,7 @@ class RemoveLinksTestBase(LinksTestBase):
             (source / name).touch()
 
         package = await make_package()
-        async with track_files(db=db, driver=self.driver) as tracker:
-            await package.install(tracker=tracker)
+        await package.install()
 
         assert await list_files() == ["one", "two"]
 
@@ -74,8 +72,7 @@ class RemoveLinksTestBase(LinksTestBase):
         (source / "three").touch()
 
         package = await make_package()
-        async with track_files(db=db, driver=self.driver) as tracker:
-            await package.install(tracker=tracker)
+        await package.install()
 
         assert await list_files() == ["one", "three"]
 
