@@ -27,17 +27,17 @@ class DjangoTestBase(PackageTestBase):
         if not DOCKER:
             pytest.skip("Cannot test pip packages without Docker.")
 
-
-class TestPip(DjangoTestBase):
-    @property
-    def installation_method(self) -> str:
-        return "pip"
-
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
             await self.check_driver.home() / ".local" / "bin",
             await self.check_driver.home() / ".local" / "lib",
         }
+
+
+class TestPip(DjangoTestBase):
+    @property
+    def installation_method(self) -> str:
+        return "pip"
 
 
 class TestPipx(DjangoTestBase):
