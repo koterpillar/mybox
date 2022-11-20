@@ -43,7 +43,6 @@ class TestLinks(LinksTestBase):
     async def test_links_removed(
         self, make_driver: TestDriver, tmp_path: Path  # pylint:disable=unused-argument
     ):
-        await self.install_prerequisites()
         db = self.setup_db()
 
         source = tmp_path / "source"
@@ -65,9 +64,7 @@ class TestLinks(LinksTestBase):
             (source / name).touch()
 
         package = await make_package()
-        async with track_files(
-            db=db, driver=self.driver, package=package.name
-        ) as tracker:
+        async with track_files(db=db, driver=self.driver) as tracker:
             await package.install(tracker=tracker)
 
         assert await list_files() == ["one", "two"]
@@ -76,9 +73,7 @@ class TestLinks(LinksTestBase):
         (source / "three").touch()
 
         package = await make_package()
-        async with track_files(
-            db=db, driver=self.driver, package=package.name
-        ) as tracker:
+        async with track_files(db=db, driver=self.driver) as tracker:
             await package.install(tracker=tracker)
 
         assert await list_files() == ["one", "three"]

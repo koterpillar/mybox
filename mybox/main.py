@@ -30,13 +30,15 @@ async def main():
         load_packages(component, db=db, driver=driver) for component in components
     )
 
-    async def process_and_record(package: Package) -> Optional[Package]:
-        async with track_files(db=db, driver=driver, package=package.name) as tracker:
+    async with track_files(db=db, driver=driver) as tracker:
+
+        async def process_and_record(package: Package) -> Optional[Package]:
             if await package.ensure(tracker=tracker):
                 return package
-        return None
+            return None
 
-    results = await parallel_map_tqdm(process_and_record, packages)
+        results = await parallel_map_tqdm(process_and_record, packages)
+
     installed = list(filter(None, results))
     if installed:
         print(

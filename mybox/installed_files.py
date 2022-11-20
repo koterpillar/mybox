@@ -9,7 +9,6 @@ from .state import DB, Storage, storage
 
 @dataclass
 class InstalledFile:
-    package: str
     path: str
 
     @property
@@ -26,7 +25,6 @@ INSTALLED_FILES = storage("installed_file", InstalledFile)
 
 @dataclass
 class Tracker:
-    package: str
     driver: Driver
     storage: Storage[InstalledFile]
     current: set[Path]
@@ -35,7 +33,7 @@ class Tracker:
     def track(self, target: Path) -> None:
         self.current.add(target)
         if target not in self.previous:
-            self.storage.append(InstalledFile(package=self.package, path=str(target)))
+            self.storage.append(InstalledFile(path=str(target)))
 
     async def link(self, source: Path, target: Path) -> None:
         await self.driver.link(source, target)
@@ -43,14 +41,13 @@ class Tracker:
 
 
 @asynccontextmanager
-async def track_files(db: DB, driver: Driver, package: str) -> AsyncIterator[Tracker]:
+async def track_files(db: DB, driver: Driver) -> AsyncIterator[Tracker]:
     installed_files = INSTALLED_FILES(db)
 
     current: set[Path] = set()
-    previous: set[Path] = {f.path_ for f in installed_files.find(package=package)}
+    previous: set[Path] = {f.path_ for f in installed_files.find()}
 
     yield Tracker(
-        package=package,
         driver=driver,
         storage=installed_files,
         current=current,
@@ -59,4 +56,4 @@ async def track_files(db: DB, driver: Driver, package: str) -> AsyncIterator[Tra
 
     for removed in previous - current:
         await driver.rm(removed)
-        installed_files.delete(package=package, path=str(removed))
+        installed_files.delete(path=str(removed))
