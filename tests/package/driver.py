@@ -28,7 +28,7 @@ class TestDriver(Driver):
             return shlex.quote(str(arg))
 
         prompt_symbol = "#" if self.root else "$"
-        print(f"->{prompt_symbol} ", *map(show_arg, args))
+        print(f"->{prompt_symbol}", *map(show_arg, args))
 
     async def run_(self, *args, **kwargs) -> RunResult:
         if not self.enable_root:
