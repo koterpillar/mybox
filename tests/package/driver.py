@@ -27,7 +27,8 @@ class TestDriver(Driver):
         def show_arg(arg: RunArg) -> str:
             return shlex.quote(str(arg))
 
-        print("->", *map(show_arg, args))
+        prompt_symbol = "#" if self.root else "$"
+        print(f"->{prompt_symbol}", *map(show_arg, args))
 
     async def run_(self, *args, **kwargs) -> RunResult:
         if not self.enable_root:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional
 
+from ..installed_files import Tracker
 from ..state import Storage, storage
 from .base import Package
 
@@ -33,6 +34,6 @@ class ManualVersion(Package, metaclass=ABCMeta):
     async def cache_version(self) -> None:
         self.versions[self.name] = Version(version=await self.get_remote_version())
 
-    async def install(self) -> None:
-        await super().install()
+    async def install(self, *, tracker: Tracker) -> None:
+        await super().install(tracker=tracker)
         await self.cache_version()

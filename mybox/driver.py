@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Optional, cast
+from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
 from trio import run_process
 
@@ -130,21 +130,27 @@ class Driver(metaclass=ABCMeta):
         *,
         name: Some[str] = None,
         file_type: Some[str] = None,
+        mindepth: Optional[int] = None,
         maxdepth: Optional[int] = None,
     ) -> list[Path]:
         args: list[RunArg] = ["find", path]
 
-        def add_arg(arg: str, values: list[str]) -> None:
+        def add_some_arg(arg: str, values: list[str]) -> None:
             if values:
-                args.append("(")
+                if len(values) > 1:
+                    args.append("(")
                 args.extend(intercalate("-o", ([arg, v] for v in values)))
-                args.append(")")
+                if len(values) > 1:
+                    args.append(")")
 
-        if maxdepth is not None:
-            args.extend(["-maxdepth", str(maxdepth)])
+        def add_optional_arg(arg: str, value: Optional[Any]) -> None:
+            if value is not None:
+                args.extend([arg, str(value)])
 
-        add_arg("-name", unsome(name))
-        add_arg("-type", unsome(file_type))
+        add_optional_arg("-mindepth", mindepth)
+        add_optional_arg("-maxdepth", maxdepth)
+        add_some_arg("-name", unsome(name))
+        add_some_arg("-type", unsome(file_type))
 
         args.append("-print0")
 

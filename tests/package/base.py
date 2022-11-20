@@ -8,6 +8,7 @@ from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, 
 import pytest
 
 from mybox.driver import OS, LocalDriver
+from mybox.installed_files import INSTALLED_FILES, Tracker, track_files
 from mybox.package import Package, parse_package
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
@@ -114,26 +115,45 @@ class PackageTestBase(metaclass=ABCMeta):
             output = await self.check_driver.run_output(*command)
             assert self.check_installed_output in output
 
-    async def install_prerequisites(self) -> None:
+    async def install_prerequisites(self, *, tracker: Tracker) -> None:
         for args in self.prerequisites:
             package = self.parse_package(args, driver=self.driver)
-            await package.ensure()
+            await package.ensure(tracker=tracker)
+
+    async def all_files(self) -> set[Path]:
+        return {
+            path
+            for base_path in [await self.check_driver.home()]
+            for path in await self.check_driver.find(
+                base_path, mindepth=1, file_type="f"
+            )
+            if not any(
+                path.is_relative_to(ignored) for ignored in await self.ignored_paths()
+            )
+        }
+
+    async def ignored_paths(self) -> set[Path]:
+        return set([await self.driver.home() / ".cache"])
 
     @pytest.mark.trio
     @requires_driver
     async def test_installs(
         self, make_driver: TestDriver  # pylint:disable=unused-argument
     ):
-        await self.install_prerequisites()
-
         db = self.setup_db()
 
-        args = await self.constructor_args()
+        preexisting_files = await self.all_files()
 
-        package = self.parse_package(args, driver=self.driver, db=db)
-        assert await package.applicable()
+        async with track_files(db=db, driver=self.driver) as tracker:
+            await self.install_prerequisites(tracker=tracker)
 
-        await package.install()
+            args = await self.constructor_args()
+
+            package = self.parse_package(args, driver=self.driver, db=db)
+            assert await package.applicable()
+
+            await package.install(tracker=tracker)
+
         await self.check_installed()
 
         # Create the package again to reset cached properties
@@ -141,6 +161,14 @@ class PackageTestBase(metaclass=ABCMeta):
         assert (
             await package.is_installed()
         ), "Package should be reported installed after installation."
+
+        installed_files = list(f.path_ for f in INSTALLED_FILES(db).find())
+
+        for existing in await self.all_files() - preexisting_files:
+            if not any(
+                existing.is_relative_to(installed) for installed in installed_files
+            ):
+                assert False, f"File {existing} was not tracked."
 
     root_required_for_is_installed = False
 
@@ -152,7 +180,8 @@ class PackageTestBase(metaclass=ABCMeta):
         if self.root_required_for_is_installed:
             return
 
-        await self.install_prerequisites()
+        async with track_files(db=self.setup_db(), driver=self.driver) as tracker:
+            await self.install_prerequisites(tracker=tracker)
 
         args = await self.constructor_args()
 

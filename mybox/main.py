@@ -5,6 +5,7 @@ import trio
 from typed_argparse import TypedArgs
 
 from .driver import LocalDriver
+from .installed_files import track_files
 from .package import Package, load_packages
 from .state import DB, DB_PATH
 from .utils import flatten, parallel_map_tqdm
@@ -29,18 +30,20 @@ async def main():
         load_packages(component, db=db, driver=driver) for component in components
     )
 
-    async def process(package: Package) -> bool:
-        return await package.ensure()
+    async with track_files(db=db, driver=driver) as tracker:
 
-    async def process_and_record(package: Package) -> Optional[str]:
-        if await process(package):
-            return package.name
-        return None
+        async def process_and_record(package: Package) -> Optional[Package]:
+            if await package.ensure(tracker=tracker):
+                return package
+            return None
 
-    results = await parallel_map_tqdm(process_and_record, packages)
+        results = await parallel_map_tqdm(process_and_record, packages)
+
     installed = list(filter(None, results))
     if installed:
-        print(f"{len(installed)} packages installed or updated: {', '.join(installed)}")
+        print(
+            f"{len(installed)} packages installed or updated: {', '.join(p.name for p in installed)}"
+        )
     else:
         print("Everything up to date.")
 

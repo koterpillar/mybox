@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from pathlib import Path
 
 import pytest
 
@@ -26,6 +27,12 @@ class DjangoTestBase(PackageTestBase):
         if not DOCKER:
             pytest.skip("Cannot test pip packages without Docker.")
 
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".local" / "bin",
+            await self.check_driver.home() / ".local" / "lib",
+        }
+
 
 class TestPip(DjangoTestBase):
     @property
@@ -39,3 +46,9 @@ class TestPipx(DjangoTestBase):
         return "pipx"
 
     prerequisites = PackageTestBase.PIPX
+
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.home() / ".pipx",
+            await self.check_driver.home() / ".local" / "pipx",
+        }

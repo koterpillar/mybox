@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from ..driver import Driver
+from ..installed_files import Tracker
 from ..state import DB
 from ..utils import Some, async_cached, gather, unsome_
 
@@ -49,7 +50,7 @@ class Package(metaclass=ABCMeta):
         return remote == local
 
     @abstractmethod
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         pass
 
     async def applicable(self) -> bool:
@@ -63,10 +64,10 @@ class Package(metaclass=ABCMeta):
             macos=check_os("darwin"),
         )
 
-    async def ensure(self) -> bool:
+    async def ensure(self, *, tracker: Tracker) -> bool:
         if not await self.applicable():
             return False
         if await self.is_installed():
             return False
-        await self.install()
+        await self.install(tracker=tracker)
         return True

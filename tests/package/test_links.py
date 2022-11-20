@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from mybox.installed_files import track_files
 from mybox.package import Links
 
 from .base import (
@@ -36,13 +37,12 @@ class LinksTestBase(DestinationPackageTestBase, RootPackageTestBase):
     destination_files: list[str] = ["myfile", "deep/space/nine/ncc-1701.txt"]
 
 
-class TestLinks(LinksTestBase):
+class RemoveLinksTestBase(LinksTestBase):
     @pytest.mark.trio
     @requires_driver
     async def test_links_removed(
         self, make_driver: TestDriver, tmp_path: Path  # pylint:disable=unused-argument
     ):
-        await self.install_prerequisites()
         db = self.setup_db()
 
         source = tmp_path / "source"
@@ -54,6 +54,7 @@ class TestLinks(LinksTestBase):
                 destination=await self.destination(),
                 db=db,
                 driver=self.driver,
+                root=self.root,
             )
 
         async def list_files() -> list[str]:
@@ -64,7 +65,8 @@ class TestLinks(LinksTestBase):
             (source / name).touch()
 
         package = await make_package()
-        await package.install()
+        async with track_files(db=db, driver=self.driver) as tracker:
+            await package.install(tracker=tracker)
 
         assert await list_files() == ["one", "two"]
 
@@ -72,9 +74,14 @@ class TestLinks(LinksTestBase):
         (source / "three").touch()
 
         package = await make_package()
-        await package.install()
+        async with track_files(db=db, driver=self.driver) as tracker:
+            await package.install(tracker=tracker)
 
         assert await list_files() == ["one", "three"]
+
+
+class TestLinks(RemoveLinksTestBase):
+    pass
 
 
 class TestShallowLinks(LinksTestBase):
@@ -89,5 +96,5 @@ class TestDotLinks(LinksTestBase):
     destination_files = [".myfile", ".deep/space/nine/ncc-1701.txt"]
 
 
-class TestRootLinks(LinksTestBase):
+class TestRootLinks(RemoveLinksTestBase):
     root = True

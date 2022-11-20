@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable, Union
 
 from ..configparser import DesktopEntry
+from ..installed_files import Tracker
 from ..utils import async_cached
 from .manual import ManualPackage
 
@@ -32,9 +33,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
     @async_cached
     async def package_directory(self) -> Path:
-        result = (await self.local()) / "mybox" / self.pathname
-        await self.driver.makedirs(result)
-        return result
+        return (await self.local()) / "mybox" / self.pathname
 
     @async_cached
     async def tar(self) -> str:
@@ -146,14 +145,16 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
             f"Cannot find font '{name}' in {await self.package_directory()}."
         )
 
-    async def install_appimage(self) -> None:
+    async def install_appimage(self, tracker: Tracker) -> None:
         app_dir = await self.package_directory() / "squashfs-root"
         app_run = app_dir / "AppRun"
         if not await self.driver.is_executable(app_run):
             raise ValueError("AppImage does not have an executable named 'AppRun'.")
 
         binary_name = self.pathname
-        await self.install_binary_wrapper(binary_name, app_run)
+        binary_target = await self.local() / "bin" / binary_name
+        await self.install_binary_wrapper(app_run, binary_target)
+        tracker.track(binary_target)
 
         desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
         if not desktop_files:
@@ -171,10 +172,11 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
 
         target_desktop_file = await self.application_path() / desktop_file.name
         await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
+        tracker.track(target_desktop_file)
         if desktop_entry.icon:
-            await self.install_icon(desktop_entry.icon)
+            await self.install_icon(desktop_entry.icon, tracker)
 
-    async def install(self):
+    async def install(self, *, tracker: Tracker):
         url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
             await self.driver.run(
@@ -186,9 +188,15 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
                 archive_path,
                 url,
             )
+
+            package_directory = await self.package_directory()
+            await self.driver.makedirs(package_directory)
+            tracker.track(package_directory.parent)
+            tracker.track(package_directory)
+
             await self.extract(url, archive_path)
 
         if url.endswith(".AppImage"):
-            await self.install_appimage()
+            await self.install_appimage(tracker)
 
-        await super().install()
+        await super().install(tracker=tracker)
