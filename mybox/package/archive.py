@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable, Union
 
 from ..configparser import DesktopEntry
+from ..installed_files import Tracker
 from ..utils import async_cached
 from .manual import ManualPackage
 
@@ -174,7 +175,7 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         if desktop_entry.icon:
             await self.install_icon(desktop_entry.icon)
 
-    async def install(self):
+    async def install(self, *, tracker: Tracker):
         url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
             await self.driver.run(
@@ -191,4 +192,4 @@ class ArchivePackage(ManualPackage, metaclass=ABCMeta):
         if url.endswith(".AppImage"):
             await self.install_appimage()
 
-        await super().install()
+        await super().install(tracker=tracker)

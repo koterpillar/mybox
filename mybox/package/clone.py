@@ -1,5 +1,6 @@
 from typing import Optional
 
+from ..installed_files import Tracker
 from ..utils import RunArg, async_cached, run_output
 from .destination import Destination
 
@@ -35,7 +36,7 @@ class Clone(Destination):
     async def get_remote_version(self) -> str:
         return (await run_output("git", "ls-remote", self.remote, "HEAD")).split()[0]
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         await self.driver.makedirs((await self.destination()).parent)
         if not await self.directory_exists():
             await self.driver.run("git", "clone", self.remote, await self.destination())

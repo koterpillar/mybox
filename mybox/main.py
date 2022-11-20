@@ -5,6 +5,7 @@ import trio
 from typed_argparse import TypedArgs
 
 from .driver import LocalDriver
+from .installed_files import track_files
 from .package import Package, load_packages
 from .state import DB, DB_PATH
 from .utils import flatten, parallel_map_tqdm
@@ -30,8 +31,9 @@ async def main():
     )
 
     async def process_and_record(package: Package) -> Optional[Package]:
-        if await package.ensure():
-            return package
+        async with track_files(db=db, driver=driver, package=package.name) as tracker:
+            if await package.ensure(tracker=tracker):
+                return package
         return None
 
     results = await parallel_map_tqdm(process_and_record, packages)

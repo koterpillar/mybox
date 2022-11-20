@@ -2,9 +2,9 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
+from ..installed_files import Tracker
 from ..utils import Some, unsome_
 from .destination import Destination
-from .installed_files import track_files
 from .manual_version import ManualVersion
 
 
@@ -48,17 +48,16 @@ class Links(ManualVersion, Destination):
             m.update(str(path).encode())
         return m.hexdigest()
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
 
-        async with track_files(self.db, self.driver, self.name) as tracker:
-            for path in self.paths():
-                target = path.relative_to(self.source)
-                if self.dot:
-                    first_part, *parts = target.parts
-                    target = Path("." + first_part, *parts)
-                target = destination.joinpath(target)
+        for path in self.paths():
+            target = path.relative_to(self.source)
+            if self.dot:
+                first_part, *parts = target.parts
+                target = Path("." + first_part, *parts)
+            target = destination.joinpath(target)
 
-                await tracker.link(path, target)
+            await tracker.link(path, target)
 
-        await super().install()
+        await super().install(tracker=tracker)

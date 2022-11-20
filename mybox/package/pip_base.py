@@ -3,6 +3,7 @@ from typing import Optional
 
 import requests
 
+from ..installed_files import Tracker
 from .base import Package
 
 
@@ -28,6 +29,7 @@ class PipBasePackage(Package, metaclass=ABCMeta):
     def cmd(self, cmd: str, /, *args: str) -> list[str]:
         pass
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         cmd = "install" if await self.local_version() is None else "upgrade"
         await self.driver.run(*self.cmd(cmd, self.package))
+        await super().install(tracker=tracker)

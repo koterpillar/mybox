@@ -8,6 +8,7 @@ from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, 
 import pytest
 
 from mybox.driver import OS, LocalDriver
+from mybox.installed_files import track_files
 from mybox.package import Package, parse_package
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
@@ -117,7 +118,10 @@ class PackageTestBase(metaclass=ABCMeta):
     async def install_prerequisites(self) -> None:
         for args in self.prerequisites:
             package = self.parse_package(args, driver=self.driver)
-            await package.ensure()
+            async with track_files(
+                db=self.setup_db(), driver=self.driver, package=package.name
+            ) as tracker:
+                await package.ensure(tracker=tracker)
 
     @pytest.mark.trio
     @requires_driver
@@ -133,7 +137,10 @@ class PackageTestBase(metaclass=ABCMeta):
         package = self.parse_package(args, driver=self.driver, db=db)
         assert await package.applicable()
 
-        await package.install()
+        async with track_files(
+            db=db, driver=self.driver, package=package.name
+        ) as tracker:
+            await package.install(tracker=tracker)
         await self.check_installed()
 
         # Create the package again to reset cached properties

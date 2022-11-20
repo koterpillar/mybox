@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable
 
 from ..configparser import DesktopEntry
+from ..installed_files import Tracker
 from ..utils import Some, async_cached, unsome
 from .manual_version import ManualVersion
 from .root import Root
@@ -133,11 +134,11 @@ class ManualPackage(Root, ManualVersion, metaclass=ABCMeta):
         if await self.driver.executable_exists("fc-cache"):
             await self.driver.run("fc-cache", "-f", font_dir)
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         for binary in self.binaries:
             await self.install_binary(binary)
         for app in self.apps:
             await self.install_app(app)
         for font in self.fonts:
             await self.install_font(font)
-        await super().install()
+        await super().install(tracker=tracker)
