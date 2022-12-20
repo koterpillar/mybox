@@ -83,7 +83,7 @@ jobs:
     steps:
       - name: Calculate version
         id: tag
-        uses: frabert/replace-string-action@v2.0
+        uses: frabert/replace-string-action@v2.4
         with:
           pattern: '^refs/tags/'
           string: ${{ github.ref }}
