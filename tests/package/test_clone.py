@@ -19,3 +19,10 @@ class TestRootClone(TestClone):
     root = True
 
     root_required_for_is_installed = True
+
+
+class TestURLClone(TestClone):
+    async def constructor_args(self) -> PackageArgs:
+        return await super().constructor_args() | {
+            "clone": "https://github.com/ohmyzsh/ohmyzsh.git"
+        }
