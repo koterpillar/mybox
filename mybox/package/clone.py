@@ -31,6 +31,8 @@ class Clone(Destination, Tracked):
 
     @property
     def remote(self):
+        if self.repo.startswith("https://") or "@" in self.repo:
+            return self.repo
         return f"https://github.com/{self.repo}.git"
 
     async def get_remote_version(self) -> str:
