@@ -1,11 +1,10 @@
 import pytest
 
-from .base import PackageArgs, RootPackageTestBase
+from .base import PackageArgs, PackageTestBase
 
 
-class TestNodeSource(RootPackageTestBase):
+class TestNodeSource(PackageTestBase):
     affects_system = True
-    root = True
 
     async def constructor_args(self) -> PackageArgs:
         return {

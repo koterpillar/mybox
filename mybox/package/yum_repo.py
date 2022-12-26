@@ -43,9 +43,10 @@ class YumRepo(ManualVersion):
             repo[self.repo_name]["gpgcheck"] = "1"
             repo[self.repo_name]["gpgkey"] = self.gpg_key
 
-        await self.driver.with_root(True).write_file(
-            Path(f"/etc/yum.repos.d/{self.repo_name}.repo"), repo.to_string()
-        )
+        driver = self.driver.with_root(True)
+        path = Path(f"/etc/yum.repos.d/{self.repo_name}.repo")
+        await driver.write_file(path, repo.to_string())
+        await driver.run("chmod", "a+r", path)
 
         if self.gpg_key:
             await self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
