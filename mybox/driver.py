@@ -252,9 +252,9 @@ class LocalDriver(SubprocessDriver):
     ) -> RunResult:
         if args and args[0] == "sudo":
             # If the sudo prompt is needed, avoid drawing a progress bar over it
-            # with first prompting for a no-op command.
+            # by authenticating the user first.
             async with TERMINAL_LOCK:
-                await super().run("sudo", "true")
+                await super().run("sudo", "-v")
         return await super().run_(
             *args,
             check=check,
