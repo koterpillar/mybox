@@ -2,22 +2,8 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..state import Storage, storage
+from ..state import INSTALLED_FILES, InstalledFile, Storage
 from .base import Package
-
-
-@dataclass(frozen=True)
-class InstalledFile:
-    package: str
-    path: str
-    root: bool
-
-    @property
-    def path_(self) -> Path:
-        return Path(self.path)
-
-
-INSTALLED_FILES = storage("installed_file", InstalledFile)
 
 
 @dataclass
