@@ -1,10 +1,13 @@
+import tempfile
 from pathlib import Path
 from typing import Optional
 
 import pytest
+import yaml
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
+from mybox.package.github import GitHubPackage
 from mybox.package.tracked import Tracked, Tracker
 from mybox.state import DB, INSTALLED_FILES, InstalledFile
 from mybox.utils import RunArg
@@ -72,7 +75,7 @@ class TestManager:
         installed_files.append(InstalledFile(path="/bar", package="bar", root=False))
 
         driver = DummyDriver()
-        manager = Manager(db=db, driver=driver)
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
         packages = [
             DummyPackage(db=db, driver=driver, name_="foo", files=["/foo", "/baz"])
         ]
@@ -83,3 +86,26 @@ class TestManager:
             InstalledFile(path="/baz", package="foo", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
+
+    def test_parses_packages(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+
+            def write_component(name: str, *packages: dict) -> None:
+                with open(tmppath / f"{name}.yaml", "w") as out:
+                    yaml.dump(list(packages), out, indent=4)
+
+            write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
+            write_component("two", {"name": "foo"})
+
+            db = DB(":memory:")
+            driver = DummyDriver()
+            manager = Manager(db=db, driver=driver, component_path=tmppath)
+
+            packages = manager.load_components({"one"})
+
+            assert len(packages) == 1
+            package = packages[0]
+            assert isinstance(package, GitHubPackage)
+            assert package.repo == "asdf/asdf"
+            assert package.binaries == ["asdf"]

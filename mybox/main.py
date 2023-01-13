@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from typing import Optional
 
 import trio
@@ -24,7 +25,7 @@ async def main():
 
     db = DB(DB_PATH)
     driver = LocalDriver()
-    manager = Manager(db=db, driver=driver)
+    manager = Manager(db=db, driver=driver, component_path=Path("packages"))
 
     components: frozenset[str] = frozenset(args.component) | {"base"}
 

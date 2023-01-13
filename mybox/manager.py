@@ -1,18 +1,27 @@
+from pathlib import Path
 from typing import Optional
 
+import yaml
+
 from .driver import Driver
-from .package import Package, load_packages
+from .package import Package, parse_package
 from .state import DB, INSTALLED_FILES
 from .utils import flatten, parallel_map_tqdm
 
 
 class Manager:
-    def __init__(self, *, db: DB, driver: Driver):
+    def __init__(self, *, db: DB, driver: Driver, component_path: Path):
         self.db = db
         self.driver = driver
+        self.component_path = component_path
 
     def load_component(self, component: str) -> list[Package]:
-        return load_packages(component, db=self.db, driver=self.driver)
+        with open(self.component_path / f"{component}.yaml") as f:
+            packages = yaml.safe_load(f)
+            return [
+                parse_package(package, db=self.db, driver=self.driver)
+                for package in packages
+            ]
 
     def load_components(self, components: frozenset[str]) -> list[Package]:
         return flatten(self.load_component(component) for component in components)

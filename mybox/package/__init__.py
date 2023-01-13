@@ -1,7 +1,4 @@
-from pathlib import Path
 from typing import Any, Tuple, Type
-
-import yaml
 
 from ..driver import Driver
 from ..state import DB
@@ -39,9 +36,3 @@ def parse_package(package: Any, *, db: DB, driver: Driver) -> Package:
 
     keys = ", ".join(f"'{key}'" for key, _ in TYPES)
     raise ValueError(f"Either of {keys} must be present, got: {package}.")
-
-
-def load_packages(component: str, *, db: DB, driver: Driver) -> list[Package]:
-    with open(Path("packages") / f"{component}.yaml") as f:
-        packages = yaml.safe_load(f)
-        return [parse_package(package, db=db, driver=driver) for package in packages]
