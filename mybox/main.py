@@ -24,7 +24,7 @@ async def main():
 
     db = DB(DB_PATH)
     driver = LocalDriver()
-    manager = Manager(db, driver)
+    manager = Manager(db=db, driver=driver)
 
     components: frozenset[str] = frozenset(args.component) | {"base"}
 

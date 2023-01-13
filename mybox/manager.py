@@ -7,7 +7,7 @@ from .utils import flatten, parallel_map_tqdm
 
 
 class Manager:
-    def __init__(self, db: DB, driver: Driver):
+    def __init__(self, *, db: DB, driver: Driver):
         self.db = db
         self.driver = driver
 
@@ -37,6 +37,9 @@ class Manager:
     async def install(self, components: frozenset[str]) -> list[Package]:
         packages = self.load_components(components)
 
+        return await self.install_packages(packages)
+
+    async def install_packages(self, packages: list[Package]) -> list[Package]:
         results = await parallel_map_tqdm(self.process_and_record, packages)
 
         await self.cleanup(packages)
