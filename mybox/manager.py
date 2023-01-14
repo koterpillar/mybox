@@ -35,13 +35,21 @@ class Manager:
     async def cleanup(self, packages: list[Package]) -> None:
         installed_files = INSTALLED_FILES(self.db)
 
-        orphans = set(installed_files.find())
-        for package in packages:
-            orphans -= set(installed_files.find(package=package.name))
+        all_files = list(installed_file for installed_file in installed_files.find())
 
-        for orphan in orphans:
-            await self.driver.rm(orphan.path_)
-            installed_files.delete(**orphan.__dict__)
+        package_names = set(package.name for package in packages)
+
+        existing_package_paths = set(
+            installed_file.path
+            for installed_file in all_files
+            if installed_file.package in package_names
+        )
+
+        for installed_file in all_files:
+            if installed_file.package not in package_names:
+                installed_files.delete(**installed_file.__dict__)
+                if installed_file.path not in existing_package_paths:
+                    await self.driver.rm(installed_file.path_)
 
     async def install(self, components: frozenset[str]) -> list[Package]:
         packages = self.load_components(components)
