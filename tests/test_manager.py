@@ -71,21 +71,28 @@ class TestManager:
         db = DB(":memory:")
 
         installed_files = INSTALLED_FILES(db)
+        # This file is installed by both foo and bar
+        installed_files.append(InstalledFile(path="/", package="foo", root=False))
+        installed_files.append(InstalledFile(path="/", package="bar", root=False))
+        # This file is only installed by foo
         installed_files.append(InstalledFile(path="/foo", package="foo", root=False))
+        # This file is only installed by bar
         installed_files.append(InstalledFile(path="/bar", package="bar", root=False))
 
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
         packages = [
-            DummyPackage(db=db, driver=driver, name_="foo", files=["/foo", "/baz"])
+            DummyPackage(db=db, driver=driver, name_="foo", files=["/", "/foo", "/baz"])
         ]
         await manager.install_packages(packages)
 
         assert set(installed_files.find()) == {
+            InstalledFile(path="/", package="foo", root=False),
             InstalledFile(path="/foo", package="foo", root=False),
             InstalledFile(path="/baz", package="foo", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
+        assert ["rm", "-r", "-f", "/"] not in driver.commands
 
     def test_parses_packages(self):
         with tempfile.TemporaryDirectory() as tmpdir:
