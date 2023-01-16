@@ -76,8 +76,12 @@ class TestManager:
         # and some files unique for each
         await manager.install_packages(
             [
-                DummyPackage(db=db, driver=driver, name_="foo", files=["/", "/foo"]),
-                DummyPackage(db=db, driver=driver, name_="bar", files=["/", "/bar"]),
+                DummyPackage(
+                    db=db, driver=driver, name_="foo", files=["/shared", "/foo"]
+                ),
+                DummyPackage(
+                    db=db, driver=driver, name_="bar", files=["/shared", "/bar"]
+                ),
             ]
         )
 
@@ -91,7 +95,7 @@ class TestManager:
                     db=db,
                     driver=driver,
                     name_="foo",
-                    files=["/", "/foo", "/baz"],
+                    files=["/shared", "/foo", "/baz"],
                     version="2",
                 )
             ]
@@ -103,15 +107,16 @@ class TestManager:
             ("foo", Version(version="2")),
         }
 
-        # Check installed files
+        # Check installed files: everything from foo should be installed,
+        # everything from bar removed, shared files left alone
         installed_files = INSTALLED_FILES(db)
         assert set(installed_files.find()) == {
-            InstalledFile(path="/", package="foo", root=False),
+            InstalledFile(path="/shared", package="foo", root=False),
             InstalledFile(path="/foo", package="foo", root=False),
             InstalledFile(path="/baz", package="foo", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
-        assert ["rm", "-r", "-f", "/"] not in driver.commands
+        assert ["rm", "-r", "-f", "/shared"] not in driver.commands
 
     def test_parses_packages(self):
         with tempfile.TemporaryDirectory() as tmpdir:
