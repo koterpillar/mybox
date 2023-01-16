@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .base import storage
 
 
-@dataclass
+@dataclass(frozen=True)
 class Version:
     version: str
 

@@ -94,8 +94,8 @@ class TestManager:
 
         # Check package versions
         versions = VERSIONS(db)
-        assert set(versions.find()) == {
-            Version(package="foo", version="1"),
+        assert set(versions.find_ids()) == {
+            ("foo", Version(version="1")),
         }
 
         # Check installed files

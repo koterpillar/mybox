@@ -6,7 +6,7 @@ import pytest
 from mybox.state import DB, Storage, storage
 
 
-@dataclass
+@dataclass(frozen=True)
 class Widget:
     color: str
     size: int
