@@ -45,8 +45,9 @@ class DummyDriver(Driver):
 
 
 class DummyPackage(ManualVersion, Tracked):
-    def __init__(self, *, name_: str, files: list[str], **kwargs):
+    def __init__(self, *, version: str = "1", name_: str, files: list[str], **kwargs):
         super().__init__(**kwargs)
+        self.version = version
         self.name_ = name_
         self.files = files
 
@@ -55,7 +56,7 @@ class DummyPackage(ManualVersion, Tracked):
         return self.name_
 
     async def get_remote_version(self) -> str:
-        return "1"
+        return self.version
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
         for file in self.files:
@@ -87,15 +88,19 @@ class TestManager:
         await manager.install_packages(
             [
                 DummyPackage(
-                    db=db, driver=driver, name_="foo", files=["/", "/foo", "/baz"]
+                    db=db,
+                    driver=driver,
+                    name_="foo",
+                    files=["/", "/foo", "/baz"],
+                    version="2",
                 )
             ]
         )
 
-        # Check package versions
+        # Check package versions: foo should be updated, bar should be removed
         versions = VERSIONS(db)
         assert set(versions.find_ids()) == {
-            ("foo", Version(version="1")),
+            ("foo", Version(version="2")),
         }
 
         # Check installed files

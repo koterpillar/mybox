@@ -5,7 +5,7 @@ import yaml
 
 from .driver import Driver
 from .package import Package, parse_package
-from .state import DB, INSTALLED_FILES
+from .state import DB, INSTALLED_FILES, VERSIONS
 from .utils import flatten, parallel_map_tqdm
 
 
@@ -50,6 +50,14 @@ class Manager:
                 installed_files.delete(**installed_file.__dict__)
                 if installed_file.path not in existing_package_paths:
                     await self.driver.rm(installed_file.path_)
+
+        versions = VERSIONS(self.db)
+
+        all_versions = list(versions.find_ids())
+
+        for package, _ in all_versions:
+            if package not in package_names:
+                versions.delete(id=package)
 
     async def install(self, components: frozenset[str]) -> list[Package]:
         packages = self.load_components(components)
