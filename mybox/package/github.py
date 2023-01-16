@@ -54,6 +54,7 @@ class GitHubReleaseArtifact:
 
 @dataclass
 class GitHubRelease:
+    id: int
     tag_name: str
     assets: list[GitHubReleaseArtifact]
 
@@ -87,6 +88,7 @@ class GitHubPackage(ArchivePackage):
     async def latest_release(self) -> GitHubRelease:
         latest = await github_api(f"repos/{self.repo}/releases/latest")
         return GitHubRelease(
+            id=latest["id"],
             tag_name=latest["tag_name"],
             assets=[
                 GitHubReleaseArtifact(
@@ -145,4 +147,5 @@ class GitHubPackage(ArchivePackage):
         return self.repo
 
     async def get_remote_version(self) -> str:
-        return (await self.latest_release()).tag_name
+        release = await self.latest_release()
+        return str(release.id)
