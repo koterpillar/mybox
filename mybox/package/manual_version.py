@@ -1,18 +1,9 @@
 from abc import ABCMeta
-from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional
 
-from ..state import Storage, storage
+from ..state import VERSIONS, Storage, Version
 from .base import Package
-
-
-@dataclass
-class Version:
-    version: str
-
-
-VERSIONS = storage("version", Version)
 
 
 class ManualVersion(Package, metaclass=ABCMeta):
