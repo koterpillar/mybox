@@ -49,8 +49,12 @@ class Storage(Generic[T], metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def find(self, **kwargs: Any) -> Iterable[T]:
+    def find_ids(self, **kwargs: Any) -> Iterable[tuple[str, T]]:
         pass
+
+    def find(self, **kwargs: Any) -> Iterable[T]:
+        for _, value in self.find_ids(**kwargs):
+            yield value
 
     @abstractmethod
     def delete(self, **kwargs: Any) -> None:
@@ -77,7 +81,7 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
                     values.append(value)
                 return result, values
 
-            def find(self, **kwargs: Any) -> Iterable[T]:
+            def find_ids(self, **kwargs: Any) -> Iterable[tuple[str, T]]:
                 where, values = self.where_clause(**kwargs)
 
                 cursor = db.instance.execute(
@@ -89,7 +93,7 @@ def storage(name: str, klass: Type[T]) -> StorageDefinition[T]:
                         attributes = {
                             key: row[key] for key in row.keys() if key != "id"
                         }
-                        yield klass(**attributes)
+                        yield row["id"], klass(**attributes)
 
             def __getitem__(self, key: str) -> T:
                 items = self.find(id=key)

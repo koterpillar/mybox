@@ -7,9 +7,10 @@ import yaml
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
-from mybox.package.github import GitHubPackage
+from mybox.package import GitHubPackage
+from mybox.package.manual_version import ManualVersion
 from mybox.package.tracked import Tracked, Tracker
-from mybox.state import DB, INSTALLED_FILES, InstalledFile
+from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
 from mybox.utils import RunArg
 
 
@@ -43,9 +44,10 @@ class DummyDriver(Driver):
         return RunResult(ok=True, output=output)
 
 
-class DummyPackage(Tracked):
-    def __init__(self, *, name_: str, files: list[str], **kwargs):
+class DummyPackage(ManualVersion, Tracked):
+    def __init__(self, *, version: str = "1", name_: str, files: list[str], **kwargs):
         super().__init__(**kwargs)
+        self.version = version
         self.name_ = name_
         self.files = files
 
@@ -53,11 +55,8 @@ class DummyPackage(Tracked):
     def name(self) -> str:
         return self.name_
 
-    async def local_version(self) -> Optional[str]:
-        return None
-
     async def get_remote_version(self) -> str:
-        return "1"
+        return self.version
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
         for file in self.files:
@@ -70,29 +69,54 @@ class TestManager:
     async def test_removes_orphans(self):
         db = DB(":memory:")
 
-        installed_files = INSTALLED_FILES(db)
-        # This file is installed by both foo and bar
-        installed_files.append(InstalledFile(path="/", package="foo", root=False))
-        installed_files.append(InstalledFile(path="/", package="bar", root=False))
-        # This file is only installed by foo
-        installed_files.append(InstalledFile(path="/foo", package="foo", root=False))
-        # This file is only installed by bar
-        installed_files.append(InstalledFile(path="/bar", package="bar", root=False))
-
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
-        packages = [
-            DummyPackage(db=db, driver=driver, name_="foo", files=["/", "/foo", "/baz"])
-        ]
-        await manager.install_packages(packages)
 
+        # Install packages onto an empty system; they install a shared file
+        # and some files unique for each
+        await manager.install_packages(
+            [
+                DummyPackage(
+                    db=db, driver=driver, name_="foo", files=["/shared", "/foo"]
+                ),
+                DummyPackage(
+                    db=db, driver=driver, name_="bar", files=["/shared", "/bar"]
+                ),
+            ]
+        )
+
+        # Only install one of the packages; the other should be removed
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        await manager.install_packages(
+            [
+                DummyPackage(
+                    db=db,
+                    driver=driver,
+                    name_="foo",
+                    files=["/shared", "/foo", "/baz"],
+                    version="2",
+                )
+            ]
+        )
+
+        # Check package versions: foo should be updated, bar should be removed
+        versions = VERSIONS(db)
+        assert set(versions.find_ids()) == {
+            ("foo", Version(version="2")),
+        }
+
+        # Check installed files: everything from foo should be installed,
+        # everything from bar removed, shared files left alone
+        installed_files = INSTALLED_FILES(db)
         assert set(installed_files.find()) == {
-            InstalledFile(path="/", package="foo", root=False),
+            InstalledFile(path="/shared", package="foo", root=False),
             InstalledFile(path="/foo", package="foo", root=False),
             InstalledFile(path="/baz", package="foo", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
-        assert ["rm", "-r", "-f", "/"] not in driver.commands
+        assert ["rm", "-r", "-f", "/shared"] not in driver.commands
 
     def test_parses_packages(self):
         with tempfile.TemporaryDirectory() as tmpdir:

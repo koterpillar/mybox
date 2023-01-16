@@ -197,7 +197,10 @@ class PackageTestBase(metaclass=ABCMeta):
         {"name": "openjdk-17-jre", "os": "linux", "distribution": ["debian", "ubuntu"]},
     ]
 
-    NODE: list[PackageArgs] = [{"name": "nodejs", "os": "linux"}]
+    NODE: list[PackageArgs] = [
+        {"name": "nodejs", "os": "linux"},
+        {"name": "node", "os": "darwin"},
+    ]
 
     PIPX: list[PackageArgs] = [{"pip": "pipx"}]
 
