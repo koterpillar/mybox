@@ -1,6 +1,6 @@
 import json
 
-from .pip_base import PipBasePackage
+from .pip_base import PIP, PipBasePackage
 
 
 class PipPackage(PipBasePackage):
@@ -21,4 +21,4 @@ class PipPackage(PipBasePackage):
         return {package["name"].lower(): package["version"] for package in packages}
 
     def cmd(self, cmd: str, /, *args: str) -> list[str]:
-        return ["python3", "-m", "pip", cmd, "--user", *args]
+        return [*PIP, cmd, "--user", *args]
