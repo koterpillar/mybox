@@ -1,6 +1,6 @@
 import re
 from abc import ABCMeta, abstractmethod
-from typing import Optional
+from typing import Optional, cast
 
 import requests
 
@@ -31,10 +31,21 @@ class PipBasePackage(Package, metaclass=ABCMeta):
             return None
 
     async def _get_index_version(self) -> Optional[str]:
-        output = await self.driver.run_output(*PIP, "index", "versions", self.package)
+        check = await self.driver.run_(
+            *PIP,
+            "index",
+            "versions",
+            self.package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        )
+        if not check.ok:
+            return None
+        output = cast(str, check.output)
         version = re.search(r"\(([^)]+)\)", output)
         if not version:
-            return None
+            raise Exception(f"Cannot parse pip output: {output}")
         return version[1]
 
     async def get_remote_version(self) -> str:
