@@ -1,9 +1,39 @@
 from abc import abstractmethod
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
+from mybox.driver import LocalDriver
+from mybox.package import PipPackage
+
 from .base import DOCKER, PackageArgs, PackageTestBase
+
+
+class NoPypiPipPackage(PipPackage):
+    async def _get_pypi_version(self) -> Optional[str]:
+        return None
+
+
+async def _test_pip_version(pip_class: type[PipPackage]):
+    package = pip_class(pip="django", driver=LocalDriver(), db=None)
+    version = await package.get_remote_version()
+    assert version >= "4.1.5"
+
+    non_existent = pip_class(pip="xxxxxxxxxxxx", driver=LocalDriver(), db=None)
+
+    with pytest.raises(Exception, match="Cannot find latest version"):
+        await non_existent.get_remote_version()
+
+
+@pytest.mark.trio
+async def test_remote_version():
+    await _test_pip_version(PipPackage)
+
+
+@pytest.mark.trio
+async def test_remote_version_from_index():
+    await _test_pip_version(NoPypiPipPackage)
 
 
 class DjangoTestBase(PackageTestBase):
