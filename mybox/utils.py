@@ -1,6 +1,6 @@
 import re
 import subprocess
-from functools import wraps
+from functools import partial, wraps
 from pathlib import Path
 from typing import (
     Any,
@@ -85,21 +85,15 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
 async def parallel_map_tqdm(
     action: Callable[[T], Awaitable[U]], items: list[T]
 ) -> list[U]:
-    results: list[U] = []
-
     with tqdm.tqdm(total=len(items)) as progress:
-        async with trio.open_nursery() as nursery:
 
-            async def action_and_update(item: T) -> None:
-                result = await action(item)
-                async with TERMINAL_LOCK:
-                    progress.update(1)
-                results.append(result)
+        async def action_and_update(item: T) -> U:
+            result = await action(item)
+            async with TERMINAL_LOCK:
+                progress.update(1)
+            return result
 
-            for item in items:
-                nursery.start_soon(action_and_update, item)
-
-            return results
+        return await gather(*(partial(action_and_update, item) for item in items))
 
 
 async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
