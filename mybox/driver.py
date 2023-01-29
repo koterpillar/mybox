@@ -2,6 +2,7 @@ import subprocess
 from abc import ABCMeta, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from os import environ
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
@@ -224,7 +225,12 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
             stderr = None
 
         result = await run_process(
-            command, check=check, stdin=input, capture_stdout=True, stderr=stderr
+            command,
+            check=check,
+            stdin=input,
+            capture_stdout=True,
+            stderr=stderr,
+            **self.run_args(),
         )
 
         ok = result.returncode == 0
@@ -234,6 +240,9 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
             output = None
         return RunResult(ok=ok, output=output)
 
+    def run_args(self) -> dict[str, Any]:
+        return {}
+
 
 class LocalDriver(SubprocessDriver):
     def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
@@ -241,6 +250,23 @@ class LocalDriver(SubprocessDriver):
             return super().prepare_command(["sudo", *args])
         else:
             return super().prepare_command(args)
+
+    def run_args(self) -> dict[str, Any]:
+        result = super().run_args()
+        if environ["VIRTUAL_ENV"]:
+            # mybox is running in a virtual environment (for testing or
+            # development). Remove virtual environment from PATH so that any
+            # pip and pipx commands run in the user environment (they will
+            # fail otherwise).
+            new_environment = environ.copy()
+            virtual_env = new_environment.pop("VIRTUAL_ENV")
+            new_environment["PATH"] = ":".join(
+                segment
+                for segment in new_environment["PATH"].split(":")
+                if not segment.startswith(virtual_env)
+            )
+            result["env"] = new_environment
+        return result
 
     async def run_(
         self,
