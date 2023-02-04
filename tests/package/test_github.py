@@ -50,6 +50,7 @@ class TestKitty(PackageTestBase):
             "repo": "kovidgoyal/kitty",
             "binary": "kitty",
             "app": "kitty",
+            "exclude": "kitten",
         }
 
     async def check_applicable(self) -> None:
