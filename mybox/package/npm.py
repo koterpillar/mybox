@@ -30,8 +30,11 @@ class NpmPackage(Root, ManualVersion, Tracked):
 
         await self.driver.run(*args, "true")
 
+        npx_path = await self.driver.run_output(*args, "echo $PATH")
+        binaries_path = Path(npx_path.split(":", maxsplit=1)[0])
+
         for name in self.binaries:
-            binary = await self.driver.run_output(*args, "which", name)
+            binary = binaries_path / name
             target = await self.local() / "bin" / name
             await self.driver.link(Path(binary), target)
             tracker.track(target)
