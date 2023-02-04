@@ -30,11 +30,15 @@ class NpmPackage(Root, ManualVersion, Tracked):
 
         await self.driver.run(*args, "true")
 
-        npx_path = await self.driver.run_output(*args, "echo $PATH")
-        binaries_path = Path(npx_path.split(":", maxsplit=1)[0])
+        npx_paths = await self.driver.run_output(*args, "echo $PATH")
+        npx_path = next(
+            (Path(path) for path in npx_paths.split(":") if "_npx" in path), None
+        )
+        if not npx_path:
+            raise Exception(f"Could not find npx path in {npx_paths}.")
 
         for name in self.binaries:
-            binary = binaries_path / name
+            binary = npx_path / name
             target = await self.local() / "bin" / name
             await self.driver.link(Path(binary), target)
             tracker.track(target)
