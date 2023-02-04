@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import requests
+
 from ..utils import Some, unsome
 from .manual_version import ManualVersion
 from .root import Root
@@ -17,7 +19,11 @@ class NpmPackage(Root, ManualVersion, Tracked):
         return self.package
 
     async def get_remote_version(self) -> str:
-        return "latest"
+        result = requests.get(f"https://registry.npmjs.com/{self.package}")
+        result.raise_for_status()
+
+        details = result.json()
+        return details["dist-tags"]["latest"]
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
         args = ["npm", "exec", "--package", self.package]
