@@ -1,4 +1,4 @@
-from pathlib import Path
+import shlex
 
 import requests
 
@@ -31,16 +31,17 @@ class NpmPackage(Root, ManualVersion, Tracked):
         await self.driver.run(*args, "true")
 
         npx_paths = await self.driver.run_output(*args, "echo $PATH")
-        npx_path = next(
-            (Path(path) for path in npx_paths.split(":") if "_npx" in path), None
-        )
+        npx_path = next((path for path in npx_paths.split(":") if "_npx" in path), None)
         if not npx_path:
             raise Exception(f"Could not find npx path in {npx_paths}.")
 
         for name in self.binaries:
-            binary = npx_path / name
             target = await self.local() / "bin" / name
-            await self.driver.link(Path(binary), target)
+            await self.driver.write_file(
+                target,
+                f'#!/bin/sh\nPATH={shlex.quote(npx_path)}:$PATH\nexec "{name}" "$@"',
+            )
+            await self.driver.make_executable(target)
             tracker.track(target)
 
         await super().install_tracked(tracker=tracker)
