@@ -26,7 +26,7 @@ class NpmPackage(Root, ManualVersion, Tracked):
         return details["dist-tags"]["latest"]
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
-        args = ["npm", "exec", "--package", self.package]
+        args = ["npm", "exec", "--yes", "--package", self.package, "--"]
 
         await self.driver.run(*args, "true")
 
