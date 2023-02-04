@@ -253,7 +253,7 @@ class LocalDriver(SubprocessDriver):
 
     def run_args(self) -> dict[str, Any]:
         result = super().run_args()
-        if environ["VIRTUAL_ENV"]:
+        if "VIRTUAL_ENV" in environ:
             # mybox is running in a virtual environment (for testing or
             # development). Remove virtual environment from PATH so that any
             # pip and pipx commands run in the user environment (they will
