@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterable
 
 from ..configparser import DesktopEntry
-from ..utils import Some, async_cached, unsome
+from ..utils import Some, unsome
 from .manual_version import ManualVersion
 from .root import Root
 from .tracked import Tracked, Tracker
@@ -29,13 +29,6 @@ class ManualPackage(Root, ManualVersion, Tracked, metaclass=ABCMeta):
         self.binary_wrapper = binary_wrapper
         self.apps = unsome(app)
         self.fonts = unsome(font)
-
-    @async_cached
-    async def local(self) -> Path:
-        if self.root:
-            return Path("/usr/local")
-        else:
-            return await self.driver.local()
 
     @abstractmethod
     async def binary_path(self, binary: str) -> Path:
