@@ -55,5 +55,7 @@ class JSONPath(Derived, Filters):
 
     async def derived_value(self, contents: str) -> str:
         json_contents = json.loads(contents)
-        candidates = self.jsonpath.find(json_contents)
+        candidates = [
+            candidate.value for candidate in self.jsonpath.find(json_contents)
+        ]
         return choose(candidates, self.filters())

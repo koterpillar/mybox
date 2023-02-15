@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from packaging.version import parse as parse_version
 
 from mybox.url import URL, JSONPath, Static
 from mybox.utils import T
@@ -37,3 +38,17 @@ class TestParse:
             URL.parse({})
         with pytest.raises(ValueError):
             URL.parse({"nonsense": "foo"})
+
+
+@pytest.mark.trio
+async def test_jsonpath():
+    zoom = URL.parse(
+        {
+            "url": "https://zoom.us/rest/download?os=linux",
+            "jsonpath": "result.downloadVO.zoom.version",
+        }
+    )
+
+    url = parse_version(await zoom.value())
+
+    assert parse_version("5.13") <= url <= parse_version("10.0")
