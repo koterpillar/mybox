@@ -1,9 +1,9 @@
 import json
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
-from mybox.compute import Const, JSONPath, Value
+from mybox.compute import URL, Const, HTMLLinks, JSONPath, Value
 from mybox.utils import T
 
 
@@ -14,20 +14,29 @@ class TestParse:
         assert isinstance(result, klass)
         return result
 
-    @pytest.mark.trio
     async def test_static(self):
         value = self.parse_as(Const, "example")
 
-        assert (await value.compute()) == "example"
+        assert value.value_ == "example"
 
-    @pytest.mark.trio
+    async def test_url(self):
+        value = self.parse_as(URL, {"url": "https://example.com"})
+
+        assert cast(Const, value.base).value_ == "https://example.com"
+
     async def test_jsonpath(self):
         value = self.parse_as(
             JSONPath,
             {"base": r"{'json': true}", "jsonpath": "foo[*].bar", "include": "nice"},
         )
 
-        assert (await value.base.compute()) == r"{'json': true}"
+        assert cast(Const, value.base).value_ == r"{'json': true}"
+        assert str(value.jsonpath) == "foo.[*].bar"
+
+    async def test_links(self):
+        value = self.parse_as(HTMLLinks, {"links": r"<html></html>"})
+
+        assert cast(Const, value.base).value_ == r"<html></html>"
 
     def test_errors(self):
         with pytest.raises(ValueError):
@@ -58,3 +67,12 @@ async def test_url():
     value = Value.parse({"url": "https://httpbin.org/json"})
 
     assert "slideshow" in (await value.compute())
+
+
+@pytest.mark.trio
+async def test_links():
+    value = Value.parse(
+        {"links": "<html><a href='https://example.com'>example</a></html>"}
+    )
+
+    assert (await value.compute()) == "https://example.com"

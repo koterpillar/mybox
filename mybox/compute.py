@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any
 
 import requests
+from bs4 import BeautifulSoup  # type: ignore
 from jsonpath_ng import parse as jsonpath_parse  # type: ignore
 
 from .filters import Filters, choose
@@ -18,6 +19,9 @@ class Value(metaclass=ABCMeta):
                 return URL(base=value["url"])
             if "jsonpath" in value:
                 return JSONPath(**value)
+            if "links" in value:
+                links = value.pop("links")
+                return HTMLLinks(base=links, **value)
         raise ValueError(f"Cannot parse URL from {value!r}.")
 
     @abstractmethod
@@ -74,3 +78,10 @@ class Format(Derived):
 
     async def derived_value(self, contents: str) -> str:
         return self.format.format(contents)
+
+
+class HTMLLinks(Derived, Filters):
+    async def derived_value(self, contents: str) -> str:
+        soup = BeautifulSoup(contents, "html.parser")
+        candidates = [link.get("href") for link in soup.find_all("a")]
+        return choose(candidates, self.filters())
