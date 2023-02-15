@@ -17,11 +17,13 @@ class Package(metaclass=ABCMeta):
         driver: Driver,
         os: Some[str] = None,
         distribution: Some[str] = None,
+        **kwargs
     ) -> None:
         self.db = db
         self.driver_ = driver
         self.os = unsome_(os)
         self.distribution = unsome_(distribution)
+        super().__init__(**kwargs)
 
     @property
     def driver(self) -> Driver:

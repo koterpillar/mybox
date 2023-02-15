@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Any, Optional
 
 import trio
 
-from ..utils import Some, unsome, url_version
+from ..compute import Value
+from ..utils import Some, async_cached, unsome, url_version
 from .installer import make_installer
 from .manual_version import ManualVersion
 
@@ -14,14 +15,14 @@ class SystemPackage(ManualVersion):
         self,
         *,
         name: str,
-        url: Optional[str] = None,
+        url: Any = None,
         auto_updates: bool = False,
         service: Some[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._name = name
-        self.url = url
+        self.url_ = Value.parse(url) if url else None
         self.auto_updates = auto_updates
         self.services = unsome(service)
 
@@ -32,15 +33,21 @@ class SystemPackage(ManualVersion):
     def name(self) -> str:
         return self._name
 
+    @async_cached
+    async def url(self) -> Optional[str]:
+        if self.url_:
+            return await self.url_.compute()
+        return None
+
     async def get_remote_version(self) -> str:
-        if self.url:
-            return url_version(self.url)
+        if url := await self.url():
+            return url_version(url)
         if self.auto_updates:
             return "latest"
         return await (await self.installer()).latest_version(self.name)
 
     async def local_version(self) -> Optional[str]:
-        if self.url:
+        if await self.url():
             return self.cached_version
         installer = await self.installer()
         version = await installer.installed_version(self.name)
@@ -60,8 +67,8 @@ class SystemPackage(ManualVersion):
     async def install(self) -> None:
         async with INSTALLER_LOCK:
             installer = await self.installer()
-            if self.url:
-                await installer.install(self.url)
+            if url := await self.url():
+                await installer.install(url)
                 await self.cache_version()
             elif await self.local_version():
                 await installer.upgrade(self.name)

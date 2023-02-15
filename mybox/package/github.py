@@ -6,15 +6,8 @@ from typing import Any, Callable, Iterator, Optional
 import requests
 
 from ..driver import OS
-from ..utils import (
-    Filters,
-    Some,
-    async_cached,
-    async_cached_lock,
-    choose,
-    run_output,
-    unsome,
-)
+from ..filters import Filters, choose
+from ..utils import async_cached, async_cached_lock, run_output
 from .archive import ArchivePackage
 
 
@@ -59,30 +52,10 @@ class GitHubRelease:
     assets: list[GitHubReleaseArtifact]
 
 
-class GitHubPackage(ArchivePackage):
-    prefixes: list[str]
-    suffixes: list[str]
-    includes: list[str]
-    excludes: list[str]
-
-    def __init__(
-        self,
-        *,
-        repo: str,
-        prefix: Some[str] = None,
-        suffix: Some[str] = None,
-        include: Some[str] = None,
-        exclude: Some[str] = None,
-        regex: Some[str] = None,
-        **kwargs,
-    ) -> None:
+class GitHubPackage(ArchivePackage, Filters):
+    def __init__(self, *, repo: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.repo = repo
-        self.prefixes = unsome(prefix)
-        self.suffixes = unsome(suffix)
-        self.includes = unsome(include)
-        self.excludes = unsome(exclude)
-        self.regex = unsome(regex)
 
     @async_cached
     async def latest_release(self) -> GitHubRelease:
@@ -98,35 +71,30 @@ class GitHubPackage(ArchivePackage):
             ],
         )
 
-    def filters(self, target_os: OS) -> Iterator[Callable[[str], bool]]:
-        for prefix in self.prefixes:
-            yield Filters.startswith(prefix)
-        for suffix in self.suffixes:
-            yield Filters.endswith(suffix)
-        for include in self.includes:
-            yield Filters.includes(include)
-        for exclude in self.excludes:
-            yield Filters.excludes(exclude)
-        for regex in self.regex:
-            yield Filters.regex(regex)
+    @classmethod
+    def environment_filters(cls, target_os: OS) -> Iterator[Callable[[str], bool]]:
         for hint in [".tar.gz"]:
-            yield Filters.includes(hint)
+            yield cls.includes_(hint)
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
-            yield Filters.excludes(signature_hint)
+            yield cls.excludes_(signature_hint)
         for other_os_hint in [".exe", ".dmg"]:
-            yield Filters.excludes(other_os_hint)
+            yield cls.excludes_(other_os_hint)
         for os_hint in target_os.switch(
             linux=[
-                Filters.includes("linux"),
-                Filters.includes("gnu"),
-                Filters.excludes("musl"),
+                cls.includes_("linux"),
+                cls.includes_("gnu"),
+                cls.excludes_("musl"),
             ],
-            macos=[Filters.includes(hint) for hint in ["macos", "darwin", "osx"]],
+            macos=[cls.includes_(hint) for hint in ["macos", "darwin", "osx"]],
         ):
             yield os_hint
         arch_hints = ["x86_64", "amd64"]
         for hint in arch_hints:
-            yield Filters.includes(hint)
+            yield cls.includes_(hint)
+
+    def all_filters(self, target_os: OS) -> Iterator[Callable[[str], bool]]:
+        yield from self.filters()
+        yield from self.environment_filters(target_os)
 
     async def artifact(self) -> GitHubReleaseArtifact:
         candidates = (await self.latest_release()).assets
@@ -137,7 +105,7 @@ class GitHubPackage(ArchivePackage):
             return lambda candidate: name_filter(candidate.name)
 
         target_os = await self.driver.os()
-        return choose(candidates, map(candidate_filter, self.filters(target_os)))
+        return choose(candidates, map(candidate_filter, self.all_filters(target_os)))
 
     async def archive_url(self) -> str:
         return (await self.artifact()).url
