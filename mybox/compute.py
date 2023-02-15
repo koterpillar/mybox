@@ -15,13 +15,14 @@ class Value(metaclass=ABCMeta):
         if isinstance(value, str):
             return Const(value)
         if isinstance(value, dict):
-            if "url" in value:
-                return URL(base=value["url"])
+            if base := value.pop("url", None):
+                return URL(base=base)
+            if base := value.pop("links", None):
+                return HTMLLinks(base=base, **value)
+            if "format" in value:
+                return Format(**value)
             if "jsonpath" in value:
                 return JSONPath(**value)
-            if "links" in value:
-                links = value.pop("links")
-                return HTMLLinks(base=links, **value)
         raise ValueError(f"Cannot parse URL from {value!r}.")
 
     @abstractmethod

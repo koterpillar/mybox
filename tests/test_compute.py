@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import pytest
 
-from mybox.compute import URL, Const, HTMLLinks, JSONPath, Value
+from mybox.compute import URL, Const, Format, HTMLLinks, JSONPath, Value
 from mybox.utils import T
 
 
@@ -14,17 +14,22 @@ class TestParse:
         assert isinstance(result, klass)
         return result
 
-    async def test_static(self):
+    def test_static(self):
         value = self.parse_as(Const, "example")
 
         assert value.value_ == "example"
 
-    async def test_url(self):
+    def test_url(self):
         value = self.parse_as(URL, {"url": "https://example.com"})
 
         assert cast(Const, value.base).value_ == "https://example.com"
 
-    async def test_jsonpath(self):
+    def test_format(self):
+        value = self.parse_as(Format, {"base": "foo", "format": r"bar {}"})
+
+        assert value.format == r"bar {}"
+
+    def test_jsonpath(self):
         value = self.parse_as(
             JSONPath,
             {"base": r"{'json': true}", "jsonpath": "foo[*].bar", "include": "nice"},
@@ -33,7 +38,7 @@ class TestParse:
         assert cast(Const, value.base).value_ == r"{'json': true}"
         assert str(value.jsonpath) == "foo.[*].bar"
 
-    async def test_links(self):
+    def test_links(self):
         value = self.parse_as(HTMLLinks, {"links": r"<html></html>"})
 
         assert cast(Const, value.base).value_ == r"<html></html>"
@@ -76,3 +81,10 @@ async def test_links():
     )
 
     assert (await value.compute()) == "https://example.com"
+
+
+@pytest.mark.trio
+async def test_format():
+    value = Value.parse({"base": "foo", "format": "bar {}"})
+
+    assert (await value.compute()) == "bar foo"
