@@ -1,4 +1,3 @@
-import re
 import subprocess
 from functools import partial, wraps
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import (
     Callable,
     Coroutine,
     Iterable,
-    Iterator,
     Optional,
     TypeVar,
     Union,
@@ -107,49 +105,6 @@ async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
         for index, task in enumerate(tasks):
             nursery.start_soon(collect, index, task, results)
     return [results[i] for i in range(len(tasks))]
-
-
-class Filters:
-    @staticmethod
-    def includes(substring: str) -> Callable[[str], bool]:
-        return lambda x: substring in x.lower()
-
-    @staticmethod
-    def excludes(substring: str) -> Callable[[str], bool]:
-        return lambda x: substring not in x
-
-    @staticmethod
-    def startswith(prefix: str) -> Callable[[str], bool]:
-        return lambda x: x.startswith(prefix)
-
-    @staticmethod
-    def endswith(suffix: str) -> Callable[[str], bool]:
-        return lambda x: x.endswith(suffix)
-
-    @staticmethod
-    def regex(regex: str) -> Callable[[str], bool]:
-        regex_compiled = re.compile(regex)
-
-        return lambda x: regex_compiled.match(x) is not None
-
-
-def choose(candidates: list[T], filters: Iterator[Callable[[T], bool]]) -> T:
-    if len(candidates) == 0:
-        raise ValueError("No candidates to choose from.")
-    while len(candidates) > 1:
-        try:
-            filter_fn = next(filters)
-        except StopIteration:
-            break
-
-        new_candidates = list(filter(filter_fn, candidates))
-        if new_candidates:
-            candidates = new_candidates
-
-    if len(candidates) == 1:
-        return candidates[0]
-
-    raise ValueError(f"Cannot choose between: {candidates}.")
 
 
 def url_version(url: str) -> str:

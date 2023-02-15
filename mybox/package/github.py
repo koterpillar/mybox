@@ -6,15 +6,8 @@ from typing import Any, Callable, Iterator, Optional
 import requests
 
 from ..driver import OS
-from ..utils import (
-    Filters,
-    Some,
-    async_cached,
-    async_cached_lock,
-    choose,
-    run_output,
-    unsome,
-)
+from ..filters import Filters, choose
+from ..utils import Some, async_cached, async_cached_lock, run_output, unsome
 from .archive import ArchivePackage
 
 
