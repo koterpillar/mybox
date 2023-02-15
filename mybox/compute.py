@@ -8,44 +8,50 @@ from jsonpath_ng import parse as jsonpath_parse  # type: ignore
 from .filters import Filters, choose
 
 
-class URL(metaclass=ABCMeta):
+class Value(metaclass=ABCMeta):
     @staticmethod
-    def parse(value: Any) -> "URL":
+    def parse(value: Any) -> "Value":
         if isinstance(value, str):
-            return Static(value)
+            return Const(value)
         if isinstance(value, dict):
+            if "url" in value:
+                return URL(base=value["url"])
             if "jsonpath" in value:
                 return JSONPath(**value)
         raise ValueError(f"Cannot parse URL from {value!r}.")
 
     @abstractmethod
-    async def value(self) -> str:
+    async def compute(self) -> str:
         raise NotImplementedError
 
 
-class Static(URL):
+class Const(Value):
     def __init__(self, value):
         self.value_ = value
 
-    async def value(self):
+    async def compute(self):
         return self.value_
 
 
-class Derived(URL, metaclass=ABCMeta):
-    url: URL
+class Derived(Value, metaclass=ABCMeta):
+    base: Value
 
-    def __init__(self, *, url: Any, **kwargs):
-        self.url = URL.parse(url)
+    def __init__(self, *, base: Any, **kwargs):
+        self.base = Value.parse(base)
         super().__init__(**kwargs)
 
     @abstractmethod
     async def derived_value(self, contents: str) -> str:
         raise NotImplementedError
 
-    async def value(self) -> str:
-        base = await self.url.value()
-        contents = requests.get(base)
-        return await self.derived_value(contents.text)
+    async def compute(self) -> str:
+        base = await self.base.compute()
+        return await self.derived_value(base)
+
+
+class URL(Derived):
+    async def derived_value(self, contents: str) -> str:
+        return requests.get(contents).text
 
 
 class JSONPath(Derived, Filters):
@@ -59,3 +65,12 @@ class JSONPath(Derived, Filters):
             candidate.value for candidate in self.jsonpath.find(json_contents)
         ]
         return choose(candidates, self.filters())
+
+
+class Format(Derived):
+    def __init__(self, *, format: str, **kwargs):  # pylint:disable=redefined-builtin
+        self.format = format
+        super().__init__(**kwargs)
+
+    async def derived_value(self, contents: str) -> str:
+        return self.format.format(contents)
