@@ -20,7 +20,7 @@ def parse_args(args: Optional[list[str]] = None) -> Args:
     return Args.from_argparse(result.parse_args(args))
 
 
-async def main():
+async def main() -> None:
     args = parse_args()
 
     db = DB(DB_PATH)
@@ -39,5 +39,5 @@ async def main():
         print("Everything up to date.")
 
 
-def sync_main():
+def sync_main() -> None:
     trio.run(main)
