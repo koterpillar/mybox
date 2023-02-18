@@ -5,8 +5,9 @@ import yaml
 
 from .driver import Driver
 from .package import Package, parse_package
+from .parallel import parallel_map_tqdm
 from .state import DB, INSTALLED_FILES, VERSIONS
-from .utils import flatten, parallel_map_tqdm
+from .utils import flatten
 
 
 class Manager:

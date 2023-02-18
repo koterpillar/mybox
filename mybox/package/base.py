@@ -2,8 +2,9 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from ..driver import Driver
+from ..parallel import gather
 from ..state import DB
-from ..utils import Some, async_cached, gather, unsome_
+from ..utils import Some, async_cached, unsome_
 
 
 class Package(metaclass=ABCMeta):
