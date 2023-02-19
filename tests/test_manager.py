@@ -7,11 +7,11 @@ import yaml
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
-from mybox.package import GitHubPackage
+from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.tracked import Tracked, Tracker
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
-from mybox.utils import RunArg
+from mybox.utils import RunArg, Some, unsome
 
 
 class DummyDriver(Driver):
@@ -45,11 +45,15 @@ class DummyDriver(Driver):
 
 
 class DummyPackage(ManualVersion, Tracked):
-    def __init__(self, *, version: str = "1", name_: str, files: list[str], **kwargs):
+    files: list[str]
+
+    def __init__(
+        self, *, version: str = "1", name: str, files: Some[str] = None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.version = version
-        self.name_ = name_
-        self.files = files
+        self.name_ = name
+        self.files = unsome(files)
 
     @property
     def name(self) -> str:
@@ -77,10 +81,10 @@ class TestManager:
         await manager.install_packages(
             [
                 DummyPackage(
-                    db=db, driver=driver, name_="foo", files=["/shared", "/foo"]
+                    db=db, driver=driver, name="foo", files=["/shared", "/foo"]
                 ),
                 DummyPackage(
-                    db=db, driver=driver, name_="bar", files=["/shared", "/bar"]
+                    db=db, driver=driver, name="bar", files=["/shared", "/bar"]
                 ),
             ]
         )
@@ -94,7 +98,7 @@ class TestManager:
                 DummyPackage(
                     db=db,
                     driver=driver,
-                    name_="foo",
+                    name="foo",
                     files=["/shared", "/foo", "/baz"],
                     version="2",
                 )
