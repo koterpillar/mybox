@@ -7,6 +7,7 @@ import yaml
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
+from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.tracked import Tracked, Tracker
@@ -69,6 +70,36 @@ class DummyPackage(ManualVersion, Tracked):
 
 
 class TestManager:
+    @classmethod
+    def package_names(cls, packages: list[Package]) -> list[str]:
+        return [package.name for package in packages]
+
+    @pytest.mark.trio
+    async def test_returns_installed(self):
+        db = DB(":memory:")
+
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        await manager.install_packages(
+            [
+                DummyPackage(db=db, driver=driver, name="foo"),
+                DummyPackage(db=db, driver=driver, name="bar"),
+            ]
+        )
+
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        result = await manager.install_packages(
+            [
+                DummyPackage(db=db, driver=driver, name="foo"),
+                DummyPackage(db=db, driver=driver, name="bar", version="2"),
+            ]
+        )
+
+        assert self.package_names(result) == ["bar"]
+
     @pytest.mark.trio
     async def test_removes_orphans(self):
         db = DB(":memory:")
