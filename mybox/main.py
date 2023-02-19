@@ -37,7 +37,7 @@ async def main() -> int:
             f"{len(result.installed)} packages installed or updated: {', '.join(p.name for p in result.installed)}"
         )
     if result.failed:
-        print(f"Failed to install: {', '.join(p.name for p, _ in result.failed)}")
+        print(f"Failed: {', '.join(p.name for p, _ in result.failed)}")
 
     if not result.installed and not result.failed:
         print("Everything up to date.")
