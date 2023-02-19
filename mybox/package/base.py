@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from ..driver import Driver
-from ..parallel import gather
+from ..parallel import gather_
 from ..state import DB
 from ..utils import Some, async_cached, unsome_
 
@@ -48,7 +48,7 @@ class Package(metaclass=ABCMeta):
         pass
 
     async def is_installed(self) -> bool:
-        remote, local = await gather(self.remote_version, self.local_version)
+        remote, local = await gather_(self.remote_version, self.local_version)
         return remote == local
 
     @abstractmethod
