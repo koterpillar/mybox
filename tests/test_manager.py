@@ -7,11 +7,12 @@ import yaml
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
-from mybox.package import GitHubPackage
+from mybox.package.base import Package
+from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.tracked import Tracked, Tracker
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
-from mybox.utils import RunArg
+from mybox.utils import RunArg, Some, unsome
 
 
 class DummyDriver(Driver):
@@ -45,11 +46,22 @@ class DummyDriver(Driver):
 
 
 class DummyPackage(ManualVersion, Tracked):
-    def __init__(self, *, version: str = "1", name_: str, files: list[str], **kwargs):
+    files: list[str]
+
+    def __init__(
+        self,
+        *,
+        version: str = "1",
+        name: str,
+        files: Some[str] = None,
+        error: Optional[Exception] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.version = version
-        self.name_ = name_
-        self.files = files
+        self.name_ = name
+        self.files = unsome(files)
+        self.error = error
 
     @property
     def name(self) -> str:
@@ -59,12 +71,45 @@ class DummyPackage(ManualVersion, Tracked):
         return self.version
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
+        if self.error:
+            raise self.error
         for file in self.files:
             tracker.track(Path(file))
         await super().install_tracked(tracker=tracker)
 
 
 class TestManager:
+    @classmethod
+    def package_names(cls, packages: list[Package]) -> list[str]:
+        return [package.name for package in packages]
+
+    @pytest.mark.trio
+    async def test_returns_installed(self):
+        db = DB(":memory:")
+
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        await manager.install_packages(
+            [
+                DummyPackage(db=db, driver=driver, name="foo"),
+                DummyPackage(db=db, driver=driver, name="bar"),
+            ]
+        )
+
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        result = await manager.install_packages(
+            [
+                DummyPackage(db=db, driver=driver, name="foo"),
+                DummyPackage(db=db, driver=driver, name="bar", version="2"),
+            ]
+        )
+
+        assert not result.failed
+        assert self.package_names(result.installed) == ["bar"]
+
     @pytest.mark.trio
     async def test_removes_orphans(self):
         db = DB(":memory:")
@@ -77,10 +122,10 @@ class TestManager:
         await manager.install_packages(
             [
                 DummyPackage(
-                    db=db, driver=driver, name_="foo", files=["/shared", "/foo"]
+                    db=db, driver=driver, name="foo", files=["/shared", "/foo"]
                 ),
                 DummyPackage(
-                    db=db, driver=driver, name_="bar", files=["/shared", "/bar"]
+                    db=db, driver=driver, name="bar", files=["/shared", "/bar"]
                 ),
             ]
         )
@@ -94,7 +139,7 @@ class TestManager:
                 DummyPackage(
                     db=db,
                     driver=driver,
-                    name_="foo",
+                    name="foo",
                     files=["/shared", "/foo", "/baz"],
                     version="2",
                 )
@@ -117,6 +162,32 @@ class TestManager:
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
         assert ["rm", "-r", "-f", "/shared"] not in driver.commands
+
+    @pytest.mark.trio
+    async def test_collects_errors(self):
+        db = DB(":memory:")
+
+        driver = DummyDriver()
+        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+
+        result = await manager.install_packages(
+            [
+                DummyPackage(db=db, driver=driver, name="good1"),
+                DummyPackage(db=db, driver=driver, name="good2"),
+                DummyPackage(
+                    db=db, driver=driver, name="bad1", error=Exception("exc1")
+                ),
+                DummyPackage(
+                    db=db, driver=driver, name="bad2", error=Exception("exc2")
+                ),
+            ]
+        )
+
+        assert self.package_names(result.installed) == ["good1", "good2"]
+        assert [f"{package.name}: {error}" for package, error in result.failed] == [
+            "bad1: exc1",
+            "bad2: exc2",
+        ]
 
     def test_parses_packages(self):
         with tempfile.TemporaryDirectory() as tmpdir:

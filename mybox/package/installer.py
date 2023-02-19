@@ -166,7 +166,7 @@ class DNF(PackageCacheInstaller):
                 raise ValueError(f"Multiple versions for {package}: {versions}.")
             if len(versions) == 0:
                 raise ValueError(f"No versions for {package}.")
-            (version,) = versions.values()
+            (version,) = versions.values()  # pylint:disable=unbalanced-dict-unpacking
             return {package: version}
 
         return versions

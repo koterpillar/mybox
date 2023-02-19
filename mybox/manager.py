@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -5,8 +6,15 @@ import yaml
 
 from .driver import Driver
 from .package import Package, parse_package
+from .parallel import PartialException, PartialResults, parallel_map_tqdm
 from .state import DB, INSTALLED_FILES, VERSIONS
-from .utils import flatten, parallel_map_tqdm
+from .utils import flatten
+
+
+@dataclass
+class InstallResult:
+    installed: list[Package]
+    failed: list[tuple[Package, BaseException]]
 
 
 class Manager:
@@ -59,14 +67,26 @@ class Manager:
             if package not in package_names:
                 versions.delete(id=package)
 
-    async def install(self, components: frozenset[str]) -> list[Package]:
+    async def install(self, components: frozenset[str]) -> InstallResult:
         packages = self.load_components(components)
 
         return await self.install_packages(packages)
 
-    async def install_packages(self, packages: list[Package]) -> list[Package]:
-        results = await parallel_map_tqdm(self.process_and_record, packages)
+    async def install_packages(self, packages: list[Package]) -> InstallResult:
+        try:
+            results = await parallel_map_tqdm(self.process_and_record, packages)
 
-        await self.cleanup(packages)
+            await self.cleanup(packages)
 
-        return list(filter(None, results))
+            return InstallResult(installed=list(filter(None, results)), failed=[])
+        except PartialResults as e:
+            installed: list[Package] = []
+            failed: list[tuple[Package, BaseException]] = []
+
+            for package, result in zip(packages, e.results):
+                if isinstance(result, PartialException):
+                    failed.append((package, result.exception))
+                elif result.result:
+                    installed.append(result.result)
+
+            return InstallResult(installed=installed, failed=failed)

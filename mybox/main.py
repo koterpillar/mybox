@@ -1,4 +1,5 @@
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -20,7 +21,7 @@ def parse_args(args: Optional[list[str]] = None) -> Args:
     return Args.from_argparse(result.parse_args(args))
 
 
-async def main():
+async def main() -> int:
     args = parse_args()
 
     db = DB(DB_PATH)
@@ -29,15 +30,20 @@ async def main():
 
     components: frozenset[str] = frozenset(args.component) | {"base"}
 
-    installed = await manager.install(components)
+    result = await manager.install(components)
 
-    if installed:
+    if result.installed:
         print(
-            f"{len(installed)} packages installed or updated: {', '.join(p.name for p in installed)}"
+            f"{len(result.installed)} packages installed or updated: {', '.join(p.name for p in result.installed)}"
         )
-    else:
+    if result.failed:
+        print(f"Failed to install: {', '.join(p.name for p, _ in result.failed)}")
+
+    if not result.installed and not result.failed:
         print("Everything up to date.")
 
+    return len(result.failed)
 
-def sync_main():
-    trio.run(main)
+
+def sync_main() -> None:
+    sys.exit(trio.run(main))
