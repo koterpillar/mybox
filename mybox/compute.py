@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any
 
 import requests
-from bs4 import BeautifulSoup  # type: ignore
+from bs4 import BeautifulSoup
 from jsonpath_ng import parse as jsonpath_parse  # type: ignore
 
 from .filters import Filters, choose

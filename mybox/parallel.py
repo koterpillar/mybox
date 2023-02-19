@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Awaitable, Callable, Generic, Union
 
-import tqdm  # type: ignore
+import tqdm
 import trio
 
 from .utils import TERMINAL_LOCK, T, U, raise_
