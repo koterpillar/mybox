@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from functools import partial
-from typing import Awaitable, Callable, Generic, Literal, TypedDict, Union
+from typing import Awaitable, Callable, Generic, Union
 
 import tqdm  # type: ignore
 import trio
@@ -7,13 +8,13 @@ import trio
 from .utils import TERMINAL_LOCK, T, U, raise_
 
 
-class PartialSuccess(TypedDict, Generic[T]):
-    tag: Literal["success"]
+@dataclass
+class PartialSuccess(Generic[T]):
     result: T
 
 
-class PartialException(TypedDict):
-    tag: Literal["exception"]
+@dataclass
+class PartialException:
     exception: BaseException
 
 
@@ -46,9 +47,9 @@ async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[PartialResult[T]]:
         results: dict[int, PartialResult[T]],
     ):
         try:
-            results[index] = {"tag": "success", "result": await task()}
+            results[index] = PartialSuccess(result=await task())
         except BaseException as e:  # pylint:disable=broad-exception-caught
-            results[index] = {"tag": "exception", "exception": e}
+            results[index] = PartialException(exception=e)
 
     results: dict[int, PartialResult[T]] = {}
 
@@ -62,8 +63,8 @@ async def gather_(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
     partial_results = await gather(*tasks)
 
     return [
-        result["result"]
-        if result["tag"] == "success"
+        result.result
+        if isinstance(result, PartialSuccess)
         else raise_(PartialResults(partial_results))
         for result in partial_results
     ]
