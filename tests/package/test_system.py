@@ -37,6 +37,25 @@ class TestRPMFusion(PackageTestBase):
             pytest.skip("This test is only applicable on Fedora.")
 
 
+class TestInteractiveDeb(PackageTestBase):
+    affects_system = True
+
+    async def constructor_args(self) -> PackageArgs:
+        return {"name": "tzdata"}
+
+    async def check_installed_command(self):
+        return ["head", "/usr/share/doc/tzdata/copyright"]
+
+    check_installed_output = "Time Zone"
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch_(
+            linux=lambda os: os.distribution in ("debian", "ubuntu"), macos=False
+        ):
+            pytest.skip("This test is only applicable on Fedora.")
+
+
 class TestVirtualPackage(PackageTestBase):
     affects_system = True
 
