@@ -239,7 +239,9 @@ class DNF(PackageCacheInstaller):
 
 class Apt(Installer):
     async def install(self, package: str) -> None:
-        await self.driver.with_root(True).run("apt", "install", "--yes", package)
+        await self.driver.with_root(True).run(
+            "env", "DEBIAN_FRONTEND=noninteractive", "apt", "install", "--yes", package
+        )
 
     async def upgrade(self, package: str) -> None:
         await self.install(package)
