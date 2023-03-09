@@ -47,9 +47,6 @@ def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
     return result
 
 
-TERMINAL_LOCK = trio.Lock()
-
-
 RunArg = Union[str, Path]
 
 

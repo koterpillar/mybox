@@ -54,6 +54,6 @@ class Shell(Root):
                 "tee", "-a", SHELLS_FILE, input=str(self.shell).encode()
             )
 
-        await self.driver.run("chsh", "-s", self.shell)
+        await self.driver.run("chsh", "-s", self.shell, show_output=True)
 
         await super().install()

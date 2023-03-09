@@ -1,11 +1,12 @@
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Awaitable, Callable, Generic, Union
+from typing import AsyncIterator, Awaitable, Callable, Generic, Optional, Union
 
 import tqdm
 import trio
 
-from .utils import TERMINAL_LOCK, T, U, raise_
+from .utils import T, U, raise_
 
 
 @dataclass
@@ -26,18 +27,43 @@ class PartialResults(Exception, Generic[T]):
         self.results = results
 
 
+TERMINAL_LOCK = trio.Lock()
+
+CURRENT_TQDM: Optional[tqdm.tqdm] = None
+
+
 async def parallel_map_tqdm(
     action: Callable[[T], Awaitable[U]], items: list[T]
 ) -> list[U]:
     with tqdm.tqdm(total=len(items)) as progress:
+        global CURRENT_TQDM  # pylint:disable=global-statement
+        async with TERMINAL_LOCK:
+            CURRENT_TQDM = progress
+        try:
 
-        async def action_and_update(item: T) -> U:
-            result = await action(item)
+            async def action_and_update(item: T) -> U:
+                result = await action(item)
+                async with TERMINAL_LOCK:
+                    progress.update(1)
+                return result
+
+            return await gather_(*(partial(action_and_update, item) for item in items))
+        finally:
             async with TERMINAL_LOCK:
-                progress.update(1)
-            return result
+                CURRENT_TQDM = None
 
-        return await gather_(*(partial(action_and_update, item) for item in items))
+
+@asynccontextmanager
+async def parallel_map_pause() -> AsyncIterator[None]:
+    async with TERMINAL_LOCK:
+        progress = CURRENT_TQDM
+        if progress:
+            progress.clear()
+        try:
+            yield
+        finally:
+            if progress:
+                progress.refresh()
 
 
 async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[PartialResult[T]]:

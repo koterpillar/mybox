@@ -28,6 +28,7 @@ class DummyDriver(Driver):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
+        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
         output = ""

@@ -1,14 +1,23 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
+from typing import (
+    Any,
+    AsyncContextManager,
+    AsyncIterator,
+    Callable,
+    Iterable,
+    Optional,
+    cast,
+)
 
 from trio import run_process
 
-from .utils import TERMINAL_LOCK, RunArg, Some, T, async_cached, intercalate, unsome
+from .parallel import parallel_map_pause
+from .utils import RunArg, Some, T, async_cached, intercalate, unsome
 
 
 class OS(metaclass=ABCMeta):
@@ -73,6 +82,7 @@ class Driver(metaclass=ABCMeta):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
+        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
         pass
@@ -81,9 +91,10 @@ class Driver(metaclass=ABCMeta):
         self,
         *args: RunArg,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
+        show_output: bool = False,
         silent: bool = False,
     ) -> None:
-        await self.run_(*args, input=input, silent=silent)
+        await self.run_(*args, input=input, show_output=show_output, silent=silent)
 
     async def run_ok(self, *args: RunArg) -> bool:
         result = await self.run_(*args, check=False)
@@ -215,8 +226,14 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
+        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
+        if capture_output and show_output:
+            raise ValueError(
+                "Cannot use capture_output and show_output at the same time."
+            )
+
         command = self.prepare_command(args)
 
         if not check or silent:
@@ -224,14 +241,22 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         else:
             stderr = None
 
-        result = await run_process(
-            command,
-            check=check,
-            stdin=input,
-            capture_stdout=True,
-            stderr=stderr,
-            **self.run_args(),
-        )
+        # https://github.com/python/mypy/issues/5512
+        cm: AsyncContextManager
+        if show_output:
+            cm = parallel_map_pause()
+        else:
+            # Should be nullcontext, but it is not async-enabled in Python 3.9.
+            cm = AsyncExitStack()
+        async with cm:
+            result = await run_process(
+                command,
+                check=check,
+                stdin=input,
+                capture_stdout=not show_output,
+                stderr=stderr,
+                **self.run_args(),
+            )
 
         ok = result.returncode == 0
         if capture_output:
@@ -274,17 +299,18 @@ class LocalDriver(SubprocessDriver):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
+        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
         if args and args[0] == "sudo":
-            # If the sudo prompt is needed, avoid drawing a progress bar over it
-            # by authenticating the user first.
-            async with TERMINAL_LOCK:
-                await super().run("sudo", "-v")
+            # If the sudo prompt is needed, authenticate the user first while
+            # showing the prompt.
+            await super().run("sudo", "-v", show_output=True)
         return await super().run_(
             *args,
             check=check,
             input=input,
             capture_output=capture_output,
+            show_output=show_output,
             silent=silent,
         )
