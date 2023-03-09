@@ -1,10 +1,18 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
-from contextlib import asynccontextmanager, nullcontext
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
+from typing import (
+    Any,
+    AsyncContextManager,
+    AsyncIterator,
+    Callable,
+    Iterable,
+    Optional,
+    cast,
+)
 
 from trio import run_process
 
@@ -233,7 +241,14 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         else:
             stderr = None
 
-        async with parallel_map_pause() if show_output else nullcontext():
+        # https://github.com/python/mypy/issues/5512
+        cm: AsyncContextManager
+        if show_output:
+            cm = parallel_map_pause()
+        else:
+            # Should be nullcontext, but it is not async-enabled in Python 3.9.
+            cm = AsyncExitStack()
+        async with cm:
             result = await run_process(
                 command,
                 check=check,
