@@ -9,7 +9,8 @@ class TestExpress(PackageTestBase):
 
     prerequisites = [
         *PackageTestBase.NODE,
-        {"name": "npm", "os": "linux"},
+        {"name": "npm", "os": "linux", "distribution": ["debian", "ubuntu"]},
+        {"name": "nodejs-npm", "os": "linux", "distribution": ["fedora"]},
     ]
 
     async def check_installed_command(self):
