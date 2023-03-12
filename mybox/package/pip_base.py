@@ -56,12 +56,3 @@ class PipBasePackage(Package, metaclass=ABCMeta):
             return version
 
         raise Exception(f"Cannot find latest version of package '{self.package}'.")
-
-    @abstractmethod
-    def cmd(self, cmd: str, /, *args: str) -> list[str]:
-        pass
-
-    async def install(self) -> None:
-        cmd = "install" if await self.local_version() is None else "upgrade"
-        await self.driver.run(*self.cmd(cmd, self.package))
-        await super().install()
