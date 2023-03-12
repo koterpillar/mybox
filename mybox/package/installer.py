@@ -159,9 +159,11 @@ class DNF(PackageCacheInstaller):
             versions[name] = version
 
         if package is not None:
+            if package in versions:
+                return {package: versions[package]}
             # If querying for a specific package, the name might be different
             # because of virtual packages and --whatprovides option.
-            # Assume the only version and extract it.
+            # If there's no package with exact name, require a single match.
             if len(versions) > 1:
                 raise ValueError(f"Multiple versions for {package}: {versions}.")
             if len(versions) == 0:
