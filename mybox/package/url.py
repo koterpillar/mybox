@@ -16,12 +16,10 @@ class URLPackage(ArchivePackage):
         while True:
             if len(parts) == 0:
                 raise ValueError(f"Cannot parse package name from {self.url}.")
-            elif parts[0] in ("", "https:"):
+            if parts[0] in ("", "https:", "github.com"):
                 parts.pop(0)
-            elif parts[0] == "github.com":
-                return "/".join(parts[1:2])
-            else:
-                return parts[0]
+                continue
+            return "/".join(parts[1:2])
 
     async def get_remote_version(self) -> str:
         return url_version(self.url)
