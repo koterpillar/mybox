@@ -22,3 +22,4 @@ poetry run isort $ISORT_ARGS $PYTHON
 poetry run black $BLACK_ARGS $PYTHON
 poetry run mypy $PYTHON
 poetry run pylint $PYTHON
+poetry run fawltydeps

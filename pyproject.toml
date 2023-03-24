@@ -21,6 +21,7 @@ beautifulsoup4 = "^4.11.2"
 black = "^23.1.0"
 coverage = {extras = ["toml"], version = "^6.5.0"}
 coveralls = "^3.3.1"
+fawltydeps = "^0.7.1"
 isort = "^5.12.0"
 mypy = "^1.0.1"
 pylint = "^2.16.2"
@@ -67,6 +68,24 @@ disable = [
 
 [tool.pylint.reports]
 output-format = "colorized"
+
+[tool.fawltydeps]
+ignore_undeclared = ["_typeshed"]
+ignore_unused = [
+    "black",
+    "coverage",
+    "coveralls",
+    "fawltydeps",
+    "isort",
+    "mypy",
+    "pylint",
+    "pytest-trio",
+    "trio-typing",
+    "types-PyYAML",
+    "types-beautifulsoup4",
+    "types-requests",
+    "types-tqdm",
+]
 
 [tool.pytest.ini_options]
 trio_mode = true
