@@ -1,34 +1,28 @@
 import re
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable
 
+from pydantic import Field
+
 from ..configparser import DesktopEntry
-from ..utils import Some, unsome
+from ..utils import allow_singular_none
 from .manual_version import ManualVersion
 from .root import Root
 from .tracked import Tracked, Tracker
 
 
-class ManualPackage(Root, ManualVersion, Tracked, metaclass=ABCMeta):
-    binaries: list[str]
-    apps: list[str]
-    fonts: list[str]
+class ManualPackage(Root, ManualVersion, Tracked, ABC):
+    binaries: list[str] = Field(default_factory=list, alias="binary")
+    binaries_val = allow_singular_none("binaries")
 
-    def __init__(
-        self,
-        *,
-        binary: Some[str] = None,
-        binary_wrapper: bool = False,
-        app: Some[str] = None,
-        font: Some[str] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.binaries = unsome(binary)
-        self.binary_wrapper = binary_wrapper
-        self.apps = unsome(app)
-        self.fonts = unsome(font)
+    binary_wrapper: bool = False
+
+    apps: list[str] = Field(default_factory=list, alias="app")
+    apps_val = allow_singular_none("apps")
+
+    fonts: list[str] = Field(default_factory=list, alias="font")
+    fonts_val = allow_singular_none("fonts")
 
     @abstractmethod
     async def binary_path(self, binary: str) -> Path:

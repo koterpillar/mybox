@@ -53,9 +53,7 @@ class GitHubRelease:
 
 
 class GitHubPackage(ArchivePackage, Filters):
-    def __init__(self, *, repo: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.repo = repo
+    repo: str
 
     @async_cached
     async def latest_release(self) -> GitHubRelease:

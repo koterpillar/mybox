@@ -66,6 +66,7 @@ disable = [
     "no-else-return",
     "unspecified-encoding",
 ]
+extension-pkg-whitelist = "pydantic"
 
 [tool.pylint.reports]
 output-format = "colorized"

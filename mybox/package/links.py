@@ -1,27 +1,26 @@
 import hashlib
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Optional
 
-from ..utils import Some, unsome_
+from pydantic import Field, validator
+
+from ..utils import allow_singular
 from .destination import Destination
 from .manual_version import ManualVersion
 from .tracked import Tracked, Tracker
 
 
 class Links(ManualVersion, Destination, Tracked):
-    def __init__(
-        self,
-        links: str,
-        dot: bool = False,
-        shallow: bool = False,
-        only: Some[str] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.source = Path(links).absolute()
-        self.dot = dot
-        self.shallow = shallow
-        self.only = unsome_(only)
+    source: Path = Field(..., alias="links")
+
+    @validator("source")
+    def source_absolute(cls, value):  # pylint:disable=no-self-argument
+        return Path(value).absolute()
+
+    dot: bool = False
+    shallow: bool = False
+    only: Optional[list[str]] = None
+    only_val = allow_singular("only")
 
     @property
     def name(self) -> str:

@@ -1,14 +1,14 @@
-from abc import ABCMeta
+from abc import ABC
 from pathlib import Path
+
+from pydantic import Field
 
 from ..utils import async_cached
 from .root import Root
 
 
-class Destination(Root, metaclass=ABCMeta):
-    def __init__(self, destination: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.destination_ = destination
+class Destination(Root, ABC):
+    destination_: Path = Field(..., alias="destination")
 
     @async_cached
     async def destination(self) -> Path:

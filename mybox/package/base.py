@@ -1,30 +1,29 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 from ..driver import Driver
 from ..parallel import gather_
 from ..state import DB
-from ..utils import Some, async_cached, unsome_
+from ..utils import allow_singular, async_cached
 
 
-class Package(metaclass=ABCMeta):
-    os: Optional[list[str]]
-    distribution: Optional[list[str]]
+class Package(BaseModel, ABC):
+    class Config:
+        frozen = True
+        arbitrary_types_allowed = True
+        keep_untouched = (cached_property,)
 
-    def __init__(
-        self,
-        *,
-        db: DB,
-        driver: Driver,
-        os: Some[str] = None,
-        distribution: Some[str] = None,
-        **kwargs
-    ) -> None:
-        self.db = db
-        self.driver_ = driver
-        self.os = unsome_(os)
-        self.distribution = unsome_(distribution)
-        super().__init__(**kwargs)
+    os: Optional[list[str]] = None
+    os_val = allow_singular("os")
+
+    distribution: Optional[list[str]] = None
+    distribution_val = allow_singular("distribution")
+
+    db: DB
+    driver_: Driver = Field(..., alias="driver")
 
     @property
     def driver(self) -> Driver:

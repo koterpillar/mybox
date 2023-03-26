@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,7 +21,7 @@ class Tracker:
                 self.storage.append(installed)
 
 
-class Tracked(Package, metaclass=ABCMeta):
+class Tracked(Package, ABC):
     @abstractmethod
     async def install_tracked(self, *, tracker: Tracker) -> None:
         pass

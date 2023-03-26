@@ -1,12 +1,16 @@
 import json
 
+from pydantic import Field, validator
+
 from .pip_base import PIP, PipBasePackage
 
 
 class PipPackage(PipBasePackage):
-    def __init__(self, *, pip: str, **kwargs) -> None:
-        self.package = pip.lower()
-        super().__init__(**kwargs)
+    package: str = Field(..., alias="pip")
+
+    @validator("package")
+    def package_to_lower(cls, value: str) -> str:  # pylint: disable=no-self-argument
+        return value.lower()
 
     async def get_all_versions(self) -> dict[str, str]:
         packages_json = await self.driver.run_output(

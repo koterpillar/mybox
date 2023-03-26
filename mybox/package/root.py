@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABC
 from functools import cached_property
 from pathlib import Path
 
@@ -7,12 +7,8 @@ from ..utils import async_cached
 from .base import Package
 
 
-class Root(Package, metaclass=ABCMeta):
-    root: bool
-
-    def __init__(self, root: bool = False, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.root = root
+class Root(Package, ABC):
+    root: bool = False
 
     @cached_property
     def driver(self) -> Driver:

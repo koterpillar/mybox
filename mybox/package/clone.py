@@ -1,14 +1,14 @@
 from typing import Optional
 
+from pydantic import Field
+
 from ..utils import RunArg, async_cached, run_output
 from .destination import Destination
 from .tracked import Tracked, Tracker
 
 
 class Clone(Destination, Tracked):
-    def __init__(self, clone: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.repo = clone
+    repo: str = Field(..., alias="clone")
 
     @property
     def name(self) -> str:

@@ -8,9 +8,7 @@ SHELLS_FILE = Path("/etc/shells")
 
 
 class Shell(Root):
-    def __init__(self, shell: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.shell = Path(shell)
+    shell: Path
 
     @property
     def name(self) -> str:
