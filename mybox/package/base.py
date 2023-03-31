@@ -12,9 +12,13 @@ from ..utils import allow_singular, async_cached
 
 class Package(BaseModel, ABC):
     class Config:
-        frozen = True
+        allow_mutation = False
         arbitrary_types_allowed = True
         keep_untouched = (cached_property,)
+
+    def __hash__(self) -> int:
+        """Allow hashing to pass when gathering async results."""
+        return hash(id(self))
 
     os: Optional[list[str]] = None
     os_val = allow_singular("os")
