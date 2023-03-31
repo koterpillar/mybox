@@ -4,6 +4,7 @@ from typing import Optional
 
 import pytest
 import yaml
+from pydantic import Field
 
 from mybox.driver import Driver, RunResult
 from mybox.manager import Manager
@@ -12,7 +13,7 @@ from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.tracked import Tracked, Tracker
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
-from mybox.utils import RunArg, Some, unsome
+from mybox.utils import RunArg, allow_singular_none
 
 
 class DummyDriver(Driver):
@@ -47,22 +48,12 @@ class DummyDriver(Driver):
 
 
 class DummyPackage(ManualVersion, Tracked):
-    files: list[str]
+    files: list[str] = Field(default_factory=list)
+    files_val = allow_singular_none("files")
 
-    def __init__(
-        self,
-        *,
-        version: str = "1",
-        name: str,
-        files: Some[str] = None,
-        error: Optional[Exception] = None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.version = version
-        self.name_ = name
-        self.files = unsome(files)
-        self.error = error
+    version: str = "1"
+    name_: str = Field(..., alias="name")
+    error: Optional[Exception] = None
 
     @property
     def name(self) -> str:
@@ -72,7 +63,7 @@ class DummyPackage(ManualVersion, Tracked):
         return self.version
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
-        if self.error:
+        if self.error is not None:
             raise self.error
         for file in self.files:
             tracker.track(Path(file))
