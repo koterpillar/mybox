@@ -4,9 +4,9 @@ from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
-from jsonpath_ng import Fields as JsonpathFields  # type: ignore
+from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng import parse as jsonpath_parse  # type: ignore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, validator
 
 from .filters import Filters, choose
 
@@ -64,9 +64,9 @@ class JSONPath(Derived, Filters):
     class Config:
         arbitrary_types_allowed = True
 
-    jsonpath: JsonpathFields = Field()
+    jsonpath: JSONPathT
 
-    @validator("jsonpath")
+    @validator("jsonpath", pre=True)
     def parse_jsonpath(cls, value):  # pylint:disable=no-self-argument
         return jsonpath_parse(value)
 
