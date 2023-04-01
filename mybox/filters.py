@@ -1,10 +1,12 @@
 import re
 from typing import Callable, Iterator
 
-from .utils import Some, T, unsome
+from pydantic import BaseModel, Field
+
+from .utils import T, allow_singular_none
 
 
-class Filters:
+class Filters(BaseModel):
     @staticmethod
     def includes_(substring: str) -> Callable[[str], bool]:
         return lambda x: substring in x.lower()
@@ -27,28 +29,20 @@ class Filters:
 
         return lambda x: regex_compiled.match(x) is not None
 
-    prefixes: list[str]
-    suffixes: list[str]
-    includes: list[str]
-    excludes: list[str]
-    regex: list[str]
+    prefixes: list[str] = Field(default_factory=list, alias="prefix")
+    prefixes_val = allow_singular_none("prefixes")
 
-    def __init__(
-        self,
-        *,
-        prefix: Some[str] = None,
-        suffix: Some[str] = None,
-        include: Some[str] = None,
-        exclude: Some[str] = None,
-        regex: Some[str] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.prefixes = unsome(prefix)
-        self.suffixes = unsome(suffix)
-        self.includes = unsome(include)
-        self.excludes = unsome(exclude)
-        self.regex = unsome(regex)
+    suffixes: list[str] = Field(default_factory=list, alias="suffix")
+    suffixes_val = allow_singular_none("suffixes")
+
+    includes: list[str] = Field(default_factory=list, alias="include")
+    includes_val = allow_singular_none("includes")
+
+    excludes: list[str] = Field(default_factory=list, alias="exclude")
+    excludes_val = allow_singular_none("excludes")
+
+    regex: list[str] = Field(default_factory=list)
+    regex_val = allow_singular_none("regex")
 
     def filters(self) -> Iterator[Callable[[str], bool]]:
         for prefix in self.prefixes:

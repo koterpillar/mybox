@@ -14,6 +14,7 @@ from typing import (
 
 import requests
 import trio
+from pydantic import validator
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -33,6 +34,14 @@ def unsome_(x: Some[T]) -> Optional[list[T]]:
 
 def unsome(x: Some[T]) -> list[T]:
     return unsome_(x) or []
+
+
+def allow_singular(field: str) -> Any:
+    return validator(field, pre=True, allow_reuse=True)(lambda cls, x: unsome_(x))
+
+
+def allow_singular_none(field: str) -> Any:
+    return validator(field, pre=True, allow_reuse=True)(lambda cls, x: unsome(x))
 
 
 def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:

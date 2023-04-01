@@ -49,7 +49,7 @@ class RemoveLinksTestBase(LinksTestBase):
 
         async def make_package() -> Links:
             return Links(
-                links=str(source),
+                links=source,
                 destination=await self.destination(),
                 db=db,
                 driver=self.driver,

@@ -1,14 +1,18 @@
 import json
 
+from pydantic import Field, validator
+
 from .pip_base import PipBasePackage
 
 PIPX = ["python3", "-m", "pipx"]
 
 
 class PipxPackage(PipBasePackage):
-    def __init__(self, *, pipx: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.package = pipx
+    package: str = Field(..., alias="pipx")
+
+    @validator("package")
+    def package_to_lower(cls, value: str) -> str:  # pylint: disable=no-self-argument
+        return value.lower()
 
     async def get_all_versions(self) -> dict[str, str]:
         pipx_list = json.loads(

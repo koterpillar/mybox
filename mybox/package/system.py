@@ -1,9 +1,10 @@
-from typing import Any, Optional
+from typing import Optional
 
 import trio
+from pydantic import Field
 
 from ..compute import Value
-from ..utils import Some, async_cached, unsome, url_version
+from ..utils import allow_singular_none, async_cached, url_version
 from .installer import make_installer
 from .manual_version import ManualVersion
 
@@ -11,27 +12,18 @@ INSTALLER_LOCK = trio.Lock()
 
 
 class SystemPackage(ManualVersion):
-    def __init__(
-        self,
-        *,
-        name: str,
-        url: Any = None,
-        auto_updates: bool = False,
-        service: Some[str] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self._name = name
-        self.url_ = Value.parse(url) if url else None
-        self.auto_updates = auto_updates
-        self.services = unsome(service)
+    name_: str = Field(..., alias="name")
+    url_: Optional[Value] = Field(default=None, alias="url")
+    auto_updates: bool = False
+    services: list[str] = Field(default_factory=list, alias="service")
+    services_val = allow_singular_none("services")
 
     async def installer(self):
         return await make_installer(self.driver)
 
     @property
     def name(self) -> str:
-        return self._name
+        return self.name_
 
     @async_cached
     async def url(self) -> Optional[str]:

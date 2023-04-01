@@ -6,6 +6,7 @@ import pytest
 
 from mybox.driver import LocalDriver
 from mybox.package import PipPackage
+from mybox.state import DB
 
 from .base import DOCKER, PackageArgs, PackageTestBase
 
@@ -16,11 +17,13 @@ class NoPypiPipPackage(PipPackage):
 
 
 async def _test_pip_version(pip_class: type[PipPackage]):
-    package = pip_class(pip="django", driver=LocalDriver(), db=None)
+    package = pip_class(pip="django", driver=LocalDriver(), db=DB(":memory:"))
     version = await package.get_remote_version()
     assert version >= "4.1.5"
 
-    non_existent = pip_class(pip="xxxxxxxxxxxx", driver=LocalDriver(), db=None)
+    non_existent = pip_class(
+        pip="xxxxxxxxxxxx", driver=LocalDriver(), db=DB(":memory:")
+    )
 
     with pytest.raises(Exception, match="Cannot find latest version"):
         await non_existent.get_remote_version()

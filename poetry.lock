@@ -795,7 +795,7 @@ files = [
 name = "pydantic"
 version = "1.10.7"
 description = "Data validation and settings management using python type hints"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1364,4 +1364,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "08010b04dcf83691b198b897e3125ed7803f47663e94b4702a1b020950ba9f77"
+content-hash = "71b3fd362511972edf004e4e64367bced22397f2a3cc22942f1769bcbd559ce3"

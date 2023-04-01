@@ -1,19 +1,25 @@
 import json
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
+from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng import parse as jsonpath_parse  # type: ignore
+from pydantic import BaseModel, validator
 
 from .filters import Filters, choose
 
 
-class Value(metaclass=ABCMeta):
+class Value(BaseModel, ABC):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.parse
+
     @staticmethod
     def parse(value: Any) -> "Value":
         if isinstance(value, str):
-            return Const(value)
+            return Const(value=value)
         if isinstance(value, dict):
             if base := value.pop("url", None):
                 return URL(base=base)
@@ -31,19 +37,14 @@ class Value(metaclass=ABCMeta):
 
 
 class Const(Value):
-    def __init__(self, value):
-        self.value_ = value
+    value: str
 
     async def compute(self):
-        return self.value_
+        return self.value
 
 
-class Derived(Value, metaclass=ABCMeta):
+class Derived(Value, ABC):
     base: Value
-
-    def __init__(self, *, base: Any, **kwargs):
-        self.base = Value.parse(base)
-        super().__init__(**kwargs)
 
     @abstractmethod
     async def derived_value(self, contents: str) -> str:
@@ -60,9 +61,14 @@ class URL(Derived):
 
 
 class JSONPath(Derived, Filters):
-    def __init__(self, *, jsonpath: str, **kwargs):
-        self.jsonpath = jsonpath_parse(jsonpath)
-        super().__init__(**kwargs)
+    class Config:
+        arbitrary_types_allowed = True
+
+    jsonpath: JSONPathT
+
+    @validator("jsonpath", pre=True)
+    def parse_jsonpath(cls, value):  # pylint:disable=no-self-argument
+        return jsonpath_parse(value)
 
     async def derived_value(self, contents: str) -> str:
         json_contents = json.loads(contents)
@@ -73,9 +79,7 @@ class JSONPath(Derived, Filters):
 
 
 class Format(Derived):
-    def __init__(self, *, format: str, **kwargs):  # pylint:disable=redefined-builtin
-        self.format = format
-        super().__init__(**kwargs)
+    format: str  # pylint:disable=redefined-builtin
 
     async def derived_value(self, contents: str) -> str:
         return self.format.format(contents)

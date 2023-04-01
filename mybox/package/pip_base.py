@@ -1,5 +1,5 @@
 import re
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional, cast
 
 import requests
@@ -9,7 +9,7 @@ from .base import Package
 PIP = ["python3", "-m", "pip"]
 
 
-class PipBasePackage(Package, metaclass=ABCMeta):
+class PipBasePackage(Package, ABC):
     package: str
 
     @property

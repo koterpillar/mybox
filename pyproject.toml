@@ -8,6 +8,7 @@ authors = ["Alexey Kotlyarov <a@koterpillar.com>"]
 license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
+pydantic = "^1.10.7"
 python = "^3.9"
 PyYAML = "^6.0"
 requests = "^2.28.2"
@@ -65,6 +66,7 @@ disable = [
     "no-else-return",
     "unspecified-encoding",
 ]
+extension-pkg-whitelist = "pydantic"
 
 [tool.pylint.reports]
 output-format = "colorized"

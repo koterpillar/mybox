@@ -1,19 +1,17 @@
 import hashlib
 from pathlib import Path
 
+from pydantic import Field
+
 from ..configparser import ConfigParser
 from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
 
 class YumRepo(ManualVersion):
-    def __init__(
-        self, yum_name: str, yum_url: str, gpg_key: Optional[str] = None, **kwargs
-    ) -> None:
-        super().__init__(**kwargs)
-        self.repo_name = yum_name
-        self.baseurl = yum_url
-        self.gpg_key = gpg_key
+    repo_name: str = Field(alias="yum_name")
+    baseurl: str = Field(alias="yum_url")
+    gpg_key: Optional[str] = None
 
     @property
     def name(self) -> str:

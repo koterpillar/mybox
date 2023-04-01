@@ -1,18 +1,19 @@
 import shlex
 
 import requests
+from pydantic import Field
 
-from ..utils import Some, unsome
+from ..utils import allow_singular_none
 from .manual_version import ManualVersion
 from .root import Root
 from .tracked import Tracked, Tracker
 
 
 class NpmPackage(Root, ManualVersion, Tracked):
-    def __init__(self, npm: str, binary: Some[str] = None, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.package = npm
-        self.binaries = unsome(binary)
+    package: str = Field(..., alias="npm")
+
+    binaries: list[str] = Field(default_factory=list, alias="binary")
+    binaries_val = allow_singular_none("binaries")
 
     @property
     def name(self) -> str:

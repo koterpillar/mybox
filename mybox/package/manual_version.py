@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABC
 from functools import cached_property
 from typing import Optional
 
@@ -6,7 +6,7 @@ from ..state import VERSIONS, Storage, Version
 from .base import Package
 
 
-class ManualVersion(Package, metaclass=ABCMeta):
+class ManualVersion(Package, ABC):
     @cached_property
     def versions(self) -> Storage[Version]:
         return VERSIONS(self.db)

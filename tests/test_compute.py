@@ -17,12 +17,12 @@ class TestParse:
     def test_static(self):
         value = self.parse_as(Const, "example")
 
-        assert value.value_ == "example"
+        assert value.value == "example"
 
     def test_url(self):
         value = self.parse_as(URL, {"url": "https://example.com"})
 
-        assert cast(Const, value.base).value_ == "https://example.com"
+        assert cast(Const, value.base).value == "https://example.com"
 
     def test_format(self):
         value = self.parse_as(Format, {"base": "foo", "format": r"bar {}"})
@@ -35,13 +35,13 @@ class TestParse:
             {"base": r"{'json': true}", "jsonpath": "foo[*].bar", "include": "nice"},
         )
 
-        assert cast(Const, value.base).value_ == r"{'json': true}"
+        assert cast(Const, value.base).value == r"{'json': true}"
         assert str(value.jsonpath) == "foo.[*].bar"
 
     def test_links(self):
         value = self.parse_as(HTMLLinks, {"links": r"<html></html>"})
 
-        assert cast(Const, value.base).value_ == r"<html></html>"
+        assert cast(Const, value.base).value == r"<html></html>"
 
     def test_errors(self):
         with pytest.raises(ValueError):

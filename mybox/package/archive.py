@@ -1,5 +1,5 @@
 import shlex
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union
 
@@ -9,19 +9,10 @@ from .manual import ManualPackage
 from .tracked import Tracker
 
 
-class ArchivePackage(ManualPackage, metaclass=ABCMeta):
-    def __init__(
-        self,
-        *,
-        raw: Union[bool, str] = False,
-        raw_executable: bool = False,
-        strip: int = 0,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.raw = raw
-        self.raw_executable = raw_executable
-        self.strip = strip
+class ArchivePackage(ManualPackage, ABC):
+    raw: Union[bool, str] = False
+    raw_executable: bool = False
+    strip: int = 0
 
     @abstractmethod
     async def archive_url(self) -> str:

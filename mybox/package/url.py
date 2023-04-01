@@ -3,9 +3,7 @@ from .archive import ArchivePackage
 
 
 class URLPackage(ArchivePackage):
-    def __init__(self, *, url: str, **kwargs) -> None:
-        self.url = url
-        super().__init__(**kwargs)
+    url: str
 
     async def archive_url(self) -> str:
         return self.url
