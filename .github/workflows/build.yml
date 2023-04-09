@@ -35,7 +35,7 @@ jobs:
       - name: Lint
         run: ./lint
       - name: Test
-        run: ./test
+        run: ./test-script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
