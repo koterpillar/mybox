@@ -2,6 +2,7 @@ module State
   ( field
   , toRow
   , Connection
+  , Only(..)
   , Storable(..)
   , SQLiteTable
   , storeGet
