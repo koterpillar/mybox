@@ -1,0 +1,67 @@
+name: mybox
+version: 0.8.0
+github: "koterpillar/mybox"
+license: BSD3
+author: "Alexey Kotlyarov"
+maintainer: "a@koterpillar.com"
+
+extra-source-files:
+  - README.md
+
+description: Please see the README on GitHub at <https://github.com/koterpillar/mybox#readme>
+
+default-extensions:
+  - FlexibleInstances
+  - FunctionalDependencies
+  - LambdaCase
+  - MultiParamTypeClasses
+  - OverloadedStrings
+  - QuasiQuotes
+  - RankNTypes
+  - ScopedTypeVariables
+  - TypeApplications
+
+dependencies:
+  - base >= 4.7 && < 5
+  - sqlite-simple
+  - text
+  - unliftio
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-export-lists
+  - -Wmissing-home-modules
+  - -Wpartial-fields
+  - -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  mybox-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - mybox
+
+tests:
+  mybox-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - hspec
+      - temporary
+      - mybox
+    build-tools: hspec-discover:hspec-discover == 2.*
