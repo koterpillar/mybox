@@ -39,3 +39,38 @@ spec = do
           table <- widgetsTable db
           widget <- storeGet "widget1" table
           widget `shouldBe` Just (Widget "red" 10)
+      it "retrieves Nothing for a non-existent key" $ \file -> do
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          widget <- storeGet "widget1" table
+          widget `shouldBe` Nothing
+      it "finds items" $ \file -> do
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          storePut "widget1" (Widget "red" 10) table
+          storePut "widget2" (Widget "blue" 20) table
+          storePut "widget3" (Widget "red" 30) table
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          items <- storeFind_ [("color", "red")] table
+          items `shouldBe` [Widget "red" 10, Widget "red" 30]
+      it "appends items" $ \file -> do
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          _ <- storeAppend (Widget "red" 10) table
+          pure ()
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          items <- storeFind_ [] table
+          items `shouldBe` [Widget "red" 10]
+      it "deletes items" $ \file -> do
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          storePut "widget1" (Widget "red" 10) table
+          storePut "widget2" (Widget "blue" 20) table
+          storePut "widget3" (Widget "red" 30) table
+        withSqliteDB file $ \db -> do
+          table <- widgetsTable db
+          storeDelete [("color", "red")] table
+          items <- storeFind_ [] table
+          items `shouldBe` [Widget "blue" 20]
