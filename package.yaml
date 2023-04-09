@@ -26,6 +26,7 @@ dependencies:
   - sqlite-simple
   - text
   - unliftio
+  - uuid
 
 ghc-options:
   - -Wall

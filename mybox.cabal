@@ -46,6 +46,7 @@ library
     , sqlite-simple
     , text
     , unliftio
+    , uuid
   default-language: Haskell2010
 
 executable mybox-exe
@@ -71,6 +72,7 @@ executable mybox-exe
     , sqlite-simple
     , text
     , unliftio
+    , uuid
   default-language: Haskell2010
 
 test-suite mybox-test
@@ -102,4 +104,5 @@ test-suite mybox-test
     , temporary
     , text
     , unliftio
+    , uuid
   default-language: Haskell2010
