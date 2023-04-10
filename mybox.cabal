@@ -22,6 +22,7 @@ source-repository head
 
 library
   exposed-modules:
+      Driver
       Lib
       State
       State.InstalledFile
@@ -38,13 +39,16 @@ library
       OverloadedStrings
       QuasiQuotes
       RankNTypes
+      RecordWildCards
       ScopedTypeVariables
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , sqlite-simple
     , text
+    , typed-process
     , unliftio
     , uuid
   default-language: Haskell2010
@@ -63,14 +67,17 @@ executable mybox-exe
       OverloadedStrings
       QuasiQuotes
       RankNTypes
+      RecordWildCards
       ScopedTypeVariables
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , mybox
     , sqlite-simple
     , text
+    , typed-process
     , unliftio
     , uuid
   default-language: Haskell2010
@@ -79,6 +86,7 @@ test-suite mybox-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      DriverSpec
       StateSpec
       Paths_mybox
   hs-source-dirs:
@@ -91,6 +99,7 @@ test-suite mybox-test
       OverloadedStrings
       QuasiQuotes
       RankNTypes
+      RecordWildCards
       ScopedTypeVariables
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
@@ -98,11 +107,13 @@ test-suite mybox-test
       hspec-discover:hspec-discover ==2.*
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , hspec
     , mybox
     , sqlite-simple
     , temporary
     , text
+    , typed-process
     , unliftio
     , uuid
   default-language: Haskell2010

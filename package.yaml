@@ -18,13 +18,16 @@ default-extensions:
   - OverloadedStrings
   - QuasiQuotes
   - RankNTypes
+  - RecordWildCards
   - ScopedTypeVariables
   - TypeApplications
 
 dependencies:
   - base >= 4.7 && < 5
+  - bytestring
   - sqlite-simple
   - text
+  - typed-process
   - unliftio
   - uuid
 
