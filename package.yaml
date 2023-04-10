@@ -66,6 +66,7 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - hspec
+      - silently
       - temporary
       - mybox
     build-tools: hspec-discover:hspec-discover == 2.*

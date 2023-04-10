@@ -110,6 +110,7 @@ test-suite mybox-test
     , bytestring
     , hspec
     , mybox
+    , silently
     , sqlite-simple
     , temporary
     , text

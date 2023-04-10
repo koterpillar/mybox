@@ -2,20 +2,26 @@ module Driver
   ( Driver
   , drvRoot
   , drvWithRoot
+  , drvRun
   , drvRunOK
   , drvRunOutput
+  , RunException(..)
   , drvLocal
   , NonEmpty(..)
   ) where
 
-import qualified Data.ByteString.Lazy as LBS
+import           Control.Exception.Base
 
-import           Data.List.NonEmpty   (NonEmpty (..))
-import qualified Data.List.NonEmpty   as NonEmpty
+import           Control.Monad          (void, when)
 
-import           Data.Text            (Text)
-import qualified Data.Text            as Text
-import qualified Data.Text.Encoding   as Text
+import qualified Data.ByteString.Lazy   as LBS
+
+import           Data.List.NonEmpty     (NonEmpty (..))
+import qualified Data.List.NonEmpty     as NonEmpty
+
+import           Data.Text              (Text)
+import qualified Data.Text              as Text
+import qualified Data.Text.Encoding     as Text
 
 import           System.Process.Typed
 
@@ -53,20 +59,23 @@ data Driver =
     , drvRoot :: Bool
     }
 
-drvRun :: Driver -> RunOptions -> IO RunResult
-drvRun Driver {..} = drvRun_ drvRoot
-
 drvWithRoot :: Bool -> Driver -> Driver
 drvWithRoot root driver = driver {drvRoot = root}
 
+drvRunO :: Driver -> RunOptions -> IO RunResult
+drvRunO Driver {..} = drvRun_ drvRoot
+
+drvRun :: NonEmpty Text -> Driver -> IO ()
+drvRun args driver = void $ drvRunO driver $ roDefaults args
+
 drvRunOK :: NonEmpty Text -> Driver -> IO Bool
-drvRunOK args driver = runOK <$> drvRun driver ro
+drvRunOK args driver = runOK <$> drvRunO driver ro
   where
-    ro = roDefaults args
+    ro = (roDefaults args) {roCheck = False}
 
 drvRunOutput :: NonEmpty Text -> Driver -> IO Text
 drvRunOutput args driver = do
-  result <- drvRun driver ro
+  result <- drvRunO driver ro
   case runOutput result of
     Nothing     -> error "drvRunOutput: no output"
     Just output -> return output
@@ -80,14 +89,24 @@ drvLocalRun :: Bool -> RunOptions -> IO RunResult
 drvLocalRun False = drvProcessRun
 drvLocalRun True  = drvProcessRun . roPrependArgs ["sudo"]
 
+newtype RunException =
+  RunException (NonEmpty Text)
+  deriving (Eq, Show)
+
+instance Exception RunException
+
 drvProcessRun :: RunOptions -> IO RunResult
-drvProcessRun ro@RunOptions {..} =
-  if roCaptureOutput
-    then do
-      (exitCode, out, _) <- readProcess $ roProc ro
-      let output = Text.strip $ Text.decodeUtf8 $ LBS.toStrict out
-      pure $
-        RunResult {runOK = exitCode == ExitSuccess, runOutput = Just output}
-    else do
-      exitCode <- runProcess $ roProc ro
-      pure $ RunResult {runOK = exitCode == ExitSuccess, runOutput = Nothing}
+drvProcessRun ro@RunOptions {..} = do
+  let p = roProc ro
+  result <-
+    if roCaptureOutput
+      then do
+        (exitCode, out, _) <- readProcess p
+        let output = Text.strip $ Text.decodeUtf8 $ LBS.toStrict out
+        pure $
+          RunResult {runOK = exitCode == ExitSuccess, runOutput = Just output}
+      else do
+        exitCode <- runProcess p
+        pure $ RunResult {runOK = exitCode == ExitSuccess, runOutput = Nothing}
+  when (roCheck && not (runOK result)) $ throw $ RunException roArgs
+  pure result
