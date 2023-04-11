@@ -16,6 +16,8 @@ import           Control.Monad          (void, when)
 
 import qualified Data.ByteString.Lazy   as LBS
 
+import           Data.Function          ((&))
+
 import           Data.List.NonEmpty     (NonEmpty (..))
 import qualified Data.List.NonEmpty     as NonEmpty
 
@@ -97,7 +99,11 @@ instance Exception RunException
 
 drvProcessRun :: RunOptions -> IO RunResult
 drvProcessRun ro@RunOptions {..} = do
-  let p = roProc ro
+  let p =
+        roProc ro & setStdin nullStream &
+        (if roSilent
+           then setStderr nullStream
+           else id)
   result <-
     if roCaptureOutput
       then do
@@ -106,7 +112,7 @@ drvProcessRun ro@RunOptions {..} = do
         pure $
           RunResult {runOK = exitCode == ExitSuccess, runOutput = Just output}
       else do
-        exitCode <- runProcess p
+        exitCode <- runProcess (p & setStdout nullStream)
         pure $ RunResult {runOK = exitCode == ExitSuccess, runOutput = Nothing}
   when (roCheck && not (runOK result)) $ throw $ RunException roArgs
   pure result
