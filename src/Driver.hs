@@ -14,9 +14,13 @@ import           Control.Exception.Base
 
 import           Control.Monad          (void, when)
 
+import           Control.Monad.State    (execState, modify)
+
 import qualified Data.ByteString.Lazy   as LBS
 
 import           Data.Function          ((&))
+
+import           Data.Foldable          (for_)
 
 import           Data.List.NonEmpty     (NonEmpty (..))
 import qualified Data.List.NonEmpty     as NonEmpty
@@ -40,12 +44,18 @@ data RunOptions =
     , roCheck         :: Bool
     , roCaptureOutput :: Bool
     , roSilent        :: Bool
+    , roInput         :: Maybe Text
     }
 
 roDefaults :: NonEmpty Text -> RunOptions
 roDefaults args =
   RunOptions
-    {roArgs = args, roCheck = True, roCaptureOutput = False, roSilent = False}
+    { roArgs = args
+    , roCheck = True
+    , roCaptureOutput = False
+    , roSilent = False
+    , roInput = Nothing
+    }
 
 roPrependArgs :: [Text] -> RunOptions -> RunOptions
 roPrependArgs args ro = ro {roArgs = NonEmpty.prependList args (roArgs ro)}
@@ -100,10 +110,12 @@ instance Exception RunException
 drvProcessRun :: RunOptions -> IO RunResult
 drvProcessRun ro@RunOptions {..} = do
   let p =
-        roProc ro & setStdin nullStream &
-        (if roSilent
-           then setStderr nullStream
-           else id)
+        flip execState (roProc ro) $ do
+          modify $ setStdin nullStream
+          when roSilent $ modify $ setStderr nullStream
+          for_ roInput $ \input ->
+            modify $
+            setStdin (byteStringInput $ LBS.fromStrict $ Text.encodeUtf8 input)
   result <-
     if roCaptureOutput
       then do
