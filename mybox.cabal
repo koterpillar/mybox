@@ -23,6 +23,7 @@ source-repository head
 library
   exposed-modules:
       Driver
+      Driver.Test
       State
       State.InstalledFile
       State.Version

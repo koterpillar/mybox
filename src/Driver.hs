@@ -7,8 +7,13 @@ module Driver
   , drvRun
   , drvRunOK
   , drvRunOutput
+  , OutStream(..)
+  , RunOptions(..)
+  , RunResult(..)
+  , drvRunOptions
   , RunException(..)
   , drvLocal
+  , drvModify
   , NonEmpty(..)
   ) where
 
@@ -75,28 +80,33 @@ roProc RunOptions {..} =
   let executable :| args = roArgs
    in proc (Text.unpack executable) (map Text.unpack args)
 
+type DriverRun = forall output. Bool -> RunOptions output -> IO (RunResult output)
+
 data Driver =
   Driver
-    { drvRun_ :: forall output. Bool -> RunOptions output -> IO (RunResult output)
+    { drvRun_ :: DriverRun
     , drvRoot :: Bool
     }
+
+drvModify :: (DriverRun -> DriverRun) -> Driver -> Driver
+drvModify f driver = driver {drvRun_ = f (drvRun_ driver)}
 
 drvWithRoot :: Bool -> Driver -> Driver
 drvWithRoot root driver = driver {drvRoot = root}
 
-drvRunO :: Driver -> RunOptions output -> IO (RunResult output)
-drvRunO Driver {..} = drvRun_ drvRoot
+drvRunOptions :: Driver -> RunOptions output -> IO (RunResult output)
+drvRunOptions Driver {..} = drvRun_ drvRoot
 
 drvRun :: NonEmpty Text -> Driver -> IO ()
-drvRun args driver = void $ drvRunO driver $ roDefaults args
+drvRun args driver = void $ drvRunOptions driver $ roDefaults args
 
 drvRunOK :: NonEmpty Text -> Driver -> IO Bool
-drvRunOK args driver = runOK <$> drvRunO driver ro
+drvRunOK args driver = runOK <$> drvRunOptions driver ro
   where
     ro = (roDefaults args) {roCheck = False}
 
 drvRunOutput :: NonEmpty Text -> Driver -> IO Text
-drvRunOutput args driver = runOutput <$> drvRunO driver ro
+drvRunOutput args driver = runOutput <$> drvRunOptions driver ro
   where
     ro = (roDefaults args) {roOutput = Capture, roErrors = Silent}
 
