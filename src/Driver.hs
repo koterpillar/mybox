@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 module Driver
   ( Driver
   , drvRoot
@@ -29,52 +31,60 @@ import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import qualified Data.Text.Encoding     as Text
 
-import           System.Process.Typed
+import           System.Process.Typed   hiding (Inherit)
 
-data RunResult =
+data OutStream output where
+  Capture :: OutStream Text
+  Silent :: OutStream ()
+  Inherit :: OutStream ()
+
+data RunResult output =
   RunResult
-    { runOK     :: Bool
-    , runOutput :: Maybe Text
+    { runExitCode :: ExitCode
+    , runOutput   :: output
     }
   deriving (Eq, Show)
 
-data RunOptions =
+runOK :: RunResult output -> Bool
+runOK RunResult {..} = runExitCode == ExitSuccess
+
+data RunOptions output =
   RunOptions
-    { roArgs          :: NonEmpty Text
-    , roCheck         :: Bool
-    , roCaptureOutput :: Bool
-    , roSilent        :: Bool
-    , roInput         :: Maybe Text
+    { roArgs   :: NonEmpty Text
+    , roCheck  :: Bool
+    , roOutput :: OutStream output
+    , roErrors :: OutStream ()
+    , roInput  :: Maybe Text
     }
 
-roDefaults :: NonEmpty Text -> RunOptions
+roDefaults :: NonEmpty Text -> RunOptions ()
 roDefaults args =
   RunOptions
     { roArgs = args
     , roCheck = True
-    , roCaptureOutput = False
-    , roSilent = False
+    , roOutput = Silent
+    , roErrors = Inherit
     , roInput = Nothing
     }
 
-roPrependArgs :: [Text] -> RunOptions -> RunOptions
+roPrependArgs :: [Text] -> RunOptions output -> RunOptions output
 roPrependArgs args ro = ro {roArgs = NonEmpty.prependList args (roArgs ro)}
 
-roProc :: RunOptions -> ProcessConfig () () ()
+roProc :: RunOptions output -> ProcessConfig () () ()
 roProc RunOptions {..} =
   let executable :| args = roArgs
    in proc (Text.unpack executable) (map Text.unpack args)
 
 data Driver =
   Driver
-    { drvRun_ :: Bool -> RunOptions -> IO RunResult
+    { drvRun_ :: forall output. Bool -> RunOptions output -> IO (RunResult output)
     , drvRoot :: Bool
     }
 
 drvWithRoot :: Bool -> Driver -> Driver
 drvWithRoot root driver = driver {drvRoot = root}
 
-drvRunO :: Driver -> RunOptions -> IO RunResult
+drvRunO :: Driver -> RunOptions output -> IO (RunResult output)
 drvRunO Driver {..} = drvRun_ drvRoot
 
 drvRun :: NonEmpty Text -> Driver -> IO ()
@@ -86,18 +96,14 @@ drvRunOK args driver = runOK <$> drvRunO driver ro
     ro = (roDefaults args) {roCheck = False}
 
 drvRunOutput :: NonEmpty Text -> Driver -> IO Text
-drvRunOutput args driver = do
-  result <- drvRunO driver ro
-  case runOutput result of
-    Nothing     -> error "drvRunOutput: no output"
-    Just output -> return output
+drvRunOutput args driver = runOutput <$> drvRunO driver ro
   where
-    ro = (roDefaults args) {roCaptureOutput = True, roSilent = True}
+    ro = (roDefaults args) {roOutput = Capture, roErrors = Silent}
 
 drvLocal :: Driver
 drvLocal = Driver {drvRun_ = drvLocalRun, drvRoot = False}
 
-drvLocalRun :: Bool -> RunOptions -> IO RunResult
+drvLocalRun :: Bool -> RunOptions output -> IO (RunResult output)
 drvLocalRun False = drvProcessRun
 drvLocalRun True  = drvProcessRun . roPrependArgs ["sudo"]
 
@@ -107,24 +113,31 @@ newtype RunException =
 
 instance Exception RunException
 
-drvProcessRun :: RunOptions -> IO RunResult
+drvProcessRun :: RunOptions output -> IO (RunResult output)
 drvProcessRun ro@RunOptions {..} = do
   let p =
         flip execState (roProc ro) $ do
           modify $ setStdin nullStream
-          when roSilent $ modify $ setStderr nullStream
+          modify $
+            setStderr $
+            case roErrors of
+              Inherit -> inherit
+              Silent  -> nullStream
           for_ roInput $ \input ->
             modify $
             setStdin (byteStringInput $ LBS.fromStrict $ Text.encodeUtf8 input)
-  result <-
-    if roCaptureOutput
-      then do
-        (exitCode, out, _) <- readProcess p
-        let output = Text.strip $ Text.decodeUtf8 $ LBS.toStrict out
-        pure $
-          RunResult {runOK = exitCode == ExitSuccess, runOutput = Just output}
-      else do
+  (runExitCode, runOutput) <-
+    case roOutput of
+      Inherit -> do
+        exitCode <- runProcess p
+        pure (exitCode, ())
+      Silent -> do
         exitCode <- runProcess (p & setStdout nullStream)
-        pure $ RunResult {runOK = exitCode == ExitSuccess, runOutput = Nothing}
+        pure (exitCode, ())
+      Capture -> do
+        (exitCode, out) <- readProcessStdout p
+        let output = Text.strip $ Text.decodeUtf8 $ LBS.toStrict out
+        pure (exitCode, output)
+  let result = RunResult {..}
   when (roCheck && not (runOK result)) $ throw $ RunException roArgs
   pure result
