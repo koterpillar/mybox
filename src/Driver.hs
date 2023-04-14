@@ -52,9 +52,9 @@ data RunOptions output =
   RunOptions
     { roArgs   :: NonEmpty Text
     , roCheck  :: Bool
+    , roInput  :: Maybe Text
     , roOutput :: OutStream output
     , roErrors :: OutStream ()
-    , roInput  :: Maybe Text
     }
 
 roDefaults :: NonEmpty Text -> RunOptions ()
@@ -62,9 +62,9 @@ roDefaults args =
   RunOptions
     { roArgs = args
     , roCheck = True
+    , roInput = Nothing
     , roOutput = Silent
     , roErrors = Inherit
-    , roInput = Nothing
     }
 
 roPrependArgs :: [Text] -> RunOptions output -> RunOptions output
@@ -104,8 +104,10 @@ drvLocal :: Driver
 drvLocal = Driver {drvRun_ = drvLocalRun, drvRoot = False}
 
 drvLocalRun :: Bool -> RunOptions output -> IO (RunResult output)
-drvLocalRun False = drvProcessRun
-drvLocalRun True  = drvProcessRun . roPrependArgs ["sudo"]
+drvLocalRun False ro = drvProcessRun ro
+drvLocalRun True ro = do
+  _ <- drvProcessRun $ (roDefaults $ "sudo" :| ["-v"]) {roOutput = Inherit}
+  drvProcessRun $ roPrependArgs ["sudo"] ro
 
 newtype RunException =
   RunException (NonEmpty Text)
