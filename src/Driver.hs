@@ -9,11 +9,16 @@ module Driver
   , drvRunOutput
   , OutStream(..)
   , RunOptions(..)
+  , roPrependArgs
+  , DriverRun
   , RunResult(..)
   , drvRunOptions
   , RunException(..)
+  , drvMake
   , drvLocal
   , drvModify
+  , drvProcessRun
+  , shellCmd
   , NonEmpty(..)
   ) where
 
@@ -110,8 +115,11 @@ drvRunOutput args driver = runOutput <$> drvRunOptions driver ro
   where
     ro = (roDefaults args) {roOutput = Capture, roErrors = Silent}
 
+drvMake :: DriverRun -> Driver
+drvMake run = Driver {drvRun_ = run, drvRoot = False}
+
 drvLocal :: Driver
-drvLocal = Driver {drvRun_ = drvLocalRun, drvRoot = False}
+drvLocal = drvMake drvLocalRun
 
 drvLocalRun :: Bool -> RunOptions output -> IO (RunResult output)
 drvLocalRun False ro = drvProcessRun ro
@@ -153,3 +161,6 @@ drvProcessRun ro@RunOptions {..} = do
   let result = RunResult {..}
   when (roCheck && not (runOK result)) $ throw $ RunException roArgs
   pure result
+
+shellCmd :: Text -> NonEmpty Text
+shellCmd cmd = "sh" :| ["-c", cmd]

@@ -31,13 +31,11 @@ capture action = do
 
 testScript_ :: Bool -> NonEmpty Text
 testScript_ succeed =
-  "sh" :|
-  [ "-c"
-  , "echo test-out; echo test-err >&2" <>
-    if succeed
-      then ""
-      else "; false"
-  ]
+  shellCmd $
+  "echo test-out; echo test-err >&2" <>
+  if succeed
+    then ""
+    else "; false"
 
 testScript :: NonEmpty Text
 testScript = testScript_ True

@@ -23,7 +23,7 @@ source-repository head
 library
   exposed-modules:
       Driver
-      Driver.Test
+      Driver.Actions
       State
       State.InstalledFile
       State.Version
@@ -88,6 +88,7 @@ test-suite mybox-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Driver.Test
       DriverSpec
       StateSpec
       Paths_mybox
@@ -110,9 +111,11 @@ test-suite mybox-test
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , directory
     , hspec
     , mtl
     , mybox
+    , random
     , silently
     , sqlite-simple
     , temporary
