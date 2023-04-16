@@ -20,6 +20,9 @@ module Driver
   , drvProcessRun
   , shellCmd
   , NonEmpty(..)
+  , procText
+  , procDecode
+  , procEncode
   ) where
 
 import           Control.Exception.Base
@@ -80,12 +83,14 @@ roDefaults args =
 roPrependArgs :: [Text] -> RunOptions output -> RunOptions output
 roPrependArgs args ro = ro {roArgs = NonEmpty.prependList args (roArgs ro)}
 
-roProc :: RunOptions output -> ProcessConfig () () ()
-roProc RunOptions {..} =
-  let executable :| args = roArgs
-   in proc (Text.unpack executable) (map Text.unpack args)
+procText :: NonEmpty Text -> ProcessConfig () () ()
+procText (cmd :| args) = proc (Text.unpack cmd) (map Text.unpack args)
 
-type DriverRun = forall output. Bool -> RunOptions output -> IO (RunResult output)
+roProc :: RunOptions output -> ProcessConfig () () ()
+roProc RunOptions {..} = procText roArgs
+
+type DriverRun
+   = forall output. Bool -> RunOptions output -> IO (RunResult output)
 
 data Driver =
   Driver
@@ -144,8 +149,7 @@ drvProcessRun ro@RunOptions {..} = do
               Inherit -> inherit
               Silent  -> nullStream
           for_ roInput $ \input ->
-            modify $
-            setStdin (byteStringInput $ LBS.fromStrict $ Text.encodeUtf8 input)
+            modify $ setStdin (byteStringInput $ procEncode input)
   (runExitCode, runOutput) <-
     case roOutput of
       Inherit -> do
@@ -156,11 +160,16 @@ drvProcessRun ro@RunOptions {..} = do
         pure (exitCode, ())
       Capture -> do
         (exitCode, out) <- readProcessStdout p
-        let output = Text.strip $ Text.decodeUtf8 $ LBS.toStrict out
-        pure (exitCode, output)
+        pure (exitCode, procDecode out)
   let result = RunResult {..}
   when (roCheck && not (runOK result)) $ throw $ RunException roArgs
   pure result
 
 shellCmd :: Text -> NonEmpty Text
 shellCmd cmd = "sh" :| ["-c", cmd]
+
+procDecode :: LBS.ByteString -> Text
+procDecode = Text.strip . Text.decodeUtf8 . LBS.toStrict
+
+procEncode :: Text -> LBS.ByteString
+procEncode = LBS.fromStrict . Text.encodeUtf8

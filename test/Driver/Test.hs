@@ -6,15 +6,12 @@ module Driver.Test
   , drvDisableRoot
   ) where
 
-import qualified Data.ByteString.Lazy as LBS
-
 import           Data.Function        ((&))
 
 import           Data.Maybe
 
 import           Data.Text            (Text)
 import qualified Data.Text            as Text
-import qualified Data.Text.Encoding   as Text
 import qualified Data.Text.IO         as Text
 
 import           System.Directory
@@ -99,8 +96,8 @@ drvDocker baseImage = do
   withSystemTempDirectory "mybox-docker" $ \dockerRoot -> do
     copyFile bootstrap $ dockerRoot <> "/bootstrap"
     runProcess_ $
-      proc "docker" ["build", "--tag", Text.unpack image, dockerRoot] &
-      setStdin (byteStringInput $ LBS.fromStrict $ Text.encodeUtf8 dockerfile)
+      procText ("docker" :| ["build", "--tag", image, Text.pack dockerRoot]) &
+      setStdin (byteStringInput $ procEncode dockerfile)
   container <- (dockerContainerPrefix <>) . Text.pack . show @Int <$> randomIO
   runProcess_
     (proc
