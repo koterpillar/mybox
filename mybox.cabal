@@ -24,6 +24,8 @@ library
   exposed-modules:
       Driver
       Driver.Actions
+      Package
+      Package.Clone
       State
       State.InstalledFile
       State.Version
@@ -90,6 +92,8 @@ test-suite mybox-test
   other-modules:
       Driver.Test
       DriverSpec
+      Package.CloneSpec
+      Package.SpecBase
       StateSpec
       Paths_mybox
   hs-source-dirs:
