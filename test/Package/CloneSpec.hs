@@ -20,7 +20,8 @@ spec =
             {cloneRepo = "ohmyzsh/ohmyzsh", cloneDestination = psrDirectory psr}
     , psCheckInstalled =
         \psr ->
-          psCheckInstalledOutput psr
+          psCheckInstalledOutput
+            psr
             ("cat" :|
              [Text.pack (psrDirectory psr) <> "/templates/zshrc.zsh-template"])
             "alias ohmyzsh"

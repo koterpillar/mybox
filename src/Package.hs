@@ -3,7 +3,7 @@ module Package
   , pkIsInstalled
   ) where
 
-import Data.Text (Text)
+import           Data.Text (Text)
 
 import           Driver
 
