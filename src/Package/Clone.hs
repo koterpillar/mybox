@@ -1,4 +1,6 @@
-module Package.Clone where
+module Package.Clone
+  ( Clone(..)
+  ) where
 
 import           Data.Text (Text)
 
@@ -11,4 +13,6 @@ data Clone =
     }
   deriving (Eq, Show)
 
-instance Package Clone
+instance Package Clone where
+  pkIsInstalled _ _ = error "pkIsInstalled for Clone: not implemented"
+  pkInstall _ _ = error "pkInstall for Clone: not implemented"

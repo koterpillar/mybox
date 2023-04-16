@@ -6,13 +6,12 @@ module Package.SpecBase
   , NonEmpty(..)
   ) where
 
-import           Data.Function        (on)
+import           Data.Function  (on)
 
-import           Data.Text            (Text)
-import qualified Data.Text            as Text
+import           Data.Text      (Text)
+import qualified Data.Text      as Text
 
 import           System.IO.Temp
-import           System.Process.Typed
 
 import           Test.Hspec
 
@@ -24,16 +23,14 @@ import           Package
 data PackageSpecRun =
   PackageSpecRun
     { psrDirectory :: FilePath
+    , psrDriver    :: Driver
     }
-  deriving (Show)
 
-withPSR ::
-     Package package
-  => PackageSpec package
-  -> (PackageSpecRun -> IO ())
-  -> IO ()
+withPSR :: PackageSpec package -> (PackageSpecRun -> IO ()) -> IO ()
 withPSR _ act =
-  withSystemTempDirectory "mybox" $ \psrDirectory -> act $ PackageSpecRun {..}
+  withSystemTempDirectory "mybox" $ \psrDirectory -> do
+    psrDriver <- drvLocalTest
+    act $ PackageSpecRun {..}
 
 data PackageSpec package =
   PackageSpec
@@ -45,13 +42,17 @@ data PackageSpec package =
 packageSpec :: Package package => PackageSpec package -> Spec
 packageSpec ps@PackageSpec {..} =
   around (withPSR ps) $
-  describe psName $
-  it "is not installed initially" $ \psr ->
-    "is installed" `shouldContainText` "implemented"
+  describe psName $ do
+    it "installs correctly" $ \psr -> do
+      let package = psPackage psr
+      pkIsInstalled (psrDriver psr) package `shouldReturn` False
+      pkInstall (psrDriver psr) package
+      pkIsInstalled (psrDriver psr) package `shouldReturn` False
+      psCheckInstalled psr
 
-psCheckInstalledOutput :: NonEmpty Text -> Text -> Expectation
-psCheckInstalledOutput cmd expectedOutput = do
-  actualOutput <- fmap procDecode $ readProcessStdout_ $ procText cmd
+psCheckInstalledOutput :: PackageSpecRun -> NonEmpty Text -> Text -> Expectation
+psCheckInstalledOutput PackageSpecRun {..} cmd expectedOutput = do
+  actualOutput <- drvRunOutput cmd psrDriver
   actualOutput `shouldContainText` expectedOutput
 
 shouldContainText :: HasCallStack => Text -> Text -> Expectation
