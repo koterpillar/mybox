@@ -19,7 +19,7 @@ import           System.Environment
 import           System.IO.Temp
 import           System.Process.Typed hiding (Inherit)
 
-import System.Random
+import           System.Random
 
 import           Driver
 
@@ -54,13 +54,14 @@ drvDisableRoot =
       else originalRun False ro
 
 overrideHome :: FilePath -> Text -> DriverRun -> DriverRun
-overrideHome home _ _ False RunOptions { roArgs = "sh" :| ["-c", "eval echo ~"]
-                                       , roOutput = Capture
-                                       } =
-  pure $ RunResult {runExitCode = ExitSuccess, runOutput = Text.pack home}
 overrideHome home path originalRun root ro =
   originalRun root $
-  roPrependArgs ["env", "PATH=" <> Text.pack home <> "/.local/bin:" <> path] ro
+  roPrependArgs
+    [ "env"
+    , "HOME=" <> Text.pack home
+    , "PATH=" <> Text.pack home <> "/.local/bin:" <> path
+    ]
+    ro
 
 drvLocalTest :: IO Driver -- FIXME: clean up temporary directory
 drvLocalTest = do
