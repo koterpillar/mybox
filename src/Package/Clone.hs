@@ -2,8 +2,10 @@ module Package.Clone
   ( Clone(..)
   ) where
 
-import           Data.Text      (Text)
-import qualified Data.Text      as Text
+import           Data.Text            (Text)
+import qualified Data.Text            as Text
+
+import           System.Process.Typed
 
 import           Driver
 import           Driver.Actions
@@ -24,8 +26,11 @@ cloneRemote Clone {cloneRepo = repo}
   | otherwise = "https://github.com/" <> repo <> ".git"
 
 instance Package Clone where
-  pkRemoteVersion drv pk = do
-    remote <- drvRunOutput (git :| ["ls-remote", cloneRemote pk, "HEAD"]) drv
+  pkRemoteVersion _ pk = do
+    remote <-
+      fmap procDecode $
+      readProcessStdout_ $
+      procText $ git :| ["ls-remote", cloneRemote pk, "HEAD"]
     pure $ Text.takeWhile (/= '\t') remote
   pkLocalVersion drv pk = do
     exists <- directoryExists drv pk

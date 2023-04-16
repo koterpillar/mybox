@@ -26,6 +26,7 @@ library
       Driver.Actions
       Package
       Package.Clone
+      Package.Links
       State
       State.InstalledFile
       State.Version
@@ -48,6 +49,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptohash-sha256
     , mtl
     , sqlite-simple
     , text
@@ -77,6 +79,7 @@ executable mybox-exe
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptohash-sha256
     , mtl
     , mybox
     , sqlite-simple
@@ -115,6 +118,7 @@ test-suite mybox-test
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptohash-sha256
     , directory
     , hspec
     , mtl
