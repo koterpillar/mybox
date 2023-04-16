@@ -28,7 +28,8 @@ data PackageSpecRun =
 
 withPSR :: PackageSpec package -> (PackageSpecRun -> IO ()) -> IO ()
 withPSR _ act =
-  withSystemTempDirectory "mybox" $ \psrDirectory -> do
+  withSystemTempDirectory "mybox" $ \dir -> do
+    let psrDirectory = dir <> "/destination"
     psrDriver <- drvLocalTest
     act $ PackageSpecRun {..}
 
@@ -47,7 +48,7 @@ packageSpec ps@PackageSpec {..} =
       let package = psPackage psr
       pkIsInstalled (psrDriver psr) package `shouldReturn` False
       pkInstall (psrDriver psr) package
-      pkIsInstalled (psrDriver psr) package `shouldReturn` False
+      pkIsInstalled (psrDriver psr) package `shouldReturn` True
       psCheckInstalled psr
 
 psCheckInstalledOutput :: PackageSpecRun -> NonEmpty Text -> Text -> Expectation

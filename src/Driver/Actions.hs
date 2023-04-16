@@ -2,6 +2,9 @@ module Driver.Actions
   ( drvExecutableExists
   , drvFindExecutable
   , drvHome
+  , drvIsDirectory
+  , drvIsFile
+  , drvIsExecutable
   ) where
 
 import           Data.Text (Text)
@@ -22,3 +25,15 @@ drvHome drv = do
           then "~root"
           else "~"
   Text.unpack <$> drvRunOutput (shellCmd $ "eval echo " <> path) drv
+
+drvTest :: Text -> Text -> Driver -> IO Bool
+drvTest test arg = drvRunOK ("test" :| [test, arg])
+
+drvIsFile :: FilePath -> Driver -> IO Bool
+drvIsFile = drvTest "-f" . Text.pack
+
+drvIsExecutable :: FilePath -> Driver -> IO Bool
+drvIsExecutable = drvTest "-x" . Text.pack
+
+drvIsDirectory :: FilePath -> Driver -> IO Bool
+drvIsDirectory = drvTest "-d" . Text.pack

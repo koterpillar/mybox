@@ -2,7 +2,11 @@ module Package.Clone
   ( Clone(..)
   ) where
 
-import           Data.Text (Text)
+import           Data.Text      (Text)
+import qualified Data.Text      as Text
+
+import           Driver
+import           Driver.Actions
 
 import           Package
 
@@ -13,7 +17,46 @@ data Clone =
     }
   deriving (Eq, Show)
 
+cloneRemote :: Clone -> Text
+cloneRemote Clone {cloneRepo = repo}
+  | Text.isPrefixOf "https://" repo = repo
+  | Text.isInfixOf "@" repo = repo
+  | otherwise = "https://github.com/" <> repo <> ".git"
+
 instance Package Clone where
-  pkRemoteVersion _ _ = error "pkRemoteVersion for Clone: not implemented"
-  pkLocalVersion _ _ = error "pkLocalVersion for Clone: not implemented"
-  pkInstall _ _ = error "pkInstall for Clone: not implemented"
+  pkRemoteVersion drv pk = do
+    remote <- drvRunOutput (git :| ["ls-remote", cloneRemote pk, "HEAD"]) drv
+    pure $ Text.takeWhile (/= '\t') remote
+  pkLocalVersion drv pk = do
+    exists <- directoryExists drv pk
+    if not exists
+      then pure Nothing
+      else Just <$> drvRunOutput (gitArgs pk ["rev-parse", "HEAD"]) drv
+  pkInstall drv pk = do
+    let remote = cloneRemote pk
+    exists <- directoryExists drv pk
+    if exists
+      then do
+        drvRun (gitArgs pk ["remote", "set-url", "origin", remote]) drv
+        drvRun (gitArgs pk ["fetch"]) drv
+        defaultBranch <-
+          Text.takeWhileEnd (/= '/') <$>
+          drvRunOutput
+            (gitArgs pk ["rev-parse", "--abbrev-ref", "origin/HEAD"])
+            drv
+        drvRun (gitArgs pk ["switch", defaultBranch]) drv
+        drvRun (gitArgs pk ["reset", "--hard", "origin/" <> defaultBranch]) drv
+      else do
+        -- FIXME: create parent directories
+        drvRun (git :| ["clone", remote, Text.pack $ cloneDestination pk]) drv
+
+git :: Text
+git = "git"
+
+-- FIXME: destination should be converted to absolute using drvHome
+gitArgs :: Clone -> [Text] -> NonEmpty Text
+gitArgs Clone {cloneDestination = dest} args =
+  git :| ["-C", Text.pack dest] ++ args
+
+directoryExists :: Driver -> Clone -> IO Bool
+directoryExists drv pk = drvIsDirectory (cloneDestination pk) drv
