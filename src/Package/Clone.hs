@@ -14,5 +14,6 @@ data Clone =
   deriving (Eq, Show)
 
 instance Package Clone where
-  pkIsInstalled _ _ = error "pkIsInstalled for Clone: not implemented"
+  pkRemoteVersion _ _ = error "pkRemoteVersion for Clone: not implemented"
+  pkLocalVersion _ _ = error "pkLocalVersion for Clone: not implemented"
   pkInstall _ _ = error "pkInstall for Clone: not implemented"
