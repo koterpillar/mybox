@@ -21,7 +21,7 @@ class TestRPMFusion(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "name": "rpmfusion-free-release",
-            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-37.noarch.rpm",
+            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-38.noarch.rpm",
         }
 
     async def check_installed_command(self):
