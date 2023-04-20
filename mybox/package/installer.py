@@ -212,7 +212,7 @@ class DNF(PackageCacheInstaller):
             "--quiet",
             "repoquery",
             "--queryformat",
-            "%{NAME} %{VERSION}",
+            "%{name} %{version}",
             "--latest-limit",
             "1",
             "--arch",
