@@ -48,12 +48,14 @@ class TestDNF:
     @pytest.fixture
     async def dnf(self):
         driver = LocalDriver()
-        (await driver.os()).switch_(
-            linux=lambda os: lambda: None
+        skip_reason = (await driver.os()).switch_(
+            linux=lambda os: None
             if os.distribution == "fedora"
-            else pytest.skip("DNF is only available on Fedora"),
-            macos=lambda: pytest.skip("dnf is only available on Linux"),
-        )()
+            else "DNF is only available on Fedora",
+            macos="dnf is only available on Linux",
+        )
+        if skip_reason:
+            pytest.skip(skip_reason)
         return DNF(driver)
 
     @pytest.mark.trio
