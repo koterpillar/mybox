@@ -1,14 +1,24 @@
 import pytest
 
-from mybox.driver import LocalDriver
+from mybox.driver import Driver, LocalDriver
 from mybox.package.installer import DNF, Brew
 from mybox.utils import run
+
+from ..base import DOCKER_IMAGE
+from .driver import DockerDriver
+
+
+async def make_driver() -> Driver:
+    if DOCKER_IMAGE:
+        return await DockerDriver.create(image=DOCKER_IMAGE)
+    else:
+        return LocalDriver()
 
 
 class TestBrew:
     @pytest.fixture
     async def brew(self):
-        driver = LocalDriver()
+        driver = await make_driver()
         (await driver.os()).switch(
             linux=lambda: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
@@ -47,7 +57,7 @@ class TestBrew:
 class TestDNF:
     @pytest.fixture
     async def dnf(self):
-        driver = LocalDriver()
+        driver = await make_driver()
         skip_reason = (await driver.os()).switch_(
             linux=lambda os: None
             if os.distribution == "fedora"

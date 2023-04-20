@@ -1,4 +1,3 @@
-import os
 import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
@@ -13,16 +12,11 @@ from mybox.package.tracked import INSTALLED_FILES
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
 
+from ..base import CI, DOCKER, DOCKER_IMAGE
 from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
 PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
 
-
-CI: bool = "CI" in os.environ
-
-DOCKER_IMAGE: Optional[str] = os.environ.get("DOCKER_IMAGE") or None
-
-DOCKER: bool = DOCKER_IMAGE is not None
 
 TEST = TypeVar("TEST", bound="PackageTestBase")
 
