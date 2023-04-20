@@ -1,7 +1,7 @@
 import pytest
 
 from mybox.driver import LocalDriver
-from mybox.package.installer import Brew
+from mybox.package.installer import DNF, Brew
 from mybox.utils import run
 
 
@@ -42,3 +42,27 @@ class TestBrew:
     async def test_non_tapped_cask(self, brew: Brew):
         with pytest.raises(Exception, match="homebrew/cask-zzzzzzz/yyyyyyy"):
             await brew.latest_version("homebrew/cask-zzzzzzz/yyyyyyy")
+
+
+class TestDNF:
+    @pytest.fixture
+    async def dnf(self):
+        driver = LocalDriver()
+        (await driver.os()).switch_(
+            linux=lambda os: lambda: None
+            if os.distribution == "fedora"
+            else pytest.skip("DNF is only available on Fedora"),
+            macos=lambda: pytest.skip("dnf is only available on Linux"),
+        )()
+        return DNF(driver)
+
+    @pytest.mark.trio
+    async def test_installed_version(self, dnf: DNF):
+        version = await dnf.installed_version("git")
+        # Git should be installed as a prerequisite
+        assert version is not None, "git is not installed"
+        assert "2.0" <= version <= "99"
+
+    @pytest.mark.trio
+    async def test_remote_version(self, dnf: DNF):
+        assert "8.10" <= await dnf.latest_version("ghc") <= "99"
