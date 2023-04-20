@@ -21,7 +21,7 @@ class TestRPMFusion(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "name": "rpmfusion-free-release",
-            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-37.noarch.rpm",
+            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-38.noarch.rpm",
         }
 
     async def check_installed_command(self):
@@ -53,7 +53,7 @@ class TestInteractiveDeb(PackageTestBase):
         if not (await self.driver.os()).switch_(
             linux=lambda os: os.distribution in ("debian", "ubuntu"), macos=False
         ):
-            pytest.skip("This test is only applicable on Fedora.")
+            pytest.skip("This test is only applicable on Debian-based systems.")
 
 
 class TestVirtualPackage(PackageTestBase):
