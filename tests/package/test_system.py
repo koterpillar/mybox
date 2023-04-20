@@ -53,7 +53,7 @@ class TestInteractiveDeb(PackageTestBase):
         if not (await self.driver.os()).switch_(
             linux=lambda os: os.distribution in ("debian", "ubuntu"), macos=False
         ):
-            pytest.skip("This test is only applicable on Fedora.")
+            pytest.skip("This test is only applicable on Debian-based systems.")
 
 
 class TestVirtualPackage(PackageTestBase):
