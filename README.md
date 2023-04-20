@@ -38,7 +38,7 @@ Pre-requisites (see [install-dev](install-dev) for ways to install):
 Run [`./lint`](lint) to check style & types, `./lint --format` to apply
 formatting automatically.
 
-Run [`./test`](test) to execute the project's tests.
+Run [`./test-script`](test-script) to execute the project's tests.
 
 ### Running locally
 

@@ -15,7 +15,7 @@ class Clone(Destination, Tracked):
         return self.repo
 
     async def directory_exists(self) -> bool:
-        return await self.driver.run_ok("test", "-d", await self.destination())
+        return await self.driver.is_dir(await self.destination())
 
     @async_cached
     async def git_args(self) -> list[RunArg]:

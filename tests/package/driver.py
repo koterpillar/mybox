@@ -55,36 +55,28 @@ class OverrideHomeDriver(TestDriver, LocalDriver):
         return self.override_home
 
 
+DOCKER_USER = "regular_user"
+
+DOCKER_IMAGE_PREFIX = "mybox-test-"
+
 DOCKER_DRIVER_CONTAINER_NUMBER: int = 0
 
 
 class DockerDriver(TestDriver, SubprocessDriver):
-    def __init__(
-        self, *, container: str, user: str, docker_sudo: bool = False, **kwargs
-    ) -> None:
+    def __init__(self, *, container: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.container = container
-        self.user = user
-        self.docker_sudo = docker_sudo
 
     def deconstruct(self) -> dict:
-        return super().deconstruct() | {
-            "container": self.container,
-            "user": self.user,
-            "docker_sudo": self.docker_sudo,
-        }
-
-    @property
-    def docker(self) -> list[str]:
-        return ["sudo", "docker"] if self.docker_sudo else ["docker"]
+        return super().deconstruct() | {"container": self.container}
 
     async def stop(self) -> None:
-        await run(*self.docker, "rm", "--force", self.container)
+        await run("docker", "rm", "--force", self.container)
 
     def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
         return super().prepare_command(
             [
-                *self.docker,
+                "docker",
                 "exec",
                 *(["--user", "root"] if self.root else []),
                 "--interactive",
@@ -96,21 +88,13 @@ class DockerDriver(TestDriver, SubprocessDriver):
     container_number = 0
 
     @classmethod
-    async def create(
-        cls,
-        *,
-        image: str,
-        user: str = "regular_user",
-        docker_sudo: bool = False,
-    ) -> "DockerDriver":
-        docker = ["sudo", "docker"] if docker_sudo else ["docker"]
-
+    async def create(cls, *, image: str) -> "DockerDriver":
         package_root = Path(__file__).parent.parent.parent.absolute()
 
         bootstrap = package_root / "bootstrap"
         assert bootstrap.is_file()
 
-        target_image = f"mybox-test-{image}"
+        target_image = f"{DOCKER_IMAGE_PREFIX}{image}"
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -119,21 +103,21 @@ class DockerDriver(TestDriver, SubprocessDriver):
                 dockerfile.write(
                     f"""
                     FROM {image}
-                    RUN useradd --create-home --password '' {user}
+                    RUN useradd --create-home --password '' {DOCKER_USER}
                     COPY bootstrap /bootstrap
                     RUN /bootstrap --development
-                    ENV PATH /home/{user}/.local/bin:$PATH
-                    USER {user}
+                    ENV PATH /home/{DOCKER_USER}/.local/bin:$PATH
+                    USER {DOCKER_USER}
                     # populate dnf cache so each test doesn't have to do it
                     RUN command -v dnf >/dev/null && dnf check-update || true
                 """
                 )
-            await run(*docker, "build", "--tag", target_image, tmppath)
+            await run("docker", "build", "--tag", target_image, tmppath)
 
         cls.container_number += 1
 
         container = await run_output(
-            *docker,
+            "docker",
             "run",
             "--rm",
             "--detach",
@@ -145,4 +129,4 @@ class DockerDriver(TestDriver, SubprocessDriver):
             "sleep",
             "86400000",
         )
-        return cls(container=container, user=user, docker_sudo=docker_sudo)
+        return cls(container=container)
