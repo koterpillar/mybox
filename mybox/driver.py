@@ -1,6 +1,6 @@
 import subprocess
 from abc import ABCMeta, abstractmethod
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
@@ -246,8 +246,7 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         if show_output:
             cm = parallel_map_pause()
         else:
-            # Should be nullcontext, but it is not async-enabled in Python 3.9.
-            cm = AsyncExitStack()
+            cm = nullcontext()
         async with cm:
             result = await run_process(
                 command,
