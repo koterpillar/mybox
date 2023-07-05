@@ -44,9 +44,9 @@ class TestInteractiveDeb(PackageTestBase):
         return {"name": "tzdata"}
 
     async def check_installed_command(self):
-        return ["head", "/usr/share/doc/tzdata/copyright"]
+        return ["cat", "/usr/share/doc/tzdata/copyright"]
 
-    check_installed_output = "Time Zone"
+    check_installed_output = "Internet Assigned Numbers Authority"
 
     async def check_applicable(self) -> None:
         await super().check_applicable()
