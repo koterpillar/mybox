@@ -196,8 +196,6 @@ class PackageTestBase(metaclass=ABCMeta):
         {"name": "node", "os": "darwin"},
     ]
 
-    PIPX: list[PackageArgs] = [{"pip": "pipx"}]
-
     @async_cached
     async def os(self) -> OS:
         return await LocalDriver().os()

@@ -78,8 +78,6 @@ class TestPipx(DjangoTestBase):
     def installation_method(self) -> str:
         return "pipx"
 
-    prerequisites = PackageTestBase.PIPX
-
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
             await self.check_driver.home() / ".pipx",

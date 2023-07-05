@@ -71,21 +71,20 @@ case "$OSTYPE" in
     ;;
 esac
 
-if ! python3 -c 'import pipx' >/dev/null 2>&1
+if ! command_exists pipx
 then
-  if ! python3 -c 'import pip' >/dev/null 2>&1
-  then
-    python3 -m ensurepip
-  fi
-  python3 -m pip install --user pipx
+  # FIXME: autoupdate pipx
+  mkdir -p /usr/local/mybox
+  curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -o /usr/local/bin/pipx
+  chmod +x /usr/local/bin/pipx
 fi
 
 if [ "${1:-}" != "--development" ]
 then
-  if python3 -m pipx list --short | grep -qE '^mybox ' >/dev/null 2>&1
+  if pipx list --short | grep -qE '^mybox ' >/dev/null 2>&1
   then
-    python3 -m pipx upgrade mybox
+    pipx upgrade mybox
   else
-    python3 -m pipx install mybox
+    pipx install mybox
   fi
 fi
