@@ -58,4 +58,5 @@ class TestPipx(PackageTestBase):
         return await super().ignored_paths() | {
             await self.check_driver.home() / ".pipx",
             await self.check_driver.home() / ".local" / "pipx",
+            await self.check_driver.home() / ".shiv",
         }
