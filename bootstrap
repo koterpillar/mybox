@@ -74,9 +74,8 @@ esac
 if ! command_exists pipx
 then
   # FIXME: autoupdate pipx
-  mkdir -p /usr/local/mybox
-  curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -o /usr/local/bin/pipx
-  chmod +x /usr/local/bin/pipx
+  sudo_ curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -o /usr/local/bin/pipx
+  sudo_ chmod +x /usr/local/bin/pipx
 fi
 
 if [ "${1:-}" != "--development" ]
