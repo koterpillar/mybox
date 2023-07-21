@@ -96,6 +96,7 @@ test-suite mybox-test
       Driver.Test
       DriverSpec
       Package.CloneSpec
+      Package.LinksSpec
       Package.SpecBase
       StateSpec
       Paths_mybox

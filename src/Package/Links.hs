@@ -15,10 +15,11 @@ import           Package
 
 data Links =
   Links
-    { linksSource  :: FilePath
-    , linksDot     :: Bool
-    , linksShallow :: Bool
-    , linksOnly    :: Maybe [Text]
+    { linksSource      :: FilePath
+    , linksDestination :: FilePath
+    , linksDot         :: Bool
+    , linksShallow     :: Bool
+    , linksOnly        :: Maybe [Text]
     }
   deriving (Eq, Show)
 
@@ -28,7 +29,7 @@ linksPaths = error "linksPaths: not implemented"
 linksFilter :: Links -> FilePath -> Bool
 linksFilter pk =
   case linksOnly pk of
-    Nothing -> const True
+    Nothing   -> const True
     Just only -> (`elem` only) . Text.pack
 
 instance Package Links where
