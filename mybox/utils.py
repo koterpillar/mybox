@@ -1,16 +1,7 @@
 import subprocess
 from functools import wraps
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Coroutine,
-    Iterable,
-    Optional,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, overload
 
 import requests
 import trio
@@ -21,7 +12,7 @@ U = TypeVar("U")
 V = TypeVar("V")
 
 
-Some = Optional[Union[T, list[T]]]
+Some = Optional[T | list[T]]
 
 
 def unsome_(x: Some[T]) -> Optional[list[T]]:
@@ -56,7 +47,7 @@ def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
     return result
 
 
-RunArg = Union[str, Path]
+RunArg = str | Path
 
 
 async def run(*args: RunArg) -> subprocess.CompletedProcess:

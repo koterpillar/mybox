@@ -2,7 +2,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, Union, overload
+from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, overload
 
 import pytest
 
@@ -15,7 +15,7 @@ from mybox.utils import AsyncRet, RunArg, T, async_cached
 from ..base import CI, DOCKER, DOCKER_IMAGE
 from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
 
-PackageArgs = dict[str, Union[str, bool, int, Path, list[str]]]
+PackageArgs = dict[str, str | bool | int | Path | list[str]]
 
 
 TEST = TypeVar("TEST", bound="PackageTestBase")
