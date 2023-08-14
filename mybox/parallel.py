@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import AsyncIterator, Awaitable, Callable, Generic, Optional, Union
+from typing import AsyncIterator, Awaitable, Callable, Generic, Optional
 
 import tqdm
 import trio
@@ -19,7 +19,7 @@ class PartialException:
     exception: BaseException
 
 
-PartialResult = Union[PartialException, PartialSuccess[T]]
+PartialResult = PartialException | PartialSuccess[T]
 
 
 class PartialResults(Exception, Generic[T]):

@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Type
+from typing import Any, Type
 
 from ..driver import Driver
 from ..state import DB
@@ -13,7 +13,7 @@ from .system import SystemPackage
 from .url import URLPackage
 from .yum_repo import YumRepo
 
-TYPES: list[Tuple[str, Type[Package]]] = [
+TYPES: list[tuple[str, Type[Package]]] = [
     ("name", SystemPackage),
     ("repo", GitHubPackage),
     ("url", URLPackage),

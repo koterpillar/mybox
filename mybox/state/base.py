@@ -3,17 +3,7 @@ import sqlite3
 import threading
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Generic,
-    Iterable,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Generic, Iterable, Type, TypeVar
 from uuid import uuid4
 
 if TYPE_CHECKING:
@@ -29,7 +19,7 @@ DB_PATH = "state.sqlite"
 class DB:
     """Thread-safe SQLite database connection."""
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(self, path: str | Path) -> None:
         self.path = path
         self.cache = threading.local()
 
@@ -88,7 +78,7 @@ def storage(name: str, klass: Type[M]) -> StorageDefinition[M]:
         )
 
         class StorageImpl(Storage[M]):
-            def where_clause(self, **kwargs: Any) -> Tuple[str, list[Any]]:
+            def where_clause(self, **kwargs: Any) -> tuple[str, list[Any]]:
                 result = "1=1"
                 values = []
                 for key, value in kwargs.items():

@@ -1,7 +1,7 @@
 import shlex
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Iterable
 
 from ..configparser import DesktopEntry
 from ..utils import async_cached
@@ -10,7 +10,7 @@ from .tracked import Tracker
 
 
 class ArchivePackage(ManualPackage, ABC):
-    raw: Union[bool, str] = False
+    raw: bool | str = False
     raw_executable: bool = False
     strip: int = 0
 
