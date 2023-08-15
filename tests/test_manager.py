@@ -77,7 +77,7 @@ class TestManager:
 
     @pytest.mark.trio
     async def test_returns_installed(self):
-        db = DB(":memory:")
+        db = DB.temporary()
 
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
@@ -104,7 +104,7 @@ class TestManager:
 
     @pytest.mark.trio
     async def test_removes_orphans(self):
-        db = DB(":memory:")
+        db = DB.temporary()
 
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
@@ -157,7 +157,7 @@ class TestManager:
 
     @pytest.mark.trio
     async def test_collects_errors(self):
-        db = DB(":memory:")
+        db = DB.temporary()
 
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
@@ -192,7 +192,7 @@ class TestManager:
             write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
             write_component("two", {"name": "foo"})
 
-            db = DB(":memory:")
+            db = DB.temporary()
             driver = DummyDriver()
             manager = Manager(db=db, driver=driver, component_path=tmppath)
 
