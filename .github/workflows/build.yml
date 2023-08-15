@@ -22,9 +22,8 @@ jobs:
           - os: ubuntu-latest
             docker: fedora
             python-version: "3.11"
-          # https://github.com/orgs/Homebrew/discussions/4612#discussioncomment-6319008
-          # - os: macos-latest
-          #   python-version: "3.11"
+          - os: macos-latest
+            python-version: "3.11"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
