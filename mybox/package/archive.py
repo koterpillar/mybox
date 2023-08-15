@@ -3,8 +3,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable
 
+from pydantic import Field
+
 from ..configparser import DesktopEntry
-from ..utils import async_cached
+from ..utils import allow_singular_none, async_cached
 from .manual import ManualPackage
 from .tracked import Tracker
 
@@ -13,6 +15,9 @@ class ArchivePackage(ManualPackage, ABC):
     raw: bool | str = False
     raw_executable: bool = False
     strip: int = 0
+
+    binary_paths: list[str] = Field(default_factory=list, alias="binary_path")
+    binary_paths_val = allow_singular_none("binary_paths")
 
     @abstractmethod
     async def archive_url(self) -> str:
@@ -109,7 +114,7 @@ class ArchivePackage(ManualPackage, ABC):
 
     async def binary_path(self, binary: str) -> Path:
         return await self.find_in_package_directory(
-            paths=[[], ["bin"]],
+            paths=[[], ["bin"], *([bp] for bp in self.binary_paths)],
             name=binary,
             require_executable=True,
             target_desc="binary",
