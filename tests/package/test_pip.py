@@ -16,12 +16,12 @@ class NoPypiPipxPackage(PipxPackage):
 
 
 async def _test_pip_version(pip_class: type[PipxPackage]):
-    package = pip_class(pipx="django", driver=LocalDriver(), db=DB(":memory:"))
+    package = pip_class(pipx="django", driver=LocalDriver(), db=DB.temporary())
     version = await package.get_remote_version()
     assert version >= "4.1.5"
 
     non_existent = pip_class(
-        pipx="xxxxxxxxxxxx", driver=LocalDriver(), db=DB(":memory:")
+        pipx="xxxxxxxxxxxx", driver=LocalDriver(), db=DB.temporary()
     )
 
     with pytest.raises(Exception, match="Cannot find latest version"):

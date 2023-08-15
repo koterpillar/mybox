@@ -86,7 +86,7 @@ class PackageTestBase(metaclass=ABCMeta):
             pytest.skip("Test affects local system.")
 
     def setup_db(self) -> DB:
-        return DB(":memory:")
+        return DB.temporary()
 
     def parse_package(
         self,
