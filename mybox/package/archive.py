@@ -98,10 +98,9 @@ class ArchivePackage(ManualPackage, ABC):
     ) -> Path:
         for relative_path in paths:
             candidate = await self.package_directory() / Path(*relative_path) / name
-            if require_executable:
+            candidate_ok = await self.driver.is_file(candidate)
+            if require_executable and candidate_ok:
                 candidate_ok = await self.driver.is_executable(candidate)
-            else:
-                candidate_ok = await self.driver.is_file(candidate)
             if candidate_ok:
                 return candidate
         raise ValueError(
