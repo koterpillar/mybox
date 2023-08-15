@@ -71,11 +71,19 @@ case "$OSTYPE" in
     ;;
 esac
 
-if ! command_exists pipx
+PIPX=/usr/local/bin/pipx
+if ! [ -f "$PIPX" ]
 then
-  # FIXME: autoupdate pipx
-  sudo_ curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -o /usr/local/bin/pipx
-  sudo_ chmod +x /usr/local/bin/pipx
+  sudo_ touch -t 200001010000 "$PIPX"
+fi
+
+PIPX_TEMP=$(mktemp)
+trap 'rm -f "$PIPX_TEMP"' EXIT
+curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
+if [ -s "$PIPX_TEMP" ]
+then
+  sudo_ mv "$PIPX_TEMP" "$PIPX"
+  sudo_ chmod +rx "$PIPX"
 fi
 
 if [ "${1:-}" != "--development" ]
