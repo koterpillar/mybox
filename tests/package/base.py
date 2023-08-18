@@ -119,7 +119,7 @@ class PackageTestBase(metaclass=ABCMeta):
             path
             for base_path in [await self.check_driver.home()]
             for path in await self.check_driver.find(
-                base_path, mindepth=1, file_type="f"
+                base_path, mindepth=1, file_type=["f", "l"]
             )
             if not any(
                 path.is_relative_to(ignored) for ignored in await self.ignored_paths()
@@ -160,6 +160,7 @@ class PackageTestBase(metaclass=ABCMeta):
         )
 
         for existing in await self.all_files() - preexisting_files:
+            print(existing)
             if not any(
                 existing.is_relative_to(installed) for installed in installed_files
             ):
