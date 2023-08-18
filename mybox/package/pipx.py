@@ -5,12 +5,10 @@ from typing import Optional, cast
 import requests
 from pydantic import Field, validator
 
-from .base import Package
-
-PIP = ["python3", "-m", "pip"]
+from .tracked import Tracked, Tracker
 
 
-class PipxPackage(Package):
+class PipxPackage(Tracked):
     package: str = Field(..., alias="pipx")
 
     @validator("package")
@@ -42,7 +40,9 @@ class PipxPackage(Package):
 
     async def _get_index_version(self) -> Optional[str]:
         check = await self.driver.run_(
-            *PIP,
+            "python3",
+            "-m",
+            "pip",
             "index",
             "versions",
             self.package,
@@ -67,7 +67,8 @@ class PipxPackage(Package):
 
         raise Exception(f"Cannot find latest version of package '{self.package}'.")
 
-    async def install(self) -> None:
+    async def install_tracked(self, *, tracker: Tracker) -> None:
         cmd = "install" if await self.local_version() is None else "upgrade"
         await self.driver.run("pipx", cmd, self.package)
-        await super().install()
+        tracker.track(await self.driver.local() / "pipx" / "venvs" / self.package)
+        await super().install_tracked(tracker=tracker)
