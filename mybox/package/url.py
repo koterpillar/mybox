@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from ..utils import url_version
 from .archive import ArchivePackage
 
@@ -10,14 +12,14 @@ class URLPackage(ArchivePackage):
 
     @property
     def name(self):
-        parts = self.url.split("/")
-        while True:
-            if len(parts) == 0:
-                raise ValueError(f"Cannot parse package name from {self.url}.")
-            if parts[0] in ("", "https:", "github.com"):
-                parts.pop(0)
-                continue
-            return "/".join(parts[1:2])
+        url = urlparse(self.url)
+
+        name = url.hostname
+
+        path = url.path.rsplit("/", 1)[-1]
+        if path:
+            name += "/" + path.split(".")[0]
+        return name
 
     async def get_remote_version(self) -> str:
         return url_version(self.url)
