@@ -1,16 +1,15 @@
 import json
 import re
-from typing import Optional, cast
+from pathlib import Path
+from typing import Any, Optional, cast
 
 import requests
 from pydantic import Field, validator
 
-from .base import Package
-
-PIP = ["python3", "-m", "pip"]
+from .tracked import Tracked, Tracker
 
 
-class PipxPackage(Package):
+class PipxPackage(Tracked):
     package: str = Field(..., alias="pipx")
 
     @validator("package")
@@ -21,17 +20,22 @@ class PipxPackage(Package):
     def name(self) -> str:
         return self.package
 
-    async def get_all_versions(self) -> dict[str, str]:
+    async def get_metadata(self) -> Optional[dict[str, Any]]:
         pipx_list = json.loads(
             await self.driver.run_output("pipx", "list", "--json", silent=True)
         )
-        packages = (
-            item["metadata"]["main_package"] for item in pipx_list["venvs"].values()
-        )
-        return {package["package"]: package["package_version"] for package in packages}
+        venv = pipx_list["venvs"].get(self.package)
+        if venv:
+            return venv["metadata"]["main_package"]
+        else:
+            return None
 
     async def local_version(self) -> Optional[str]:
-        return (await self.get_all_versions()).get(self.package)
+        metadata = await self.get_metadata()
+        if metadata:
+            return metadata["package_version"]
+        else:
+            return None
 
     async def _get_pypi_version(self) -> Optional[str]:
         pypi_info = requests.get(f"https://pypi.org/pypi/{self.package}/json").json()
@@ -42,7 +46,9 @@ class PipxPackage(Package):
 
     async def _get_index_version(self) -> Optional[str]:
         check = await self.driver.run_(
-            *PIP,
+            "python3",
+            "-m",
+            "pip",
             "index",
             "versions",
             self.package,
@@ -67,7 +73,15 @@ class PipxPackage(Package):
 
         raise Exception(f"Cannot find latest version of package '{self.package}'.")
 
-    async def install(self) -> None:
+    async def install_tracked(self, *, tracker: Tracker) -> None:
         cmd = "install" if await self.local_version() is None else "upgrade"
         await self.driver.run("pipx", cmd, self.package)
-        await super().install()
+
+        tracker.track(await self.driver.local() / "pipx" / "venvs" / self.package)
+        metadata = await self.get_metadata()
+        if metadata:
+            for bin_desc in metadata["app_paths"]:
+                bin_path = Path(bin_desc["__Path__"]).name
+                tracker.track(await self.driver.local() / "bin" / bin_path)
+
+        await super().install_tracked(tracker=tracker)
