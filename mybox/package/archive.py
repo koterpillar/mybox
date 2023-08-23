@@ -43,7 +43,7 @@ class ArchivePackage(ManualPackage, ABC):
                 await self.driver.make_executable(target)
             return
 
-        extractor = get_extractor(url, driver=self.driver)
+        extractor = await get_extractor(url, driver=self.driver)
         await extractor.extract(
             archive=source,
             target_directory=await self.package_directory(),

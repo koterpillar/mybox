@@ -72,7 +72,7 @@ class AppImage(Extractor):
             await self.driver.run("sh", "-c", cmd)
 
 
-def get_extractor(url: str, *, driver: Driver) -> Extractor:
+def _guess_extractor(url: str, *, driver: Driver) -> Extractor:
     if url.endswith(".tar"):
         return Tar(driver=driver)
     elif url.endswith(".tar.gz") or url.endswith(".tgz"):
@@ -87,3 +87,21 @@ def get_extractor(url: str, *, driver: Driver) -> Extractor:
         return AppImage(driver=driver)
     else:
         raise ValueError(f"Unknown archive format: {url}")
+
+
+async def get_extractor(url: str, *, driver: Driver) -> Extractor:
+    try:
+        return _guess_extractor(url, driver=driver)
+    except ValueError:
+        url = await driver.run_output(
+            "curl",
+            "--write-out",
+            "%{url_effective}",
+            "--head",
+            "--no-include",
+            "--silent",
+            "--show-error",
+            "--location",
+            url,
+        )
+        return _guess_extractor(url, driver=driver)
