@@ -1,7 +1,9 @@
 import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, cast
 
 import pytest
+import trio
 
 from mybox.compute import URL, Const, Format, HTMLLinks, JSONPath, Value
 from mybox.utils import T
@@ -69,9 +71,20 @@ async def test_jsonpath():
 
 @pytest.mark.trio
 async def test_url():
-    value = Value.parse({"url": "https://httpbin.org/json"})
+    class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Hello World")
 
-    assert "slideshow" in (await value.compute())
+    server = HTTPServer(("localhost", 0), SimpleHTTPRequestHandler)
+
+    trio.lowlevel.start_thread_soon(server.serve_forever, lambda result: None)
+
+    value = Value.parse({"url": f"http://localhost:{server.server_port}"})
+
+    assert await value.compute() == "Hello World"
 
 
 @pytest.mark.trio
