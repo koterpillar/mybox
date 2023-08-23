@@ -1,4 +1,3 @@
-import shlex
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable
@@ -6,6 +5,7 @@ from typing import Iterable
 from pydantic import Field
 
 from ..configparser import DesktopEntry
+from ..extractor import get_extractor
 from ..utils import allow_singular_none, async_cached
 from .manual import ManualPackage
 from .tracked import Tracker
@@ -31,43 +31,6 @@ class ArchivePackage(ManualPackage, ABC):
     async def package_directory(self) -> Path:
         return (await self.local()) / "mybox" / self.pathname
 
-    @async_cached
-    async def tar(self) -> str:
-        return await self.driver.find_executable("gtar", "tar")
-
-    async def untar(self, source: Path, *extra: str) -> None:
-        await self.driver.run(
-            await self.tar(),
-            "-x",
-            "--strip",
-            str(self.strip),
-            "-C",
-            await self.package_directory(),
-            *extra,
-            "-f",
-            source,
-        )
-
-    async def unzip(self, source: Path) -> None:
-        if self.strip > 0:
-            raise NotImplementedError("Strip is not supported for unzip.")
-        await self.driver.run(
-            "unzip", "-o", "-qq", source, "-d", await self.package_directory()
-        )
-
-    async def appimage(self, source: Path) -> None:
-        async with self.driver.tempfile() as target:
-            await self.driver.run("cp", source, target)
-            await self.driver.make_executable(target)
-
-            cmd = " && ".join(
-                [
-                    shlex.join(["cd", str(await self.package_directory())]),
-                    shlex.join([str(target), "--appimage-extract"]),
-                ]
-            )
-            await self.driver.run("sh", "-c", cmd)
-
     async def extract(self, url: str, source: Path) -> None:
         if self.raw:
             if isinstance(self.raw, str):
@@ -78,20 +41,14 @@ class ArchivePackage(ManualPackage, ABC):
             await self.driver.run("cp", source, target)
             if self.raw_executable:
                 await self.driver.make_executable(target)
-        elif url.endswith(".tar"):
-            await self.untar(source)
-        elif url.endswith(".tar.gz") or url.endswith(".tgz"):
-            await self.untar(source, "-z")
-        elif url.endswith(".tar.bz2"):
-            await self.untar(source, "-j")
-        elif url.endswith(".tar.xz") or url.endswith(".txz"):
-            await self.untar(source, "-J")
-        elif url.endswith(".zip"):
-            await self.unzip(source)
-        elif url.endswith(".AppImage"):
-            await self.appimage(source)
-        else:
-            raise ValueError(f"Unknown archive format: {url}")
+            return
+
+        extractor = get_extractor(url, driver=self.driver)
+        await extractor.extract(
+            archive=source,
+            target_directory=await self.package_directory(),
+            strip=self.strip,
+        )
 
     async def find_in_package_directory(
         self,
