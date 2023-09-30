@@ -5,12 +5,16 @@ module Driver.Actions
   , drvIsDirectory
   , drvIsFile
   , drvIsExecutable
+  , shellCmd
   ) where
 
 import           Data.Text (Text)
 import qualified Data.Text as Text
 
-import           Driver
+import           Driver.Types
+
+shellCmd :: Text -> NonEmpty Text
+shellCmd cmd = "sh" :| ["-c", cmd]
 
 drvExecutableExists :: Text -> Driver -> IO Bool
 drvExecutableExists name = drvRunOK $ shellCmd $ "command -v " <> name
@@ -19,12 +23,7 @@ drvFindExecutable :: [Text] -> Driver -> IO Text
 drvFindExecutable = error "drvFindExecutable: not implemented"
 
 drvHome :: Driver -> IO FilePath
-drvHome drv = do
-  let path =
-        if drvRoot drv
-          then "~root"
-          else "~"
-  Text.unpack <$> drvRunOutput (shellCmd $ "eval echo " <> path) drv
+drvHome drv = Text.unpack <$> drvRunOutput (shellCmd "eval echo ~") drv
 
 drvTest :: Text -> Text -> Driver -> IO Bool
 drvTest test arg = drvRunOK ("test" :| [test, arg])

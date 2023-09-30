@@ -8,9 +8,10 @@ import qualified Data.Text            as Text
 import           System.Process.Typed
 
 import           Driver
-import           Driver.Actions
 
 import           Package
+
+import           Process
 
 data Clone =
   Clone
@@ -52,7 +53,6 @@ instance Package Clone where
         drvRun (gitArgs pk ["switch", defaultBranch]) drv
         drvRun (gitArgs pk ["reset", "--hard", "origin/" <> defaultBranch]) drv
       else do
-        -- FIXME: create parent directories
         drvRun (git :| ["clone", remote, Text.pack $ cloneDestination pk]) drv
 
 git :: Text

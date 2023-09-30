@@ -3,7 +3,6 @@
 module Driver.Test
   ( drvLocalTest
   , drvDocker
-  , drvDisableRoot
   ) where
 
 import           Data.Function        ((&))
@@ -22,14 +21,17 @@ import           System.Process.Typed hiding (Inherit)
 import           System.Random
 
 import           Driver
+import Driver.Types (roPrependArgs)
+
+import Process
 
 import           Paths_mybox
 
 drvLogging :: Driver -> Driver
-drvLogging =
-  drvModify $ \originalRun root ro -> do
-    Text.putStrLn $ "->" <> commandPrefix root <> " " <> showCommand ro
-    originalRun root ro
+drvLogging (Driver originalRun) =
+  Driver $ \ro -> do
+    Text.putStrLn $ "->" <> commandPrefix False <> " " <> showCommand ro
+    originalRun ro
 
 commandPrefix :: Bool -> Text
 commandPrefix True  = "#"
@@ -45,17 +47,9 @@ showCommand :: RunOptions output -> Text
 showCommand RunOptions {roArgs = command :| args} =
   Text.unwords $ map showArg (command : args)
 
-drvDisableRoot :: Driver -> Driver
-drvDisableRoot =
-  drvModify $ \originalRun root ro ->
-    if root
-      then error $
-           Text.unpack $ "Root operations are disabled: " <> showCommand ro
-      else originalRun False ro
-
-overrideHome :: FilePath -> Text -> DriverRun -> DriverRun
-overrideHome home path originalRun root ro =
-  originalRun root $
+overrideHome :: FilePath -> Text -> Driver -> Driver
+overrideHome home path (Driver originalRun) =
+  Driver $ \ro -> originalRun $
   roPrependArgs
     [ "env"
     , "HOME=" <> Text.pack home
@@ -68,7 +62,7 @@ drvLocalTest = do
   tmp <- getCanonicalTemporaryDirectory
   home <- createTempDirectory tmp "mybox-home"
   path <- Text.pack . fromMaybe "" <$> lookupEnv "PATH"
-  pure $ drvLogging $ drvModify (overrideHome home path) drvLocal
+  pure $ drvLogging $ overrideHome home path $ drvProcess
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
@@ -114,14 +108,11 @@ drvDocker baseImage = do
        , "sleep"
        , "86400000"
        ])
-  pure $ drvLogging $ drvMake $ dockerRun container
+  pure $ drvLogging $ dockerRun container
 
-dockerRun :: Text -> DriverRun
-dockerRun container root ro = drvProcessRun $ roPrependArgs dockerArgs ro
+dockerRun :: Text -> Driver
+dockerRun container = Driver $ \ro -> originalRun $ roPrependArgs dockerArgs ro
   where
+    Driver originalRun = drvProcess
     dockerArgs =
-      ["docker", "exec"] ++
-      (if root
-         then ["--user", "root"]
-         else []) ++
-      ["--interactive", container]
+      ["docker", "exec", "--interactive", container]

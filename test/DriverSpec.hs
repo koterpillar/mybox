@@ -46,7 +46,7 @@ testScriptFail = testScript_ False
 spec :: Spec
 spec =
   describe "drvLocal" $ do
-    let drv = drvLocal
+    let drv = drvProcess
     describe "drvRun" $ do
       it "runs a successful command, ignores stdout, shows stderr" $
         capture (drvRun testScript drv) `shouldReturn`
