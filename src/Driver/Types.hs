@@ -2,15 +2,15 @@
 
 module Driver.Types
   ( Driver(..)
+  , drvModify
   , drvRun
   , drvRunOK
   , drvRunOutput
   , OutStream(..)
   , RunOptions(..)
-  , roPrependArgs
+  , drvPrependArgs
   , RunResult(..)
   , runOK
-  , drvRunOptions
   , RunException(..)
   , NonEmpty(..)
   ) where
@@ -63,24 +63,29 @@ roDefaults args =
 roPrependArgs :: [Text] -> RunOptions output -> RunOptions output
 roPrependArgs args ro = ro {roArgs = NonEmpty.prependList args (roArgs ro)}
 
+type DrvRun = forall output. RunOptions output -> IO (RunResult output)
+
 newtype Driver =
   Driver
-    { drvRun_ :: forall output. RunOptions output -> IO (RunResult output)
+    { drvRun_ :: DrvRun
     }
 
-drvRunOptions :: Driver -> RunOptions output -> IO (RunResult output)
-drvRunOptions Driver {..} = drvRun_
+drvModify :: (DrvRun -> DrvRun) -> Driver -> Driver
+drvModify f (Driver run) = Driver (f run)
+
+drvPrependArgs :: [Text] -> Driver -> Driver
+drvPrependArgs args = drvModify $ \run -> run . roPrependArgs args
 
 drvRun :: NonEmpty Text -> Driver -> IO ()
-drvRun args driver = void $ drvRunOptions driver $ roDefaults args
+drvRun args driver = void $ drvRun_ driver $ roDefaults args
 
 drvRunOK :: NonEmpty Text -> Driver -> IO Bool
-drvRunOK args driver = runOK <$> drvRunOptions driver ro
+drvRunOK args driver = runOK <$> drvRun_ driver ro
   where
     ro = (roDefaults args) {roCheck = False}
 
 drvRunOutput :: NonEmpty Text -> Driver -> IO Text
-drvRunOutput args driver = runOutput <$> drvRunOptions driver ro
+drvRunOutput args driver = runOutput <$> drvRun_ driver ro
   where
     ro = (roDefaults args) {roOutput = Capture, roErrors = Silent}
 

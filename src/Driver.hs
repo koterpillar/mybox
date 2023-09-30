@@ -8,7 +8,6 @@ module Driver
   , OutStream(..)
   , RunOptions(..)
   , RunResult(..)
-  , drvRunOptions
   , RunException(..)
   , drvProcess
   , NonEmpty(..)

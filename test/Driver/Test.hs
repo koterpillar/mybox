@@ -21,15 +21,14 @@ import           System.Process.Typed hiding (Inherit)
 import           System.Random
 
 import           Driver
-import Driver.Types (roPrependArgs)
+import Driver.Types (drvModify, drvPrependArgs)
 
 import Process
 
 import           Paths_mybox
 
 drvLogging :: Driver -> Driver
-drvLogging (Driver originalRun) =
-  Driver $ \ro -> do
+drvLogging = drvModify $ \originalRun ro -> do
     Text.putStrLn $ "->" <> commandPrefix False <> " " <> showCommand ro
     originalRun ro
 
@@ -48,14 +47,11 @@ showCommand RunOptions {roArgs = command :| args} =
   Text.unwords $ map showArg (command : args)
 
 overrideHome :: FilePath -> Text -> Driver -> Driver
-overrideHome home path (Driver originalRun) =
-  Driver $ \ro -> originalRun $
-  roPrependArgs
-    [ "env"
-    , "HOME=" <> Text.pack home
-    , "PATH=" <> Text.pack home <> "/.local/bin:" <> path
-    ]
-    ro
+overrideHome home path = drvPrependArgs
+  [ "env"
+  , "HOME=" <> Text.pack home
+  , "PATH=" <> Text.pack home <> "/.local/bin:" <> path
+  ]
 
 drvLocalTest :: IO Driver -- FIXME: clean up temporary directory
 drvLocalTest = do
@@ -108,11 +104,5 @@ drvDocker baseImage = do
        , "sleep"
        , "86400000"
        ])
-  pure $ drvLogging $ dockerRun container
-
-dockerRun :: Text -> Driver
-dockerRun container = Driver $ \ro -> originalRun $ roPrependArgs dockerArgs ro
-  where
-    Driver originalRun = drvProcess
-    dockerArgs =
-      ["docker", "exec", "--interactive", container]
+  let dockerArgs = ["docker", "exec", "--interactive", container]
+  pure $ drvLogging $ drvPrependArgs dockerArgs drvProcess
