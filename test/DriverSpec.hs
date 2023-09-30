@@ -45,7 +45,7 @@ testScriptFail = testScript_ False
 
 spec :: Spec
 spec =
-  describe "drvLocal" $ do
+  describe "drvProcess" $ do
     let drv = drvProcess
     describe "drvRun" $ do
       it "runs a successful command, ignores stdout, shows stderr" $
