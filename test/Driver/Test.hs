@@ -58,7 +58,7 @@ drvLocalTest = do
   tmp <- getCanonicalTemporaryDirectory
   home <- createTempDirectory tmp "mybox-home"
   path <- Text.pack . fromMaybe "" <$> lookupEnv "PATH"
-  pure $ drvLogging $ overrideHome home path $ drvProcess
+  pure $ drvLogging $ overrideHome home path drvProcess
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
