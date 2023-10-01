@@ -1,8 +1,8 @@
 {-# LANGUAGE GADTs #-}
 
 module Driver.Test
-  ( drvLocalTest
-  , drvDocker
+  ( withLocalTestDriver
+  , withDockerTestDriver
   ) where
 
 import           Data.Function        ((&))
@@ -53,12 +53,10 @@ overrideHome home path = drvPrependArgs
   , "PATH=" <> Text.pack home <> "/.local/bin:" <> path
   ]
 
-drvLocalTest :: IO Driver -- FIXME: clean up temporary directory
-drvLocalTest = do
-  tmp <- getCanonicalTemporaryDirectory
-  home <- createTempDirectory tmp "mybox-home"
+withLocalTestDriver :: forall r. (Driver -> IO r) -> IO r
+withLocalTestDriver act = withSystemTempDirectory "mybox-home" $ \home -> do
   path <- Text.pack . fromMaybe "" <$> lookupEnv "PATH"
-  pure $ drvLogging $ overrideHome home path drvProcess
+  act $ drvLogging $ overrideHome home path drvProcess
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
@@ -69,8 +67,8 @@ dockerUser = "regular_user"
 dockerContainerPrefix :: Text
 dockerContainerPrefix = "mybox-test-"
 
-drvDocker :: Text -> IO Driver
-drvDocker baseImage = do
+withDockerTestDriver :: Text -> forall r. (Driver -> IO r) -> IO r
+withDockerTestDriver baseImage act = do
   packageRoot <- getDataDir
   let bootstrap = packageRoot <> "/bootstrap"
   let image = dockerImagePrefix <> baseImage
@@ -105,4 +103,4 @@ drvDocker baseImage = do
        , "86400000"
        ])
   let dockerArgs = ["docker", "exec", "--interactive", container]
-  pure $ drvLogging $ drvPrependArgs dockerArgs drvProcess
+  act $ drvLogging $ drvPrependArgs dockerArgs drvProcess

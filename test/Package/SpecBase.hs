@@ -30,8 +30,7 @@ withPSR :: PackageSpec package -> (PackageSpecRun -> IO ()) -> IO ()
 withPSR _ act =
   withSystemTempDirectory "mybox" $ \dir -> do
     let psrDirectory = dir <> "/destination"
-    psrDriver <- drvLocalTest
-    act $ PackageSpecRun {..}
+    withLocalTestDriver $ \psrDriver -> act $ PackageSpecRun {..}
 
 data PackageSpec package =
   PackageSpec
