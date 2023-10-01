@@ -1,4 +1,6 @@
-module Package.LinksSpec where
+module Package.LinksSpec
+  ( spec
+  ) where
 
 import           Data.Foldable
 
@@ -8,8 +10,6 @@ import           Test.Hspec
 
 import           Package.Links
 import           Package.SpecBase
-
-import           Paths_mybox
 
 mods :: [(String, Links -> Links)]
 mods =
@@ -25,11 +25,11 @@ spec =
     PackageSpec
       { psName = name
       , psPackage =
-          \psr ->
+          \PackageSpecRun{..} ->
             fn $
             Links
-              { linksSource = undefined
-              , linksDestination = undefined
+              { linksSource = "tests/package/test_links_content"
+              , linksDestination = psrDirectory <> "/links"
               , linksDot = False
               , linksShallow = False
               , linksOnly = Nothing

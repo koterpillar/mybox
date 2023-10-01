@@ -29,6 +29,7 @@ library
       Package
       Package.Clone
       Package.Links
+      Package.Manual
       Process
       State
       State.InstalledFile
@@ -38,6 +39,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      DerivingVia
       FlexibleInstances
       FunctionalDependencies
       LambdaCase
@@ -47,12 +49,14 @@ library
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
+      StandaloneDeriving
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , bytestring
     , cryptohash-sha256
+    , directory
     , mtl
     , sqlite-simple
     , text
@@ -68,6 +72,7 @@ executable mybox-exe
   hs-source-dirs:
       app
   default-extensions:
+      DerivingVia
       FlexibleInstances
       FunctionalDependencies
       LambdaCase
@@ -77,12 +82,14 @@ executable mybox-exe
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
+      StandaloneDeriving
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
     , cryptohash-sha256
+    , directory
     , mtl
     , mybox
     , sqlite-simple
@@ -106,6 +113,7 @@ test-suite mybox-test
   hs-source-dirs:
       test
   default-extensions:
+      DerivingVia
       FlexibleInstances
       FunctionalDependencies
       LambdaCase
@@ -115,6 +123,7 @@ test-suite mybox-test
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
+      StandaloneDeriving
       TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-tool-depends:

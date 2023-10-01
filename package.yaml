@@ -11,6 +11,7 @@ extra-source-files:
 description: Please see the README on GitHub at <https://github.com/koterpillar/mybox#readme>
 
 default-extensions:
+  - DerivingVia
   - FlexibleInstances
   - FunctionalDependencies
   - LambdaCase
@@ -20,12 +21,14 @@ default-extensions:
   - RankNTypes
   - RecordWildCards
   - ScopedTypeVariables
+  - StandaloneDeriving
   - TypeApplications
 
 dependencies:
   - base >= 4.7 && < 5
   - bytestring
   - cryptohash-sha256
+  - directory
   - mtl
   - sqlite-simple
   - text
