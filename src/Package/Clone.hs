@@ -33,12 +33,12 @@ instance Package Clone where
       readProcessStdout_ $
       procText $ git :| ["ls-remote", cloneRemote pk, "HEAD"]
     pure $ Text.takeWhile (/= '\t') remote
-  pkLocalVersion drv pk = do
+  pkLocalVersion _ drv pk = do
     exists <- directoryExists drv pk
     if not exists
       then pure Nothing
       else Just <$> drvRunOutput (gitArgs pk ["rev-parse", "HEAD"]) drv
-  pkInstall drv pk = do
+  pkInstall _ drv pk = do
     let remote = cloneRemote pk
     exists <- directoryExists drv pk
     if exists

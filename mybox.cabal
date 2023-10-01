@@ -29,7 +29,7 @@ library
       Package
       Package.Clone
       Package.Links
-      Package.Manual
+      Package.ManualVersion
       Process
       State
       State.InstalledFile

@@ -2,18 +2,18 @@ module Package.Links
   ( Links(..)
   ) where
 
-import           Crypto.Hash.SHA256 as SHA256
+import           Crypto.Hash.SHA256    as SHA256
 
-import           Data.Text          (Text)
-import qualified Data.Text          as Text
-import qualified Data.Text.Encoding as Text
+import           Data.Text             (Text)
+import qualified Data.Text             as Text
+import qualified Data.Text.Encoding    as Text
 
 import           System.Directory
 
 import           Driver
 
 import           Package
-import           Package.Manual
+import           Package.ManualVersion
 
 data Links =
   Links
@@ -26,10 +26,11 @@ data Links =
   deriving (Eq, Show)
 
 linksPaths :: Links -> IO [FilePath]
-linksPaths pk = filter (linksFilter pk) <$> do
-  if linksShallow pk
-    then getDirectoryContents $ linksSource pk
-    else error "linksPaths: non-shallow not implemented"
+linksPaths pk =
+  filter (linksFilter pk) <$> do
+    if linksShallow pk
+      then getDirectoryContents $ linksSource pk
+      else error "linksPaths: non-shallow not implemented"
 
 linksFilter :: Links -> FilePath -> Bool
 linksFilter pk =
@@ -37,13 +38,13 @@ linksFilter pk =
     Nothing   -> const True
     Just only -> (`elem` only) . Text.pack
 
-instance ManualPackage Links where
-  mpkInstall = error "mpkInstall for Links: not implemented"
-  mpkRemoteVersion _ pk = do
+instance ManualVersionPackage Links where
+  mvpkInstall = error "mvpkInstall for Links: not implemented"
+  mvpkRemoteVersion _ pk = do
     paths <- linksPaths pk
     let ctx0 = SHA256.init
     let ctx = foldl SHA256.update ctx0 (map (Text.encodeUtf8 . Text.pack) paths)
     let digest = SHA256.finalize ctx
     pure $ Text.decodeUtf8 digest
 
-deriving via (MPK Links) instance Package Links
+deriving via (ManualVersionPK Links) instance Package Links

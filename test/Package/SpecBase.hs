@@ -20,17 +20,21 @@ import           Driver.Test
 
 import           Package
 
+import           State
+
 data PackageSpecRun =
   PackageSpecRun
-    { psrDirectory :: FilePath
-    , psrDriver    :: Driver
+    { psrDirectory  :: FilePath
+    , psrDriver     :: Driver
+    , psrConnection :: Connection
     }
 
 withPSR :: PackageSpec package -> (PackageSpecRun -> IO ()) -> IO ()
 withPSR _ act =
   withSystemTempDirectory "mybox" $ \dir -> do
     let psrDirectory = dir <> "/destination"
-    withLocalTestDriver $ \psrDriver -> act $ PackageSpecRun {..}
+    withLocalTestDriver $ \psrDriver ->
+      withSqliteMemoryDB $ \psrConnection -> act $ PackageSpecRun {..}
 
 data PackageSpec package =
   PackageSpec
@@ -43,11 +47,11 @@ packageSpec :: Package package => PackageSpec package -> Spec
 packageSpec ps@PackageSpec {..} =
   around (withPSR ps) $
   describe psName $ do
-    it "installs correctly" $ \psr -> do
+    it "installs correctly" $ \psr@PackageSpecRun {..} -> do
       let package = psPackage psr
-      pkIsInstalled (psrDriver psr) package `shouldReturn` False
-      pkInstall (psrDriver psr) package
-      pkIsInstalled (psrDriver psr) package `shouldReturn` True
+      pkIsInstalled psrConnection psrDriver package `shouldReturn` False
+      pkInstall psrConnection psrDriver package
+      pkIsInstalled psrConnection psrDriver package `shouldReturn` True
       psCheckInstalled psr
 
 psCheckInstalledOutput :: PackageSpecRun -> NonEmpty Text -> Text -> Expectation

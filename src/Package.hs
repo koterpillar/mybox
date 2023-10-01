@@ -6,14 +6,15 @@ module Package
 import           Data.Text (Text)
 
 import           Driver
+import           State     (Connection)
 
 class Package package where
-  pkInstall :: Driver -> package -> IO ()
+  pkInstall :: Connection -> Driver -> package -> IO ()
   pkRemoteVersion :: Driver -> package -> IO Text
-  pkLocalVersion :: Driver -> package -> IO (Maybe Text)
+  pkLocalVersion :: Connection -> Driver -> package -> IO (Maybe Text)
 
-pkIsInstalled :: Package package => Driver -> package -> IO Bool
-pkIsInstalled driver package = do
+pkIsInstalled :: Package package => Connection -> Driver -> package -> IO Bool
+pkIsInstalled db driver package = do
   remote <- pkRemoteVersion driver package
-  local <- pkLocalVersion driver package
+  local <- pkLocalVersion db driver package
   pure $ local == Just remote
