@@ -88,5 +88,7 @@ class Format(Derived):
 class HTMLLinks(Derived, Filters):
     async def derived_value(self, contents: str) -> str:
         soup = BeautifulSoup(contents, "html.parser")
-        candidates = [link.get("href") for link in soup.find_all("a")]
+        candidates: list[str] = list(
+            filter(None, (link.get("href") for link in soup.find_all("a")))
+        )
         return choose(candidates, self.filters())
