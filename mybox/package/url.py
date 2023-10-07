@@ -1,17 +1,31 @@
 from urllib.parse import urlparse
 
-from ..utils import url_version
+from pydantic import Field
+
+from ..compute import Const, Value
+from ..utils import async_cached, url_version
 from .archive import ArchivePackage
 
 
 class URLPackage(ArchivePackage):
-    url: str
+    url_: Value = Field(..., alias="url")
+
+    @async_cached
+    async def url(self) -> str:
+        return await self.url_.compute()
 
     async def archive_url(self) -> str:
-        return self.url
+        return await self.url()
 
     def derive_name(self) -> str:
-        url = urlparse(self.url)
+        if isinstance(self.url_, Const):
+            url_str = self.url_.value
+        else:
+            raise ValueError(
+                "Cannot derive name from computed URL and no name override."
+            )
+
+        url = urlparse(url_str)
 
         name = url.hostname or ""
 
@@ -21,4 +35,4 @@ class URLPackage(ArchivePackage):
         return name
 
     async def get_remote_version(self) -> str:
-        return url_version(self.url)
+        return url_version(await self.url())
