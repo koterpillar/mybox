@@ -14,7 +14,7 @@ from .url import URLPackage
 from .yum_repo import YumRepo
 
 TYPES: list[tuple[str, Type[Package]]] = [
-    ("name", SystemPackage),
+    ("system", SystemPackage),
     ("repo", GitHubPackage),
     ("url", URLPackage),
     ("clone", Clone),
