@@ -1,3 +1,5 @@
+import pytest
+
 from mybox.driver import LocalDriver
 from mybox.package.url import URLPackage
 from mybox.state import DB
@@ -29,3 +31,14 @@ def test_name():
         db=DB.temporary(),
     )
     assert package.name == "example.com/thing"
+
+
+def test_no_name():
+    package = URLPackage(
+        url={"format": "ignore", "base": "ignore"},
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+
+    with pytest.raises(ValueError):
+        len(package.name)
