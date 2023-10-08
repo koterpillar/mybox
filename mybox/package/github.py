@@ -108,8 +108,7 @@ class GitHubPackage(ArchivePackage, Filters):
     async def archive_url(self) -> str:
         return (await self.artifact()).url
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return self.repo
 
     async def get_remote_version(self) -> str:

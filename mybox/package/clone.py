@@ -10,8 +10,7 @@ from .tracked import Tracked, Tracker
 class Clone(Destination, Tracked):
     repo: str = Field(..., alias="clone")
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return self.repo
 
     async def directory_exists(self) -> bool:

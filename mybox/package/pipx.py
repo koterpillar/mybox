@@ -16,8 +16,7 @@ class PipxPackage(Tracked):
     def package_to_lower(cls, value: str) -> str:  # pylint: disable=no-self-argument
         return value.lower()
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return self.package
 
     async def get_metadata(self) -> Optional[dict[str, Any]]:

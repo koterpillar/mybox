@@ -7,7 +7,7 @@ class TestRipGrep(PackageTestBase):
     affects_system = True
 
     async def constructor_args(self) -> PackageArgs:
-        return {"name": "ripgrep"}
+        return {"system": "ripgrep"}
 
     async def check_installed_command(self):
         return ["rg", "--help"]
@@ -20,7 +20,7 @@ class TestRPMFusion(PackageTestBase):
 
     async def constructor_args(self) -> PackageArgs:
         return {
-            "name": "rpmfusion-free-release",
+            "system": "rpmfusion-free-release",
             "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-38.noarch.rpm",
         }
 
@@ -41,7 +41,7 @@ class TestInteractiveDeb(PackageTestBase):
     affects_system = True
 
     async def constructor_args(self) -> PackageArgs:
-        return {"name": "tzdata"}
+        return {"system": "tzdata"}
 
     async def check_installed_command(self):
         return ["cat", "/usr/share/doc/tzdata/copyright"]
@@ -60,7 +60,7 @@ class TestVirtualPackage(PackageTestBase):
     affects_system = True
 
     async def constructor_args(self) -> PackageArgs:
-        return {"name": "g++"}
+        return {"system": "g++"}
 
     async def check_installed_command(self):
         return ["g++", "--version"]

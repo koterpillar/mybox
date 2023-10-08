@@ -12,7 +12,7 @@ INSTALLER_LOCK = trio.Lock()
 
 
 class SystemPackage(ManualVersion):
-    name_: str = Field(..., alias="name")
+    system: str
     url_: Optional[Value] = Field(default=None, alias="url")
     auto_updates: bool = False
     services: list[str] = Field(default_factory=list, alias="service")
@@ -21,9 +21,8 @@ class SystemPackage(ManualVersion):
     async def installer(self):
         return await make_installer(self.driver)
 
-    @property
-    def name(self) -> str:
-        return self.name_
+    def derive_name(self) -> str:
+        return self.system
 
     @async_cached
     async def url(self) -> Optional[str]:
@@ -36,13 +35,13 @@ class SystemPackage(ManualVersion):
             return url_version(url)
         if self.auto_updates:
             return "latest"
-        return await (await self.installer()).latest_version(self.name)
+        return await (await self.installer()).latest_version(self.system)
 
     async def local_version(self) -> Optional[str]:
         if await self.url():
             return self.cached_version
         installer = await self.installer()
-        version = await installer.installed_version(self.name)
+        version = await installer.installed_version(self.system)
         if self.auto_updates:
             return "latest" if version else None
         return version
@@ -63,9 +62,9 @@ class SystemPackage(ManualVersion):
                 await installer.install(url)
                 await self.cache_version()
             elif await self.local_version():
-                await installer.upgrade(self.name)
+                await installer.upgrade(self.system)
             else:
-                await installer.install(self.name)
+                await installer.install(self.system)
         await (await self.driver.os()).switch(
             linux=self.postinstall_linux, macos=self.postinstall_macos
         )()

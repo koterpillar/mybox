@@ -20,6 +20,8 @@ class Package(BaseModel, ABC):
         """Allow hashing to pass when gathering async results."""
         return hash(id(self))
 
+    name_: Optional[str] = Field(default=None, alias="name")
+
     os: Optional[list[str]] = None
     os_val = allow_singular("os")
 
@@ -34,9 +36,11 @@ class Package(BaseModel, ABC):
         return self.driver_
 
     @property
-    @abstractmethod
     def name(self) -> str:
-        pass
+        return self.name_ or self.derive_name()
+
+    def derive_name(self) -> str:
+        raise ValueError("Package name not set.")
 
     @abstractmethod
     async def get_remote_version(self) -> str:

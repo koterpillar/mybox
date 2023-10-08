@@ -10,8 +10,7 @@ SHELLS_FILE = Path("/etc/shells")
 class Shell(Root):
     shell: Path
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return "_shell"
 
     async def get_remote_version(self) -> str:

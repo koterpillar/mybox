@@ -188,13 +188,17 @@ class PackageTestBase(metaclass=ABCMeta):
         assert await package.is_installed() in {True, False}
 
     JAVA: list[PackageArgs] = [
-        {"name": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
-        {"name": "openjdk-17-jre", "os": "linux", "distribution": ["debian", "ubuntu"]},
+        {"system": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
+        {
+            "system": "openjdk-17-jre",
+            "os": "linux",
+            "distribution": ["debian", "ubuntu"],
+        },
     ]
 
     NODE: list[PackageArgs] = [
-        {"name": "nodejs", "os": "linux"},
-        {"name": "node", "os": "darwin"},
+        {"system": "nodejs", "os": "linux"},
+        {"system": "node", "os": "darwin"},
     ]
 
     @async_cached
