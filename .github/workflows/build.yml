@@ -104,3 +104,5 @@ jobs:
           poetry version ${{ steps.tag.outputs.replaced }}
           poetry build
           poetry publish
+      - name: Create release
+        uses: softprops/action-gh-release@v1
