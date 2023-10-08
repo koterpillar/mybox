@@ -5,7 +5,7 @@ from mybox.extractor import Tar, get_extractor
 
 
 @pytest.mark.trio
-async def test_extractor_redirect():
+async def test_get_extractor_redirect():
     extractor = await get_extractor(
         "https://telegram.org/dl/desktop/linux", driver=LocalDriver()
     )
@@ -14,7 +14,7 @@ async def test_extractor_redirect():
 
 
 @pytest.mark.trio
-async def test_extractor_unknown():
+async def test_get_extractor_unknown():
     with pytest.raises(
         ValueError, match="Unknown archive format: https://example.com/"
     ):
