@@ -10,11 +10,10 @@ class URLPackage(ArchivePackage):
     async def archive_url(self) -> str:
         return self.url
 
-    @property
-    def name(self):
+    def derive_name(self) -> str:
         url = urlparse(self.url)
 
-        name = url.hostname
+        name = url.hostname or ""
 
         path = url.path.rsplit("/", 1)[-1]
         if path:

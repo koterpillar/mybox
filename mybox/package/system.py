@@ -21,8 +21,7 @@ class SystemPackage(ManualVersion):
     async def installer(self):
         return await make_installer(self.driver)
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return self.system
 
     @async_cached

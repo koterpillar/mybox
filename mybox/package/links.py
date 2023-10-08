@@ -22,8 +22,7 @@ class Links(ManualVersion, Destination, Tracked):
     only: Optional[list[str]] = None
     only_val = allow_singular("only")
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return f"links-{self.source}-{self.destination_}-{self.dot}-{self.root}"
 
     def all_paths(self) -> Iterator[Path]:

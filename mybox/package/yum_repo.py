@@ -13,8 +13,7 @@ class YumRepo(ManualVersion):
     baseurl: str = Field(alias="yum_url")
     gpg_key: Optional[str] = None
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return f"yum-{self.repo_name}"
 
     async def get_remote_version(self) -> str:

@@ -15,8 +15,7 @@ class NpmPackage(Root, ManualVersion, Tracked):
     binaries: list[str] = Field(default_factory=list, alias="binary")
     binaries_val = allow_singular_none("binaries")
 
-    @property
-    def name(self) -> str:
+    def derive_name(self) -> str:
         return self.package
 
     async def get_remote_version(self) -> str:

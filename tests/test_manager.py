@@ -52,12 +52,7 @@ class DummyPackage(ManualVersion, Tracked):
     files_val = allow_singular_none("files")
 
     version: str = "1"
-    name_: str = Field(..., alias="name")
     error: Optional[Exception] = None
-
-    @property
-    def name(self) -> str:
-        return self.name_
 
     async def get_remote_version(self) -> str:
         return self.version
