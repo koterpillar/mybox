@@ -10,6 +10,7 @@ from typing import (
     AsyncIterator,
     Callable,
     Iterable,
+    Literal,
     Optional,
     cast,
 )
@@ -170,8 +171,14 @@ class Driver(metaclass=ABCMeta):
         return [Path(result) for result in output.split("\0") if result]
 
     @asynccontextmanager
-    async def tempfile(self) -> AsyncIterator[Path]:
-        path = Path(await self.run_output("mktemp"))
+    async def tempfile(
+        self, kind: Optional[Literal["directory"]] = None
+    ) -> AsyncIterator[Path]:
+        args = []
+        if kind == "directory":
+            args.append("-d")
+
+        path = Path(await self.run_output("mktemp", *args))
         try:
             yield path
         finally:

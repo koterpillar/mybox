@@ -47,9 +47,28 @@ class Unzip(Extractor):
     async def extract(
         self, *, archive: Path, target_directory: Path, strip: int = 0
     ) -> None:
-        if strip > 0:
-            raise NotImplementedError("Strip is not supported for unzip.")
-        await self.driver.run("unzip", "-o", "-qq", archive, "-d", target_directory)
+        async with self.driver.tempfile(kind="directory") as tmpdir:
+            await self.driver.run("unzip", "-o", "-qq", archive, "-d", tmpdir)
+
+            source_dir = tmpdir
+            while strip > 0:
+                contents = await self.driver.find(source_dir, mindepth=1, maxdepth=1)
+                if len(contents) != 1:
+                    raise ValueError(
+                        f"Expected exactly one item after extracting, got {contents}."
+                    )
+                element = contents[0]
+                if not await self.driver.is_dir(element):
+                    raise ValueError(
+                        f"Expected directory after extracting, got {element}."
+                    )
+
+                source_dir = source_dir / element
+                strip -= 1
+
+            await self.driver.makedirs(target_directory)
+            for element in await self.driver.find(source_dir, mindepth=1, maxdepth=1):
+                await self.driver.run("cp", "-R", element, target_directory)
 
 
 class AppImage(Extractor):
