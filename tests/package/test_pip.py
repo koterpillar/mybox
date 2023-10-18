@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -10,32 +9,18 @@ from mybox.state import DB
 from .base import DOCKER, PackageArgs, PackageTestBase
 
 
-class NoPypiPipxPackage(PipxPackage):
-    async def _get_pypi_version(self) -> Optional[str]:
-        return None
-
-
-async def _test_pip_version(pip_class: type[PipxPackage]):
-    package = pip_class(pipx="django", driver=LocalDriver(), db=DB.temporary())
+@pytest.mark.trio
+async def test_remote_version():
+    package = PipxPackage(pipx="django", driver=LocalDriver(), db=DB.temporary())
     version = await package.get_remote_version()
     assert version >= "4.1.5"
 
-    non_existent = pip_class(
+    non_existent = PipxPackage(
         pipx="xxxxxxxxxxxx", driver=LocalDriver(), db=DB.temporary()
     )
 
     with pytest.raises(Exception, match="Cannot find latest version"):
         await non_existent.get_remote_version()
-
-
-@pytest.mark.trio
-async def test_remote_version():
-    await _test_pip_version(PipxPackage)
-
-
-@pytest.mark.trio
-async def test_remote_version_from_index():
-    await _test_pip_version(NoPypiPipxPackage)
 
 
 class TestPipx(PackageTestBase):
