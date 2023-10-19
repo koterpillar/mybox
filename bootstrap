@@ -55,13 +55,15 @@ case "$OSTYPE" in
         ensure curl
         ensure git
         ensure sudo
-        ensure python3 python3{,-{pip,venv}}
+        ensure python3 python3{,-venv}
+        ensure pip python3-pip
         ensure unzip
         ;;
       fedora)
         INSTALLER=(sudo_ dnf install --assumeyes)
 
         ensure git
+        ensure pip python3-pip
         ensure bzip2
         ensure xz
         ensure unzip
