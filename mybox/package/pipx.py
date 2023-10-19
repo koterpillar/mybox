@@ -52,7 +52,7 @@ class PipxPackage(Tracked):
         output = cast(str, check.output)
         version = re.search(r"\(([^)]+)\)", output)
         if not version:
-            raise Exception(f"Cannot parse pip output: {output}")
+            raise Exception(f"Cannot parse pip output: {output}")  # pragma: no cover
         return version[1]
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
