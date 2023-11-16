@@ -235,6 +235,11 @@ class PackageTestBase(metaclass=ABCMeta):
         if icon:
             await self.assert_icon_exists(icon)
 
+    ICON_RESOLUTIONS = [
+        "scalable",
+        *[f"{size}x{size}" for size in [2**i for i in range(4, 9)]],
+    ]
+
     async def assert_icon_exists(self, name: str) -> None:
         if not (await self.driver.os()).switch(linux=True, macos=False):
             return
@@ -246,14 +251,18 @@ class PackageTestBase(metaclass=ABCMeta):
             icons
         ), f"Icon directory {icons} doesn't exist."
 
-        for extension, resolution in [
-            ("svg", "scalable"),
-            *[("png", f"{size}x{size}") for size in [2**i for i in range(4, 9)]],
-        ]:
-            if await self.check_driver.is_file(
-                icons / "hicolor" / resolution / "apps" / f"{name}.{extension}"
-            ):
-                return
+        names: list[str]
+        if "." in name:
+            names = [name]
+        else:
+            names = [f"{name}.png", f"{name}.svg"]
+
+        for name in names:
+            for resolution in self.ICON_RESOLUTIONS:
+                if await self.check_driver.is_file(
+                    icons / "hicolor" / resolution / "apps" / name
+                ):
+                    return
 
         files = await self.check_driver.find(
             icons, file_type=["f", "l"]

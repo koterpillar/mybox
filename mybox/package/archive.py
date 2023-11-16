@@ -10,6 +10,8 @@ from ..utils import allow_singular_none, async_cached
 from .manual import ManualPackage
 from .tracked import Tracker
 
+ICON_EXTENSIONS = ["svg", "png"]
+
 
 class ArchivePackage(ManualPackage, ABC):
     raw: bool | str = False
@@ -85,9 +87,12 @@ class ArchivePackage(ManualPackage, ABC):
         )
 
     async def icon_paths(self, name: str) -> Iterable[Path]:
-        return await self.driver.find(
-            await self.package_directory(), name=[f"{name}.svg", f"{name}.png"]
-        )
+        names: list[str]
+        if any(name.endswith(f".{ext}") for ext in ICON_EXTENSIONS):
+            names = [name]
+        else:
+            names = [f"{name}.{ext}" for ext in ICON_EXTENSIONS]
+        return await self.driver.find(await self.package_directory(), name=names)
 
     async def font_path(self, name: str) -> Path:
         candidate = await self.package_directory() / name
@@ -118,9 +123,8 @@ class ArchivePackage(ManualPackage, ABC):
         desktop_entry = DesktopEntry.from_string(
             await self.driver.read_file(desktop_file)
         )
-        desktop_entry.exec = " ".join(
-            [binary_name, desktop_entry.exec.split(" ", 1)[1]]
-        )
+        [_, *args] = desktop_entry.exec.split(" ")
+        desktop_entry.exec = " ".join([binary_name, *args])
 
         target_desktop_file = await self.application_path() / desktop_file.name
         await self.driver.write_file(target_desktop_file, desktop_entry.to_string())

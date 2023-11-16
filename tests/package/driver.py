@@ -25,7 +25,10 @@ class TestDriver(Driver):
 
     def log_command(self, args: Iterable[RunArg]) -> None:
         def show_arg(arg: RunArg) -> str:
-            return shlex.quote(str(arg))
+            result = str(arg)
+            result = shlex.quote(result)
+            result = result.replace("\n", "\\n")
+            return result
 
         prompt_symbol = "#" if self.root else "$"
         print(f"->{prompt_symbol}", *map(show_arg, args))
