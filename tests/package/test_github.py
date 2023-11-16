@@ -123,7 +123,7 @@ class TestCura(PackageTestBase):
     async def check_installed(self):
         await super().check_installed()
         await super().assert_desktop_file_exists(
-            "cura", name="UltiMaker Cura", executable="Ultimaker--Cura"
+            "com.ultimaker.cura", name="UltiMaker Cura", executable="Ultimaker--Cura"
         )
 
     prerequisites = [
