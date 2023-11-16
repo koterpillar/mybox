@@ -70,6 +70,25 @@ async def test_jsonpath():
 
 
 @pytest.mark.trio
+async def test_jsonpath_filter():
+    value = Value.parse(
+        {
+            "base": json.dumps(
+                {
+                    "foo": [
+                        {"bar": "aaaa", "result": "one"},
+                        {"bar": "bbbb", "result": "two"},
+                    ]
+                }
+            ),
+            "jsonpath": "$.foo[?(@.bar=='aaaa')].result",
+        }
+    )
+
+    assert (await value.compute()) == "one"
+
+
+@pytest.mark.trio
 async def test_url():
     class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         def do_GET(self):
