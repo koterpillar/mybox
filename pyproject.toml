@@ -14,25 +14,26 @@ PyYAML = "^6.0.1"
 requests = "^2.31.0"
 trio = "^0.22.2"
 tqdm = "^4.66.1"
-typed-argparse = "^0.2.11"
-jsonpath-ng = "^1.5.3"
+typed-argparse = "^0.3.1"
+jsonpath-ng = "^1.6.0"
 beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
+black = "^23.11.0"
 coverage = {extras = ["toml"], version = "^6.5.0"}
 coveralls = "^3.3.1"
-fawltydeps = "^0.12.1"
+fawltydeps = "^0.13.2"
 isort = "^5.12.0"
-mypy = "^1.5.0"
-pylint = "^2.17.5"
-pytest = "^7.4.0"
+mypy = "^1.7.0"
+pylint = "^3.0.2"
+pylint-pydantic = "^0.3.0"
+pytest = "^7.4.3"
 pytest-trio = "^0.8.0"
 trio-typing = {extras = ["mypy"], version = "^0.8.0"}
-types-beautifulsoup4 = "^4.12.0.6"
-types-PyYAML = "^6.0.12.11"
-types-requests = "^2.31.0.2"
-types-tqdm = "^4.66.0.1"
+types-beautifulsoup4 = "^4.12.0.7"
+types-PyYAML = "^6.0.12.12"
+types-requests = "^2.31.0.10"
+types-tqdm = "^4.66.0.4"
 
 [tool.poetry.scripts]
 mybox = "mybox.main:sync_main"
@@ -52,6 +53,7 @@ disable_error_code = [
 
 [tool.pylint.main]
 jobs = 0
+load-plugins = ["pylint_pydantic"]
 
 [tool.pylint.messages_control]
 disable = [
@@ -81,12 +83,8 @@ ignore_unused = [
     "isort",
     "mypy",
     "pylint",
+    "pylint-pydantic",
     "pytest-trio",
-    "trio-typing",
-    "types-PyYAML",
-    "types-beautifulsoup4",
-    "types-requests",
-    "types-tqdm",
 ]
 
 [tool.pytest.ini_options]
