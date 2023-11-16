@@ -5,7 +5,7 @@ from typing import Any
 import requests
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
-from jsonpath_ng import parse as jsonpath_parse  # type: ignore
+from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
 from pydantic import BaseModel, validator
 
 from .filters import Filters, choose
