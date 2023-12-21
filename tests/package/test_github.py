@@ -35,7 +35,7 @@ class TestNeovim(RootPackageTestBase):
 
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
-            await self.check_driver.home() / ".local" / "state" / "nvim"
+            await self.check_driver.local() / "state" / "nvim"
         }
 
 
