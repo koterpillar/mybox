@@ -16,9 +16,10 @@ jobs:
           - os: ubuntu-latest
             docker: debian
             python-version: "3.11"
-          - os: ubuntu-latest
-            docker: ubuntu
-            python-version: "3.11"
+          # https://github.com/pypa/pipx/issues/1142
+          # - os: ubuntu-latest
+          #   docker: ubuntu
+          #   python-version: "3.11"
           - os: ubuntu-latest
             docker: fedora
             python-version: "3.11"
