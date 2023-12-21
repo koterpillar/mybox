@@ -223,7 +223,7 @@ class Driver(metaclass=ABCMeta):
         elif os_type == "Darwin":
             return MacOS()
         else:
-            raise ValueError(f"Unsupported OS type {os_type}.")
+            raise ValueError(f"Unsupported OS type {os_type}.")  # pragma: no cover
 
     @async_cached
     async def architecture(self) -> Architecture:
@@ -231,9 +231,10 @@ class Driver(metaclass=ABCMeta):
         if result == "x86_64":
             return "x86_64"
         elif result == "arm64":
-            return "arm64"
+            # No ARM runners on CI
+            return "arm64"  # pragma: no cover
         else:
-            raise ValueError(f"Unsupported architecture {result}.")
+            raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
 
 class SubprocessDriver(Driver, metaclass=ABCMeta):
@@ -252,7 +253,7 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         if capture_output and show_output:
             raise ValueError(
                 "Cannot use capture_output and show_output at the same time."
-            )
+            )  # pragma: no cover
 
         command = self.prepare_command(args)
 
