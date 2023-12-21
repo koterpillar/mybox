@@ -56,6 +56,9 @@ class MacOS(OS):
         return macos
 
 
+Architecture = Literal["x86_64", "arm64"]
+
+
 @dataclass
 class RunResult:
     ok: bool
@@ -221,6 +224,16 @@ class Driver(metaclass=ABCMeta):
             return MacOS()
         else:
             raise ValueError(f"Unsupported OS type {os_type}.")
+
+    @async_cached
+    async def architecture(self) -> Architecture:
+        result = await self.with_root(False).run_output("uname", "-m")
+        if result == "x86_64":
+            return "x86_64"
+        elif result == "arm64":
+            return "arm64"
+        else:
+            raise ValueError(f"Unsupported architecture {result}.")
 
 
 class SubprocessDriver(Driver, metaclass=ABCMeta):
