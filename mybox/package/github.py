@@ -5,7 +5,7 @@ from typing import Any, Callable, Iterator, Optional
 
 import requests
 
-from ..driver import OS
+from ..driver import OS, Architecture
 from ..filters import Filters, choose
 from ..utils import async_cached, async_cached_lock, run_output
 from .archive import ArchivePackage
@@ -52,6 +52,15 @@ class GitHubRelease:
     assets: list[GitHubReleaseArtifact]
 
 
+ARCHITECTURE_FILTERS: dict[str, list[str]] = {
+    "x86_64": ["amd64", "x64"],
+    "arm64": ["aarch64", "arm"],
+    "i386": ["i686", "x86"],
+    "powerpc64": ["ppc64"],
+    "s390x": [],
+}
+
+
 class GitHubPackage(ArchivePackage, Filters):
     repo: str
 
@@ -70,11 +79,14 @@ class GitHubPackage(ArchivePackage, Filters):
         )
 
     @classmethod
-    def environment_filters(cls, target_os: OS) -> Iterator[Callable[[str], bool]]:
+    def environment_filters(
+        cls, *, target_os: OS, target_arch: Architecture
+    ) -> Iterator[Callable[[str], bool]]:
         for hint in [".tar.gz"]:
             yield cls.includes_(hint)
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield cls.excludes_(signature_hint)
+
         for other_os_hint in [".exe", ".dmg"]:
             yield cls.excludes_(other_os_hint)
         for os_hint in target_os.switch(
@@ -86,13 +98,19 @@ class GitHubPackage(ArchivePackage, Filters):
             macos=[cls.includes_(hint) for hint in ["macos", "darwin", "osx"]],
         ):
             yield os_hint
-        arch_hints = ["x86_64", "amd64"]
-        for hint in arch_hints:
-            yield cls.includes_(hint)
 
-    def all_filters(self, target_os: OS) -> Iterator[Callable[[str], bool]]:
+        for arch, synonyms in ARCHITECTURE_FILTERS.items():
+            method = cls.includes_ if arch == target_arch else cls.excludes_
+            for synonym in [arch, *synonyms]:
+                yield method(synonym)
+
+    def all_filters(
+        self, *, target_os: OS, target_arch: Architecture
+    ) -> Iterator[Callable[[str], bool]]:
         yield from self.filters()
-        yield from self.environment_filters(target_os)
+        yield from self.environment_filters(
+            target_os=target_os, target_arch=target_arch
+        )
 
     async def artifact(self) -> GitHubReleaseArtifact:
         candidates = (await self.latest_release()).assets
@@ -103,7 +121,14 @@ class GitHubPackage(ArchivePackage, Filters):
             return lambda candidate: name_filter(candidate.name)
 
         target_os = await self.driver.os()
-        return choose(candidates, map(candidate_filter, self.all_filters(target_os)))
+        target_arch = await self.driver.architecture()
+        return choose(
+            candidates,
+            map(
+                candidate_filter,
+                self.all_filters(target_os=target_os, target_arch=target_arch),
+            ),
+        )
 
     async def archive_url(self) -> str:
         return (await self.artifact()).url
