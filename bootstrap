@@ -21,6 +21,15 @@ ensure() {
   fi
 }
 
+sudo_() {
+  if [ "$EUID" -eq 0 ]
+  then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
 case "$OSTYPE" in
   darwin*)
     if ! command_exists brew
@@ -29,24 +38,20 @@ case "$OSTYPE" in
     fi
     if [ -d /opt/homebrew ]
     then
-      eval "$(/opt/homebrew/bin/brew/shellenv)"
+      eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
     INSTALLER=(brew install)
 
-    ensure python3
+    # macOS has Python 3, but it's too old
+    if ! command_exists python3 || type python3 | grep -q /usr/bin/python3
+    then
+      "${INSTALLER[@]}" python@3
+    fi
+
     ensure gtar gnu-tar
     ;;
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
-
-    sudo_() {
-      if [ "$EUID" -eq 0 ]
-      then
-        "$@"
-      else
-        sudo "$@"
-      fi
-    }
 
     case $DISTRO in
       debian|ubuntu)
