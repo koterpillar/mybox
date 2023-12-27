@@ -11,10 +11,37 @@ class Extractor(ABC):
     def __init__(self, *, driver: Driver):
         self.driver = driver
 
+    async def extract(self, *, archive: Path, target_directory: Path) -> None:
+        async with self.driver.tempfile(kind="directory") as tmpdir:
+            await self.extract_exact(archive=archive, target_directory=tmpdir)
+
+            source_dir = tmpdir
+            stripped = 0
+
+            while True:
+                contents = await self.driver.find(source_dir, mindepth=1, maxdepth=1)
+                if len(contents) != 1:
+                    # Multiple files/directories on this level
+                    break
+
+                element = contents[0]
+                if not await self.driver.is_dir(element):
+                    # The only item is a file
+                    break
+
+                source_dir = source_dir / element
+                stripped += 1
+                if stripped >= 10:
+                    raise ValueError(
+                        f"Too many nested directories after extracting, got {source_dir}."
+                    )
+
+            await self.driver.makedirs(target_directory)
+            for element in await self.driver.find(source_dir, mindepth=1, maxdepth=1):
+                await self.driver.run("cp", "-R", element, target_directory)
+
     @abstractmethod
-    async def extract(
-        self, *, archive: Path, target_directory: Path, strip: int = 0
-    ) -> None:
+    async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
         pass
 
 
@@ -27,14 +54,10 @@ class Tar(Extractor):
     async def tar(self) -> str:
         return await self.driver.find_executable("gtar", "tar")
 
-    async def extract(
-        self, *, archive: Path, target_directory: Path, strip: int = 0
-    ) -> None:
+    async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
         await self.driver.run(
             await self.tar(),
             "--extract",
-            "--strip",
-            str(strip),
             "--directory",
             target_directory,
             *self.extra,
@@ -44,40 +67,12 @@ class Tar(Extractor):
 
 
 class Unzip(Extractor):
-    async def extract(
-        self, *, archive: Path, target_directory: Path, strip: int = 0
-    ) -> None:
-        async with self.driver.tempfile(kind="directory") as tmpdir:
-            await self.driver.run("unzip", "-o", "-qq", archive, "-d", tmpdir)
-
-            source_dir = tmpdir
-            while strip > 0:
-                contents = await self.driver.find(source_dir, mindepth=1, maxdepth=1)
-                if len(contents) != 1:
-                    raise ValueError(
-                        f"Expected exactly one item after extracting, got {contents}."
-                    )
-                element = contents[0]
-                if not await self.driver.is_dir(element):
-                    raise ValueError(
-                        f"Expected directory after extracting, got {element}."
-                    )
-
-                source_dir = source_dir / element
-                strip -= 1
-
-            await self.driver.makedirs(target_directory)
-            for element in await self.driver.find(source_dir, mindepth=1, maxdepth=1):
-                await self.driver.run("cp", "-R", element, target_directory)
+    async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
+        await self.driver.run("unzip", "-o", "-qq", archive, "-d", target_directory)
 
 
 class AppImage(Extractor):
-    async def extract(
-        self, *, archive: Path, target_directory: Path, strip: int = 0
-    ) -> None:
-        if strip > 0:
-            raise NotImplementedError("Strip is not supported for AppImage.")
-
+    async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
         async with self.driver.tempfile() as target:
             await self.driver.run("cp", archive, target)
             await self.driver.make_executable(target)

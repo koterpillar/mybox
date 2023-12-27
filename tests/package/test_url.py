@@ -13,7 +13,6 @@ class TestYarn(PackageTestBase):
             "url": "https://yarnpkg.com/latest.tar.gz",
             "binary": "yarn",
             "binary_wrapper": True,
-            "strip": 1,
         }
 
     prerequisites = PackageTestBase.NODE

@@ -16,7 +16,6 @@ ICON_EXTENSIONS = ["svg", "png"]
 class ArchivePackage(ManualPackage, ABC):
     raw: bool | str = False
     raw_executable: bool = False
-    strip: int = 0
 
     binary_paths: list[str] = Field(default_factory=list, alias="binary_path")
     binary_paths_val = allow_singular_none("binary_paths")
@@ -47,9 +46,7 @@ class ArchivePackage(ManualPackage, ABC):
 
         extractor = await get_extractor(url, driver=self.driver)
         await extractor.extract(
-            archive=source,
-            target_directory=await self.package_directory(),
-            strip=self.strip,
+            archive=source, target_directory=await self.package_directory()
         )
 
     async def find_in_package_directory(
