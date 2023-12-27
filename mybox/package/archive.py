@@ -100,7 +100,7 @@ class ArchivePackage(ManualPackage, ABC):
         )
 
     async def install_appimage(self, tracker: Tracker) -> None:
-        app_dir = await self.package_directory() / "squashfs-root"
+        app_dir = await self.package_directory()
         app_run = app_dir / "AppRun"
         if not await self.driver.is_executable(app_run):
             raise ValueError("AppImage does not have an executable named 'AppRun'.")
