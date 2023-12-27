@@ -53,11 +53,12 @@ class GitHubRelease:
 
 
 ARCHITECTURE_FILTERS: dict[str, list[str]] = {
-    "x86_64": ["amd64", "x64"],
     "arm64": ["aarch64", "arm"],
     "i386": ["i686", "x86"],
-    "powerpc64": ["ppc64"],
+    "mips": [],
+    "powerpc": ["ppc"],
     "s390x": [],
+    "x86_64": ["amd64", "x64"],
 }
 
 
