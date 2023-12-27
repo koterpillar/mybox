@@ -11,7 +11,6 @@ class TestNeovim(RootPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "neovim/neovim",
-            "strip": 1,
             "binary": "nvim",
             "app": "nvim",
             "root": self.root,

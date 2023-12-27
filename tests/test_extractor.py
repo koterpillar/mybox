@@ -32,14 +32,12 @@ async def temporary_zip_archive(*paths: str) -> AsyncIterator[Path]:
             yield archive
 
 
-async def extract_file_names(archive: Path, *, strip: int = 0) -> set[str]:
+async def extract_file_names(archive: Path) -> set[str]:
     extractor = await get_extractor(str(archive), driver=LocalDriver())
 
     with tempfile.TemporaryDirectory() as dest:
         dest_path = Path(dest)
-        await extractor.extract(
-            archive=archive, target_directory=dest_path, strip=strip
-        )
+        await extractor.extract(archive=archive, target_directory=dest_path)
 
         return set(
             str(element.relative_to(dest_path)) for element in dest_path.iterdir()
@@ -49,23 +47,29 @@ async def extract_file_names(archive: Path, *, strip: int = 0) -> set[str]:
 @pytest.mark.trio
 async def test_unzip_strip():
     async with temporary_zip_archive("foo/bar", "foo/baz") as archive:
-        assert await extract_file_names(archive, strip=1) == {"bar", "baz"}
+        assert await extract_file_names(archive) == {"bar", "baz"}
 
 
 @pytest.mark.trio
 async def test_unzip_strip_multiple_elements():
-    async with temporary_zip_archive("foo/bar", "foo/baz") as archive:
-        with pytest.raises(
-            ValueError, match="Expected exactly one item after extracting"
-        ):
-            await extract_file_names(archive, strip=2)
+    async with temporary_zip_archive("bar", "baz") as archive:
+        assert await extract_file_names(archive) == {"bar", "baz"}
 
 
 @pytest.mark.trio
 async def test_unzip_strip_not_directory():
-    async with temporary_zip_archive("foo") as archive:
-        with pytest.raises(ValueError, match="Expected directory after extracting"):
-            await extract_file_names(archive, strip=1)
+    async with temporary_zip_archive("foo/bar") as archive:
+        assert await extract_file_names(archive) == {"bar"}
+
+
+@pytest.mark.trio
+async def test_unzip_strip_too_much_nesting():
+    async with temporary_zip_archive("/".join(map(str, range(100)))) as archive:
+        with pytest.raises(
+            ValueError,
+            match="Too many nested directories after extracting, got .+/0/1/2/3/4/5/6/7/8/9.",
+        ):
+            await extract_file_names(archive)
 
 
 @pytest.mark.trio
