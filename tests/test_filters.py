@@ -2,7 +2,12 @@ import re
 
 import pytest
 
-from mybox.filters import choose
+from mybox.filters import Filters, choose
+
+
+def test_filters_attributes():
+    filters = Filters(prefix=["a", "b"], suffix="c", include="2", exclude="3")
+    assert choose(["a1c", "a2c", "a23c", "b1d", "a1e"], filters.filters()) == "a2c"
 
 
 class TestChoose:
