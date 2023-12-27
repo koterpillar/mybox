@@ -82,10 +82,10 @@ class GitHubPackage(ArchivePackage, Filters):
     def environment_filters(
         cls, *, target_os: OS, target_arch: Architecture
     ) -> Iterator[Callable[[str], bool]]:
-        for hint in [".tar.gz"]:
-            yield cls.includes_(hint)
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield cls.excludes_(signature_hint)
+        for system_package_hint in [".deb", ".rpm"]:
+            yield cls.excludes_(system_package_hint)
 
         for arch, synonyms in ARCHITECTURE_FILTERS.items():
             method = cls.includes_ if arch == target_arch else cls.excludes_

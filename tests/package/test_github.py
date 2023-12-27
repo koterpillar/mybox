@@ -153,22 +153,26 @@ class TestCura(PackageTestBase):
     ]
 
 
+class TestGitHubCLI(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {"repo": "cli/cli", "binary": "gh", "strip": 1}
+
+    async def check_installed_command(self):
+        return ["gh", "--version"]
+
+    check_installed_output = "gh version"
+
+
 class TestJQ(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
-            "repo": "stedolan/jq",
-            "include": "linux64",
-            "binary": "jq-linux64",
-            "raw": True,
+            "repo": "jqlang/jq",
+            "binary": "jq",
+            "raw": "jq",
             "raw_executable": True,
         }
 
     async def check_installed_command(self):
-        return ["jq-linux64", "--version"]
+        return ["jq", "--version"]
 
     check_installed_output = "jq-"
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not (await self.driver.os()).switch(linux=True, macos=False):
-            pytest.skip("This test is only applicable on Linux.")
