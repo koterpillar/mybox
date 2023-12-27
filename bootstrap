@@ -29,7 +29,7 @@ case "$OSTYPE" in
     fi
     if [ -d /opt/homebrew ]
     then
-      eval "$(/opt/homebrew/bin/brew/shellenv)"
+      eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
     INSTALLER=(brew install)
 
