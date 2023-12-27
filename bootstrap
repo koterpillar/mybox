@@ -21,6 +21,15 @@ ensure() {
   fi
 }
 
+sudo_() {
+  if [ "$EUID" -eq 0 ]
+  then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
 case "$OSTYPE" in
   darwin*)
     if ! command_exists brew
@@ -38,15 +47,6 @@ case "$OSTYPE" in
     ;;
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
-
-    sudo_() {
-      if [ "$EUID" -eq 0 ]
-      then
-        "$@"
-      else
-        sudo "$@"
-      fi
-    }
 
     case $DISTRO in
       debian|ubuntu)
