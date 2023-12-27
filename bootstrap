@@ -42,7 +42,12 @@ case "$OSTYPE" in
     fi
     INSTALLER=(brew install)
 
-    ensure python3
+    # macOS has Python 3, but it's too old
+    if ! command_exists python3 || type python3 | grep -q /usr/bin/python3
+    then
+      "${INSTALLER[@]}" python@3
+    fi
+
     ensure gtar gnu-tar
     ;;
   linux*)
