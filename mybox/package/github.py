@@ -1,12 +1,12 @@
 import os
 from dataclasses import dataclass
 from subprocess import CalledProcessError
-from typing import Any, Callable, Iterator, Optional
+from typing import Any, Iterator, Optional
 
 import requests
 
 from ..driver import OS, Architecture
-from ..filters import Filters, choose
+from ..filters import Filter, Filters, choose
 from ..utils import async_cached, async_cached_lock, run_output
 from .archive import ArchivePackage
 
@@ -88,25 +88,18 @@ class GitHubPackage(ArchivePackage, Filters):
     @classmethod
     def environment_filters(
         cls, *, target_os: OS, target_arch: Architecture
-    ) -> Iterator[Callable[[str], bool]]:
+    ) -> Iterator[Filter[str]]:
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield cls.excludes_(signature_hint)
+
         for system_package_hint in [".deb", ".rpm", ".dmg", ".exe"]:
             yield cls.excludes_(system_package_hint)
 
-        for os_name, synonyms in OS_FILTERS.items():
-            method = (
-                cls.includes_
-                if os_name == target_os.switch(linux="linux", macos="darwin")
-                else cls.excludes_
-            )
-            for synonym in [os_name, *synonyms]:
-                yield method(synonym)
+        yield from cls.from_synonyms(
+            OS_FILTERS, target_os.switch(linux="linux", macos="darwin")
+        )
 
-        for arch, synonyms in ARCHITECTURE_FILTERS.items():
-            method = cls.includes_ if arch == target_arch else cls.excludes_
-            for synonym in [arch, *synonyms]:
-                yield method(synonym)
+        yield from cls.from_synonyms(ARCHITECTURE_FILTERS, target_arch)
 
         if target_os.switch(linux=True, macos=False):
             yield cls.includes_("gnu")
@@ -114,7 +107,7 @@ class GitHubPackage(ArchivePackage, Filters):
 
     def all_filters(
         self, *, target_os: OS, target_arch: Architecture
-    ) -> Iterator[Callable[[str], bool]]:
+    ) -> Iterator[Filter[str]]:
         yield from self.filters()
         yield from self.environment_filters(
             target_os=target_os, target_arch=target_arch
@@ -124,8 +117,8 @@ class GitHubPackage(ArchivePackage, Filters):
         candidates = (await self.latest_release()).assets
 
         def candidate_filter(
-            name_filter: Callable[[str], bool]
-        ) -> Callable[[GitHubReleaseArtifact], bool]:
+            name_filter: Filter,
+        ) -> Filter[GitHubReleaseArtifact]:
             return lambda candidate: name_filter(candidate.name)
 
         target_os = await self.driver.os()
