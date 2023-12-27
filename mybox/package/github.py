@@ -61,6 +61,12 @@ ARCHITECTURE_FILTERS: dict[str, list[str]] = {
     "x86_64": ["amd64", "x64"],
 }
 
+OS_FILTERS: dict[str, list[str]] = {
+    "darwin": ["macos", "osx"],
+    "linux": [],
+    "windows": [],
+}
+
 
 class GitHubPackage(ArchivePackage, Filters):
     repo: str
@@ -85,23 +91,26 @@ class GitHubPackage(ArchivePackage, Filters):
     ) -> Iterator[Callable[[str], bool]]:
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield cls.excludes_(signature_hint)
-        for system_package_hint in [".deb", ".rpm"]:
+        for system_package_hint in [".deb", ".rpm", ".dmg", ".exe"]:
             yield cls.excludes_(system_package_hint)
+
+        for os_name, synonyms in OS_FILTERS.items():
+            method = (
+                cls.includes_
+                if os_name == target_os.switch(linux="linux", macos="darwin")
+                else cls.excludes_
+            )
+            for synonym in [os_name, *synonyms]:
+                yield method(synonym)
 
         for arch, synonyms in ARCHITECTURE_FILTERS.items():
             method = cls.includes_ if arch == target_arch else cls.excludes_
             for synonym in [arch, *synonyms]:
                 yield method(synonym)
 
-        for os_hint in target_os.switch(
-            linux=["linux"], macos=["macos", "darwin", "osx"]
-        ):
-            yield cls.includes_(os_hint)
         if target_os.switch(linux=True, macos=False):
             yield cls.includes_("gnu")
             yield cls.excludes_("musl")
-        for other_os_hint in [".exe", ".dmg"]:
-            yield cls.excludes_(other_os_hint)
 
     def all_filters(
         self, *, target_os: OS, target_arch: Architecture
