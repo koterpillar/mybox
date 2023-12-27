@@ -57,6 +57,22 @@ async def test_unzip_strip_multiple_elements():
 
 
 @pytest.mark.trio
+async def test_unzip_strip_not_directory():
+    async with temporary_zip_archive("foo/bar") as archive:
+        assert await extract_file_names(archive) == {"bar"}
+
+
+@pytest.mark.trio
+async def test_unzip_strip_too_much_nesting():
+    async with temporary_zip_archive("/".join(map(str, range(100)))) as archive:
+        with pytest.raises(
+            ValueError,
+            match="Too many nested directories after extracting, got .+/0/1/2/3/4/5/6/7/8/9.",
+        ):
+            await extract_file_names(archive)
+
+
+@pytest.mark.trio
 async def test_get_extractor_redirect():
     extractor = await get_extractor(
         "https://telegram.org/dl/desktop/linux", driver=LocalDriver()
