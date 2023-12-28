@@ -62,7 +62,7 @@ ARCHITECTURE_FILTERS: dict[str, list[str]] = {
 }
 
 OS_FILTERS: dict[str, list[str]] = {
-    "darwin": ["macos", "osx"],
+    "darwin": ["macOS", "macos", "osx"],
     "linux": [],
     "windows": [],
 }

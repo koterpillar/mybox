@@ -32,14 +32,20 @@ sudo_() {
 
 case "$OSTYPE" in
   darwin*)
+    brew_env() {
+      if [ -d /opt/homebrew ]
+      then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+      fi
+    }
+    brew_env
+
     if ! command_exists brew
     then
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      brew_env
     fi
-    if [ -d /opt/homebrew ]
-    then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
+
     INSTALLER=(brew install)
 
     # macOS has Python 3, but it's too old
