@@ -1,6 +1,6 @@
 import shlex
+from typing import cast
 
-import requests
 from pydantic import Field
 
 from ..utils import allow_singular_none
@@ -19,11 +19,20 @@ class NpmPackage(Root, ManualVersion, Tracked):
         return self.package
 
     async def get_remote_version(self) -> str:
-        result = requests.get(f"https://registry.npmjs.com/{self.package}")
-        result.raise_for_status()
-
-        details = result.json()
-        return details["dist-tags"]["latest"]
+        check = await self.driver.run_(
+            "npm",
+            "view",
+            self.package,
+            "version",
+            check=False,
+            silent=True,
+            capture_output=True,
+        )
+        if not check.ok:
+            raise Exception(f"Cannot find latest version of package '{self.package}'.")
+        output = cast(str, check.output)
+        version = output.strip()
+        return version
 
     async def install_tracked(self, *, tracker: Tracker) -> None:
         args = ["npm", "exec", "--yes", "--package", self.package, "--"]
