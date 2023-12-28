@@ -3,6 +3,7 @@ from typing import Any, Type
 from ..driver import Driver
 from ..state import DB
 from .base import Package
+from .brew_repo import BrewRepo
 from .clone import Clone
 from .github import GitHubPackage
 from .links import Links
@@ -23,6 +24,7 @@ TYPES: list[tuple[str, Type[Package]]] = [
     ("shell", Shell),
     ("links", Links),
     ("yum_name", YumRepo),
+    ("brew_tap", BrewRepo),
 ]
 
 

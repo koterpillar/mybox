@@ -96,6 +96,13 @@ class Brew(PackageCacheInstaller):
         await self.driver.run(await self.brew(), "upgrade", package)
         await super().upgrade(package)
 
+    async def tap(self, repo: str) -> None:
+        await self.driver.run(await self.brew(), "tap", repo)
+
+    async def tapped(self) -> set[str]:
+        output = await self.driver.run_output(await self.brew(), "tap")
+        return set(output.strip().splitlines())
+
     @async_cached
     async def brew(self) -> str:
         # https://docs.brew.sh/FAQ#why-is-the-default-installation-prefix-opthomebrew-on-apple-silicon
