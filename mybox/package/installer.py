@@ -6,7 +6,7 @@ from typing import Optional, cast
 import trio
 
 from ..driver import Driver
-from ..utils import async_cached_lock
+from ..utils import async_cached, async_cached_lock
 
 
 class Installer(metaclass=ABCMeta):
@@ -89,23 +89,28 @@ class PackageCacheInstaller(Installer, metaclass=ABCMeta):
 
 class Brew(PackageCacheInstaller):
     async def install(self, package: str) -> None:
-        await self.driver.run("brew", "install", package)
+        await self.driver.run(await self.brew(), "install", package)
         await super().install(package)
 
     async def upgrade(self, package: str) -> None:
-        await self.driver.run("brew", "upgrade", package)
+        await self.driver.run(await self.brew(), "upgrade", package)
         await super().upgrade(package)
+
+    @async_cached
+    async def brew(self) -> str:
+        # https://docs.brew.sh/FAQ#why-is-the-default-installation-prefix-opthomebrew-on-apple-silicon
+        return await self.driver.find_executable("brew", "/opt/homebrew/bin/brew")
 
     @async_cached_lock
     async def brew_update(self) -> None:
-        await self.driver.run("brew", "update")
+        await self.driver.run(await self.brew(), "update")
 
     async def get_package_info(
         self, package: Optional[str]
     ) -> dict[str, PackageVersionInfo]:
         await self.brew_update()
 
-        args = ["brew", "info", "--json=v2"]
+        args = [await self.brew(), "info", "--json=v2"]
         if package:
             args.append(package)
         else:
