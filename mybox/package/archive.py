@@ -12,6 +12,8 @@ from .tracked import Tracker
 
 ICON_EXTENSIONS = ["svg", "png"]
 
+FONT_EXTENSIONS = ["ttf", "otf"]
+
 
 class ArchivePackage(ManualPackage, ABC):
     raw: bool | str = False
@@ -59,11 +61,11 @@ class ArchivePackage(ManualPackage, ABC):
     ) -> Path:
         for relative_path in paths:
             candidate = await self.package_directory() / Path(*relative_path) / name
-            candidate_ok = await self.driver.is_file(candidate)
-            if require_executable and candidate_ok:
-                candidate_ok = await self.driver.is_executable(candidate)
-            if candidate_ok:
-                return candidate
+            if not await self.driver.is_file(candidate):
+                continue
+            if require_executable and not await self.driver.is_executable(candidate):
+                continue
+            return candidate
         raise ValueError(
             f"Cannot find {target_desc} '{name}' in {await self.package_directory()}."
         )
@@ -83,21 +85,25 @@ class ArchivePackage(ManualPackage, ABC):
             target_desc="application",
         )
 
+    @staticmethod
+    def with_extensions(name: str, extensions: list[str]) -> list[str]:
+        if any(name.endswith(f".{ext}") for ext in extensions):
+            return [name]
+        return [f"{name}.{ext}" for ext in extensions]
+
     async def icon_paths(self, name: str) -> Iterable[Path]:
-        names: list[str]
-        if any(name.endswith(f".{ext}") for ext in ICON_EXTENSIONS):
-            names = [name]
-        else:
-            names = [f"{name}.{ext}" for ext in ICON_EXTENSIONS]
+        names = self.with_extensions(name, ICON_EXTENSIONS)
         return await self.driver.find(await self.package_directory(), name=names)
 
     async def font_path(self, name: str) -> Path:
-        candidate = await self.package_directory() / name
-        if await self.driver.is_file(candidate):
-            return candidate
-        raise ValueError(
-            f"Cannot find font '{name}' in {await self.package_directory()}."
-        )
+        names = self.with_extensions(name, FONT_EXTENSIONS)
+        candidates = await self.driver.find(await self.package_directory(), name=names)
+        if candidates:
+            return candidates[0]
+        else:
+            raise ValueError(
+                f"Cannot find font '{name}' in {await self.package_directory()}."
+            )
 
     async def install_appimage(self, tracker: Tracker) -> None:
         app_dir = await self.package_directory()
