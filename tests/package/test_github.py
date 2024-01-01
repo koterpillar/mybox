@@ -176,3 +176,22 @@ class TestJQ(PackageTestBase):
         return ["jq", "--version"]
 
     check_installed_output = "jq-"
+
+
+class TestFiraCode(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {"repo": "tonsky/FiraCode", "font": ["FiraCode-Regular"]}
+
+    prerequisites = [{"system": "fontconfig"}]
+
+    async def check_installed_command(self):
+        return ["fc-list", "FiraCode"]
+
+    check_installed_output = "FiraCode-Regular"
+
+    affects_system = True
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("Overriding user's home doesn't work with fonts on macOS")
