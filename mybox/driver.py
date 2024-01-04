@@ -230,7 +230,7 @@ class Driver(metaclass=ABCMeta):
         result = await self.with_root(False).run_output("uname", "-m")
         if result == "x86_64":
             return "x86_64"
-        elif result == "arm64":
+        elif result in {"arm64", "aarch64"}:
             # No ARM runners on CI
             return "arm64"  # pragma: no cover
         else:
