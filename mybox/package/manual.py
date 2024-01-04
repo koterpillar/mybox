@@ -118,7 +118,7 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
         )
         await self.driver.makedirs(font_dir)
         source = await self.font_path(name)
-        target = font_dir / name
+        target = font_dir / source.name
         await self.driver.link(source, target)
         tracker.track(target)
         if await self.driver.executable_exists("fc-cache"):
