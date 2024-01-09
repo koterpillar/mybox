@@ -56,7 +56,7 @@ class MacOS(OS):
         return macos
 
 
-Architecture = Literal["x86_64", "arm64"]
+Architecture = Literal["x86_64", "aarch64"]
 
 
 @dataclass
@@ -232,7 +232,7 @@ class Driver(metaclass=ABCMeta):
             return "x86_64"
         elif result in {"arm64", "aarch64"}:
             # No ARM runners on CI
-            return "arm64"  # pragma: no cover
+            return "aarch64"  # pragma: no cover
         else:
             raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
