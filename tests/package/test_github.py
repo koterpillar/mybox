@@ -209,3 +209,13 @@ async def test_skip_release():
     )
     release = await package.release()
     assert release.tag_name == "v7.8.0"
+
+
+@pytest.mark.trio
+async def test_no_releases():
+    package = GitHubPackage(
+        repo="NixOS/nixpkgs", driver=LocalDriver(), db=DB.temporary()
+    )
+
+    with pytest.raises(ValueError, match="No releases found for NixOS/nixpkgs"):
+        await package.release()
