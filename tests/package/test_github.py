@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from mybox.driver import Driver
+from mybox.driver import Driver, LocalDriver
+from mybox.package.github import GitHubPackage
+from mybox.state import DB
 
 from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
@@ -195,3 +197,15 @@ class TestFiraCode(PackageTestBase):
         await super().check_applicable()
         if not (await self.driver.os()).switch(linux=True, macos=False):
             pytest.skip("Overriding user's home doesn't work with fonts on macOS")
+
+
+@pytest.mark.trio
+async def test_skip_release():
+    package = GitHubPackage(
+        repo="atom/node-keytar",
+        skip_release="v7.9.0",
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+    release = await package.release()
+    assert release.tag_name == "v7.8.0"

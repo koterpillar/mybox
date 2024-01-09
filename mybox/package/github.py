@@ -4,10 +4,11 @@ from subprocess import CalledProcessError
 from typing import Any, Iterator, Optional
 
 import requests
+from pydantic import Field
 
 from ..driver import OS, Architecture
 from ..filters import Filter, Filters, choose
-from ..utils import async_cached, async_cached_lock, run_output
+from ..utils import allow_singular_none, async_cached, async_cached_lock, run_output
 from .archive import ArchivePackage
 
 
@@ -70,20 +71,33 @@ OS_FILTERS: dict[str, list[str]] = {
 
 class GitHubPackage(ArchivePackage, Filters):
     repo: str
+    skip_releases: list[str] = Field(default_factory=list, alias="skip_release")
+    skip_releases_val = allow_singular_none("skip_releases")
 
     @async_cached
-    async def latest_release(self) -> GitHubRelease:
-        latest = await github_api(f"repos/{self.repo}/releases/latest")
-        return GitHubRelease(
-            id=latest["id"],
-            tag_name=latest["tag_name"],
-            assets=[
-                GitHubReleaseArtifact(
-                    name=result["name"], url=result["browser_download_url"]
-                )
-                for result in latest["assets"]
-            ],
-        )
+    async def releases(self) -> list[GitHubRelease]:
+        result = await github_api(f"repos/{self.repo}/releases")
+        return [
+            GitHubRelease(
+                id=release["id"],
+                tag_name=release["tag_name"],
+                assets=[
+                    GitHubReleaseArtifact(
+                        name=result["name"], url=result["browser_download_url"]
+                    )
+                    for result in release["assets"]
+                ],
+            )
+            for release in result
+        ]
+
+    async def release(self) -> GitHubRelease:
+        candidates = await self.releases()
+        for candidate in candidates:
+            if candidate.tag_name in self.skip_releases:
+                continue
+            return candidate
+        raise ValueError(f"No releases found for {self.repo}.")
 
     @classmethod
     def environment_filters(
@@ -114,7 +128,7 @@ class GitHubPackage(ArchivePackage, Filters):
         )
 
     async def artifact(self) -> GitHubReleaseArtifact:
-        candidates = (await self.latest_release()).assets
+        candidates = (await self.release()).assets
 
         def candidate_filter(
             name_filter: Filter,
@@ -138,5 +152,5 @@ class GitHubPackage(ArchivePackage, Filters):
         return self.repo
 
     async def get_remote_version(self) -> str:
-        release = await self.latest_release()
+        release = await self.release()
         return str(release.id)
