@@ -54,7 +54,7 @@ class GitHubRelease:
 
 
 ARCHITECTURE_FILTERS: dict[str, list[str]] = {
-    "arm64": ["aarch64", "arm"],
+    "aarch64": ["arm64", "arm"],
     "i386": ["i686", "x86"],
     "mips": [],
     "powerpc": ["ppc"],

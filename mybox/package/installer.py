@@ -219,6 +219,9 @@ class DNF(PackageCacheInstaller):
         @param package: If specified, only query this package; otherwise,
         return all packages' versions.
         """
+
+        arch = await self.driver.architecture()
+
         args = [
             "dnf",
             "--quiet",
@@ -228,7 +231,7 @@ class DNF(PackageCacheInstaller):
             "--latest-limit",
             "1",
             "--arch",
-            "x86_64,noarch",
+            f"{arch},noarch",
         ]
 
         if package:
