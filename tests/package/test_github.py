@@ -29,7 +29,12 @@ class TestNeovim(RootPackageTestBase):
     check_installed_output = "NVIM"
 
     async def check_installed(self):
-        await super().check_installed()
+        command = await self.check_installed_command()
+        version = await self.check_driver.run_output(*command)
+
+        assert "NVIM" in version
+        assert "-dev-" not in version
+
         await super().assert_desktop_file_exists(
             "nvim", name="Neovim", executable="nvim"
         )

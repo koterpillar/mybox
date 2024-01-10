@@ -50,6 +50,8 @@ class GitHubReleaseArtifact:
 class GitHubRelease:
     id: int
     tag_name: str
+    draft: bool
+    prerelease: bool
     assets: list[GitHubReleaseArtifact]
 
 
@@ -81,6 +83,8 @@ class GitHubPackage(ArchivePackage, Filters):
             GitHubRelease(
                 id=release["id"],
                 tag_name=release["tag_name"],
+                draft=release["draft"],
+                prerelease=release["prerelease"],
                 assets=[
                     GitHubReleaseArtifact(
                         name=result["name"], url=result["browser_download_url"]
@@ -94,6 +98,10 @@ class GitHubPackage(ArchivePackage, Filters):
     async def release(self) -> GitHubRelease:
         candidates = await self.releases()
         for candidate in candidates:
+            if candidate.draft:
+                continue
+            if candidate.prerelease:
+                continue
             if candidate.tag_name in self.skip_releases:
                 continue
             return candidate
