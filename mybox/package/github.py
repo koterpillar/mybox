@@ -24,7 +24,7 @@ async def github_auth_token() -> Optional[str]:
     except (CalledProcessError, FileNotFoundError):
         pass
 
-    return None
+    return None  # pragma: no cover
 
 
 async def github_api(url: str) -> Any:
@@ -50,6 +50,8 @@ class GitHubReleaseArtifact:
 class GitHubRelease:
     id: int
     tag_name: str
+    draft: bool
+    prerelease: bool
     assets: list[GitHubReleaseArtifact]
 
 
@@ -81,6 +83,8 @@ class GitHubPackage(ArchivePackage, Filters):
             GitHubRelease(
                 id=release["id"],
                 tag_name=release["tag_name"],
+                draft=release["draft"],
+                prerelease=release["prerelease"],
                 assets=[
                     GitHubReleaseArtifact(
                         name=result["name"], url=result["browser_download_url"]
@@ -94,6 +98,11 @@ class GitHubPackage(ArchivePackage, Filters):
     async def release(self) -> GitHubRelease:
         candidates = await self.releases()
         for candidate in candidates:
+            if candidate.draft:
+                # Can't find any stably draft releases to test with
+                continue  # pragma: no cover
+            if candidate.prerelease:
+                continue
             if candidate.tag_name in self.skip_releases:
                 continue
             return candidate
