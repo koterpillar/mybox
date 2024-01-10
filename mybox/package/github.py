@@ -24,7 +24,7 @@ async def github_auth_token() -> Optional[str]:
     except (CalledProcessError, FileNotFoundError):
         pass
 
-    return None
+    return None  # pragma: no cover
 
 
 async def github_api(url: str) -> Any:
@@ -99,7 +99,8 @@ class GitHubPackage(ArchivePackage, Filters):
         candidates = await self.releases()
         for candidate in candidates:
             if candidate.draft:
-                continue
+                # Can't find any stably draft releases to test with
+                continue  # pragma: no cover
             if candidate.prerelease:
                 continue
             if candidate.tag_name in self.skip_releases:
