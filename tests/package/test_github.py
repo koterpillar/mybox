@@ -11,12 +11,14 @@ from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
 class TestNeovim(RootPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {
+        args: PackageArgs = {
             "repo": "neovim/neovim",
             "binary": "nvim",
-            "app": "nvim",
             "root": self.root,
         }
+        if (await self.driver.os()).switch(linux=True, macos=False):
+            args["app"] = "nvim"
+        return args
 
     @property
     def check_driver(self) -> Driver:
@@ -158,6 +160,25 @@ class TestCura(PackageTestBase):
             "distribution": "fedora",
         },
     ]
+
+
+class TestMaccy(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {"repo": "p0deje/Maccy", "app": "Maccy"}
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=False, macos=True):
+            pytest.skip("This test is only applicable on macOS.")
+
+    check_installed_output = "The MIT License"
+
+    async def check_installed_command(self):
+        return [
+            "cat",
+            (await self.driver.home())
+            / "Applications/Maccy.app/Contents/Resources/LICENSE",
+        ]
 
 
 class TestGitHubCLI(PackageTestBase):

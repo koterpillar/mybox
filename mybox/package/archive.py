@@ -78,12 +78,24 @@ class ArchivePackage(ManualPackage, ABC):
             target_desc="binary",
         )
 
-    async def app_path(self, name: str) -> Path:
+    async def freedesktop_app_path(self, name: str) -> Path:
         return await self.find_in_package_directory(
             paths=[["share", "applications"]],
             name=f"{name}.desktop",
             target_desc="application",
         )
+
+    async def macos_app_path(self, name: str) -> Path:
+        dir_name = f"{name}.app"
+        candidates = await self.driver.find(
+            await self.package_directory(), name=dir_name, file_type="d"
+        )
+        if candidates:
+            return candidates[0]
+        else:
+            raise ValueError(
+                f"Cannot find application '{name}' in {await self.package_directory()}."
+            )
 
     @staticmethod
     def with_extensions(name: str, extensions: list[str]) -> list[str]:

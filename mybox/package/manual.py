@@ -42,7 +42,11 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
         await self.driver.make_executable(target)
 
     @abstractmethod
-    async def app_path(self, name: str) -> Path:
+    async def freedesktop_app_path(self, name: str) -> Path:
+        pass
+
+    @abstractmethod
+    async def macos_app_path(self, name: str) -> Path:
         pass
 
     @abstractmethod
@@ -99,13 +103,14 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
             tracker.track(target)
 
     async def install_app_linux(self, name: str, tracker: Tracker) -> None:
-        path = await self.app_path(name)
+        path = await self.freedesktop_app_path(name)
         await self.install_desktop_file(path, tracker)
 
     async def install_app_macos(self, name: str, tracker: Tracker) -> None:
-        # FIXME: copy to /Applications and/or ~/Applications; ensure names,
-        # etc. are correct
-        pass
+        path = await self.macos_app_path(name)
+        target = await self.macos_applications() / path.name
+        await self.driver.link(path, target)
+        tracker.track(target)
 
     @abstractmethod
     async def font_path(self, name: str) -> Path:
