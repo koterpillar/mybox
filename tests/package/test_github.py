@@ -11,12 +11,14 @@ from .base import PackageArgs, PackageTestBase, RootPackageTestBase
 
 class TestNeovim(RootPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {
+        args: PackageArgs = {
             "repo": "neovim/neovim",
             "binary": "nvim",
-            "app": "nvim",
             "root": self.root,
         }
+        if (await self.driver.os()).switch(linux=True, macos=False):
+            args["app"] = "nvim"
+        return args
 
     @property
     def check_driver(self) -> Driver:
