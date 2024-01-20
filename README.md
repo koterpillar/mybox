@@ -49,5 +49,4 @@ Run [`./test-script`](test-script) to execute the project's tests.
 
 ### Releasing
 
-Create and push a signed Git tag of the format `vX.Y.Z`. The release will be
-done using GitHub actions.
+Releases are done using Semantic Release, see [build.yml](.github/workflows/build.yml).
