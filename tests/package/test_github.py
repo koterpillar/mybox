@@ -224,6 +224,11 @@ class TestFiraCode(PackageTestBase):
         if not (await self.driver.os()).switch(linux=True, macos=False):
             pytest.skip("Overriding user's home doesn't work with fonts on macOS")
 
+    async def ignored_paths(self) -> set[Path]:
+        return await super().ignored_paths() | {
+            await self.check_driver.local() / "share" / "fonts" / ".uuid",
+        }
+
 
 @pytest.mark.trio
 async def test_skip_release():
