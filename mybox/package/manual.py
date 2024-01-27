@@ -121,10 +121,9 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
             linux=await self.local() / "share" / "fonts",
             macos=await self.driver.home() / "Library" / "Fonts",
         )
-        await self.driver.makedirs(font_dir)
         source = await self.font_path(name)
         target = font_dir / source.name
-        await self.driver.run("cp", source, target)
+        await self.driver.copy(source, target)
         tracker.track(target)
         if await self.driver.executable_exists("fc-cache"):
             await self.driver.run("fc-cache", "-f", font_dir)

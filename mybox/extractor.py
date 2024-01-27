@@ -36,9 +36,8 @@ class Extractor(ABC):
                         f"Too many nested directories after extracting, got {source_dir}."
                     )
 
-            await self.driver.makedirs(target_directory)
             for element in await self.driver.find(source_dir, mindepth=1, maxdepth=1):
-                await self.driver.run("cp", "-R", element, target_directory)
+                await self.driver.copy(element, target_directory / element.name)
 
     @abstractmethod
     async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
@@ -74,7 +73,7 @@ class Unzip(Extractor):
 class AppImage(Extractor):
     async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
         async with self.driver.tempfile() as target:
-            await self.driver.run("cp", archive, target)
+            await self.driver.copy(archive, target)
             await self.driver.make_executable(target)
 
             cmd = " && ".join(
