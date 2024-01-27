@@ -40,9 +40,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Upload coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage-data
+          name: coverage-data-${{ matrix.os }}-${{ matrix.docker }}
           path: .coverage*
 
   coverage:
@@ -58,9 +58,10 @@ jobs:
       - name: Install dependencies
         run: ./install-dev
       - name: Download coverage
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: coverage-data
+          pattern: 'coverage-data-*'
+          merge-multiple: true
       - name: Coverage report
         run: ./coverage-report
       - name: Upload coverage report
