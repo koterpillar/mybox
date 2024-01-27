@@ -190,6 +190,11 @@ class Driver(metaclass=ABCMeta):
     async def makedirs(self, path: Path) -> None:
         await self.run("mkdir", "-p", path)
 
+    async def copy(self, source: Path, target: Path) -> None:
+        await self.makedirs(target.parent)
+        await self.rm(target)
+        await self.run("cp", "-R", "-f", source, target)
+
     async def rm(self, path: Path) -> None:
         await self.run("rm", "-r", "-f", path)
 

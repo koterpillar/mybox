@@ -41,7 +41,7 @@ class ArchivePackage(ManualPackage, ABC):
             else:
                 filename = url.rsplit("/", 1)[-1]
             target = await self.package_directory() / filename
-            await self.driver.run("cp", source, target)
+            await self.driver.copy(source, target)
             if self.raw_executable:
                 await self.driver.make_executable(target)
             return
