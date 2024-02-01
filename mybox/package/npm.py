@@ -51,6 +51,6 @@ class NpmPackage(Root, ManualVersion):
                 f'#!/bin/sh\nPATH={shlex.quote(npx_path)}:$PATH\nexec "{name}" "$@"',
             )
             await self.driver.make_executable(target)
-            tracker.track(target)
+            tracker.track(target, root=self.root)
 
         await super().install(tracker=tracker)

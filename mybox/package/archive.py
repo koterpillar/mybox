@@ -126,7 +126,7 @@ class ArchivePackage(ManualPackage, ABC):
         binary_name = self.pathname
         binary_target = await self.local() / "bin" / binary_name
         await self.install_binary_wrapper(app_run, binary_target)
-        tracker.track(binary_target)
+        tracker.track(binary_target, root=self.root)
 
         desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
         if not desktop_files:
@@ -143,7 +143,7 @@ class ArchivePackage(ManualPackage, ABC):
 
         target_desktop_file = await self.application_path() / desktop_file.name
         await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
-        tracker.track(target_desktop_file)
+        tracker.track(target_desktop_file, root=self.root)
         if desktop_entry.icon:
             await self.install_icon(desktop_entry.icon, tracker)
 
@@ -162,8 +162,8 @@ class ArchivePackage(ManualPackage, ABC):
 
             package_directory = await self.package_directory()
             await self.driver.makedirs(package_directory)
-            tracker.track(package_directory.parent)
-            tracker.track(package_directory)
+            tracker.track(package_directory.parent, root=self.root)
+            tracker.track(package_directory, root=self.root)
 
             await self.extract(url, archive_path)
 

@@ -35,7 +35,7 @@ class ManualPackage(Root, ManualVersion, ABC):
             await self.install_binary_wrapper(binary, target)
         else:
             await self.driver.link(binary, target)
-        tracker.track(target)
+        tracker.track(target, root=self.root)
 
     async def install_binary_wrapper(self, binary: Path, target: Path) -> None:
         await self.driver.write_file(target, f'#!/bin/sh\nexec "{binary}" "$@"')
@@ -91,7 +91,7 @@ class ManualPackage(Root, ManualVersion, ABC):
     async def install_desktop_file(self, path: Path, tracker: Tracker) -> None:
         target = await self.application_path() / path.name
         await self.driver.link(path, target)
-        tracker.track(target)
+        tracker.track(target, root=self.root)
         desktop_entry = DesktopEntry.from_string(await self.driver.read_file(target))
         if desktop_entry.icon:
             await self.install_icon(desktop_entry.icon, tracker)
@@ -100,7 +100,7 @@ class ManualPackage(Root, ManualVersion, ABC):
         for icon_path in await self.icon_paths(icon):
             target = await self.icon_target_path(icon_path)
             await self.driver.link(icon_path, target)
-            tracker.track(target)
+            tracker.track(target, root=self.root)
 
     async def install_app_linux(self, name: str, tracker: Tracker) -> None:
         path = await self.freedesktop_app_path(name)
@@ -110,7 +110,7 @@ class ManualPackage(Root, ManualVersion, ABC):
         path = await self.macos_app_path(name)
         target = await self.macos_applications() / path.name
         await self.driver.link(path, target)
-        tracker.track(target)
+        tracker.track(target, root=self.root)
 
     @abstractmethod
     async def font_path(self, name: str) -> Path:
@@ -124,7 +124,7 @@ class ManualPackage(Root, ManualVersion, ABC):
         source = await self.font_path(name)
         target = font_dir / source.name
         await self.driver.copy(source, target)
-        tracker.track(target)
+        tracker.track(target, root=self.root)
         if await self.driver.executable_exists("fc-cache"):
             await self.driver.run("fc-cache", "-f", font_dir)
 
