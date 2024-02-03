@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from mybox.manager import Manager
 from mybox.package import Links
 
 from .base import (
@@ -47,14 +48,18 @@ class RemoveLinksTestBase(LinksTestBase):
         source = tmp_path / "source"
         source.mkdir()
 
-        async def make_package() -> Links:
-            return Links(
+        async def install_package():
+            package = Links(
                 links=source,
                 destination=await self.destination(),
                 db=db,
                 driver=self.driver,
                 root=self.root,
             )
+            manager = Manager(
+                db=db, driver=self.driver, component_path=Path("/dev/null")
+            )
+            await manager.install_packages([package])
 
         async def list_files() -> list[str]:
             output = await self.check_driver.run_output("ls", await self.destination())
@@ -63,16 +68,14 @@ class RemoveLinksTestBase(LinksTestBase):
         for name in ["one", "two"]:
             (source / name).touch()
 
-        package = await make_package()
-        await package.install()
+        await install_package()
 
         assert await list_files() == ["one", "two"]
 
         (source / "two").unlink()
         (source / "three").touch()
 
-        package = await make_package()
-        await package.install()
+        await install_package()
 
         assert await list_files() == ["one", "three"]
 
