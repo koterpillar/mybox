@@ -5,7 +5,7 @@ import pytest
 from mybox.package.shell import Shell
 from mybox.state import DB
 
-from .base import CI, PackageArgs, RootPackageTestBase, requires_driver
+from .base import CI, DummyTracker, PackageArgs, RootPackageTestBase, requires_driver
 from .driver import TestDriver
 
 
@@ -61,7 +61,7 @@ async def test_errors_when_not_found(make_driver: TestDriver):
     )
 
     with pytest.raises(ValueError, match="does not exist"):
-        await package.install()
+        await package.install(tracker=DummyTracker())
 
 
 @pytest.mark.trio
@@ -74,4 +74,4 @@ async def test_errors_when_not_executable(make_driver: TestDriver):
     )
 
     with pytest.raises(ValueError, match="is not executable"):
-        await package.install()
+        await package.install(tracker=DummyTracker())

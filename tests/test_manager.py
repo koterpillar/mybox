@@ -11,8 +11,8 @@ from mybox.manager import Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
-from mybox.package.tracked import Tracked, Tracker
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
+from mybox.tracker import Tracker
 from mybox.utils import RunArg, allow_singular_none
 
 
@@ -47,7 +47,7 @@ class DummyDriver(Driver):
         return RunResult(ok=True, output=output)
 
 
-class DummyPackage(ManualVersion, Tracked):
+class DummyPackage(ManualVersion):
     files: list[str] = Field(default_factory=list)
     files_val = allow_singular_none("files")
 
@@ -57,12 +57,12 @@ class DummyPackage(ManualVersion, Tracked):
     async def get_remote_version(self) -> str:
         return self.version
 
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         if self.error is not None:
             raise self.error
         for file in self.files:
             tracker.track(Path(file))
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)
 
 
 class TestManager:
@@ -143,9 +143,9 @@ class TestManager:
         # everything from bar removed, shared files left alone
         installed_files = INSTALLED_FILES(db)
         assert set(installed_files.find()) == {
-            InstalledFile(path="/shared", package="foo", root=False),
-            InstalledFile(path="/foo", package="foo", root=False),
-            InstalledFile(path="/baz", package="foo", root=False),
+            InstalledFile(path="/shared", root=False),
+            InstalledFile(path="/foo", root=False),
+            InstalledFile(path="/baz", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
         assert ["rm", "-r", "-f", "/shared"] not in driver.commands

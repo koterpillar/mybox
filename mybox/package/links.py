@@ -4,13 +4,13 @@ from typing import Iterator, Optional
 
 from pydantic import Field, validator
 
+from ..tracker import Tracker
 from ..utils import allow_singular
 from .destination import Destination
 from .manual_version import ManualVersion
-from .tracked import Tracked, Tracker
 
 
-class Links(ManualVersion, Destination, Tracked):
+class Links(ManualVersion, Destination):
     source: Path = Field(..., alias="links")
 
     @validator("source")
@@ -46,7 +46,7 @@ class Links(ManualVersion, Destination, Tracked):
             m.update(str(path).encode())
         return m.hexdigest()
 
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
 
         for path in self.paths():
@@ -59,4 +59,4 @@ class Links(ManualVersion, Destination, Tracked):
             await self.driver.link(path, target)
             tracker.track(target, root=self.root)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)

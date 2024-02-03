@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from ..driver import Driver
 from ..parallel import gather_
 from ..state import DB
+from ..tracker import Tracker
 from ..utils import allow_singular, async_cached
 
 
@@ -59,7 +60,7 @@ class Package(BaseModel, ABC):
         return remote == local
 
     @abstractmethod
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         pass
 
     async def applicable(self) -> bool:
@@ -73,10 +74,10 @@ class Package(BaseModel, ABC):
             macos=lambda: check_os("darwin"),
         )
 
-    async def ensure(self) -> bool:
+    async def ensure(self, *, tracker: Tracker) -> bool:
         if not await self.applicable():
             return False
         if await self.is_installed():
             return False
-        await self.install()
+        await self.install(tracker=tracker)
         return True

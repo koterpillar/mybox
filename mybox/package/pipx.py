@@ -5,10 +5,11 @@ from typing import Any, Optional, cast
 
 from pydantic import Field, validator
 
-from .tracked import Tracked, Tracker
+from ..tracker import Tracker
+from .base import Package
 
 
-class PipxPackage(Tracked):
+class PipxPackage(Package):
     package: str = Field(..., alias="pipx")
 
     @validator("package")
@@ -55,7 +56,7 @@ class PipxPackage(Tracked):
             raise Exception(f"Cannot parse pip output: {output}")  # pragma: no cover
         return version[1]
 
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         cmd = "install" if await self.local_version() is None else "upgrade"
         await self.driver.run("pipx", cmd, self.package)
 
@@ -66,4 +67,4 @@ class PipxPackage(Tracked):
                 bin_path = Path(bin_desc["__Path__"]).name
                 tracker.track(await self.driver.local() / "bin" / bin_path)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)

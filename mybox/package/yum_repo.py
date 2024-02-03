@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic import Field
 
 from ..configparser import ConfigParser
+from ..tracker import Tracker
 from ..utils import Optional, raise_
 from .manual_version import ManualVersion
 
@@ -22,7 +23,7 @@ class YumRepo(ManualVersion):
         m.update((self.gpg_key or "").encode())
         return m.hexdigest()
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         (await self.driver.os()).switch_(
             linux=lambda linux: None
             if linux.distribution == "fedora"
@@ -44,8 +45,9 @@ class YumRepo(ManualVersion):
         path = Path(f"/etc/yum.repos.d/{self.repo_name}.repo")
         await driver.write_file(path, repo.to_string())
         await driver.run("chmod", "a+r", path)
+        tracker.track(path, root=True)
 
         if self.gpg_key:
             await self.driver.with_root(True).run("rpm", "--import", self.gpg_key)
 
-        await super().install()
+        await super().install(tracker=tracker)

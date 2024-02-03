@@ -8,8 +8,8 @@ import pytest
 
 from mybox.driver import OS, LocalDriver
 from mybox.package import Package, parse_package
-from mybox.package.tracked import INSTALLED_FILES
 from mybox.state import DB
+from mybox.tracker import Tracker
 from mybox.utils import AsyncRet, RunArg, T, async_cached
 
 from ..base import CI, DOCKER
@@ -45,6 +45,16 @@ def requires_driver(
         return await test_fn(self, make_driver, *args, **kwargs)
 
     return wrapper
+
+
+class DummyTracker(Tracker):
+    tracked: set[Path]
+
+    def __init__(self) -> None:
+        self.tracked = set()
+
+    def track(self, target: Path, *, root: bool = False) -> None:
+        self.tracked.add(target)
 
 
 class PackageTestBase(metaclass=ABCMeta):
@@ -98,7 +108,7 @@ class PackageTestBase(metaclass=ABCMeta):
     async def install_prerequisites(self) -> None:
         for args in self.prerequisites:
             package = self.parse_package(args, driver=self.driver)
-            await package.ensure()
+            await package.ensure(tracker=DummyTracker())
 
     async def all_files(self) -> set[Path]:
         return {
@@ -131,7 +141,8 @@ class PackageTestBase(metaclass=ABCMeta):
         package = self.parse_package(args, driver=self.driver, db=db)
         assert await package.applicable()
 
-        await package.install()
+        tracker = DummyTracker()
+        await package.install(tracker=tracker)
 
         await self.check_installed()
 
@@ -141,14 +152,9 @@ class PackageTestBase(metaclass=ABCMeta):
             await package.is_installed()
         ), "Package should be reported installed after installation."
 
-        installed_files = list(
-            f.path_ for f in INSTALLED_FILES(db).find(package=package.name)
-        )
-
         for existing in await self.all_files() - preexisting_files:
-            print(existing)
             if not any(
-                existing.is_relative_to(installed) for installed in installed_files
+                existing.is_relative_to(installed) for installed in tracker.tracked
             ):
                 assert False, f"File {existing} was not tracked."
 
