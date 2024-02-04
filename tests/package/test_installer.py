@@ -1,29 +1,19 @@
 import pytest
 
-from mybox.driver import Driver, LocalDriver
-from mybox.package.installer import DNF, Brew
+from mybox.package.installer import DNF, Apt, Brew
 from mybox.utils import run
 
-from ..base import DOCKER_IMAGE
-from .driver import DockerDriver
-
-
-async def make_driver() -> Driver:
-    if DOCKER_IMAGE:
-        return await DockerDriver.create(image=DOCKER_IMAGE)
-    else:
-        return LocalDriver()
+from ..package.driver import TestDriver
 
 
 class TestBrew:
     @pytest.fixture
-    async def brew(self):
-        driver = await make_driver()
-        (await driver.os()).switch(
-            linux=lambda: pytest.skip("brew is only available on macOS"),
+    async def brew(self, make_driver: TestDriver):
+        (await make_driver.os()).switch_(
+            linux=lambda _: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
-        )()
-        return Brew(driver)
+        )
+        return Brew(make_driver)
 
     @pytest.fixture
     async def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument
@@ -56,17 +46,14 @@ class TestBrew:
 
 class TestDNF:
     @pytest.fixture
-    async def dnf(self):
-        driver = await make_driver()
-        skip_reason = (await driver.os()).switch_(
+    async def dnf(self, make_driver: TestDriver):
+        (await make_driver.os()).switch_(
             linux=lambda os: None
             if os.distribution == "fedora"
-            else "DNF is only available on Fedora",
-            macos="dnf is only available on Linux",
+            else pytest.skip("DNF is only available on Fedora"),
+            macos=lambda: pytest.skip("DNF is only available on Linux"),
         )
-        if skip_reason:
-            pytest.skip(skip_reason)
-        return DNF(driver)
+        return DNF(make_driver)
 
     @pytest.mark.trio
     async def test_installed_version(self, dnf: DNF):
@@ -78,3 +65,20 @@ class TestDNF:
     @pytest.mark.trio
     async def test_remote_version(self, dnf: DNF):
         assert "8.10" <= await dnf.latest_version("ghc") <= "99"
+
+
+class TestApt:
+    @pytest.fixture
+    async def apt(self, make_driver: TestDriver):
+        (await make_driver.os()).switch_(
+            linux=lambda os: None
+            if os.distribution in {"debian", "ubuntu"}
+            else pytest.skip("Apt is only available on Debian and Ubuntu"),
+            macos=lambda: pytest.skip("Apt is only available on Linux"),
+        )
+        return Apt(make_driver)
+
+    @pytest.mark.trio
+    async def test_non_existent_package(self, apt: Apt):
+        with pytest.raises(ValueError, match="zzzzzzzz"):
+            await apt.latest_version("zzzzzzzz")

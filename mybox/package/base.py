@@ -70,7 +70,7 @@ class Package(BaseModel, ABC):
         return os.switch_(
             linux=lambda linux: check_os("linux")
             and (self.distribution is None or linux.distribution in self.distribution),
-            macos=check_os("darwin"),
+            macos=lambda: check_os("darwin"),
         )
 
     async def ensure(self) -> bool:

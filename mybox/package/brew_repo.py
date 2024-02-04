@@ -23,10 +23,10 @@ class BrewRepo(ManualVersion):
         return Brew(self.driver)
 
     async def install(self) -> None:
-        (await self.driver.os()).switch(
-            linux=lambda: raise_(ValueError("BrewRepo is only supported on macOS")),
+        (await self.driver.os()).switch_(
+            linux=lambda _: raise_(ValueError("BrewRepo is only supported on macOS")),
             macos=lambda: None,
-        )()
+        )
 
         brew = await self.brew()
         await brew.tap(self.repo_name)

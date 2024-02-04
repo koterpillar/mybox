@@ -2,7 +2,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import AsyncIterator, Callable, Iterable, Optional, TypeVar, overload
+from typing import Callable, Iterable, Optional, TypeVar, overload
 
 import pytest
 
@@ -12,8 +12,8 @@ from mybox.package.tracked import INSTALLED_FILES
 from mybox.state import DB
 from mybox.utils import AsyncRet, RunArg, T, async_cached
 
-from ..base import CI, DOCKER, DOCKER_IMAGE
-from .driver import DockerDriver, Driver, OverrideHomeDriver, TestDriver
+from ..base import CI, DOCKER
+from .driver import Driver, TestDriver
 
 PackageArgs = dict[str, str | bool | int | Path | list[str]]
 
@@ -66,20 +66,6 @@ class PackageTestBase(metaclass=ABCMeta):
         return []
 
     affects_system = False  # If True, local tests won't run unless in Docker
-
-    @pytest.fixture
-    async def make_driver(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> AsyncIterator[TestDriver]:
-        driver: TestDriver
-        if DOCKER_IMAGE:
-            driver = await DockerDriver.create(image=DOCKER_IMAGE)
-        else:
-            local_bin = tmp_path / ".local" / "bin"
-            monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-            driver = OverrideHomeDriver(override_home=tmp_path)
-        yield driver
-        await driver.stop()
 
     async def check_applicable(self) -> None:
         if self.affects_system and not DOCKER and not CI:
@@ -186,6 +172,14 @@ class PackageTestBase(metaclass=ABCMeta):
         # (if running on the host machine system packages might or might not
         # be installed)
         assert await package.is_installed() in {True, False}
+
+    @pytest.mark.trio
+    @requires_driver
+    async def test_has_name(self, make_driver: TestDriver):
+        package = self.parse_package(
+            await self.constructor_args(), driver=make_driver, db=self.setup_db()
+        )
+        assert package.name != ""
 
     JAVA: list[PackageArgs] = [
         {"system": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
