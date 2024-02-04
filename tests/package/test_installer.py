@@ -1,6 +1,6 @@
 import pytest
 
-from mybox.package.installer import DNF, Brew
+from mybox.package.installer import DNF, Apt, Brew
 from mybox.utils import run
 
 from ..package.driver import TestDriver
@@ -65,3 +65,20 @@ class TestDNF:
     @pytest.mark.trio
     async def test_remote_version(self, dnf: DNF):
         assert "8.10" <= await dnf.latest_version("ghc") <= "99"
+
+
+class TestApt:
+    @pytest.fixture
+    async def apt(self, make_driver: TestDriver):
+        (await make_driver.os()).switch_(
+            linux=lambda os: None
+            if os.distribution in {"debian", "ubuntu"}
+            else pytest.skip("Apt is only available on Debian and Ubuntu"),
+            macos=lambda: pytest.skip("Apt is only available on Linux"),
+        )
+        return Apt(make_driver)
+
+    @pytest.mark.trio
+    async def test_non_existent_package(self, apt: Apt):
+        with pytest.raises(ValueError, match="zzzzzzzz"):
+            await apt.latest_version("zzzzzzzz")

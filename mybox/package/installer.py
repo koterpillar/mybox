@@ -264,16 +264,24 @@ class Apt(Installer):
         await self.install(package)
 
     async def latest_version(self, package: str) -> str:
-        output = (
-            await self.driver.run_output(
-                "apt-cache", "show", "--quiet", "--no-all-versions", package
-            )
-        ).strip()
+        check = await self.driver.run_(
+            "apt-cache",
+            "show",
+            "--quiet",
+            "--no-all-versions",
+            package,
+            check=False,
+            silent=True,
+            capture_output=True,
+        )
+        if not check.ok:
+            raise ValueError(f"Cannot determine version for: {package}.")
+        output = cast(str, check.output)
         for line in output.splitlines():
             line = line.strip()
             if line.startswith("Version:"):
                 return line.split(": ", 1)[-1]
-        raise Exception(f"Cannot determine version for {package}.")
+        raise Exception(f"Cannot parse apt output: {output}")  # pragma: no cover
 
     async def installed_version(self, package: str) -> Optional[str]:
         return (
