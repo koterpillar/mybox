@@ -10,8 +10,10 @@ from .driver import TestDriver
 
 
 class ShellTestBase(RootPackageTestBase):
+    shell: str = "/bin/sh"
+
     async def constructor_args(self) -> PackageArgs:
-        return {"shell": "/bin/sh", "root": self.root}
+        return {"shell": self.shell, "root": self.root}
 
     affects_system = True
 
@@ -36,6 +38,17 @@ class TestShell(ShellTestBase):
 
 class TestRootShell(ShellTestBase):
     root = True
+
+
+class TestCustomShell(TestShell):
+    shell = "/bin/whoami"
+
+    async def check_installed(self):
+        # log in as the user to check that the right shell is called
+        username = await self.check_driver.username()
+        output = await self.driver.with_root(True).run_output("su", username)
+        # whoami (as the shell) will output the username
+        assert output == username
 
 
 @pytest.mark.trio
