@@ -23,18 +23,18 @@ from .utils import RunArg, Some, T, async_cached, intercalate, unsome
 
 class OS(metaclass=ABCMeta):
     @abstractmethod
-    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: Callable[[], T]) -> T:
         pass
 
     def switch(self, *, linux: T, macos: T) -> T:
-        return self.switch_(linux=lambda _: linux, macos=macos)
+        return self.switch_(linux=lambda _: linux, macos=lambda: macos)
 
 
 @dataclass
 class Linux(OS):
     distribution: str
 
-    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: Callable[[], T]) -> T:
         return linux(self)
 
     RELEASE_FILE = "/etc/os-release"
@@ -52,8 +52,8 @@ class Linux(OS):
 
 @dataclass
 class MacOS(OS):
-    def switch_(self, *, linux: Callable[["Linux"], T], macos: T) -> T:
-        return macos
+    def switch_(self, *, linux: Callable[["Linux"], T], macos: Callable[[], T]) -> T:
+        return macos()
 
 
 Architecture = Literal["x86_64", "aarch64"]

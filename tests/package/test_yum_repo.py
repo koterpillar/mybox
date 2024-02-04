@@ -20,7 +20,9 @@ class TestNodeSource(PackageTestBase):
 
     async def check_applicable(self) -> None:
         await super().check_applicable()
-        if not (await self.driver.os()).switch_(
-            linux=lambda os: os.distribution == "fedora", macos=False
-        ):
-            pytest.skip("This test is only applicable on Fedora.")
+        (await self.driver.os()).switch_(
+            linux=lambda os: None
+            if os.distribution == "fedora"
+            else pytest.skip("YUM repo test is only applicable  on Fedora"),
+            macos=lambda: pytest.skip("YUM repo test is only applicable on Linux"),
+        )

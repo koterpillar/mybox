@@ -9,10 +9,10 @@ from ..package.driver import TestDriver
 class TestBrew:
     @pytest.fixture
     async def brew(self, make_driver: TestDriver):
-        (await make_driver.os()).switch(
-            linux=lambda: pytest.skip("brew is only available on macOS"),
+        (await make_driver.os()).switch_(
+            linux=lambda _: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
-        )()
+        )
         return Brew(make_driver)
 
     @pytest.fixture
@@ -46,15 +46,13 @@ class TestBrew:
 
 class TestDNF:
     @pytest.fixture
-    async def dnf(self, make_driver):
-        skip_reason = (await make_driver.os()).switch_(
+    async def dnf(self, make_driver: TestDriver):
+        (await make_driver.os()).switch_(
             linux=lambda os: None
             if os.distribution == "fedora"
-            else "DNF is only available on Fedora",
-            macos="dnf is only available on Linux",
+            else pytest.skip("DNF is only available on Fedora"),
+            macos=lambda: pytest.skip("DNF is only available on Linux"),
         )
-        if skip_reason:
-            pytest.skip(skip_reason)
         return DNF(make_driver)
 
     @pytest.mark.trio
