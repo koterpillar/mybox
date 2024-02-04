@@ -1,5 +1,6 @@
 from pydantic import Field
 
+from ..tracker import Tracker
 from ..utils import Optional, async_cached, raise_
 from .installer import Brew
 from .manual_version import ManualVersion
@@ -22,7 +23,7 @@ class BrewRepo(ManualVersion):
     async def brew(self) -> Brew:
         return Brew(self.driver)
 
-    async def install(self) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         (await self.driver.os()).switch_(
             linux=lambda _: raise_(ValueError("BrewRepo is only supported on macOS")),
             macos=lambda: None,
@@ -31,4 +32,4 @@ class BrewRepo(ManualVersion):
         brew = await self.brew()
         await brew.tap(self.repo_name)
 
-        await super().install()
+        await super().install(tracker=tracker)

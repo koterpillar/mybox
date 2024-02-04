@@ -2,12 +2,12 @@ from typing import Optional
 
 from pydantic import Field
 
+from ..tracker import Tracker
 from ..utils import RunArg, async_cached, run_output
 from .destination import Destination
-from .tracked import Tracked, Tracker
 
 
-class Clone(Destination, Tracked):
+class Clone(Destination):
     repo: str = Field(..., alias="clone")
 
     def derive_name(self) -> str:
@@ -37,7 +37,7 @@ class Clone(Destination, Tracked):
     async def get_remote_version(self) -> str:
         return (await run_output("git", "ls-remote", self.remote, "HEAD")).split()[0]
 
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
 
         await self.driver.makedirs(destination.parent)
@@ -57,4 +57,4 @@ class Clone(Destination, Tracked):
 
         tracker.track(destination)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)

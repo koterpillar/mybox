@@ -6,9 +6,9 @@ from pydantic import Field
 
 from ..configparser import DesktopEntry
 from ..extractor import get_extractor
+from ..tracker import Tracker
 from ..utils import allow_singular_none, async_cached
 from .manual import ManualPackage
-from .tracked import Tracker
 
 ICON_EXTENSIONS = ["svg", "png"]
 
@@ -147,7 +147,7 @@ class ArchivePackage(ManualPackage, ABC):
         if desktop_entry.icon:
             await self.install_icon(desktop_entry.icon, tracker)
 
-    async def install_tracked(self, *, tracker: Tracker):
+    async def install(self, *, tracker: Tracker):
         url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
             await self.driver.run(
@@ -170,4 +170,4 @@ class ArchivePackage(ManualPackage, ABC):
         if url.endswith(".AppImage"):
             await self.install_appimage(tracker)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)

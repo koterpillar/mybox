@@ -3,13 +3,13 @@ from typing import cast
 
 from pydantic import Field
 
+from ..tracker import Tracker
 from ..utils import allow_singular_none
 from .manual_version import ManualVersion
 from .root import Root
-from .tracked import Tracked, Tracker
 
 
-class NpmPackage(Root, ManualVersion, Tracked):
+class NpmPackage(Root, ManualVersion):
     package: str = Field(..., alias="npm")
 
     binaries: list[str] = Field(default_factory=list, alias="binary")
@@ -34,7 +34,7 @@ class NpmPackage(Root, ManualVersion, Tracked):
         version = output.strip()
         return version
 
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         args = ["npm", "exec", "--yes", "--package", self.package, "--"]
 
         await self.driver.run(*args, "true")
@@ -53,4 +53,4 @@ class NpmPackage(Root, ManualVersion, Tracked):
             await self.driver.make_executable(target)
             tracker.track(target)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)

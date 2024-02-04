@@ -6,13 +6,13 @@ from typing import Iterable
 from pydantic import Field
 
 from ..configparser import DesktopEntry
+from ..tracker import Tracker
 from ..utils import allow_singular_none
 from .manual_version import ManualVersion
 from .root import Root
-from .tracked import Tracked, Tracker
 
 
-class ManualPackage(Root, ManualVersion, Tracked, ABC):
+class ManualPackage(Root, ManualVersion, ABC):
     binaries: list[str] = Field(default_factory=list, alias="binary")
     binaries_val = allow_singular_none("binaries")
 
@@ -129,7 +129,7 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
             await self.driver.run("fc-cache", "-f", font_dir)
 
     @abstractmethod
-    async def install_tracked(self, *, tracker: Tracker) -> None:
+    async def install(self, *, tracker: Tracker) -> None:
         for binary in self.binaries:
             await self.install_binary(binary, tracker)
         for app in self.apps:
@@ -137,4 +137,4 @@ class ManualPackage(Root, ManualVersion, Tracked, ABC):
         for font in self.fonts:
             await self.install_font(font, tracker)
 
-        await super().install_tracked(tracker=tracker)
+        await super().install(tracker=tracker)
