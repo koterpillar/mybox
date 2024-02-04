@@ -1,29 +1,19 @@
 import pytest
 
-from mybox.driver import Driver, LocalDriver
 from mybox.package.installer import DNF, Brew
 from mybox.utils import run
 
-from ..base import DOCKER_IMAGE
-from .driver import DockerDriver
-
-
-async def make_driver() -> Driver:
-    if DOCKER_IMAGE:
-        return await DockerDriver.create(image=DOCKER_IMAGE)
-    else:
-        return LocalDriver()
+from ..package.driver import TestDriver
 
 
 class TestBrew:
     @pytest.fixture
-    async def brew(self):
-        driver = await make_driver()
-        (await driver.os()).switch(
+    async def brew(self, make_driver: TestDriver):
+        (await make_driver.os()).switch(
             linux=lambda: pytest.skip("brew is only available on macOS"),
             macos=lambda: None,
         )()
-        return Brew(driver)
+        return Brew(make_driver)
 
     @pytest.fixture
     async def brew_tap_fonts(self, brew):  # pylint:disable=unused-argument
@@ -56,9 +46,8 @@ class TestBrew:
 
 class TestDNF:
     @pytest.fixture
-    async def dnf(self):
-        driver = await make_driver()
-        skip_reason = (await driver.os()).switch_(
+    async def dnf(self, make_driver):
+        skip_reason = (await make_driver.os()).switch_(
             linux=lambda os: None
             if os.distribution == "fedora"
             else "DNF is only available on Fedora",
@@ -66,7 +55,7 @@ class TestDNF:
         )
         if skip_reason:
             pytest.skip(skip_reason)
-        return DNF(driver)
+        return DNF(make_driver)
 
     @pytest.mark.trio
     async def test_installed_version(self, dnf: DNF):
