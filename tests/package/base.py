@@ -173,6 +173,14 @@ class PackageTestBase(metaclass=ABCMeta):
         # be installed)
         assert await package.is_installed() in {True, False}
 
+    @pytest.mark.trio
+    @requires_driver
+    async def test_has_name(self, make_driver: TestDriver):
+        package = self.parse_package(
+            await self.constructor_args(), driver=make_driver, db=self.setup_db()
+        )
+        assert package.name != ""
+
     JAVA: list[PackageArgs] = [
         {"system": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
         {
