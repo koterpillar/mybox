@@ -11,6 +11,7 @@ from mybox.manager import Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
+from mybox.package.root import Root
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
 from mybox.tracker import Tracker
 from mybox.utils import RunArg, allow_singular_none
@@ -19,9 +20,12 @@ from mybox.utils import RunArg, allow_singular_none
 class DummyDriver(Driver):
     commands: list[list[str]]
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.commands = []
+    def __init__(self, *, commands: Optional[list[list[str]]] = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.commands = commands or []
+
+    def deconstruct(self) -> dict:
+        return super().deconstruct() | {"commands": self.commands}
 
     async def run_(
         self,
@@ -42,12 +46,15 @@ class DummyDriver(Driver):
             if args_[1] == "/etc/os-release":
                 output = "ID=ubuntu"
 
+        if self.root:
+            args_.insert(0, "sudo")
+
         self.commands.append(args_)
 
         return RunResult(ok=True, output=output)
 
 
-class DummyPackage(ManualVersion):
+class DummyPackage(Root, ManualVersion):
     files: list[str] = Field(default_factory=list)
     files_val = allow_singular_none("files")
 
@@ -61,7 +68,7 @@ class DummyPackage(ManualVersion):
         if self.error is not None:
             raise self.error
         for file in self.files:
-            tracker.track(Path(file))
+            tracker.track(Path(file), root=self.root)
         await super().install(tracker=tracker)
 
 
@@ -114,8 +121,17 @@ class TestManager:
                 DummyPackage(
                     db=db, driver=driver, name="bar", files=["/shared", "/bar"]
                 ),
+                DummyPackage(
+                    db=db, driver=driver, name="quux", files=["/quux"], root=True
+                ),
             ]
         )
+
+        # Root package should install files with root
+        installed_files = INSTALLED_FILES(db)
+        assert set(installed_files.find(path="/quux")) == {
+            InstalledFile(path="/quux", root=True)
+        }
 
         # Only install one of the packages; the other should be removed
         driver = DummyDriver()
@@ -149,6 +165,9 @@ class TestManager:
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
         assert ["rm", "-r", "-f", "/shared"] not in driver.commands
+
+        # File installed with root should be removed with root
+        assert ["sudo", "rm", "-r", "-f", "/quux"] in driver.commands
 
     @pytest.mark.trio
     async def test_collects_errors(self):

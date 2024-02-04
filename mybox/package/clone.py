@@ -55,6 +55,6 @@ class Clone(Destination):
         await self.run_git("switch", default_branch)
         await self.run_git("reset", "--hard", f"origin/{default_branch}")
 
-        tracker.track(destination)
+        tracker.track(destination, root=self.root)
 
         await super().install(tracker=tracker)
