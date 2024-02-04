@@ -1,4 +1,9 @@
+from pathlib import Path
+
 import pytest
+
+from mybox.package.shell import Shell
+from mybox.state import DB
 
 from .base import CI, PackageArgs, RootPackageTestBase, requires_driver
 from .driver import TestDriver
@@ -31,3 +36,29 @@ class TestShell(ShellTestBase):
 
 class TestRootShell(ShellTestBase):
     root = True
+
+
+@pytest.mark.trio
+async def test_errors_when_not_found(make_driver: TestDriver):
+    package = Shell(
+        shell=Path("/bin/xxxxxxxxxxxx"),
+        root=False,
+        driver=make_driver,
+        db=DB.temporary(),
+    )
+
+    with pytest.raises(ValueError, match="does not exist"):
+        await package.install()
+
+
+@pytest.mark.trio
+async def test_errors_when_not_executable(make_driver: TestDriver):
+    package = Shell(
+        shell=Path("/etc/shells"),
+        root=False,
+        driver=make_driver,
+        db=DB.temporary(),
+    )
+
+    with pytest.raises(ValueError, match="is not executable"):
+        await package.install()
