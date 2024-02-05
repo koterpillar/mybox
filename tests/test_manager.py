@@ -107,6 +107,8 @@ class TestManager:
     @pytest.mark.trio
     async def test_removes_orphans(self):
         db = DB.temporary()
+        installed_files = INSTALLED_FILES(db)
+        versions = VERSIONS(db)
 
         driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
@@ -128,7 +130,6 @@ class TestManager:
         )
 
         # Root package should install files with root
-        installed_files = INSTALLED_FILES(db)
         assert set(installed_files.find(path="/quux")) == {
             InstalledFile(path="/quux", root=True)
         }
@@ -150,7 +151,6 @@ class TestManager:
         )
 
         # Check package versions: foo should be updated, bar should be removed
-        versions = VERSIONS(db)
         assert set(versions.find_ids()) == {
             ("foo", Version(version="2")),
         }
