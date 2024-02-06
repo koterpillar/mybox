@@ -22,10 +22,13 @@ class DummyDriver(Driver):
 
     def __init__(self, *, commands: Optional[list[list[str]]] = None, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.commands = commands or []
+        self.commands = commands if commands is not None else []
 
     def deconstruct(self) -> dict:
         return super().deconstruct() | {"commands": self.commands}
+
+    def reset(self) -> None:
+        self.commands[:] = []
 
     async def run_(
         self,
@@ -78,90 +81,74 @@ class TestManager:
         return [package.name for package in packages]
 
     @pytest.mark.trio
-    async def test_returns_installed(self):
+    async def test_tracks_packages_and_files(self):
         db = DB.temporary()
-
         driver = DummyDriver()
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
 
-        await manager.install_packages(
-            [
-                DummyPackage(db=db, driver=driver, name="foo"),
-                DummyPackage(db=db, driver=driver, name="bar"),
-            ]
-        )
+        def make_package(
+            name: str, *, files: list[str], root: bool = False, version: str = "1"
+        ) -> DummyPackage:
+            return DummyPackage(
+                db=db, driver=driver, name=name, files=files, root=root, version=version
+            )
 
-        driver = DummyDriver()
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
+        installed_files = INSTALLED_FILES(db)
+        versions = VERSIONS(db)
 
-        result = await manager.install_packages(
-            [
-                DummyPackage(db=db, driver=driver, name="foo"),
-                DummyPackage(db=db, driver=driver, name="bar", version="2"),
-            ]
-        )
-
-        assert not result.failed
-        assert self.package_names(result.installed) == ["bar"]
-
-    @pytest.mark.trio
-    async def test_removes_orphans(self):
-        db = DB.temporary()
-
-        driver = DummyDriver()
         manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
 
         # Install packages onto an empty system; they install a shared file
         # and some files unique for each
-        await manager.install_packages(
+        result1 = await manager.install_packages(
             [
-                DummyPackage(
-                    db=db, driver=driver, name="foo", files=["/shared", "/foo"]
-                ),
-                DummyPackage(
-                    db=db, driver=driver, name="bar", files=["/shared", "/bar"]
-                ),
-                DummyPackage(
-                    db=db, driver=driver, name="quux", files=["/quux"], root=True
-                ),
+                make_package("foo", files=["/shared", "/foo"]),
+                make_package("bar", files=["/shared", "/bar"]),
+                make_package("baz", files=["/baz"]),
+                make_package("quux", files=["/quux"], root=True),
             ]
         )
+        assert not result1.failed
+        assert self.package_names(result1.installed) == ["foo", "bar", "baz", "quux"]
 
-        # Root package should install files with root
-        installed_files = INSTALLED_FILES(db)
-        assert set(installed_files.find(path="/quux")) == {
-            InstalledFile(path="/quux", root=True)
+        expected_files = {
+            InstalledFile(path="/shared", package="foo", root=False),
+            InstalledFile(path="/shared", package="bar", root=False),
+            InstalledFile(path="/foo", package="foo", root=False),
+            InstalledFile(path="/bar", package="bar", root=False),
+            InstalledFile(path="/baz", package="baz", root=False),
+            InstalledFile(path="/quux", package="quux", root=True),
         }
+        assert set(installed_files.find()) == expected_files
 
-        # Only install one of the packages; the other should be removed
-        driver = DummyDriver()
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
-
-        await manager.install_packages(
+        # Install an updated version for one package, keep one and remove others
+        driver.reset()
+        result2 = await manager.install_packages(
             [
-                DummyPackage(
-                    db=db,
-                    driver=driver,
-                    name="foo",
-                    files=["/shared", "/foo", "/baz"],
+                make_package(
+                    "foo",
+                    files=["/shared", "/foo", "/foo2"],
                     version="2",
-                )
+                ),
+                make_package("baz", files=["/baz"]),
             ]
         )
+        assert not result2.failed
+        assert self.package_names(result2.installed) == ["foo"]
 
         # Check package versions: foo should be updated, bar should be removed
-        versions = VERSIONS(db)
         assert set(versions.find_ids()) == {
             ("foo", Version(version="2")),
+            ("baz", Version(version="1")),
         }
 
         # Check installed files: everything from foo should be installed,
         # everything from bar removed, shared files left alone
-        installed_files = INSTALLED_FILES(db)
         assert set(installed_files.find()) == {
-            InstalledFile(path="/shared", root=False),
-            InstalledFile(path="/foo", root=False),
-            InstalledFile(path="/baz", root=False),
+            InstalledFile(path="/shared", package="foo", root=False),
+            InstalledFile(path="/shared", package="bar", root=False),
+            InstalledFile(path="/foo", package="foo", root=False),
+            InstalledFile(path="/foo2", package="foo", root=False),
+            InstalledFile(path="/baz", package="baz", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
         assert ["rm", "-r", "-f", "/shared"] not in driver.commands

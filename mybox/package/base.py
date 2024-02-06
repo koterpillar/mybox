@@ -73,11 +73,3 @@ class Package(BaseModel, ABC):
             and (self.distribution is None or linux.distribution in self.distribution),
             macos=lambda: check_os("darwin"),
         )
-
-    async def ensure(self, *, tracker: Tracker) -> bool:
-        if not await self.applicable():
-            return False
-        if await self.is_installed():
-            return False
-        await self.install(tracker=tracker)
-        return True
