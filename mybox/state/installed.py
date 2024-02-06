@@ -7,6 +7,7 @@ from .base import storage
 @dataclass(frozen=True)
 class InstalledFile:
     path: str
+    package: str
     root: bool
 
     @property

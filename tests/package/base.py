@@ -7,6 +7,7 @@ from typing import Callable, Iterable, Optional, TypeVar, overload
 import pytest
 
 from mybox.driver import OS, LocalDriver
+from mybox.manager import Manager
 from mybox.package import Package, parse_package
 from mybox.state import DB
 from mybox.tracker import Tracker
@@ -106,9 +107,13 @@ class PackageTestBase(metaclass=ABCMeta):
             assert self.check_installed_output in output
 
     async def install_prerequisites(self) -> None:
-        for args in self.prerequisites:
-            package = self.parse_package(args, driver=self.driver)
-            await package.ensure(tracker=DummyTracker())
+        db = self.setup_db()
+        manager = Manager(db=db, driver=self.driver, component_path=Path("/dev/null"))
+        packages = [
+            parse_package(args, db=db, driver=self.driver)
+            for args in self.prerequisites
+        ]
+        await manager.install_packages(packages)
 
     async def all_files(self) -> set[Path]:
         return {
@@ -182,9 +187,7 @@ class PackageTestBase(metaclass=ABCMeta):
     @pytest.mark.trio
     @requires_driver
     async def test_has_name(self, make_driver: TestDriver):
-        package = self.parse_package(
-            await self.constructor_args(), driver=make_driver, db=self.setup_db()
-        )
+        package = self.parse_package(await self.constructor_args(), driver=make_driver)
         assert package.name != ""
 
     JAVA: list[PackageArgs] = [

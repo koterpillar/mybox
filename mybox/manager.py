@@ -8,7 +8,7 @@ from .driver import Driver
 from .package import Package, parse_package
 from .parallel import PartialException, PartialResults, parallel_map_tqdm
 from .state import DB, VERSIONS
-from .tracker import DBTracker
+from .tracker import ManagerTracker, Tracker
 from .utils import flatten
 
 
@@ -52,12 +52,10 @@ class Manager:
         return await self.install_packages(packages)
 
     async def install_packages(self, packages: list[Package]) -> InstallResult:
-        async with DBTracker.tracking(driver=self.driver, db=self.db) as tracker:
+        async with Tracker.tracking(driver=self.driver, db=self.db) as tracker:
 
             async def process_and_record(package: Package) -> Optional[Package]:
-                if await package.ensure(tracker=tracker):
-                    return package
-                return None
+                return await self.install_package(tracker, package)
 
             try:
                 results = await parallel_map_tqdm(process_and_record, packages)
@@ -76,3 +74,14 @@ class Manager:
                         installed.append(result.result)
 
                 return InstallResult(installed=installed, failed=failed)
+
+    async def install_package(
+        self, tracker: ManagerTracker, package: Package
+    ) -> Optional[Package]:
+        if not await package.applicable():
+            return None
+        if await package.is_installed():
+            tracker.skip(package.name)
+            return None
+        await package.install(tracker=tracker.track(package.name))
+        return package

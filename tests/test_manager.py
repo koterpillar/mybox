@@ -22,13 +22,13 @@ class DummyDriver(Driver):
 
     def __init__(self, *, commands: Optional[list[list[str]]] = None, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.commands = commands or []
+        self.commands = commands if commands is not None else []
 
     def deconstruct(self) -> dict:
         return super().deconstruct() | {"commands": self.commands}
 
     def reset(self) -> None:
-        self.commands = []
+        self.commands[:] = []
 
     async def run_(
         self,
@@ -81,33 +81,7 @@ class TestManager:
         return [package.name for package in packages]
 
     @pytest.mark.trio
-    async def test_returns_installed(self):
-        db = DB.temporary()
-        driver = DummyDriver()
-
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
-
-        result1 = await manager.install_packages(
-            [
-                DummyPackage(db=db, driver=driver, name="foo"),
-                DummyPackage(db=db, driver=driver, name="bar"),
-            ]
-        )
-        assert not result1.failed
-        assert self.package_names(result1.installed) == ["foo", "bar"]
-
-        result2 = await manager.install_packages(
-            [
-                DummyPackage(db=db, driver=driver, name="foo"),
-                DummyPackage(db=db, driver=driver, name="bar", version="2"),
-            ]
-        )
-
-        assert not result2.failed
-        assert self.package_names(result2.installed) == ["bar"]
-
-    @pytest.mark.trio
-    async def test_removes_orphans(self):
+    async def test_tracks_packages_and_files(self):
         db = DB.temporary()
         driver = DummyDriver()
 
@@ -125,33 +99,41 @@ class TestManager:
 
         # Install packages onto an empty system; they install a shared file
         # and some files unique for each
-        foo = make_package("foo", files=["/shared", "/foo"])
-        bar = make_package("bar", files=["/shared", "/bar"])
-        baz = make_package("baz", files=["/baz"])
-        quux = make_package("quux", files=["/quux"], root=True)
-        await manager.install_packages([foo, bar, baz, quux])
+        result1 = await manager.install_packages(
+            [
+                make_package("foo", files=["/shared", "/foo"]),
+                make_package("bar", files=["/shared", "/bar"]),
+                make_package("baz", files=["/baz"]),
+                make_package("quux", files=["/quux"], root=True),
+            ]
+        )
+        assert not result1.failed
+        assert self.package_names(result1.installed) == ["foo", "bar", "baz", "quux"]
 
         expected_files = {
-            InstalledFile(path="/shared", root=False),
-            InstalledFile(path="/foo", root=False),
-            InstalledFile(path="/bar", root=False),
-            InstalledFile(path="/baz", root=False),
-            InstalledFile(path="/quux", root=True),
+            InstalledFile(path="/shared", package="foo", root=False),
+            InstalledFile(path="/shared", package="bar", root=False),
+            InstalledFile(path="/foo", package="foo", root=False),
+            InstalledFile(path="/bar", package="bar", root=False),
+            InstalledFile(path="/baz", package="baz", root=False),
+            InstalledFile(path="/quux", package="quux", root=True),
         }
         assert set(installed_files.find()) == expected_files
 
-        # Install an updated version for a package and remove others
+        # Install an updated version for one package, keep one and remove others
         driver.reset()
-        await manager.install_packages(
+        result2 = await manager.install_packages(
             [
                 make_package(
                     "foo",
                     files=["/shared", "/foo", "/foo2"],
                     version="2",
                 ),
-                baz,
+                make_package("baz", files=["/baz"]),
             ]
         )
+        assert not result2.failed
+        assert self.package_names(result2.installed) == ["foo"]
 
         # Check package versions: foo should be updated, bar should be removed
         assert set(versions.find_ids()) == {
@@ -162,10 +144,11 @@ class TestManager:
         # Check installed files: everything from foo should be installed,
         # everything from bar removed, shared files left alone
         assert set(installed_files.find()) == {
-            InstalledFile(path="/shared", root=False),
-            InstalledFile(path="/foo", root=False),
-            InstalledFile(path="/foo2", root=False),
-            InstalledFile(path="/baz", root=False),
+            InstalledFile(path="/shared", package="foo", root=False),
+            InstalledFile(path="/shared", package="bar", root=False),
+            InstalledFile(path="/foo", package="foo", root=False),
+            InstalledFile(path="/foo2", package="foo", root=False),
+            InstalledFile(path="/baz", package="baz", root=False),
         }
         assert ["rm", "-r", "-f", "/bar"] in driver.commands
         assert ["rm", "-r", "-f", "/shared"] not in driver.commands
