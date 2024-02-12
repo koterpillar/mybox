@@ -6,8 +6,7 @@ import yaml
 from pydantic import Field
 
 from mybox.driver import Driver, RunResult
-from mybox.manager import Manager
-from mybox.package.base import Package
+from mybox.manager import InstallResult, Manager
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.root import Root
@@ -76,8 +75,8 @@ class DummyPackage(Root, ManualVersion):
 
 class TestManager:
     @classmethod
-    def package_names(cls, packages: list[Package]) -> list[str]:
-        return [package.name for package in packages]
+    def package_names(cls, result: InstallResult) -> list[str]:
+        return [package.name for package in result.installed]
 
     db: DB
     driver: DummyDriver
@@ -125,6 +124,62 @@ class TestManager:
         return {name: version.version for name, version in VERSIONS(self.db).find_ids()}
 
     @pytest.mark.trio
+    async def test_result_versions_for_new_packages(self):
+        result = await self.manager.install_packages([self.make_package("foo")])
+
+        assert not result.failed
+        assert self.package_names(result) == ["foo"]
+        assert self.versions() == {"foo": "1"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_added_packages(self):
+        await self.manager.install_packages([self.make_package("foo")])
+
+        result = await self.manager.install_packages(
+            [self.make_package("foo"), self.make_package("bar")]
+        )
+        assert not result.failed
+        assert self.package_names(result) == ["bar"]
+        assert self.versions() == {"foo": "1", "bar": "1"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_removed_packages(self):
+        await self.manager.install_packages([self.make_package("foo")])
+        result = await self.manager.install_packages([])
+
+        assert not result.failed
+        assert self.package_names(result) == []
+        assert self.versions() == {}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_updated_packages(self):
+        await self.manager.install_packages([self.make_package("foo")])
+        result = await self.manager.install_packages(
+            [self.make_package("foo", version="2")]
+        )
+
+        assert not result.failed
+        assert self.package_names(result) == ["foo"]
+        assert self.versions() == {"foo": "2"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_failed_packages(self):
+        await self.manager.install_packages([self.make_package("foo")])
+        result = await self.manager.install_packages(
+            [
+                self.make_package("foo", version="2", error=Exception("foo error")),
+                self.make_package("bar", error=Exception("bar error")),
+            ]
+        )
+
+        assert self.package_names(result) == []
+        assert {package.name: str(error) for package, error in result.failed} == {
+            "foo": "foo error",
+            "bar": "bar error",
+        }
+        assert self.versions() == {"foo": "1"}
+
+    @pytest.mark.trio
     async def test_tracks_packages_and_files(self):
         # Install packages onto an empty system; they install a shared file
         # and some files unique for each
@@ -137,7 +192,7 @@ class TestManager:
             ]
         )
         assert not result1.failed
-        assert self.package_names(result1.installed) == ["foo", "bar", "baz", "quux"]
+        assert self.package_names(result1) == ["foo", "bar", "baz", "quux"]
 
         expected_files = {
             InstalledFile(path="/shared", package="foo", root=False),
@@ -162,7 +217,7 @@ class TestManager:
             ]
         )
         assert not result2.failed
-        assert self.package_names(result2.installed) == ["foo"]
+        assert self.package_names(result2) == ["foo"]
 
         # Check package versions: foo should be updated, bar should be removed
         assert self.versions() == {"foo": "2", "baz": "1"}
@@ -181,23 +236,6 @@ class TestManager:
 
         # File installed with root should be removed with root
         assert ["sudo", "rm", "-r", "-f", "/quux"] in self.driver.commands
-
-    @pytest.mark.trio
-    async def test_collects_errors(self):
-        result = await self.manager.install_packages(
-            [
-                self.make_package(name="good1"),
-                self.make_package(name="good2"),
-                self.make_package(name="bad1", error=Exception("exc1")),
-                self.make_package(name="bad2", error=Exception("exc2")),
-            ]
-        )
-
-        assert self.package_names(result.installed) == ["good1", "good2"]
-        assert {package.name: str(error) for package, error in result.failed} == {
-            "bad1": "exc1",
-            "bad2": "exc2",
-        }
 
     def test_parses_packages(self):
         self.write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
