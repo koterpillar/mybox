@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -7,12 +6,11 @@ import yaml
 from pydantic import Field
 
 from mybox.driver import Driver, RunResult
-from mybox.manager import Manager
-from mybox.package.base import Package
+from mybox.manager import InstallResult, Manager
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.root import Root
-from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile, Version
+from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
 from mybox.utils import RunArg, allow_singular_none
 
@@ -77,130 +75,211 @@ class DummyPackage(Root, ManualVersion):
 
 class TestManager:
     @classmethod
-    def package_names(cls, packages: list[Package]) -> list[str]:
-        return [package.name for package in packages]
+    def package_names(cls, result: InstallResult) -> list[str]:
+        return [package.name for package in result.installed]
+
+    db: DB
+    driver: DummyDriver
+    manager: Manager
+
+    @pytest.fixture(autouse=True)
+    def make_db(self) -> None:
+        self.db = DB.temporary()
+
+    @pytest.fixture(autouse=True)
+    def make_driver(self) -> None:
+        self.driver = DummyDriver()
+
+    @pytest.fixture(autouse=True)
+    def make_manager(self, tmp_path: Path) -> None:
+        self.manager = Manager(db=self.db, driver=self.driver, component_path=tmp_path)
+
+    def write_component(self, name: str, *packages: dict) -> None:
+        with open(self.manager.component_path / f"{name}.yaml", "w") as out:
+            yaml.dump(list(packages), out, indent=4)
+
+    def make_package(
+        self,
+        name: str,
+        *,
+        files: Optional[list[str]] = None,
+        root: bool = False,
+        version: str = "1",
+        error: Optional[Exception] = None,
+    ) -> DummyPackage:
+        return DummyPackage(
+            db=self.db,
+            driver=self.driver,
+            name=name,
+            files=files or [],
+            root=root,
+            version=version,
+            error=error,
+        )
+
+    def installed_files(self) -> set[InstalledFile]:
+        return set(INSTALLED_FILES(self.db).find())
+
+    def versions(self) -> dict[str, str]:
+        return {name: version.version for name, version in VERSIONS(self.db).find_ids()}
+
+    async def install(self, *packages: DummyPackage) -> InstallResult:
+        self.driver.reset()
+        return await self.manager.install_packages(list(packages))
+
+    async def install_assert(self, *packages: DummyPackage) -> InstallResult:
+        result = await self.install(*packages)
+        assert not result.failed
+        return result
 
     @pytest.mark.trio
-    async def test_tracks_packages_and_files(self):
-        db = DB.temporary()
-        driver = DummyDriver()
+    async def test_result_versions_for_new_packages(self):
+        result = await self.install_assert(self.make_package("foo"))
 
-        def make_package(
-            name: str, *, files: list[str], root: bool = False, version: str = "1"
-        ) -> DummyPackage:
-            return DummyPackage(
-                db=db, driver=driver, name=name, files=files, root=root, version=version
-            )
-
-        installed_files = INSTALLED_FILES(db)
-        versions = VERSIONS(db)
-
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
-
-        # Install packages onto an empty system; they install a shared file
-        # and some files unique for each
-        result1 = await manager.install_packages(
-            [
-                make_package("foo", files=["/shared", "/foo"]),
-                make_package("bar", files=["/shared", "/bar"]),
-                make_package("baz", files=["/baz"]),
-                make_package("quux", files=["/quux"], root=True),
-            ]
-        )
-        assert not result1.failed
-        assert self.package_names(result1.installed) == ["foo", "bar", "baz", "quux"]
-
-        expected_files = {
-            InstalledFile(path="/shared", package="foo", root=False),
-            InstalledFile(path="/shared", package="bar", root=False),
-            InstalledFile(path="/foo", package="foo", root=False),
-            InstalledFile(path="/bar", package="bar", root=False),
-            InstalledFile(path="/baz", package="baz", root=False),
-            InstalledFile(path="/quux", package="quux", root=True),
-        }
-        assert set(installed_files.find()) == expected_files
-
-        # Install an updated version for one package, keep one and remove others
-        driver.reset()
-        result2 = await manager.install_packages(
-            [
-                make_package(
-                    "foo",
-                    files=["/shared", "/foo", "/foo2"],
-                    version="2",
-                ),
-                make_package("baz", files=["/baz"]),
-            ]
-        )
-        assert not result2.failed
-        assert self.package_names(result2.installed) == ["foo"]
-
-        # Check package versions: foo should be updated, bar should be removed
-        assert set(versions.find_ids()) == {
-            ("foo", Version(version="2")),
-            ("baz", Version(version="1")),
-        }
-
-        # Check installed files: everything from foo should be installed,
-        # everything from bar removed, shared files left alone
-        assert set(installed_files.find()) == {
-            InstalledFile(path="/shared", package="foo", root=False),
-            InstalledFile(path="/shared", package="bar", root=False),
-            InstalledFile(path="/foo", package="foo", root=False),
-            InstalledFile(path="/foo2", package="foo", root=False),
-            InstalledFile(path="/baz", package="baz", root=False),
-        }
-        assert ["rm", "-r", "-f", "/bar"] in driver.commands
-        assert ["rm", "-r", "-f", "/shared"] not in driver.commands
-
-        # File installed with root should be removed with root
-        assert ["sudo", "rm", "-r", "-f", "/quux"] in driver.commands
+        assert self.package_names(result) == ["foo"]
+        assert self.versions() == {"foo": "1"}
 
     @pytest.mark.trio
-    async def test_collects_errors(self):
-        db = DB.temporary()
-
-        driver = DummyDriver()
-        manager = Manager(db=db, driver=driver, component_path=Path("/dev/null"))
-
-        result = await manager.install_packages(
-            [
-                DummyPackage(db=db, driver=driver, name="good1"),
-                DummyPackage(db=db, driver=driver, name="good2"),
-                DummyPackage(
-                    db=db, driver=driver, name="bad1", error=Exception("exc1")
-                ),
-                DummyPackage(
-                    db=db, driver=driver, name="bad2", error=Exception("exc2")
-                ),
-            ]
+    async def test_result_versions_for_added_packages(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install_assert(
+            self.make_package("foo"), self.make_package("bar")
         )
 
-        assert self.package_names(result.installed) == ["good1", "good2"]
-        assert [f"{package.name}: {error}" for package, error in result.failed] == [
-            "bad1: exc1",
-            "bad2: exc2",
-        ]
+        assert self.package_names(result) == ["bar"]
+        assert self.versions() == {"foo": "1", "bar": "1"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_removed_packages(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install_assert()
+
+        assert self.package_names(result) == []
+        assert self.versions() == {}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_updated_packages(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install_assert(self.make_package("foo", version="2"))
+
+        assert self.package_names(result) == ["foo"]
+        assert self.versions() == {"foo": "2"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_failed_packages(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install(
+            self.make_package("foo", version="2", error=Exception("foo error")),
+            self.make_package("bar", error=Exception("bar error")),
+        )
+
+        assert self.package_names(result) == []
+        assert {package.name: str(error) for package, error in result.failed} == {
+            "foo": "foo error",
+            "bar": "bar error",
+        }
+        assert self.versions() == {"foo": "1"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_partial_failure(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install(
+            self.make_package("foo", version="2"),
+            self.make_package("bar", error=Exception("bar error")),
+        )
+
+        assert self.package_names(result) == ["foo"]
+        assert {package.name: str(error) for package, error in result.failed} == {
+            "bar": "bar error",
+        }
+        assert self.versions() == {"foo": "2"}
+
+    @pytest.mark.trio
+    async def test_tracks_files_installed(self):
+        await self.install_assert(self.make_package("foo", files=["/foo", "/bar"]))
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False),
+            InstalledFile(path="/bar", package="foo", root=False),
+        }
+
+    @pytest.mark.trio
+    async def test_tracks_files_removed(self):
+        await self.install_assert(self.make_package("foo", files=["/foo", "/bar"]))
+        await self.install_assert(self.make_package("foo", files=["/foo"], version="2"))
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/bar"] in self.driver.commands
+
+    @pytest.mark.trio
+    async def test_tracks_files_installed_with_root(self):
+        await self.install_assert(self.make_package("foo", files=["/foo"], root=True))
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=True)
+        }
+
+        await self.install_assert()
+
+        assert self.installed_files() == set()
+        assert ["sudo", "rm", "-r", "-f", "/foo"] in self.driver.commands
+
+    @pytest.mark.trio
+    async def test_tracks_shared_files(self):
+        await self.install_assert(
+            self.make_package("foo", files=["/shared"]),
+            self.make_package("bar", files=["/shared"]),
+        )
+
+        assert self.installed_files() == {
+            InstalledFile(path="/shared", package="foo", root=False),
+            InstalledFile(path="/shared", package="bar", root=False),
+        }
+
+        await self.install_assert(
+            self.make_package("foo", files=["/shared"]),
+        )
+
+        assert self.installed_files() == {
+            InstalledFile(path="/shared", package="foo", root=False),
+        }
+        assert ["rm", "-r", "-f", "/shared"] not in self.driver.commands
+
+        await self.install_assert()
+        assert self.installed_files() == set()
+        assert ["rm", "-r", "-f", "/shared"] in self.driver.commands
+
+    @pytest.mark.trio
+    async def test_keeps_files_for_errored_packages(self):
+        await self.install_assert(self.make_package("foo", files=["/foo"]))
+
+        await self.install(
+            self.make_package(
+                "foo", files=["/foo"], error=Exception("foo error"), version="2"
+            ),
+        )
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
+
+        await self.install_assert(self.make_package("foo", files=["/foo"], version="3"))
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
 
     def test_parses_packages(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
+        self.write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
+        self.write_component("two", {"name": "foo"})
 
-            def write_component(name: str, *packages: dict) -> None:
-                with open(tmppath / f"{name}.yaml", "w") as out:
-                    yaml.dump(list(packages), out, indent=4)
+        packages = self.manager.load_components(frozenset(["one"]))
 
-            write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
-            write_component("two", {"name": "foo"})
-
-            db = DB.temporary()
-            driver = DummyDriver()
-            manager = Manager(db=db, driver=driver, component_path=tmppath)
-
-            packages = manager.load_components({"one"})
-
-            assert len(packages) == 1
-            package = packages[0]
-            assert isinstance(package, GitHubPackage)
-            assert package.repo == "asdf/asdf"
-            assert package.binaries == ["asdf"]
+        assert len(packages) == 1
+        package = packages[0]
+        assert isinstance(package, GitHubPackage)
+        assert package.repo == "asdf/asdf"
+        assert package.binaries == ["asdf"]

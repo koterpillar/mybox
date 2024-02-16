@@ -83,5 +83,11 @@ class Manager:
         if await package.is_installed():
             tracker.skip(package.name)
             return None
-        await package.install(tracker=tracker.track(package.name))
+
+        try:
+            await package.install(tracker=tracker.track(package.name))
+        except:
+            tracker.skip(package.name)
+            raise
+
         return package

@@ -33,10 +33,9 @@ class Tracker(ABC):
             current_paths = set(current_file.path for current_file in current)
 
             for stale_file in stale:
-                if stale_file.path in current_paths:
-                    continue
-                await driver.with_root(stale_file.root).rm(stale_file.path_)
-                installed_files.delete(path=stale_file.path)
+                if stale_file.path not in current_paths:
+                    await driver.with_root(stale_file.root).rm(stale_file.path_)
+                installed_files.delete(package=stale_file.package, path=stale_file.path)
 
 
 @dataclass
