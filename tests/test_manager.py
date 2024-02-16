@@ -236,6 +236,28 @@ class TestManager:
         assert self.installed_files() == set()
         assert ["rm", "-r", "-f", "/shared"] in self.driver.commands
 
+    @pytest.mark.trio
+    async def test_keeps_files_for_errored_packages(self):
+        await self.install_assert(self.make_package("foo", files=["/foo"]))
+
+        await self.install(
+            self.make_package(
+                "foo", files=["/foo"], error=Exception("foo error"), version="2"
+            ),
+        )
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
+
+        await self.install_assert(self.make_package("foo", files=["/foo"], version="3"))
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
+
     def test_parses_packages(self):
         self.write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
         self.write_component("two", {"name": "foo"})
