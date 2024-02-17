@@ -393,21 +393,21 @@ files = [
 
 [[package]]
 name = "fawltydeps"
-version = "0.13.2"
+version = "0.15.0"
 description = "Find undeclared and unused 3rd-party dependencies in your Python project."
 optional = false
-python-versions = ">=3.7.2,<4.0.0"
+python-versions = ">=3.7.2"
 files = [
-    {file = "fawltydeps-0.13.2-py3-none-any.whl", hash = "sha256:7ccef54801895c48179d556270a55fa083a02bdd28976484dbcbcd96a3d55741"},
-    {file = "fawltydeps-0.13.2.tar.gz", hash = "sha256:5a3d8d8114958c11f1fcdb3c8c9a9a873b0d3e82b29a86505cf64253e3219a7b"},
+    {file = "fawltydeps-0.15.0-py3-none-any.whl", hash = "sha256:33cbbe44aa349b72d21fde1cc139941f8e0c2ceee0f3e1ee64189a107a3628a8"},
+    {file = "fawltydeps-0.15.0.tar.gz", hash = "sha256:ea46e7b4f5d79cdb9044e2b0abc85206b264d51d9ad883c02496f232ae592e52"},
 ]
 
 [package.dependencies]
-importlib_metadata = "6.6.0"
+importlib_metadata = {version = ">=6.6.0", markers = "python_version >= \"3.8\""}
 isort = {version = ">=5.10,<6.0", markers = "python_version >= \"3.8\""}
-pip-requirements-parser = ">=32.0.1,<33.0.0"
+pip-requirements-parser = ">=32.0.1"
 pydantic = ">=1.10.4,<3.0.0"
-setuptools = ">=68.0.0,<69.0.0"
+setuptools = {version = ">=68.0.0", markers = "python_version >= \"3.8\""}
 
 [[package]]
 name = "idna"
@@ -1134,4 +1134,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d270547a1afba3334278d797cf24b63ee3cc4fb5808d0b3c0f4e730573c9d656"
+content-hash = "6ab7702933ca1e3f5e5a682d2fc213ac6c3ec16b4df1bd98abfc5831f151b7d9"
