@@ -89,8 +89,10 @@ async def gather_(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
     partial_results = await gather(*tasks)
 
     return [
-        result.result
-        if isinstance(result, PartialSuccess)
-        else raise_(PartialResults(partial_results))
+        (
+            result.result
+            if isinstance(result, PartialSuccess)
+            else raise_(PartialResults(partial_results))
+        )
         for result in partial_results
     ]

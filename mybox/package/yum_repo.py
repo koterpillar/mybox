@@ -25,9 +25,11 @@ class YumRepo(ManualVersion):
 
     async def install(self, *, tracker: Tracker) -> None:
         (await self.driver.os()).switch_(
-            linux=lambda linux: None
-            if linux.distribution == "fedora"
-            else raise_(ValueError("YumRepo is only supported on Fedora")),
+            linux=lambda linux: (
+                None
+                if linux.distribution == "fedora"
+                else raise_(ValueError("YumRepo is only supported on Fedora"))
+            ),
             macos=lambda: raise_(ValueError("YumRepo is only supported on Linux")),
         )
 
