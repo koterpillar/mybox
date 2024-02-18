@@ -1,49 +1,49 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Annotated, Any
 
 import requests
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
 from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic.functional_validators import BeforeValidator
 
 from .filters import Filters, choose
 
 
-class Value(BaseModel, ABC):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.parse
-
-    @staticmethod
-    def parse(value: Any) -> "Value":
-        if isinstance(value, str):
-            return Const(value=value)
-        if isinstance(value, dict):
-            if base := value.pop("url", None):
-                return URL(base=base)
-            if base := value.pop("links", None):
-                return HTMLLinks(base=base, **value)
-            if "format" in value:
-                return Format(**value)
-            if "jsonpath" in value:
-                return JSONPath(**value)
-        raise ValueError(f"Cannot parse URL from {value!r}.")
-
+class ValueC(BaseModel, ABC):
     @abstractmethod
     async def compute(self) -> str:
         raise NotImplementedError
 
 
-class Const(Value):
+def parse_value(value: Any) -> ValueC:
+    if isinstance(value, str):
+        return Const(value=value)
+    if isinstance(value, dict):
+        if base := value.pop("url", None):
+            return URL(base=base)
+        if base := value.pop("links", None):
+            return HTMLLinks(base=base, **value)
+        if "format" in value:
+            return Format(**value)
+        if "jsonpath" in value:
+            return JSONPath(**value)
+    raise ValueError(f"Cannot parse URL from {value!r}.")
+
+
+Value = Annotated[ValueC, BeforeValidator(parse_value)]
+
+
+class Const(ValueC):
     value: str
 
     async def compute(self):
         return self.value
 
 
-class Derived(Value, ABC):
+class Derived(ValueC, ABC):
     base: Value
 
     @abstractmethod
