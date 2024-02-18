@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from .filters import Filters, choose
 
@@ -61,8 +61,7 @@ class URL(Derived):
 
 
 class JSONPath(Derived, Filters):
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     jsonpath: JSONPathT
 
