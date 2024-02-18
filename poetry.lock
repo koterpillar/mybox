@@ -12,6 +12,17 @@ files = [
 ]
 
 [[package]]
+name = "async-generator"
+version = "1.10"
+description = "Async generators and context managers for Python 3.5+"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "async_generator-1.10-py3-none-any.whl", hash = "sha256:01c7bf666359b4967d2cda0000cc2e4af16a0ae098cbffcb8472fb9e8ad6585b"},
+    {file = "async_generator-1.10.tar.gz", hash = "sha256:6ebb3d106c12920aaae42ccb6f787ef5eefdcdd166ea3d628fa8476abe712144"},
+]
+
+[[package]]
 name = "attrs"
 version = "23.1.0"
 description = "Classes Without Boilerplate"
@@ -1000,23 +1011,26 @@ sortedcontainers = "*"
 
 [[package]]
 name = "trio-typing"
-version = "0.8.0"
+version = "0.10.0"
 description = "Static type checking support for Trio and related projects"
 optional = false
 python-versions = "*"
 files = [
-    {file = "trio-typing-0.8.0.tar.gz", hash = "sha256:f14264a27b45cec5dabd25b686255ac7d841984200c54b2057bc98a099318a97"},
-    {file = "trio_typing-0.8.0-py3-none-any.whl", hash = "sha256:3734fa3f61cab047fdc97aa0030c72e910455cf85f18ca18c3ff336781b144bb"},
+    {file = "trio-typing-0.10.0.tar.gz", hash = "sha256:065ee684296d52a8ab0e2374666301aec36ee5747ac0e7a61f230250f8907ac3"},
+    {file = "trio_typing-0.10.0-py3-none-any.whl", hash = "sha256:6d0e7ec9d837a2fe03591031a172533fbf4a1a95baf369edebfc51d5a49f0264"},
 ]
 
 [package.dependencies]
-mypy = {version = ">=0.920", optional = true, markers = "extra == \"mypy\""}
+async-generator = "*"
+importlib-metadata = "*"
+mypy = {version = ">=1.0", optional = true, markers = "extra == \"mypy\""}
 mypy-extensions = ">=0.4.2"
+packaging = "*"
 trio = ">=0.16.0"
 typing-extensions = ">=3.7.4"
 
 [package.extras]
-mypy = ["mypy (>=0.920)"]
+mypy = ["mypy (>=1.0)"]
 
 [[package]]
 name = "typed-argparse"
@@ -1138,4 +1152,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ceded6ccc471370872d4ad026a76777a86af26dffd7cf91680be5753b51f36e2"
+content-hash = "069d8c851556678caa9e7c256a1891f7c34c568c5a2c6d0a86d02705b9a2a602"
