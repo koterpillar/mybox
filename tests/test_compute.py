@@ -5,13 +5,13 @@ from typing import Any, cast
 import pytest
 import trio
 
-from mybox.compute import URL, Const, Format, HTMLLinks, JSONPath, Value
+from mybox.compute import URL, Const, Format, HTMLLinks, JSONPath, parse_value
 from mybox.utils import T
 
 
 class TestParse:
     def parse_as(self, klass: type[T], value: Any) -> T:
-        result = Value.parse(value)
+        result = parse_value(value)
 
         assert isinstance(result, klass)
         return result
@@ -47,18 +47,18 @@ class TestParse:
 
     def test_errors(self):
         with pytest.raises(ValueError):
-            Value.parse(123)
+            parse_value(123)
         with pytest.raises(ValueError):
-            Value.parse([])
+            parse_value([])
         with pytest.raises(ValueError):
-            Value.parse({})
+            parse_value({})
         with pytest.raises(ValueError):
-            Value.parse({"nonsense": "foo"})
+            parse_value({"nonsense": "foo"})
 
 
 @pytest.mark.trio
 async def test_jsonpath():
-    value = Value.parse(
+    value = parse_value(
         {
             "base": json.dumps({"foo": [{"bar": "aaaa"}, {"bar": "bbbb"}]}),
             "jsonpath": "foo[*].bar",
@@ -71,7 +71,7 @@ async def test_jsonpath():
 
 @pytest.mark.trio
 async def test_jsonpath_filter():
-    value = Value.parse(
+    value = parse_value(
         {
             "base": json.dumps(
                 {
@@ -101,14 +101,14 @@ async def test_url():
 
     trio.lowlevel.start_thread_soon(server.serve_forever, lambda result: None)
 
-    value = Value.parse({"url": f"http://localhost:{server.server_port}"})
+    value = parse_value({"url": f"http://localhost:{server.server_port}"})
 
     assert await value.compute() == "Hello World"
 
 
 @pytest.mark.trio
 async def test_links():
-    value = Value.parse(
+    value = parse_value(
         {"links": "<html><a href='https://example.com'>example</a></html>"}
     )
 
@@ -117,6 +117,6 @@ async def test_links():
 
 @pytest.mark.trio
 async def test_format():
-    value = Value.parse({"base": "foo", "format": "bar {}"})
+    value = parse_value({"base": "foo", "format": "bar {}"})
 
     assert (await value.compute()) == "bar foo"

@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Iterator, Optional
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from ..tracker import Tracker
 from ..utils import allow_singular
@@ -13,8 +13,9 @@ from .manual_version import ManualVersion
 class Links(ManualVersion, Destination):
     source: Path = Field(..., alias="links")
 
-    @validator("source")
-    def source_absolute(cls, value):  # pylint:disable=no-self-argument
+    @field_validator("source")
+    @classmethod
+    def source_absolute(cls, value):
         return Path(value).absolute()
 
     dot: bool = False

@@ -11,6 +11,8 @@ from ..utils import allow_singular_none
 from .manual_version import ManualVersion
 from .root import Root
 
+RESOLUTION_RE = re.compile(r"(\d+)x(\d+)")
+
 
 class ManualPackage(Root, ManualVersion, ABC):
     binaries: list[str] = Field(default_factory=list, alias="binary")
@@ -53,15 +55,13 @@ class ManualPackage(Root, ManualVersion, ABC):
     async def icon_paths(self, name: str) -> Iterable[Path]:
         pass
 
-    RESOLUTION_RE = re.compile(r"(\d+)x(\d+)")
-
     async def icon_target_path(self, path: Path) -> Path:
         resolution: str
         if path.suffix == ".svg":
             resolution = "scalable"
         elif path.suffix == ".png":
             for part in path.parts:
-                if self.RESOLUTION_RE.match(part):
+                if RESOLUTION_RE.match(part):
                     resolution = part
                     break
             else:

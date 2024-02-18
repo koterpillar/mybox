@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..driver import Driver
 from ..parallel import gather_
@@ -12,10 +12,9 @@ from ..utils import allow_singular, async_cached
 
 
 class Package(BaseModel, ABC):
-    class Config:
-        allow_mutation = False
-        arbitrary_types_allowed = True
-        keep_untouched = (cached_property,)
+    model_config = ConfigDict(
+        frozen=True, arbitrary_types_allowed=True, ignored_types=(cached_property,)
+    )
 
     def __hash__(self) -> int:
         """Allow hashing to pass when gathering async results."""
