@@ -32,9 +32,11 @@ class TestRPMFusion(PackageTestBase):
     async def check_applicable(self) -> None:
         await super().check_applicable()
         (await self.driver.os()).switch_(
-            linux=lambda os: None
-            if os.distribution == "fedora"
-            else pytest.skip("YUM repo test is only applicable  on Fedora"),
+            linux=lambda os: (
+                None
+                if os.distribution == "fedora"
+                else pytest.skip("YUM repo test is only applicable  on Fedora")
+            ),
             macos=lambda: pytest.skip("YUM repo test is only applicable on Linux"),
         )
 
@@ -53,9 +55,11 @@ class TestInteractiveDeb(PackageTestBase):
     async def check_applicable(self) -> None:
         await super().check_applicable()
         (await self.driver.os()).switch_(
-            linux=lambda os: None
-            if os.distribution in {"debian", "ubuntu"}
-            else pytest.skip("This test is only applicable on Debian and Ubuntu"),
+            linux=lambda os: (
+                None
+                if os.distribution in {"debian", "ubuntu"}
+                else pytest.skip("This test is only applicable on Debian and Ubuntu")
+            ),
             macos=lambda: pytest.skip("This test is only applicable on Linux"),
         )
 

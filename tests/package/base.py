@@ -25,15 +25,13 @@ TEST = TypeVar("TEST", bound="PackageTestBase")
 @overload
 def requires_driver(
     test_fn: Callable[[TEST, TestDriver], AsyncRet[None]]
-) -> Callable[[TEST, TestDriver], AsyncRet[None]]:
-    ...
+) -> Callable[[TEST, TestDriver], AsyncRet[None]]: ...
 
 
 @overload
 def requires_driver(
     test_fn: Callable[[TEST, TestDriver, T], AsyncRet[None]]
-) -> Callable[[TEST, TestDriver, T], AsyncRet[None]]:
-    ...
+) -> Callable[[TEST, TestDriver, T], AsyncRet[None]]: ...
 
 
 def requires_driver(

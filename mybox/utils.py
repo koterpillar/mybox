@@ -88,18 +88,17 @@ AsyncRet = Coroutine[Any, Any, T]
 
 
 @overload
-def async_cached(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]:
-    ...
+def async_cached(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]: ...
 
 
 @overload
-def async_cached(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]:
-    ...
+def async_cached(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]: ...
 
 
 @overload
-def async_cached(fn: Callable[[U, V], AsyncRet[T]]) -> Callable[[U, V], AsyncRet[T]]:
-    ...
+def async_cached(
+    fn: Callable[[U, V], AsyncRet[T]]
+) -> Callable[[U, V], AsyncRet[T]]: ...
 
 
 def async_cached(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
@@ -107,20 +106,17 @@ def async_cached(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
 
 
 @overload
-def async_cached_lock(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]:
-    ...
+def async_cached_lock(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]: ...
 
 
 @overload
-def async_cached_lock(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]:
-    ...
+def async_cached_lock(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]: ...
 
 
 @overload
 def async_cached_lock(
     fn: Callable[[U, V], AsyncRet[T]]
-) -> Callable[[U, V], AsyncRet[T]]:
-    ...
+) -> Callable[[U, V], AsyncRet[T]]: ...
 
 
 def async_cached_lock(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:

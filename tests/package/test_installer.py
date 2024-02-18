@@ -48,9 +48,11 @@ class TestDNF:
     @pytest.fixture
     async def dnf(self, make_driver: TestDriver):
         (await make_driver.os()).switch_(
-            linux=lambda os: None
-            if os.distribution == "fedora"
-            else pytest.skip("DNF is only available on Fedora"),
+            linux=lambda os: (
+                None
+                if os.distribution == "fedora"
+                else pytest.skip("DNF is only available on Fedora")
+            ),
             macos=lambda: pytest.skip("DNF is only available on Linux"),
         )
         return DNF(make_driver)
@@ -71,9 +73,11 @@ class TestApt:
     @pytest.fixture
     async def apt(self, make_driver: TestDriver):
         (await make_driver.os()).switch_(
-            linux=lambda os: None
-            if os.distribution in {"debian", "ubuntu"}
-            else pytest.skip("Apt is only available on Debian and Ubuntu"),
+            linux=lambda os: (
+                None
+                if os.distribution in {"debian", "ubuntu"}
+                else pytest.skip("Apt is only available on Debian and Ubuntu")
+            ),
             macos=lambda: pytest.skip("Apt is only available on Linux"),
         )
         return Apt(make_driver)
