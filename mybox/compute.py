@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from .filters import Filters, choose
 
@@ -66,8 +66,9 @@ class JSONPath(Derived, Filters):
 
     jsonpath: JSONPathT
 
-    @validator("jsonpath", pre=True)
-    def parse_jsonpath(cls, value):  # pylint:disable=no-self-argument
+    @field_validator("jsonpath", mode="before")
+    @classmethod
+    def parse_jsonpath(cls, value):
         return jsonpath_parse(value)
 
     async def derived_value(self, contents: str) -> str:

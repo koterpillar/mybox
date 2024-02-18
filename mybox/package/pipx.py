@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional, cast
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from ..tracker import Tracker
 from .base import Package
@@ -12,8 +12,9 @@ from .base import Package
 class PipxPackage(Package):
     package: str = Field(..., alias="pipx")
 
-    @validator("package")
-    def package_to_lower(cls, value: str) -> str:  # pylint: disable=no-self-argument
+    @field_validator("package")
+    @classmethod
+    def package_to_lower(cls, value: str) -> str:
         return value.lower()
 
     def derive_name(self) -> str:

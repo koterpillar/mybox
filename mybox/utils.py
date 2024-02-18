@@ -5,7 +5,7 @@ from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, overlo
 
 import requests
 import trio
-from pydantic import validator
+from pydantic import field_validator
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -28,11 +28,11 @@ def unsome(x: Some[T]) -> list[T]:
 
 
 def allow_singular(field: str) -> Any:
-    return validator(field, pre=True, allow_reuse=True)(lambda cls, x: unsome_(x))
+    return field_validator(field, mode="before")(lambda cls, x: unsome_(x))
 
 
 def allow_singular_none(field: str) -> Any:
-    return validator(field, pre=True, allow_reuse=True)(lambda cls, x: unsome(x))
+    return field_validator(field, mode="before")(lambda cls, x: unsome(x))
 
 
 def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
