@@ -15,12 +15,27 @@ async def test_remote_version():
     version = await package.get_remote_version()
     assert version >= "4.1.5"
 
+
+@pytest.mark.trio
+async def test_remote_version_non_existent():
     non_existent = PipxPackage(
         pipx="xxxxxxxxxxxx", driver=LocalDriver(), db=DB.temporary()
     )
 
     with pytest.raises(Exception, match="Cannot find latest version"):
         await non_existent.get_remote_version()
+
+
+@pytest.mark.trio
+async def test_remote_version_git():
+    package = PipxPackage(
+        pipx="git+https://github.com/django/django.git",
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+    version = await package.get_remote_version()
+    # Version will be a Git commit hash, which are 40 characters long.
+    assert len(version) == 40
 
 
 class TestPipx(PackageTestBase):
