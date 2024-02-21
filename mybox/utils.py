@@ -80,6 +80,10 @@ def url_version(url: str) -> str:
     return head_response.headers["etag"]
 
 
+async def repo_version(repo: str) -> str:
+    return (await run_output("git", "ls-remote", repo, "HEAD")).split()[0]
+
+
 def raise_(exception: BaseException) -> Any:
     raise exception
 

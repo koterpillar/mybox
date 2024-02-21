@@ -6,7 +6,10 @@ from typing import Any, Optional, cast
 from pydantic import Field, field_validator
 
 from ..tracker import Tracker
+from ..utils import repo_version
 from .base import Package
+
+GIT_PREFIX = "git+"
 
 
 class PipxPackage(Package):
@@ -38,6 +41,10 @@ class PipxPackage(Package):
             return None
 
     async def get_remote_version(self) -> str:
+        if self.package.startswith(GIT_PREFIX):
+            repo = self.package.removeprefix(GIT_PREFIX)
+            return await repo_version(repo)
+
         check = await self.driver.run_(
             "python3",
             "-m",
