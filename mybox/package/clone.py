@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import Field
 
 from ..tracker import Tracker
-from ..utils import RunArg, async_cached, run_output
+from ..utils import RunArg, async_cached, repo_version
 from .destination import Destination
 
 
@@ -35,7 +35,7 @@ class Clone(Destination):
         return f"https://github.com/{self.repo}.git"
 
     async def get_remote_version(self) -> str:
-        return (await run_output("git", "ls-remote", self.remote, "HEAD")).split()[0]
+        return await repo_version(self.remote)
 
     async def install(self, *, tracker: Tracker) -> None:
         destination = await self.destination()
