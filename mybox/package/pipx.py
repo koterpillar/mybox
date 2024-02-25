@@ -29,7 +29,7 @@ class PipxPackage(ManualVersion):
             k: v["metadata"]["main_package"] for k, v in pipx_list["venvs"].items()
         }
         if self.is_repo:
-            res = next(
+            return next(
                 (
                     pkg
                     for pkg in packages.values()
@@ -37,8 +37,6 @@ class PipxPackage(ManualVersion):
                 ),
                 None,
             )
-            print("res", res)
-            return res
         else:
             return packages.get(self.package)
 
