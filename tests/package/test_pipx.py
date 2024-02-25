@@ -61,3 +61,8 @@ class TestPipx(PackageTestBase):
             await self.check_driver.local() / "share" / "pipx" / "venvs",
             await self.check_driver.local() / "state" / "pipx" / "log",
         }
+
+
+class TestPipxGit(TestPipx):
+    async def constructor_args(self) -> PackageArgs:
+        return {"pipx": "git+https://github.com/django/django.git"}
