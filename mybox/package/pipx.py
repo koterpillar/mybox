@@ -6,13 +6,11 @@ from typing import Any, Optional, cast
 from pydantic import Field, field_validator
 
 from ..tracker import Tracker
-from ..utils import repo_version
-from .base import Package
-
-GIT_PREFIX = "git+"
+from ..utils import GIT_PREFIX, repo_version
+from .manual_version import ManualVersion
 
 
-class PipxPackage(Package):
+class PipxPackage(ManualVersion):
     package: str = Field(..., alias="pipx")
 
     @field_validator("package")
@@ -27,13 +25,32 @@ class PipxPackage(Package):
         pipx_list = json.loads(
             await self.driver.run_output("pipx", "list", "--json", silent=True)
         )
-        venv = pipx_list["venvs"].get(self.package)
-        if venv:
-            return venv["metadata"]["main_package"]
+        packages = {
+            k: v["metadata"]["main_package"] for k, v in pipx_list["venvs"].items()
+        }
+        if self.is_repo:
+            res = next(
+                (
+                    pkg
+                    for pkg in packages.values()
+                    if pkg["package_or_url"] == self.package
+                ),
+                None,
+            )
+            print("res", res)
+            return res
         else:
-            return None
+            return packages.get(self.package)
+
+    @property
+    def is_repo(self) -> bool:
+        return self.package.startswith(GIT_PREFIX)
 
     async def local_version(self) -> Optional[str]:
+        if self.is_repo:
+            # pipx doesn't store Git commit, just the version field from the package
+            return self.cached_version
+
         metadata = await self.get_metadata()
         if metadata:
             return metadata["package_version"]
@@ -41,9 +58,8 @@ class PipxPackage(Package):
             return None
 
     async def get_remote_version(self) -> str:
-        if self.package.startswith(GIT_PREFIX):
-            repo = self.package.removeprefix(GIT_PREFIX)
-            return await repo_version(repo)
+        if self.is_repo:
+            return await repo_version(self.package)
 
         check = await self.driver.run_(
             "python3",
@@ -76,3 +92,6 @@ class PipxPackage(Package):
                 tracker.track(await self.driver.local() / "bin" / bin_path)
 
         await super().install(tracker=tracker)
+
+        if self.is_repo:
+            await self.cache_version()

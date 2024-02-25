@@ -154,6 +154,9 @@ class PackageTestBase(metaclass=ABCMeta):
         assert (
             await package.is_installed()
         ), "Package should be reported installed after installation."
+        assert (await package.local_version()) == (
+            await package.get_remote_version()
+        ), "Package version should be the same as the remote version."
 
         for existing in await self.all_files() - preexisting_files:
             if not any(

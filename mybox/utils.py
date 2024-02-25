@@ -80,7 +80,12 @@ def url_version(url: str) -> str:
     return head_response.headers["etag"]
 
 
+GIT_PREFIX = "git+"
+
+
 async def repo_version(repo: str) -> str:
+    if repo.startswith(GIT_PREFIX):
+        repo = repo.removeprefix(GIT_PREFIX)
     return (await run_output("git", "ls-remote", repo, "HEAD")).split()[0]
 
 
