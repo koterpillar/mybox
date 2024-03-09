@@ -95,6 +95,7 @@ class TestAmmonite(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "com-lihaoyi/Ammonite",
+            "skip_release": ["3.0.0-M1"],
             "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
             "raw": "amm",
             "raw_executable": True,
