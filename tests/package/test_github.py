@@ -115,54 +115,6 @@ class TestAmmonite(PackageTestBase):
         }
 
 
-class TestCura(PackageTestBase):
-    async def constructor_args(self) -> PackageArgs:
-        return {"repo": "Ultimaker/Cura", "exclude": "modern"}
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not (await self.driver.os()).switch(linux=True, macos=False):
-            pytest.skip("This test is only applicable on Linux.")
-
-    async def check_installed_command(self):
-        return ["xvfb-run", "Ultimaker--Cura", "--debug", "--version"]
-
-    check_installed_output = "cura version"
-
-    async def check_installed(self):
-        await super().check_installed()
-        await super().assert_desktop_file_exists(
-            "com.ultimaker.cura", name="UltiMaker Cura", executable="Ultimaker--Cura"
-        )
-
-    prerequisites = [
-        {
-            "system": "libgl1-mesa-glx",
-            "distribution": ["debian", "ubuntu"],
-        },
-        {
-            "system": "mesa-libGL",
-            "distribution": "fedora",
-        },
-        {
-            "system": "libegl1",
-            "distribution": ["debian", "ubuntu"],
-        },
-        {
-            "system": "mesa-libEGL",
-            "distribution": "fedora",
-        },
-        {
-            "system": "xvfb",
-            "distribution": ["debian", "ubuntu"],
-        },
-        {
-            "system": "xorg-x11-server-Xvfb",
-            "distribution": "fedora",
-        },
-    ]
-
-
 class TestGitHubCLI(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {"repo": "cli/cli", "binary": "gh", "strip": 1}

@@ -4,7 +4,6 @@ from typing import Iterable
 
 from pydantic import Field
 
-from ..configparser import DesktopEntry
 from ..extractor import get_extractor
 from ..tracker import Tracker
 from ..utils import allow_singular_none, async_cached
@@ -105,36 +104,6 @@ class ArchivePackage(ManualPackage, ABC):
                 f"Cannot find font '{name}' in {await self.package_directory()}."
             )
 
-    async def install_appimage(self, tracker: Tracker) -> None:
-        app_dir = await self.package_directory()
-        app_run = app_dir / "AppRun"
-        if not await self.driver.is_executable(app_run):
-            raise ValueError("AppImage does not have an executable named 'AppRun'.")
-
-        binary_name = self.pathname
-        binary_target = await self.local() / "bin" / binary_name
-        await self.install_binary_wrapper(app_run, binary_target)
-        tracker.track(binary_target, root=self.root)
-
-        desktop_files = await self.driver.find(app_dir, name="*.desktop", maxdepth=1)
-        if not desktop_files:
-            raise ValueError("AppImage does not have a .desktop file.")
-        if len(desktop_files) > 1:
-            raise ValueError(f"AppImage has multiple .desktop files: {desktop_files}")
-        desktop_file = desktop_files[0]
-
-        desktop_entry = DesktopEntry.from_string(
-            await self.driver.read_file(desktop_file)
-        )
-        [_, *args] = desktop_entry.exec.split(" ")
-        desktop_entry.exec = " ".join([binary_name, *args])
-
-        target_desktop_file = await self.application_path() / desktop_file.name
-        await self.driver.write_file(target_desktop_file, desktop_entry.to_string())
-        tracker.track(target_desktop_file, root=self.root)
-        if desktop_entry.icon:
-            await self.install_icon(desktop_entry.icon, tracker)
-
     async def install(self, *, tracker: Tracker):
         url = await self.archive_url()
         async with self.driver.tempfile() as archive_path:
@@ -154,8 +123,5 @@ class ArchivePackage(ManualPackage, ABC):
             tracker.track(package_directory, root=self.root)
 
             await self.extract(url, archive_path)
-
-        if url.endswith(".AppImage"):
-            await self.install_appimage(tracker)
 
         await super().install(tracker=tracker)
