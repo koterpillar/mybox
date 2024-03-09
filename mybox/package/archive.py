@@ -6,7 +6,7 @@ from pydantic import Field
 
 from ..extractor import get_extractor
 from ..tracker import Tracker
-from ..utils import allow_singular_none, async_cached
+from ..utils import allow_singular_none, async_cached, with_extensions
 from .manual import ManualPackage
 
 ICON_EXTENSIONS = ["svg", "png"]
@@ -84,18 +84,12 @@ class ArchivePackage(ManualPackage, ABC):
             target_desc="application",
         )
 
-    @staticmethod
-    def with_extensions(name: str, extensions: list[str]) -> list[str]:
-        if any(name.endswith(f".{ext}") for ext in extensions):
-            return [name]
-        return [f"{name}.{ext}" for ext in extensions]
-
     async def icon_paths(self, name: str) -> Iterable[Path]:
-        names = self.with_extensions(name, ICON_EXTENSIONS)
+        names = with_extensions(name, ICON_EXTENSIONS)
         return await self.driver.find(await self.package_directory(), name=names)
 
     async def font_path(self, name: str) -> Path:
-        names = self.with_extensions(name, FONT_EXTENSIONS)
+        names = with_extensions(name, FONT_EXTENSIONS)
         candidates = await self.driver.find(await self.package_directory(), name=names)
         if candidates:
             return candidates[0]
