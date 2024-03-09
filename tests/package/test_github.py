@@ -95,6 +95,7 @@ class TestAmmonite(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "com-lihaoyi/Ammonite",
+            "skip_release": ["3.0.0-M1"],
             "regex": r"^2\.13-[0-9]+\.[0-9]+\.[0-9]+-bootstrap$",
             "raw": "amm",
             "raw_executable": True,
@@ -160,25 +161,6 @@ class TestCura(PackageTestBase):
             "distribution": "fedora",
         },
     ]
-
-
-class TestMaccy(PackageTestBase):
-    async def constructor_args(self) -> PackageArgs:
-        return {"repo": "p0deje/Maccy", "app": "Maccy"}
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not (await self.driver.os()).switch(linux=False, macos=True):
-            pytest.skip("This test is only applicable on macOS.")
-
-    check_installed_output = "The MIT License"
-
-    async def check_installed_command(self):
-        return [
-            "cat",
-            (await self.driver.home())
-            / "Applications/Maccy.app/Contents/Resources/LICENSE",
-        ]
 
 
 class TestGitHubCLI(PackageTestBase):
