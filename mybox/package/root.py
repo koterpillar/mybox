@@ -20,10 +20,3 @@ class Root(Package, ABC):
             return Path("/usr/local")
         else:
             return await self.driver.local()
-
-    @async_cached
-    async def macos_applications(self) -> Path:
-        if self.root:
-            return Path("/Applications")
-        else:
-            return (await self.driver.home()) / "Applications"

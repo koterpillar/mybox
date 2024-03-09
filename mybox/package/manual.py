@@ -48,10 +48,6 @@ class ManualPackage(Root, ManualVersion, ABC):
         pass
 
     @abstractmethod
-    async def macos_app_path(self, name: str) -> Path:
-        pass
-
-    @abstractmethod
     async def icon_paths(self, name: str) -> Iterable[Path]:
         pass
 
@@ -107,10 +103,8 @@ class ManualPackage(Root, ManualVersion, ABC):
         await self.install_desktop_file(path, tracker)
 
     async def install_app_macos(self, name: str, tracker: Tracker) -> None:
-        path = await self.macos_app_path(name)
-        target = await self.macos_applications() / path.name
-        await self.driver.link(path, target)
-        tracker.track(target, root=self.root)
+        # Installing macOS apps manually is not implemented.
+        pass  # pragma: no cover
 
     @abstractmethod
     async def font_path(self, name: str) -> Path:

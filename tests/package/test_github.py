@@ -163,25 +163,6 @@ class TestCura(PackageTestBase):
     ]
 
 
-class TestMaccy(PackageTestBase):
-    async def constructor_args(self) -> PackageArgs:
-        return {"repo": "p0deje/Maccy", "app": "Maccy"}
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not (await self.driver.os()).switch(linux=False, macos=True):
-            pytest.skip("This test is only applicable on macOS.")
-
-    check_installed_output = "The MIT License"
-
-    async def check_installed_command(self):
-        return [
-            "cat",
-            (await self.driver.home())
-            / "Applications/Maccy.app/Contents/Resources/LICENSE",
-        ]
-
-
 class TestGitHubCLI(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {"repo": "cli/cli", "binary": "gh", "strip": 1}
