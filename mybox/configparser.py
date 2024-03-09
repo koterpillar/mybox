@@ -23,13 +23,5 @@ class ConfigParser(BaseConfigParser):
 
 class DesktopEntry(ConfigParser):
     @property
-    def exec(self) -> str:
-        return self["Desktop Entry"]["Exec"]
-
-    @exec.setter
-    def exec(self, value: str) -> None:
-        self["Desktop Entry"]["Exec"] = value
-
-    @property
     def icon(self) -> Optional[str]:
         return self["Desktop Entry"].get("Icon")

@@ -89,6 +89,12 @@ async def repo_version(repo: str) -> str:
     return (await run_output("git", "ls-remote", repo, "HEAD")).split()[0]
 
 
+def with_extensions(name: str, extensions: list[str]) -> list[str]:
+    if any(name.endswith(f".{ext}") for ext in extensions):
+        return [name]
+    return [f"{name}.{ext}" for ext in extensions]
+
+
 def raise_(exception: BaseException) -> Any:
     raise exception
 

@@ -1,6 +1,6 @@
 import pytest
 
-from mybox.utils import flatten, intercalate, run_ok
+from mybox.utils import flatten, intercalate, run_ok, with_extensions
 
 
 class TestRunOK:
@@ -33,3 +33,9 @@ def test_intercalate():
         3,
         13,
     ]
+
+
+def test_with_extensions():
+    extensions = ["com", "exe"]
+    assert with_extensions("foo", extensions) == ["foo.com", "foo.exe"]
+    assert with_extensions("foo.com", extensions) == ["foo.com"]

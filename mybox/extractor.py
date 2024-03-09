@@ -1,4 +1,3 @@
-import shlex
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
@@ -70,21 +69,6 @@ class Unzip(Extractor):
         await self.driver.run("unzip", "-o", "-qq", archive, "-d", target_directory)
 
 
-class AppImage(Extractor):
-    async def extract_exact(self, *, archive: Path, target_directory: Path) -> None:
-        async with self.driver.tempfile() as target:
-            await self.driver.copy(archive, target)
-            await self.driver.make_executable(target)
-
-            cmd = " && ".join(
-                [
-                    shlex.join(["cd", str(target_directory)]),
-                    shlex.join([str(target), "--appimage-extract"]),
-                ]
-            )
-            await self.driver.run("sh", "-c", cmd)
-
-
 def _guess_extractor(url: str, *, driver: Driver) -> Extractor:
     if url.endswith(".tar"):
         return Tar(driver=driver)
@@ -96,8 +80,6 @@ def _guess_extractor(url: str, *, driver: Driver) -> Extractor:
         return Tar(driver=driver, extra=["-J"])
     elif url.endswith(".zip"):
         return Unzip(driver=driver)
-    elif url.endswith(".AppImage"):
-        return AppImage(driver=driver)
     else:
         raise ValueError(f"Unknown archive format: {url}")
 
