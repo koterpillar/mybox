@@ -93,3 +93,13 @@ async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
         )
         for result in partial_results
     ]
+
+
+async def gather_(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
+    try:
+        return await gather(*tasks)
+    except PartialResults as exc:
+        for result in exc.results:
+            if isinstance(result, PartialException):
+                raise result.exception from None
+        raise

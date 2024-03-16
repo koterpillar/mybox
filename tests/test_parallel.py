@@ -8,6 +8,7 @@ from mybox.parallel import (
     PartialResult,
     PartialResults,
     gather,
+    gather_,
     parallel_map_pause,
     parallel_map_tqdm,
 )
@@ -33,8 +34,11 @@ def display_result(result: PartialResult[T]) -> str:
 
 class TestGather:
     @pytest.mark.trio
-    async def test_success(self):
-        results = await gather(call_alen("one"), call_alen("two"), call_alen("three"))
+    @pytest.mark.parametrize("gather_fn", [gather, gather_])
+    async def test_success(self, gather_fn):
+        results = await gather_fn(
+            call_alen("one"), call_alen("two"), call_alen("three")
+        )
         assert results == [3, 3, 5]
 
     @pytest.mark.trio
@@ -55,6 +59,18 @@ class TestGather:
             "exception: too long",
             "success: 5",
         ]
+
+    @pytest.mark.trio
+    async def test_single_failure(self):
+        with pytest.raises(ValueError) as excinfo:
+            await gather_(
+                call_alen("one"),
+                call_alen("eleven"),
+                call_alen("two"),
+                call_alen("twelve"),
+                call_alen("three"),
+            )
+        assert excinfo.value.args == ("too long",)
 
 
 class TestParallelMapTqdm:

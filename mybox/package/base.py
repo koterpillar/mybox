@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..driver import Driver
-from ..parallel import gather
+from ..parallel import gather_
 from ..state import DB
 from ..tracker import Tracker
 from ..utils import allow_singular, async_cached
@@ -55,7 +55,7 @@ class Package(BaseModel, ABC):
         pass
 
     async def is_installed(self) -> bool:
-        remote, local = await gather(self.remote_version, self.local_version)
+        remote, local = await gather_(self.remote_version, self.local_version)
         return remote == local
 
     @abstractmethod
