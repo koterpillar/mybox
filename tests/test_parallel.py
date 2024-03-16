@@ -1,42 +1,76 @@
+from functools import partial
+from typing import Awaitable, Callable
+
 import pytest
 
 from mybox.parallel import (
     PartialException,
     PartialResult,
     PartialResults,
+    gather,
     parallel_map_pause,
     parallel_map_tqdm,
 )
 from mybox.utils import T
 
 
-class TestParallelMapTqdm:
-    @staticmethod
-    async def alen(item: str) -> int:
-        length = len(item)
-        if length > 5:
-            raise ValueError("too long")
-        return length
+async def alen(item: str) -> int:
+    length = len(item)
+    if length > 5:
+        raise ValueError("too long")
+    return length
 
+
+def call_alen(item: str) -> Callable[[], Awaitable[int]]:
+    return partial(alen, item)
+
+
+def display_result(result: PartialResult[T]) -> str:
+    if isinstance(result, PartialException):
+        return f"exception: {result.exception}"
+    return f"success: {result.result}"
+
+
+class TestGather:
     @pytest.mark.trio
     async def test_success(self):
-        results = await parallel_map_tqdm(self.alen, ["one", "two", "three", "four"])
-        assert results == [3, 3, 5, 4]
+        results = await gather(call_alen("one"), call_alen("two"), call_alen("three"))
+        assert results == [3, 3, 5]
 
-    @staticmethod
-    def display_result(result: PartialResult[T]) -> str:
-        if isinstance(result, PartialException):
-            return f"exception: {result.exception}"
-        return f"success: {result.result}"
+    @pytest.mark.trio
+    async def test_failures(self):
+        with pytest.raises(PartialResults) as excinfo:
+            await gather(
+                call_alen("one"),
+                call_alen("eleven"),
+                call_alen("two"),
+                call_alen("twelve"),
+                call_alen("three"),
+            )
+
+        assert [display_result(result) for result in excinfo.value.results] == [
+            "success: 3",
+            "exception: too long",
+            "success: 3",
+            "exception: too long",
+            "success: 5",
+        ]
+
+
+class TestParallelMapTqdm:
+    @pytest.mark.trio
+    async def test_success(self):
+        results = await parallel_map_tqdm(alen, ["one", "two", "three", "four"])
+        assert results == [3, 3, 5, 4]
 
     @pytest.mark.trio
     async def test_exceptions(self):
         with pytest.raises(PartialResults) as excinfo:
             await parallel_map_tqdm(
-                self.alen, ["one", "two", "twelve", "three", "four", "eleven"]
+                alen, ["one", "two", "twelve", "three", "four", "eleven"]
             )
 
-        assert [self.display_result(result) for result in excinfo.value.results] == [
+        assert [display_result(result) for result in excinfo.value.results] == [
             "success: 3",
             "success: 3",
             "exception: too long",

@@ -22,9 +22,9 @@ class PartialException:
 PartialResult = PartialException | PartialSuccess[T]
 
 
+@dataclass
 class PartialResults(Exception, Generic[T]):
-    def __init__(self, results: list[PartialResult[T]]):
-        self.results = results
+    results: list[PartialResult[T]]
 
 
 TERMINAL_LOCK = trio.Lock()
@@ -47,7 +47,7 @@ async def parallel_map_tqdm(
                     progress.update(1)
                 return result
 
-            return await gather_(*(partial(action_and_update, item) for item in items))
+            return await gather(*(partial(action_and_update, item) for item in items))
         finally:
             async with TERMINAL_LOCK:
                 CURRENT_TQDM = None
@@ -66,7 +66,7 @@ async def parallel_map_pause() -> AsyncIterator[None]:
                 progress.refresh()
 
 
-async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[PartialResult[T]]:
+async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
     async def collect(
         index: int,
         task: Callable[[], Awaitable[T]],
@@ -82,11 +82,8 @@ async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[PartialResult[T]]:
     async with trio.open_nursery() as nursery:
         for index, task in enumerate(tasks):
             nursery.start_soon(collect, index, task, results)
-    return [results[i] for i in range(len(tasks))]
 
-
-async def gather_(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
-    partial_results = await gather(*tasks)
+    partial_results = [results[i] for i in range(len(tasks))]
 
     return [
         (
