@@ -102,4 +102,5 @@ async def gather_(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
         for result in exc.results:
             if isinstance(result, PartialException):
                 raise result.exception from None
-        raise
+        # Must have at least one exception inside PartialResults
+        raise AssertionError("PartialResults is empty") from None  # pragma: no cover
