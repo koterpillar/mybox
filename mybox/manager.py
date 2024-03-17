@@ -78,13 +78,14 @@ class Manager:
     async def install_package(
         self, tracker: ManagerTracker, package: Package
     ) -> Optional[Package]:
-        if not await package.applicable():
-            return None
-        if await package.is_installed():
-            tracker.skip(package.name)
-            return None
-
         try:
+            if not await package.applicable():
+                return None
+
+            if await package.is_installed():
+                tracker.skip(package.name)
+                return None
+
             await package.install(tracker=tracker.track(package.name))
         except:
             tracker.skip(package.name)

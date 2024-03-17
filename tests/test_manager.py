@@ -61,8 +61,11 @@ class DummyPackage(Root, ManualVersion):
 
     version: str = "1"
     error: Optional[Exception] = None
+    version_error: Optional[Exception] = None
 
     async def get_remote_version(self) -> str:
+        if self.version_error is not None:
+            raise self.version_error
         return self.version
 
     async def install(self, *, tracker: Tracker) -> None:
@@ -106,6 +109,7 @@ class TestManager:
         root: bool = False,
         version: str = "1",
         error: Optional[Exception] = None,
+        version_error: Optional[Exception] = None,
     ) -> DummyPackage:
         return DummyPackage(
             db=self.db,
@@ -115,6 +119,7 @@ class TestManager:
             root=root,
             version=version,
             error=error,
+            version_error=version_error,
         )
 
     def installed_files(self) -> set[InstalledFile]:
@@ -170,6 +175,21 @@ class TestManager:
         await self.install_assert(self.make_package("foo"))
         result = await self.install(
             self.make_package("foo", version="2", error=Exception("foo error")),
+            self.make_package("bar", error=Exception("bar error")),
+        )
+
+        assert self.package_names(result) == []
+        assert {package.name: str(error) for package, error in result.failed} == {
+            "foo": "foo error",
+            "bar": "bar error",
+        }
+        assert self.versions() == {"foo": "1"}
+
+    @pytest.mark.trio
+    async def test_result_versions_for_version_check_failed_packages(self):
+        await self.install_assert(self.make_package("foo"))
+        result = await self.install(
+            self.make_package("foo", version="2", version_error=Exception("foo error")),
             self.make_package("bar", error=Exception("bar error")),
         )
 
@@ -257,6 +277,28 @@ class TestManager:
         await self.install(
             self.make_package(
                 "foo", files=["/foo"], error=Exception("foo error"), version="2"
+            ),
+        )
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
+
+        await self.install_assert(self.make_package("foo", files=["/foo"], version="3"))
+
+        assert self.installed_files() == {
+            InstalledFile(path="/foo", package="foo", root=False)
+        }
+        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
+
+    @pytest.mark.trio
+    async def test_keeps_files_for_version_errored_packages(self):
+        await self.install_assert(self.make_package("foo", files=["/foo"]))
+
+        await self.install(
+            self.make_package(
+                "foo", files=["/foo"], version_error=Exception("foo error"), version="2"
             ),
         )
 
