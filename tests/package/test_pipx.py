@@ -57,8 +57,7 @@ class TestPipx(PackageTestBase):
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
             await self.check_driver.home() / ".shiv",
-            await self.check_driver.local() / "share" / "pipx" / "shared",
-            await self.check_driver.local() / "share" / "pipx" / "venvs",
+            await self.check_driver.local() / "share" / "pipx",
             await self.check_driver.local() / "state" / "pipx" / "log",
         }
 
