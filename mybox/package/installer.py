@@ -82,7 +82,8 @@ class PackageCacheInstaller(Installer, metaclass=ABCMeta):
         await super().install(package)
         await self.invalidate_cache(package)
 
-    async def upgrade(self, package: str) -> None:
+    async def upgrade(self, package: str) -> None:  # pragma: no cover
+        # Can't install an old version of a package in tests
         await super().upgrade(package)
         await self.invalidate_cache(package)
 
@@ -92,7 +93,8 @@ class Brew(PackageCacheInstaller):
         await self.driver.run(await self.brew(), "install", package)
         await super().install(package)
 
-    async def upgrade(self, package: str) -> None:
+    async def upgrade(self, package: str) -> None:  # pragma: no cover
+        # Can't install an old version of a package in tests
         await self.driver.run(await self.brew(), "upgrade", package)
         await super().upgrade(package)
 
