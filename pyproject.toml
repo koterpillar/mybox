@@ -8,26 +8,26 @@ authors = ["Alexey Kotlyarov <a@koterpillar.com>"]
 license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
-pydantic = "^2.0.0"
-python = "^3.11"
+pydantic = "^2.7.1"
+python = ">=3.11,<3.13"
 PyYAML = "^6.0.1"
 requests = "^2.31.0"
 trio = "^0.25.0"
-tqdm = "^4.66.1"
+tqdm = "^4.66.4"
 typed-argparse = "^0.3.1"
-jsonpath-ng = "^1.6.0"
-beautifulsoup4 = "^4.12.2"
+jsonpath-ng = "^1.6.1"
+beautifulsoup4 = "^4.12.3"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.0.0"
-coverage = {extras = ["toml"], version = "^6.5.0"}
-coveralls = "^3.3.1"
+black = "^24.4.2"
+coverage = {extras = ["toml"], version = "^7.4.4"}
+coveralls = "^4.0.0"
 fawltydeps = "^0.15.0"
-isort = "^5.12.0"
-mypy = "^1.9.0"
-pylint = "^3.0.2"
-pylint-pydantic = "^0.3.0"
-pytest = "^8.0.0"
+isort = "^5.13.2"
+mypy = "^1.10.0"
+pylint = "^3.1.0"
+pylint-pydantic = "^0.3.2"
+pytest = "^8.2.0"
 pytest-trio = "^0.8.0"
 trio-typing = {extras = ["mypy"], version = "^0.10.0"}
 types-beautifulsoup4 = "^4.12.0.7"
