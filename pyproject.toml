@@ -21,7 +21,6 @@ beautifulsoup4 = "^4.12.3"
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 coverage = {extras = ["toml"], version = "^7.4.4"}
-coveralls = "^4.0.0"
 fawltydeps = "^0.15.0"
 isort = "^5.13.2"
 mypy = "^1.10.0"
@@ -78,7 +77,6 @@ ignore_undeclared = ["_typeshed"]
 ignore_unused = [
     "black",
     "coverage",
-    "coveralls",
     "fawltydeps",
     "isort",
     "mypy",
