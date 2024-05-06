@@ -381,25 +381,6 @@ files = [
 toml = ["tomli"]
 
 [[package]]
-name = "coveralls"
-version = "4.0.0"
-description = "Show coverage stats online via coveralls.io"
-optional = false
-python-versions = "<3.13,>=3.8"
-files = [
-    {file = "coveralls-4.0.0-py3-none-any.whl", hash = "sha256:401715d244a27d5da03eb1ac614aa585cc7e4dd5b0d4c035113b6349da4e6161"},
-    {file = "coveralls-4.0.0.tar.gz", hash = "sha256:9486f353176d309066053d38edbade3aad6346c5eb8a5edde7090d3116219414"},
-]
-
-[package.dependencies]
-coverage = {version = ">=5.0,<6.0.dev0 || >6.1,<6.1.1 || >6.1.1,<7.5", extras = ["toml"]}
-docopt = ">=0.6.1,<0.7.0"
-requests = ">=1.0.0,<3.0.0"
-
-[package.extras]
-yaml = ["pyyaml (>=3.10,<7.0)"]
-
-[[package]]
 name = "dill"
 version = "0.3.8"
 description = "serialize all of Python"
@@ -413,16 +394,6 @@ files = [
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
 profile = ["gprof2dot (>=2022.7.29)"]
-
-[[package]]
-name = "docopt"
-version = "0.6.2"
-description = "Pythonic argument parser, that will make you smile"
-optional = false
-python-versions = "*"
-files = [
-    {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
-]
 
 [[package]]
 name = "fawltydeps"
@@ -1226,5 +1197,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.11,<3.13"
-content-hash = "859a8d687c1a63cb5d3dd1bf9d3875066cf21d4d7db5fa30bc1e194b508ea7fa"
+python-versions = "^3.11"
+content-hash = "5c42a4d5ff1af4a25fb9c1500c5e44f7f865e7735244501adbe0aac714006df4"
