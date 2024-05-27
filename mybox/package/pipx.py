@@ -79,8 +79,13 @@ class PipxPackage(ManualVersion):
         return version[1]
 
     async def install(self, *, tracker: Tracker) -> None:
-        cmd = "install" if await self.local_version() is None else "upgrade"
-        await self.driver.run("pipx", cmd, self.package)
+        if self.is_repo:
+            # https://github.com/pypa/pipx/issues/892
+            cmd = ("install", "--force")
+        else:
+            cmd = ("upgrade", "--install")
+
+        await self.driver.run("pipx", *cmd, self.package)
 
         tracker.track(await self.driver.local() / "pipx" / "venvs" / self.package)
         metadata = await self.get_metadata()
