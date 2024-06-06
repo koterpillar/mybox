@@ -24,7 +24,7 @@ coverage = {extras = ["toml"], version = "^7.5.3"}
 fawltydeps = "^0.15.0"
 isort = "^5.13.2"
 mypy = "^1.10.0"
-pylint = "^3.2.2"
+pylint = "^3.2.3"
 pylint-pydantic = "^0.3.2"
 pytest = "^8.2.2"
 pytest-trio = "^0.8.0"
