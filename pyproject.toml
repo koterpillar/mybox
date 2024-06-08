@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
 pydantic = "^2.7.3"
-python = "^3.11"
+python = "^3.12.4"
 PyYAML = "^6.0.1"
 requests = "^2.32.3"
 trio = "^0.25.1"
