@@ -397,13 +397,13 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "fawltydeps"
-version = "0.15.0"
+version = "0.16.0"
 description = "Find undeclared and unused 3rd-party dependencies in your Python project."
 optional = false
 python-versions = ">=3.7.2"
 files = [
-    {file = "fawltydeps-0.15.0-py3-none-any.whl", hash = "sha256:33cbbe44aa349b72d21fde1cc139941f8e0c2ceee0f3e1ee64189a107a3628a8"},
-    {file = "fawltydeps-0.15.0.tar.gz", hash = "sha256:ea46e7b4f5d79cdb9044e2b0abc85206b264d51d9ad883c02496f232ae592e52"},
+    {file = "fawltydeps-0.16.0-py3-none-any.whl", hash = "sha256:51448d302a6800ad1446347f0bb093c4b8816c48431fbc50494d4ce28007ed5a"},
+    {file = "fawltydeps-0.16.0.tar.gz", hash = "sha256:e11c7e108a6be08521c3699da26547afe450e5f191acc9fa1da79c4017208bf0"},
 ]
 
 [package.dependencies]
@@ -1198,4 +1198,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "092dcbe9bf864c01cfb21f9cd47c1e0ba18c68b22eec2b0f3c701d7a85b08153"
+content-hash = "a014f220a90297ab5f33cdcaf48ed1e16b1056b0fcc375641584075842ebbdfd"
