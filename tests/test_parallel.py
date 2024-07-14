@@ -1,6 +1,7 @@
 from functools import partial
 
 import pytest
+import trio
 
 from mybox.parallel import (
     PartialException,
@@ -21,6 +22,15 @@ async def alen(item: str) -> int:
     return length
 
 
+async def sleep_and_error(duration: float) -> int:
+    await trio.sleep(duration)
+    # The sleep is expected to be interrupted by keyboard_interrupt
+    raise ValueError("slept for the whole duration")  # pragma: no cover
+
+
+async def keyboard_interrupt(duration: float) -> int:
+    await trio.sleep(duration)
+    raise KeyboardInterrupt("interrupted")
 
 
 def display_result(result: PartialResult[T]) -> str:
@@ -54,6 +64,25 @@ class TestGather:
             "exception: too long",
             "success: 3",
             "exception: too long",
+            "success: 5",
+        ]
+
+    @pytest.mark.trio
+    async def test_keyboard_interrupt(self):
+        with pytest.raises(PartialResults) as excinfo:
+            await gather(
+                partial(alen, "one"),
+                partial(keyboard_interrupt, 0.2),
+                partial(alen, "two"),
+                partial(sleep_and_error, 2),
+                partial(alen, "three"),
+            )
+
+        assert [display_result(result) for result in excinfo.value.results] == [
+            "success: 3",
+            "exception: interrupted",
+            "success: 3",
+            "exception: Cancelled",
             "success: 5",
         ]
 
