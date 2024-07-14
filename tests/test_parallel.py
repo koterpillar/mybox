@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Awaitable, Callable
 
 import pytest
 
@@ -22,8 +21,6 @@ async def alen(item: str) -> int:
     return length
 
 
-def call_alen(item: str) -> Callable[[], Awaitable[int]]:
-    return partial(alen, item)
 
 
 def display_result(result: PartialResult[T]) -> str:
@@ -37,7 +34,7 @@ class TestGather:
     @pytest.mark.parametrize("gather_fn", [gather, gather_])
     async def test_success(self, gather_fn):
         results = await gather_fn(
-            call_alen("one"), call_alen("two"), call_alen("three")
+            partial(alen, "one"), partial(alen, "two"), partial(alen, "three")
         )
         assert results == [3, 3, 5]
 
@@ -45,11 +42,11 @@ class TestGather:
     async def test_failures(self):
         with pytest.raises(PartialResults) as excinfo:
             await gather(
-                call_alen("one"),
-                call_alen("eleven"),
-                call_alen("two"),
-                call_alen("twelve"),
-                call_alen("three"),
+                partial(alen, "one"),
+                partial(alen, "eleven"),
+                partial(alen, "two"),
+                partial(alen, "twelve"),
+                partial(alen, "three"),
             )
 
         assert [display_result(result) for result in excinfo.value.results] == [
@@ -64,11 +61,11 @@ class TestGather:
     async def test_single_failure(self):
         with pytest.raises(ValueError) as excinfo:
             await gather_(
-                call_alen("one"),
-                call_alen("eleven"),
-                call_alen("two"),
-                call_alen("twelve"),
-                call_alen("three"),
+                partial(alen, "one"),
+                partial(alen, "eleven"),
+                partial(alen, "two"),
+                partial(alen, "twelve"),
+                partial(alen, "three"),
             )
         assert excinfo.value.args == ("too long",)
 
