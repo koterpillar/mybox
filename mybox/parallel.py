@@ -67,21 +67,21 @@ async def parallel_map_pause() -> AsyncIterator[None]:
 
 
 async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:
-    async def collect(
-        index: int,
-        task: Callable[[], Awaitable[T]],
-        results: dict[int, PartialResult[T]],
-    ):
-        try:
-            results[index] = PartialSuccess(result=await task())
-        except BaseException as e:  # pylint:disable=broad-exception-caught
-            results[index] = PartialException(exception=e)
-
     results: dict[int, PartialResult[T]] = {}
 
     async with trio.open_nursery() as nursery:
+
+        async def collect(index: int, task: Callable[[], Awaitable[T]]):
+            try:
+                results[index] = PartialSuccess(result=await task())
+            except Exception as e:  # pylint:disable=broad-exception-caught
+                results[index] = PartialException(exception=e)
+            except BaseException as e:  # pylint:disable=broad-exception-caught
+                results[index] = PartialException(exception=e)
+                nursery.cancel_scope.cancel()
+
         for index, task in enumerate(tasks):
-            nursery.start_soon(collect, index, task, results)
+            nursery.start_soon(collect, index, task)
 
     partial_results = [results[i] for i in range(len(tasks))]
 
