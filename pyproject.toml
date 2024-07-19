@@ -23,7 +23,7 @@ black = "^24.4.2"
 coverage = {extras = ["toml"], version = "^7.6.0"}
 fawltydeps = "^0.16.0"
 isort = "^5.13.2"
-mypy = "^1.10.1"
+mypy = "^1.11.0"
 pylint = "^3.2.5"
 pylint-pydantic = "^0.3.2"
 pytest = "^8.2.2"
