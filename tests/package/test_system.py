@@ -35,7 +35,7 @@ class TestRPMFusion(PackageTestBase):
             linux=lambda os: (
                 None
                 if os.distribution == "fedora"
-                else pytest.skip("YUM repo test is only applicable  on Fedora")
+                else pytest.skip("YUM repo test is only applicable on Fedora")
             ),
             macos=lambda: pytest.skip("YUM repo test is only applicable on Linux"),
         )
