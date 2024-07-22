@@ -5,7 +5,7 @@ from typing import Optional
 
 import trio
 
-from ..driver import Driver
+from ..driver import Driver, RunResultOutput
 from ..utils import async_cached, async_cached_lock
 
 
@@ -114,18 +114,31 @@ class Brew(PackageCacheInstaller):
     async def brew_update(self) -> None:
         await self.driver.run(await self.brew(), "update")
 
+    async def brew_info(self, *args: str) -> RunResultOutput:
+        return await self.driver.run_output_(
+            await self.brew(), "info", "--json=v2", *args
+        )
+
     async def get_package_info(
         self, package: Optional[str]
     ) -> dict[str, PackageVersionInfo]:
         await self.brew_update()
 
-        args = [await self.brew(), "info", "--json=v2"]
-        if package:
-            args.append(package)
+        brew_result: RunResultOutput
+        if not package:
+            brew_result = await self.brew_info("--installed")
+        elif "/" not in package:
+            # When a bare package name is given (without homebrew/, etc. prefix),
+            # try to look up the cask first.
+            brew_result = await self.brew_info(f"homebrew/cask/{package}")
+            if not brew_result.ok:
+                brew_result = await self.brew_info(package)
         else:
-            args.append("--installed")
+            brew_result = await self.brew_info(package)
 
-        info = json.loads(await self.driver.run_output(*args))
+        if not brew_result.ok:
+            raise ValueError(f"Cannot get package info for {package}.")
+        info = json.loads(brew_result.output)
 
         result = {}
 
@@ -134,9 +147,15 @@ class Brew(PackageCacheInstaller):
             result[name] = PackageVersionInfo(
                 installed=cask["installed"], latest=cask["version"]
             )
+            # Do not require prefixes for casks from homebrew/cask
+            if cask["tap"] == "homebrew/cask":
+                result[cask["token"]] = result[name]
 
         for formula in info["formulae"]:
             name = formula["name"]
+            if name in result:
+                # Skip the formula if there's a cask with the same name
+                continue
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
