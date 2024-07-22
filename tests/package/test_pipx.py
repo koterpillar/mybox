@@ -6,7 +6,7 @@ from mybox.driver import LocalDriver
 from mybox.package import PipxPackage
 from mybox.state import DB
 
-from .base import DOCKER, PackageArgs, PackageTestBase
+from .base import PackageArgs, PackageTestBase
 
 
 @pytest.mark.trio
@@ -48,11 +48,6 @@ class TestPipx(PackageTestBase):
     check_installed_output = (
         "Type 'django-admin help <subcommand>' for help on a specific subcommand."
     )
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not DOCKER:
-            pytest.skip("Cannot test pip packages without Docker.")
 
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
