@@ -32,7 +32,9 @@ class NpmPackage(Root, ManualVersion):
         npx_paths = await self.driver.run_output(*args, "echo $PATH")
         npx_path = next((path for path in npx_paths.split(":") if "_npx" in path), None)
         if not npx_path:
-            raise Exception(f"Could not find npx path in {npx_paths}.")
+            raise Exception(
+                f"Could not find npx path in {npx_paths}."
+            )  # pragma: no cover
 
         for name in self.binaries:
             target = await self.local() / "bin" / name

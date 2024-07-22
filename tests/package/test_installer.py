@@ -62,6 +62,11 @@ class TestDNF:
     async def test_remote_version(self, dnf: DNF):
         assert "8.10" <= await dnf.latest_version("ghc") <= "99"
 
+    @pytest.mark.trio
+    async def test_not_existing_package(self, dnf: DNF):
+        with pytest.raises(ValueError, match="zzzzzzzz"):
+            await dnf.latest_version("zzzzzzzz")
+
 
 class TestApt:
     @pytest.fixture

@@ -137,7 +137,7 @@ class Brew(PackageCacheInstaller):
             brew_result = await self.brew_info(package)
 
         if not brew_result.ok:
-            raise ValueError(f"Cannot get package info for {package}.")
+            return {}
         info = json.loads(brew_result.output)
 
         result = {}
@@ -154,8 +154,9 @@ class Brew(PackageCacheInstaller):
         for formula in info["formulae"]:
             name = formula["name"]
             if name in result:
-                # Skip the formula if there's a cask with the same name
-                continue
+                # Prefer a cask over a formula with the same name (although
+                # unlikely both are installed)
+                continue  # pragma: no cover
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
@@ -198,7 +199,9 @@ class DNF(PackageCacheInstaller):
             # because of virtual packages and --whatprovides option.
             # If there's no package with exact name, require a single match.
             if len(versions) > 1:
-                raise ValueError(f"Multiple versions for {package}: {versions}.")
+                raise ValueError(
+                    f"Multiple versions for {package}: {versions}."
+                )  # pragma: no cover
             if len(versions) == 0:
                 raise ValueError(f"No versions for {package}.")
             (version,) = versions.values()  # pylint:disable=unbalanced-dict-unpacking
