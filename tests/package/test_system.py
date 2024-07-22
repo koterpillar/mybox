@@ -15,6 +15,25 @@ class TestRipGrep(PackageTestBase):
     check_installed_output = "ripgrep"
 
 
+class TestCask(PackageTestBase):
+    affects_system = True
+
+    async def constructor_args(self) -> PackageArgs:
+        return {"system": "alacritty"}
+
+    async def check_installed_command(self):
+        return ["alacritty", "--version"]
+
+    check_installed_output = "alacritty 0"
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        (await self.driver.os()).switch_(
+            linux=lambda _: pytest.skip("Cask test is only applicable on macOS"),
+            macos=lambda: None,
+        )
+
+
 class TestRPMFusion(PackageTestBase):
     affects_system = True
 

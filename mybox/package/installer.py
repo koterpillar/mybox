@@ -1,11 +1,11 @@
 import json
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, cast
+from typing import Optional
 
 import trio
 
-from ..driver import Driver
+from ..driver import Driver, RunResultOutput
 from ..utils import async_cached, async_cached_lock
 
 
@@ -114,18 +114,31 @@ class Brew(PackageCacheInstaller):
     async def brew_update(self) -> None:
         await self.driver.run(await self.brew(), "update")
 
+    async def brew_info(self, *args: str) -> RunResultOutput:
+        return await self.driver.run_output_(
+            await self.brew(), "info", "--json=v2", *args
+        )
+
     async def get_package_info(
         self, package: Optional[str]
     ) -> dict[str, PackageVersionInfo]:
         await self.brew_update()
 
-        args = [await self.brew(), "info", "--json=v2"]
-        if package:
-            args.append(package)
+        brew_result: RunResultOutput
+        if not package:
+            brew_result = await self.brew_info("--installed")
+        elif "/" not in package:
+            # When a bare package name is given (without homebrew/, etc. prefix),
+            # try to look up the cask first.
+            brew_result = await self.brew_info(f"homebrew/cask/{package}")
+            if not brew_result.ok:
+                brew_result = await self.brew_info(package)
         else:
-            args.append("--installed")
+            brew_result = await self.brew_info(package)
 
-        info = json.loads(await self.driver.run_output(*args))
+        if not brew_result.ok:
+            return {}
+        info = json.loads(brew_result.output)
 
         result = {}
 
@@ -134,9 +147,16 @@ class Brew(PackageCacheInstaller):
             result[name] = PackageVersionInfo(
                 installed=cask["installed"], latest=cask["version"]
             )
+            # Do not require prefixes for casks from homebrew/cask
+            if cask["tap"] == "homebrew/cask":
+                result[cask["token"]] = result[name]
 
         for formula in info["formulae"]:
             name = formula["name"]
+            if name in result:
+                # Prefer a cask over a formula with the same name (although
+                # unlikely both are installed)
+                continue  # pragma: no cover
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
@@ -179,7 +199,9 @@ class DNF(PackageCacheInstaller):
             # because of virtual packages and --whatprovides option.
             # If there's no package with exact name, require a single match.
             if len(versions) > 1:
-                raise ValueError(f"Multiple versions for {package}: {versions}.")
+                raise ValueError(
+                    f"Multiple versions for {package}: {versions}."
+                )  # pragma: no cover
             if len(versions) == 0:
                 raise ValueError(f"No versions for {package}.")
             (version,) = versions.values()  # pylint:disable=unbalanced-dict-unpacking
@@ -206,13 +228,10 @@ class DNF(PackageCacheInstaller):
         else:
             args += ["--all"]
 
-        check = await self.driver.run_(
-            *args, check=False, silent=True, capture_output=True
-        )
-        if not check.ok:
+        result = await self.driver.run_output_(*args)
+        if not result.ok:
             return {}
-        output = cast(str, check.output)
-        return self.parse_versions(output, package)
+        return self.parse_versions(result.output, package)
 
     async def dnf_repoquery(self, package: Optional[str]) -> dict[str, str]:
         """
@@ -266,36 +285,25 @@ class Apt(Installer):
         await self.install(package)
 
     async def latest_version(self, package: str) -> str:
-        check = await self.driver.run_(
+        result = await self.driver.run_output_(
             "apt-cache",
             "show",
             "--quiet",
             "--no-all-versions",
             package,
-            check=False,
-            silent=True,
-            capture_output=True,
         )
-        if not check.ok:
+        if not result.ok:
             raise ValueError(f"Cannot determine version for: {package}.")
-        output = cast(str, check.output)
-        for line in output.splitlines():
+        for line in result.output.splitlines():
             line = line.strip()
             if line.startswith("Version:"):
                 return line.split(": ", 1)[-1]
-        raise Exception(f"Cannot parse apt output: {output}")  # pragma: no cover
+        raise Exception(f"Cannot parse apt output: {result.output}")  # pragma: no cover
 
     async def installed_version(self, package: str) -> Optional[str]:
         return (
-            await self.driver.run_(
-                "dpkg-query",
-                "--showformat",
-                "${Version}",
-                "--show",
-                package,
-                check=False,
-                silent=True,
-                capture_output=True,
+            await self.driver.run_output_(
+                "dpkg-query", "--showformat", "${Version}", "--show", package
             )
         ).output
 

@@ -1,5 +1,4 @@
 import shlex
-from typing import cast
 
 from pydantic import Field
 
@@ -19,19 +18,10 @@ class NpmPackage(Root, ManualVersion):
         return self.package
 
     async def get_remote_version(self) -> str:
-        check = await self.driver.run_(
-            "npm",
-            "view",
-            self.package,
-            "version",
-            check=False,
-            silent=True,
-            capture_output=True,
-        )
-        if not check.ok:
+        result = await self.driver.run_output_("npm", "view", self.package, "version")
+        if not result.ok:
             raise Exception(f"Cannot find latest version of package '{self.package}'.")
-        output = cast(str, check.output)
-        version = output.strip()
+        version = result.output.strip()
         return version
 
     async def install(self, *, tracker: Tracker) -> None:
@@ -42,7 +32,9 @@ class NpmPackage(Root, ManualVersion):
         npx_paths = await self.driver.run_output(*args, "echo $PATH")
         npx_path = next((path for path in npx_paths.split(":") if "_npx" in path), None)
         if not npx_path:
-            raise Exception(f"Could not find npx path in {npx_paths}.")
+            raise Exception(
+                f"Could not find npx path in {npx_paths}."
+            )  # pragma: no cover
 
         for name in self.binaries:
             target = await self.local() / "bin" / name

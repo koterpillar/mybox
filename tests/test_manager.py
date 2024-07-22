@@ -5,7 +5,7 @@ import pytest
 import yaml
 from pydantic import Field
 
-from mybox.driver import Driver, RunResult
+from mybox.driver import Driver, RunResult, RunResultOutput
 from mybox.manager import InstallResult, Manager
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
@@ -52,7 +52,7 @@ class DummyDriver(Driver):
 
         self.commands.append(args_)
 
-        return RunResult(ok=True, output=output)
+        return RunResultOutput(ok=True, output=output)
 
 
 class DummyPackage(Root, ManualVersion):

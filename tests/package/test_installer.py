@@ -20,7 +20,12 @@ class TestBrew:
 
     @pytest.mark.trio
     async def test_cask_version(self, brew: Brew):
-        assert "4.12" <= await brew.latest_version("homebrew/cask/docker") <= "99"
+        assert "0.13.2" <= await brew.latest_version("alacritty") <= "99"
+
+    @pytest.mark.trio
+    async def test_cask_version_preferred_over_formula(self, brew: Brew):
+        # Formula version is 27.x, cask follows Docker Desktop version
+        assert "4." <= await brew.latest_version("docker") <= "9."
 
     @pytest.mark.trio
     async def test_not_existing_formula(self, brew: Brew):
@@ -56,6 +61,11 @@ class TestDNF:
     @pytest.mark.trio
     async def test_remote_version(self, dnf: DNF):
         assert "8.10" <= await dnf.latest_version("ghc") <= "99"
+
+    @pytest.mark.trio
+    async def test_not_existing_package(self, dnf: DNF):
+        with pytest.raises(ValueError, match="zzzzzzzz"):
+            await dnf.latest_version("zzzzzzzz")
 
 
 class TestApt:
