@@ -1,7 +1,7 @@
 import json
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, cast
+from typing import Optional
 
 import trio
 
@@ -206,13 +206,10 @@ class DNF(PackageCacheInstaller):
         else:
             args += ["--all"]
 
-        check = await self.driver.run_(
-            *args, check=False, silent=True, capture_output=True
-        )
-        if not check.ok:
+        result = await self.driver.run_output_(*args)
+        if not result.ok:
             return {}
-        output = cast(str, check.output)
-        return self.parse_versions(output, package)
+        return self.parse_versions(result.output, package)
 
     async def dnf_repoquery(self, package: Optional[str]) -> dict[str, str]:
         """
@@ -266,36 +263,25 @@ class Apt(Installer):
         await self.install(package)
 
     async def latest_version(self, package: str) -> str:
-        check = await self.driver.run_(
+        result = await self.driver.run_output_(
             "apt-cache",
             "show",
             "--quiet",
             "--no-all-versions",
             package,
-            check=False,
-            silent=True,
-            capture_output=True,
         )
-        if not check.ok:
+        if not result.ok:
             raise ValueError(f"Cannot determine version for: {package}.")
-        output = cast(str, check.output)
-        for line in output.splitlines():
+        for line in result.output.splitlines():
             line = line.strip()
             if line.startswith("Version:"):
                 return line.split(": ", 1)[-1]
-        raise Exception(f"Cannot parse apt output: {output}")  # pragma: no cover
+        raise Exception(f"Cannot parse apt output: {result.output}")  # pragma: no cover
 
     async def installed_version(self, package: str) -> Optional[str]:
         return (
-            await self.driver.run_(
-                "dpkg-query",
-                "--showformat",
-                "${Version}",
-                "--show",
-                package,
-                check=False,
-                silent=True,
-                capture_output=True,
+            await self.driver.run_output_(
+                "dpkg-query", "--showformat", "${Version}", "--show", package
             )
         ).output
 

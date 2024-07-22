@@ -62,7 +62,12 @@ Architecture = Literal["x86_64", "aarch64"]
 @dataclass
 class RunResult:
     ok: bool
-    output: Optional[str]
+
+
+@dataclass
+class RunResultOutput(RunResult):
+    ok: bool
+    output: str
 
 
 class Driver(metaclass=ABCMeta):
@@ -106,7 +111,11 @@ class Driver(metaclass=ABCMeta):
 
     async def run_output(self, *args: RunArg, silent: bool = False) -> str:
         result = await self.run_(*args, capture_output=True, silent=silent)
-        return cast(str, result.output)
+        return cast(RunResultOutput, result).output
+
+    async def run_output_(self, *args: RunArg) -> RunResultOutput:
+        result = await self.run_(*args, capture_output=True, check=False, silent=True)
+        return cast(RunResultOutput, result)
 
     async def executable_exists(self, executable: str) -> bool:
         return await self.run_ok("sh", "-c", f"command -v {executable}")
@@ -286,9 +295,9 @@ class SubprocessDriver(Driver, metaclass=ABCMeta):
         ok = result.returncode == 0
         if capture_output:
             output = result.stdout.decode().strip()
+            return RunResultOutput(ok=ok, output=output)
         else:
-            output = None
-        return RunResult(ok=ok, output=output)
+            return RunResult(ok=ok)
 
     def run_args(self) -> dict[str, Any]:
         return {}

@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from pydantic import Field, field_validator
 
@@ -59,23 +59,16 @@ class PipxPackage(ManualVersion):
         if self.is_repo:
             return await repo_version(self.package)
 
-        check = await self.driver.run_(
-            "python3",
-            "-m",
-            "pip",
-            "index",
-            "versions",
-            self.package,
-            check=False,
-            silent=True,
-            capture_output=True,
+        result = await self.driver.run_output_(
+            "python3", "-m", "pip", "index", "versions", self.package
         )
-        if not check.ok:
+        if not result.ok:
             raise Exception(f"Cannot find latest version of package '{self.package}'.")
-        output = cast(str, check.output)
-        version = re.search(r"\(([^)]+)\)", output)
+        version = re.search(r"\(([^)]+)\)", result.output)
         if not version:
-            raise Exception(f"Cannot parse pip output: {output}")  # pragma: no cover
+            raise Exception(
+                f"Cannot parse pip output: {result.output}"
+            )  # pragma: no cover
         return version[1]
 
     async def install(self, *, tracker: Tracker) -> None:
