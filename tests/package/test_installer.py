@@ -16,7 +16,7 @@ class TestBrew:
 
     @pytest.mark.trio
     async def test_formula_version(self, brew: Brew):
-        assert "8.10" <= await brew.latest_version("ghc") <= "99"
+        assert "formula_9.8" <= await brew.latest_version("ghc") <= "formula_99"
 
     @pytest.mark.trio
     async def test_cask_version(self, brew: Brew):

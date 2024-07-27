@@ -1,7 +1,7 @@
 import json
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Generic, Optional, Protocol, TypeVar
 
 import trio
 
@@ -31,14 +31,24 @@ class Installer(metaclass=ABCMeta):
         pass
 
 
+class PVP(Protocol):
+    @property
+    def installed(self) -> Optional[str]: ...
+    @property
+    def latest(self) -> str: ...
+
+
+PV = TypeVar("PV", bound=PVP)
+
+
 @dataclass
 class PackageVersionInfo:
     installed: Optional[str]
     latest: str
 
 
-class PackageCacheInstaller(Installer, metaclass=ABCMeta):
-    cache: Optional[dict[str, PackageVersionInfo]]
+class PackageCacheInstaller(Generic[PV], Installer, metaclass=ABCMeta):
+    cache: Optional[dict[str, PV]]
 
     def __init__(self, driver: Driver) -> None:
         self.cache = None
@@ -46,12 +56,10 @@ class PackageCacheInstaller(Installer, metaclass=ABCMeta):
         super().__init__(driver)
 
     @abstractmethod
-    async def get_package_info(
-        self, package: Optional[str]
-    ) -> dict[str, PackageVersionInfo]:
+    async def get_package_info(self, package: Optional[str]) -> dict[str, PV]:
         pass
 
-    async def package_info(self, package: str) -> PackageVersionInfo:
+    async def package_info(self, package: str) -> PV:
         async with self.lock:
             if self.cache is None:
                 self.cache = await self.get_package_info(None)
@@ -88,22 +96,98 @@ class PackageCacheInstaller(Installer, metaclass=ABCMeta):
         await self.invalidate_cache(package)
 
 
-class Brew(PackageCacheInstaller):
-    async def install(self, package: str) -> None:
-        await self.driver.run(await self.brew(), "install", package)
-        await super().install(package)
+@dataclass
+class BrewPackageVersionInfo:
+    """
+    Brew installer prefers casks to formulae with the same name. Brew itself
+    reports both separately, but it requires specifying homebrew/cask/
+    everywhere so it's easier for the users to assume a cask if one exists.
+    """
 
-    async def upgrade(self, package: str) -> None:  # pragma: no cover
-        # Can't install an old version of a package in tests
-        await self.driver.run(await self.brew(), "upgrade", package)
-        await super().upgrade(package)
+    cask: Optional[PackageVersionInfo]
+    cask_known: bool  # Whether we specifically checked for a cask
+    formula: Optional[PackageVersionInfo]
 
+    @staticmethod
+    def formula_version(version: str) -> str:
+        """
+        To distinguish a cask from a formula of the same name, especially if
+        they have the same versions, prepend the formula version with
+        "formula_".
+        """
+        return f"formula_{version}"
+
+    @property
+    def installed(self) -> Optional[str]:
+        """
+        Report installed state of both cask and formula so that any state but
+        "cask is installed and formula isn't" results in a different version.
+        """
+        cask_installed = self.cask.installed if self.cask else None
+        formula_installed = (
+            self.formula_version(self.formula.installed)
+            if self.formula and self.formula.installed
+            else None
+        )
+
+        if cask_installed and formula_installed:
+            return f"{cask_installed} {formula_installed}"
+        return cask_installed or formula_installed
+
+    @property
+    def latest(self) -> str:
+        if not self.cask_known:
+            raise ValueError("Cask version is unknown.")  # pragma: no cover
+        if self.cask:
+            return self.cask.latest
+        if self.formula:
+            return self.formula_version(self.formula.latest)
+        raise ValueError("No cask or formula info.")  # pragma: no cover
+
+
+class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
     async def tap(self, repo: str) -> None:
         await self.driver.run(await self.brew(), "tap", repo)
 
     async def tapped(self) -> set[str]:
         output = await self.driver.run_output(await self.brew(), "tap")
         return set(output.strip().splitlines())
+
+    async def install(self, package: str) -> None:
+        info = await self.package_info(package)
+        if info.cask:
+            await self.driver.run(await self.brew(), "install", "--cask", package)
+        else:
+            await self.driver.run(await self.brew(), "install", package)
+        await super().install(package)
+
+    async def upgrade(self, package: str) -> None:
+        info = await self.package_info(package)
+        if not info.installed:
+            raise ValueError(
+                "Expected package to be installed when upgrading."
+            )  # pragma: no cover
+        if info.cask:
+            if info.formula and info.formula.installed:
+                # We want a cask, not a formula, uninstall the formula
+                await self.driver.run(await self.brew(), "uninstall", package)
+            if info.cask.installed:
+                # Both formula and cask were installed; formula was uninstalled,
+                # upgrade the cask if needed
+                if info.cask.latest != info.cask.installed:
+                    # Can't install an old version of a package in tests
+                    await self.driver.run(
+                        await self.brew(), "upgrade", "--cask", package
+                    )  # pragma: no cover
+            else:
+                # Formula was installed (thus upgrading), but cask wasn't
+                await self.driver.run(await self.brew(), "install", "--cask", package)
+        else:
+            # Can't install an old version of a package in tests
+            await self.driver.run(
+                await self.brew(), "upgrade", package
+            )  # pragma: no cover
+        await super().upgrade(package)
 
     @async_cached
     async def brew(self) -> str:
@@ -119,9 +203,12 @@ class Brew(PackageCacheInstaller):
             await self.brew(), "info", "--json=v2", *args
         )
 
+    async def brew_info_cask(self, cask: str) -> RunResultOutput:
+        return await self.brew_info(f"homebrew/cask/{cask}")
+
     async def get_package_info(
         self, package: Optional[str]
-    ) -> dict[str, PackageVersionInfo]:
+    ) -> dict[str, BrewPackageVersionInfo]:
         await self.brew_update()
 
         brew_result: RunResultOutput
@@ -130,42 +217,73 @@ class Brew(PackageCacheInstaller):
         elif "/" not in package:
             # When a bare package name is given (without homebrew/, etc. prefix),
             # try to look up the cask first.
-            brew_result = await self.brew_info(f"homebrew/cask/{package}")
+            brew_result = await self.brew_info_cask(package)
             if not brew_result.ok:
                 brew_result = await self.brew_info(package)
         else:
             brew_result = await self.brew_info(package)
 
-        if not brew_result.ok:
-            return {}
-        info = json.loads(brew_result.output)
+        return await self.fill_package_info(brew_result)
 
-        result = {}
+    async def package_info(self, package: str) -> BrewPackageVersionInfo:
+        """
+        When only a formula version of a package is known (e.g. from
+        --installed), try to look up the cask version too before returning.
+        """
+
+        info = await super().package_info(package)
+        if not info.cask_known:
+            async with self.lock:
+                brew_result = await self.brew_info_cask(package)
+                results = await self.fill_package_info(brew_result)
+                info.cask = results[package].cask if package in results else None
+                info.cask_known = True
+        return info
+
+    @classmethod
+    async def fill_package_info(
+        cls, run_result: RunResultOutput
+    ) -> dict[str, BrewPackageVersionInfo]:
+        results: dict[str, BrewPackageVersionInfo] = {}
+
+        if not run_result.ok:
+            return results
+        info = json.loads(run_result.output)
 
         for cask in info["casks"]:
-            name = f"{cask['tap']}/{cask['token']}"
-            result[name] = PackageVersionInfo(
-                installed=cask["installed"], latest=cask["version"]
-            )
-            # Do not require prefixes for casks from homebrew/cask
             if cask["tap"] == "homebrew/cask":
-                result[cask["token"]] = result[name]
+                # Do not require prefixes for casks from homebrew/cask
+                name = cask["token"]
+            else:
+                name = f"{cask['tap']}/{cask['token']}"
+            results[name] = BrewPackageVersionInfo(
+                cask=PackageVersionInfo(
+                    installed=cask["installed"], latest=cask["version"]
+                ),
+                cask_known=True,
+                formula=None,
+            )
 
         for formula in info["formulae"]:
             name = formula["name"]
-            if name in result:
-                # Prefer a cask over a formula with the same name (although
-                # unlikely both are installed)
-                continue  # pragma: no cover
             try:
                 installed = formula["installed"][0]["version"]
             except IndexError:
                 installed = None
-            result[name] = PackageVersionInfo(
-                installed=installed, latest=self.formula_version(formula)
-            )
+            latest = cls.formula_version(formula)
+            pvi = PackageVersionInfo(installed=installed, latest=latest)
 
-        return result
+            if installed and name in results:
+                # Cask with the same name exists. If a _formula_ is installed
+                # instead, record the formula version as installed too, so the
+                # package will be updated to cask.
+                results[name].formula = pvi
+            else:
+                results[name] = BrewPackageVersionInfo(
+                    cask=None, cask_known=False, formula=pvi
+                )
+
+        return results
 
     @staticmethod
     def formula_version(info: dict) -> str:
@@ -176,12 +294,13 @@ class Brew(PackageCacheInstaller):
         return version
 
 
-class DNF(PackageCacheInstaller):
+class DNF(PackageCacheInstaller[PackageVersionInfo]):
     async def install(self, package: str) -> None:
         await self.driver.with_root(True).run("dnf", "install", "-y", package)
         await super().install(package)
 
-    async def upgrade(self, package: str) -> None:
+    # can't install an old version of a package in tests
+    async def upgrade(self, package: str) -> None:  # pragma: no cover
         await self.driver.with_root(True).run("dnf", "upgrade", "-y", package)
         await super().upgrade(package)
 
