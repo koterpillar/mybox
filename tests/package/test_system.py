@@ -34,6 +34,60 @@ class TestCask(PackageTestBase):
         )
 
 
+class CaskFormulaPrecedence(PackageTestBase):
+    # affects_system = True
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        (await self.driver.os()).switch_(
+            linux=lambda _: pytest.skip(
+                "Cask precedence test is only applicable on macOS"
+            ),
+            macos=lambda: None,
+        )
+
+    async def constructor_args(self) -> PackageArgs:
+        # angband exists as both:
+        # https://formulae.brew.sh/formula/angband (formula)
+        # https://formulae.brew.sh/cask/angband (cask)
+        return {"system": "angband"}
+
+    async def check_installed_command(self):
+        # Formula installs to homebrew bin, cask installs to /Applications
+        # Cask can't run due to missing signature, just check that it exists
+        return ["ls", "/Applications/Angband.app/Contents/MacOS"]
+
+    async def check_installed(self):
+        await super().check_installed()
+        # Formula-installed executable should not exist
+        executable_exists = await self.driver.executable_exists("angband")
+        assert not executable_exists, "Formula-installed executable exists"
+
+    async def install_prerequisites(self):
+        await super().install_prerequisites()
+        await self.driver.run_(
+            "brew", "uninstall", "--cask", "angband", check=False, silent=True
+        )
+        await self.driver.run_("brew", "uninstall", "angband", check=False, silent=True)
+
+
+class TestCaskFormulaPrecedenceNothingInstalled(CaskFormulaPrecedence):
+    pass
+
+
+class TestCaskFormulaPrecedenceFormulaInstalled(CaskFormulaPrecedence):
+    async def install_prerequisites(self):
+        await super().install_prerequisites()
+        await self.driver.run_ok("brew", "install", "angband")
+
+
+class TestCaskFormulaPrecedenceCaskFormulaInstalled(CaskFormulaPrecedence):
+    async def install_prerequisites(self):
+        await super().install_prerequisites()
+        await self.driver.run_ok("brew", "install", "angband")
+        await self.driver.run_ok("brew", "install", "--cask", "angband")
+
+
 class TestRPMFusion(PackageTestBase):
     affects_system = True
 
