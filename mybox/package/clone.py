@@ -23,10 +23,13 @@ class Clone(Destination):
     async def run_git(self, *args: RunArg) -> None:
         await self.driver.run(*await self.git_args(), *args)
 
+    async def run_git_output(self, *args: RunArg) -> str:
+        return await self.driver.run_output(*await self.git_args(), *args)
+
     async def local_version(self) -> Optional[str]:
         if not await self.directory_exists():
             return None
-        return await self.driver.run_output(*await self.git_args(), "rev-parse", "HEAD")
+        return await self.run_git_output("rev-parse", "HEAD")
 
     @property
     def remote(self):
@@ -48,11 +51,11 @@ class Clone(Destination):
         await self.run_git("remote", "set-url", "origin", self.remote)
         await self.run_git("fetch")
         default_branch = (
-            await self.driver.run_output(
-                *await self.git_args(), "rev-parse", "--abbrev-ref", "origin/HEAD"
-            )
+            await self.run_git_output("rev-parse", "--abbrev-ref", "origin/HEAD")
         ).split("/")[1]
-        await self.run_git("switch", default_branch)
+        current_branch = await self.run_git_output("rev-parse", "--abbrev-ref", "HEAD")
+        if current_branch != default_branch:
+            await self.run_git("switch", default_branch)
         await self.run_git("reset", "--hard", f"origin/{default_branch}")
 
         tracker.track(destination, root=self.root)
