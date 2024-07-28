@@ -15,6 +15,16 @@ class TestClone(DestinationPackageTestBase, RootPackageTestBase):
     check_installed_output = "alias ohmyzsh"
 
 
+class TestCloneBranchSwitch(TestClone):
+    async def install_prerequisites(self):
+        await super().install_prerequisites()
+        destination = await self.driver.home() / self.dir_name
+        await self.driver.run(
+            "git", "clone", "https://github.com/ohmyzsh/ohmyzsh.git", destination
+        )
+        await self.driver.run("git", "-C", destination, "checkout", "HEAD~")
+
+
 class TestRootClone(TestClone):
     root = True
 
