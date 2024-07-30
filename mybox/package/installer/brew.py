@@ -2,6 +2,8 @@ import json
 from dataclasses import dataclass
 from typing import Optional
 
+import requests
+
 from ...driver import RunResultOutput
 from ...utils import async_cached, async_cached_lock
 from .base import PackageCacheInstaller, PackageVersionInfo
@@ -16,7 +18,6 @@ class BrewPackageVersionInfo:
     """
 
     cask: Optional[PackageVersionInfo]
-    cask_known: bool  # Whether we specifically checked for a cask
     formula: Optional[PackageVersionInfo]
 
     @staticmethod
@@ -47,8 +48,6 @@ class BrewPackageVersionInfo:
 
     @property
     def latest(self) -> str:
-        if not self.cask_known:
-            raise ValueError("Cask version is unknown.")  # pragma: no cover
         if self.cask:
             return self.cask.latest
         if self.formula:
@@ -134,32 +133,11 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
         else:
             brew_result = await self.brew_info(package)
 
-        return await self.fill_package_info(brew_result)
-
-    async def package_info(self, package: str) -> BrewPackageVersionInfo:
-        """
-        When only a formula version of a package is known (e.g. from
-        --installed), try to look up the cask version too before returning.
-        """
-
-        info = await super().package_info(package)
-        if not info.cask_known:
-            async with self.lock:
-                brew_result = await self.brew_info_cask(package)
-                results = await self.fill_package_info(brew_result)
-                info.cask = results[package].cask if package in results else None
-                info.cask_known = True
-        return info
-
-    @classmethod
-    async def fill_package_info(
-        cls, run_result: RunResultOutput
-    ) -> dict[str, BrewPackageVersionInfo]:
         results: dict[str, BrewPackageVersionInfo] = {}
 
-        if not run_result.ok:
+        if not brew_result.ok:
             return results
-        info = json.loads(run_result.output)
+        info = json.loads(brew_result.output)
 
         for cask in info["casks"]:
             if cask["tap"] == "homebrew/cask":
@@ -171,7 +149,6 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
                 cask=PackageVersionInfo(
                     installed=cask["installed"], latest=cask["version"]
                 ),
-                cask_known=True,
                 formula=None,
             )
 
@@ -181,7 +158,7 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
                 installed = formula["installed"][0]["version"]
             except IndexError:
                 installed = None
-            latest = cls.formula_version(formula)
+            latest = self.formula_version(formula)
             pvi = PackageVersionInfo(installed=installed, latest=latest)
 
             if installed and name in results:
@@ -190,8 +167,25 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
                 # package will be updated to cask.
                 results[name].formula = pvi
             else:
-                results[name] = BrewPackageVersionInfo(
-                    cask=None, cask_known=False, formula=pvi
+                results[name] = BrewPackageVersionInfo(cask=None, formula=pvi)
+
+        # If queried for installed packages, check for any casks with the same
+        # names as installed formulae
+        if not package:
+            cask_response = requests.get("https://formulae.brew.sh/api/cask.json")
+            cask_response.raise_for_status()
+
+            all_casks = cask_response.json()
+            for cask in all_casks:
+                name = cask["token"]
+                if name not in results:
+                    continue  # No formula with this name installed, can ignore
+                if results[name].cask:
+                    continue  # Already know about this cask
+                # Record this cask as available but not installed (it would have
+                # been already found otherwise)
+                results[name].cask = PackageVersionInfo(
+                    installed=None, latest=cask["version"]
                 )
 
         return results
