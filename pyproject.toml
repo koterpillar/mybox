@@ -19,7 +19,7 @@ jsonpath-ng = "^1.6.1"
 beautifulsoup4 = "^4.12.3"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
+black = "^24.8.0"
 coverage = {extras = ["toml"], version = "^7.6.0"}
 fawltydeps = "^0.17.0"
 isort = "^5.13.2"
