@@ -1057,13 +1057,13 @@ telegram = ["requests"]
 
 [[package]]
 name = "trio"
-version = "0.26.0"
+version = "0.26.1"
 description = "A friendly Python library for async concurrency and I/O"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "trio-0.26.0-py3-none-any.whl", hash = "sha256:bb9c1b259591af941fccfbabbdc65bc7ed764bd2db76428454c894cd5e3d2032"},
-    {file = "trio-0.26.0.tar.gz", hash = "sha256:67c5ec3265dd4abc7b1d1ab9ca4fe4c25b896f9c93dac73713778adab487f9c4"},
+    {file = "trio-0.26.1-py3-none-any.whl", hash = "sha256:998bbdc5797621e1976c86820b1bc341cc66b51d2618a31cc8720ddd7df8affe"},
+    {file = "trio-0.26.1.tar.gz", hash = "sha256:6d2fe7ee656146d598ec75128ff4a2386576801b42b691f4a91cc2c18508544a"},
 ]
 
 [package.dependencies]
@@ -1218,4 +1218,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "f7eef5c6d3f01593d07247982a3637022cb603f57ee75871e3119f5fc557faf0"
+content-hash = "bd7ab96ab8b55dac24dfaeaede3c7ba24780f45e79614178cb5cb81a6d3fd4f2"
