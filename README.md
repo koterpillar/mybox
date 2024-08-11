@@ -12,6 +12,15 @@ Manage the configuration and tools on your workstation without bothering the OS
 too much (maybe your favorite one isn't supported by `$WORK` or you have
 different ones for different roles).
 
+## Values
+
+0. Earlier points override latter ones, unless there is a huge gain.
+1. The system is usable with the software the user specified.
+2. Meta requirements (e.g. archivers and package managers) are installed the
+   same way user requirements are.
+3. Everything is installed and upgraded to the latest version every time.
+4. Superuser access is not required.
+
 ## Usage
 
 * Run the [bootstrap](bootstrap) script:
