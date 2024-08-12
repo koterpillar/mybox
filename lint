@@ -2,12 +2,14 @@
 
 set -euo pipefail
 
-ISORT_ARGS=(--check)
-BLACK_ARGS=(--check)
-if [ "${1-}" == "--format" ]
+# macOS's bash (3.x) can't interpolate empty arrays into parameters under
+# nounset; keep command and args together as a workaround.
+ISORT=(isort)
+BLACK=(black)
+if [ "${1-}" != "--format" ]
 then
-    ISORT_ARGS=()
-    BLACK_ARGS=()
+    ISORT+=(--check)
+    BLACK+=(--check)
 fi
 
 DIR=$(cd "$(dirname "$0")" && pwd)
@@ -17,8 +19,8 @@ shellcheck $(grep -lER '^#!.+bash' "$DIR")
 
 PYTHON=("${DIR}/mybox" "${DIR}/tests")
 
-poetry run isort "${ISORT_ARGS[@]}" "${PYTHON[@]}"
-poetry run black "${BLACK_ARGS[@]}" "${PYTHON[@]}"
+poetry run "${ISORT[@]}" "${PYTHON[@]}"
+poetry run "${BLACK[@]}" "${PYTHON[@]}"
 poetry run mypy "${PYTHON[@]}"
 poetry run pylint "${PYTHON[@]}"
 poetry run fawltydeps
