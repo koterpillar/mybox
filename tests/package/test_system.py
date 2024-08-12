@@ -1,5 +1,7 @@
 import pytest
 
+from mybox.package import Package
+
 from .base import PackageArgs, PackageTestBase
 
 
@@ -63,8 +65,8 @@ class CaskFormulaPrecedence(PackageTestBase):
         executable_exists = await self.driver.executable_exists("angband")
         assert not executable_exists, "Formula-installed executable exists"
 
-    async def install_prerequisites(self):
-        await super().install_prerequisites()
+    async def install_prerequisites(self, package: Package):
+        await super().install_prerequisites(package)
         await self.driver.run_(
             "brew", "uninstall", "--cask", "angband", check=False, silent=True
         )
@@ -76,14 +78,14 @@ class TestCaskFormulaPrecedenceNothingInstalled(CaskFormulaPrecedence):
 
 
 class TestCaskFormulaPrecedenceFormulaInstalled(CaskFormulaPrecedence):
-    async def install_prerequisites(self):
-        await super().install_prerequisites()
+    async def install_prerequisites(self, package: Package):
+        await super().install_prerequisites(package)
         await self.driver.run_ok("brew", "install", "angband")
 
 
 class TestCaskFormulaPrecedenceCaskFormulaInstalled(CaskFormulaPrecedence):
-    async def install_prerequisites(self):
-        await super().install_prerequisites()
+    async def install_prerequisites(self, package: Package):
+        await super().install_prerequisites(package)
         await self.driver.run_ok("brew", "install", "angband")
         await self.driver.run_ok("brew", "install", "--cask", "angband")
 

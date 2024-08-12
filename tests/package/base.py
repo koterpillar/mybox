@@ -104,14 +104,17 @@ class PackageTestBase(metaclass=ABCMeta):
             output = await self.check_driver.run_output(*command)
             assert self.check_installed_output in output
 
-    async def install_prerequisites(self) -> None:
+    async def install_prerequisites(self, package: Package) -> None:
         db = self.setup_db()
         manager = Manager(db=db, driver=self.driver, component_path=Path("/dev/null"))
         packages = [
             parse_package(args, db=db, driver=self.driver)
             for args in self.prerequisites
         ]
-        await manager.install_packages(packages)
+        async for prerequisite in package.prerequisites():
+            packages.append(prerequisite)
+        result = await manager.install_packages(packages)
+        assert not result.failed
 
     async def all_files(self) -> set[Path]:
         return {
@@ -137,12 +140,12 @@ class PackageTestBase(metaclass=ABCMeta):
 
         preexisting_files = await self.all_files()
 
-        await self.install_prerequisites()
-
         args = await self.constructor_args()
-
         package = self.parse_package(args, driver=self.driver, db=db)
+
         assert await package.applicable()
+
+        await self.install_prerequisites(package)
 
         tracker = DummyTracker()
         await package.install(tracker=tracker)
@@ -174,12 +177,14 @@ class PackageTestBase(metaclass=ABCMeta):
         if self.root_required_for_is_installed:
             return
 
-        await self.install_prerequisites()
-
+        # Installing prerequisites might require root
         args = await self.constructor_args()
+        package_pre = self.parse_package(args, driver=self.driver)
+        await self.install_prerequisites(package_pre)
 
         package = self.parse_package(args, driver=self.driver.disable_root())
         assert await package.applicable()
+
         # Check that the property works, installation status doesn't matter
         # (if running on the host machine system packages might or might not
         # be installed)
