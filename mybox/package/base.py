@@ -8,7 +8,7 @@ from ..driver import Driver
 from ..parallel import gather_
 from ..state import DB
 from ..tracker import Tracker
-from ..utils import allow_singular, async_cached
+from ..utils import allow_singular, async_cached, matches_if_specified
 
 
 class Package(BaseModel, ABC):
@@ -63,12 +63,9 @@ class Package(BaseModel, ABC):
         pass
 
     async def applicable(self) -> bool:
-        def check_os(name: str) -> bool:
-            return self.os is None or name in self.os
-
         os = await self.driver.os()
         return os.switch_(
-            linux=lambda linux: check_os("linux")
-            and (self.distribution is None or linux.distribution in self.distribution),
-            macos=lambda: check_os("darwin"),
+            linux=lambda linux: matches_if_specified(self.os, "linux")
+            and matches_if_specified(self.distribution, linux.distribution),
+            macos=lambda: matches_if_specified(self.os, "darwin"),
         )

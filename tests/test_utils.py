@@ -1,6 +1,12 @@
 import pytest
 
-from mybox.utils import flatten, intercalate, run_ok, with_extensions
+from mybox.utils import (
+    flatten,
+    intercalate,
+    matches_if_specified,
+    run_ok,
+    with_extensions,
+)
 
 
 class TestRunOK:
@@ -39,3 +45,10 @@ def test_with_extensions():
     extensions = ["com", "exe"]
     assert with_extensions("foo", extensions) == ["foo.com", "foo.exe"]
     assert with_extensions("foo.com", extensions) == ["foo.com"]
+
+
+def test_matches_if_specified():
+    assert matches_if_specified(None, "anything")
+    assert not matches_if_specified([], "anything")
+    assert matches_if_specified(["alpha", "beta"], "alpha")
+    assert not matches_if_specified(["alpha", "beta"], "gamma")
