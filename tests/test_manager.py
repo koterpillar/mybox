@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import AsyncIterable, Optional
 
 import pytest
 import yaml
@@ -7,6 +7,7 @@ from pydantic import Field
 
 from mybox.driver import Driver, RunResult, RunResultOutput
 from mybox.manager import InstallResult, Manager
+from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
 from mybox.package.root import Root
@@ -63,6 +64,8 @@ class DummyPackage(Root, ManualVersion):
     error: Optional[Exception] = None
     version_error: Optional[Exception] = None
 
+    prerequisite_packages: Optional[list[str]] = None
+
     async def get_remote_version(self) -> str:
         if self.version_error is not None:
             raise self.version_error
@@ -74,6 +77,16 @@ class DummyPackage(Root, ManualVersion):
         for file in self.files:
             tracker.track(Path(file), root=self.root)
         await super().install(tracker=tracker)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        for name in self.prerequisite_packages or []:
+            yield DummyPackage(
+                db=self.db,
+                driver=self.driver,
+                name=name,
+                files=[],
+                version="1",
+            )
 
 
 class TestManager:
@@ -110,6 +123,7 @@ class TestManager:
         version: str = "1",
         error: Optional[Exception] = None,
         version_error: Optional[Exception] = None,
+        prerequisites: Optional[list[str]] = None,
     ) -> DummyPackage:
         return DummyPackage(
             db=self.db,
@@ -120,6 +134,7 @@ class TestManager:
             version=version,
             error=error,
             version_error=version_error,
+            prerequisite_packages=prerequisites,
         )
 
     def installed_files(self) -> set[InstalledFile]:
@@ -213,6 +228,13 @@ class TestManager:
             "bar": "bar error",
         }
         assert self.versions() == {"foo": "2"}
+
+    @pytest.mark.trio
+    async def test_result_versions_has_prerequisites(self):
+        result = await self.install_assert(
+            self.make_package("foo", prerequisites=["bar"])
+        )
+        assert self.package_names(result) == ["bar", "foo"]
 
     @pytest.mark.trio
     async def test_tracks_files_installed(self):

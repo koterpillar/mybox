@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import Optional
+from typing import AsyncIterable, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -69,3 +69,7 @@ class Package(BaseModel, ABC):
             and matches_if_specified(self.distribution, linux.distribution),
             macos=lambda: matches_if_specified(self.os, "darwin"),
         )
+
+    async def prerequisites(self) -> AsyncIterable["Package"]:
+        return
+        yield

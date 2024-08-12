@@ -78,6 +78,10 @@ class Manager:
     async def install_package(
         self, tracker: ManagerTracker, package: Package
     ) -> AsyncIterable[Package]:
+        async for prerequisite in package.prerequisites():
+            async for result in self.install_package(tracker, prerequisite):
+                yield result
+
         try:
             if not await package.applicable():
                 return
