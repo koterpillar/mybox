@@ -27,12 +27,6 @@ class TestExpress(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {"npm": "express-generator", "binary": "express"}
 
-    prerequisites = [
-        *PackageTestBase.NODE,
-        {"system": "npm", "os": "linux", "distribution": ["debian", "ubuntu"]},
-        {"system": "nodejs-npm", "os": "linux", "distribution": ["fedora"]},
-    ]
-
     async def check_installed_command(self):
         return ["express", "--help"]
 

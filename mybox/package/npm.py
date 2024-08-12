@@ -1,11 +1,14 @@
 import shlex
+from typing import AsyncIterable
 
 from pydantic import Field
 
 from ..tracker import Tracker
 from ..utils import allow_singular_none
+from .base import Package
 from .manual_version import ManualVersion
 from .root import Root
+from .system import SystemPackage
 
 
 class NpmPackage(Root, ManualVersion):
@@ -46,3 +49,26 @@ class NpmPackage(Root, ManualVersion):
             tracker.track(target, root=self.root)
 
         await super().install(tracker=tracker)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        os = await self.driver.os()
+
+        for system in os.switch_(
+            linux=lambda linux: [
+                "nodejs",
+                {
+                    "debian": "npm",
+                    "ubuntu": "npm",
+                    "fedora": "nodejs-npm",
+                }[linux.distribution],
+            ],
+            macos=lambda: ["node"],
+        ):
+            yield SystemPackage(
+                system=system,
+                db=self.db,
+                driver=self.driver,
+            )
