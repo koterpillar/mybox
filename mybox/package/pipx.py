@@ -59,16 +59,17 @@ class PipxPackage(ManualVersion):
         if self.is_repo:
             return await repo_version(self.package)
 
-        result = await self.driver.run_output_(
-            "python3", "-m", "pip", "index", "versions", self.package
-        )
-        if not result.ok:
-            raise Exception(f"Cannot find latest version of package '{self.package}'.")
-        version = re.search(r"\(([^)]+)\)", result.output)
-        if not version:
+        try:
+            result = await self.driver.run_output(
+                "python3", "-m", "pip", "index", "versions", self.package
+            )
+        except Exception as exc:
             raise Exception(
-                f"Cannot parse pip output: {result.output}"
-            )  # pragma: no cover
+                f"Cannot find latest version of package '{self.package}'."
+            ) from exc
+        version = re.search(r"\(([^)]+)\)", result)
+        if not version:
+            raise Exception(f"Cannot parse pip output: {result}")  # pragma: no cover
         return version[1]
 
     async def install(self, *, tracker: Tracker) -> None:

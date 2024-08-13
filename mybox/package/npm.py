@@ -21,10 +21,15 @@ class NpmPackage(Root, ManualVersion):
         return self.package
 
     async def get_remote_version(self) -> str:
-        result = await self.driver.run_output_("npm", "view", self.package, "version")
-        if not result.ok:
-            raise Exception(f"Cannot find latest version of package '{self.package}'.")
-        version = result.output.strip()
+        try:
+            result = await self.driver.run_output(
+                "npm", "view", self.package, "version"
+            )
+        except Exception as exc:
+            raise Exception(
+                f"Cannot find latest version of package '{self.package}'."
+            ) from exc
+        version = result.strip()
         return version
 
     async def install(self, *, tracker: Tracker) -> None:
