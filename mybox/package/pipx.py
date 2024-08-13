@@ -1,13 +1,15 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, AsyncIterable, Optional
 
 from pydantic import Field, field_validator
 
 from ..tracker import Tracker
 from ..utils import GIT_PREFIX, repo_version
+from .base import Package
 from .manual_version import ManualVersion
+from .system import SystemPackage
 
 
 class PipxPackage(ManualVersion):
@@ -92,3 +94,19 @@ class PipxPackage(ManualVersion):
 
         if self.is_repo:
             await self.cache_version()
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        os = await self.driver.os()
+
+        for system in os.switch(
+            linux=["python3-pip"],
+            macos=[],
+        ):
+            yield SystemPackage(
+                system=system,
+                db=self.db,
+                driver=self.driver,
+            )
