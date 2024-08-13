@@ -1,13 +1,15 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, AsyncIterable, Optional
 
 from pydantic import Field, field_validator
 
 from ..tracker import Tracker
 from ..utils import GIT_PREFIX, repo_version
+from .base import Package
 from .manual_version import ManualVersion
+from .system import SystemPackage
 
 
 class PipxPackage(ManualVersion):
@@ -59,16 +61,17 @@ class PipxPackage(ManualVersion):
         if self.is_repo:
             return await repo_version(self.package)
 
-        result = await self.driver.run_output_(
-            "python3", "-m", "pip", "index", "versions", self.package
-        )
-        if not result.ok:
-            raise Exception(f"Cannot find latest version of package '{self.package}'.")
-        version = re.search(r"\(([^)]+)\)", result.output)
-        if not version:
+        try:
+            result = await self.driver.run_output(
+                "python3", "-m", "pip", "index", "versions", self.package
+            )
+        except Exception as exc:
             raise Exception(
-                f"Cannot parse pip output: {result.output}"
-            )  # pragma: no cover
+                f"Cannot find latest version of package '{self.package}'."
+            ) from exc
+        version = re.search(r"\(([^)]+)\)", result)
+        if not version:
+            raise Exception(f"Cannot parse pip output: {result}")  # pragma: no cover
         return version[1]
 
     async def install(self, *, tracker: Tracker) -> None:
@@ -91,3 +94,19 @@ class PipxPackage(ManualVersion):
 
         if self.is_repo:
             await self.cache_version()
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        os = await self.driver.os()
+
+        for system in os.switch(
+            linux=["python3-pip"],
+            macos=[],
+        ):
+            yield SystemPackage(
+                system=system,
+                db=self.db,
+                driver=self.driver,
+            )

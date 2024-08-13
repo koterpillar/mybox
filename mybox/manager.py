@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import AsyncIterable, Iterable
 
 import yaml
 
@@ -54,15 +54,15 @@ class Manager:
     async def install_packages(self, packages: list[Package]) -> InstallResult:
         async with Tracker.tracking(driver=self.driver, db=self.db) as tracker:
 
-            async def process_and_record(package: Package) -> Optional[Package]:
-                return await self.install_package(tracker, package)
+            async def process_and_record(package: Package) -> Iterable[Package]:
+                return [pkg async for pkg in self.install_package(tracker, package)]
 
             try:
                 results = await parallel_map_tqdm(process_and_record, packages)
 
                 await self.cleanup(packages)
 
-                return InstallResult(installed=list(filter(None, results)), failed=[])
+                return InstallResult(installed=flatten(results), failed=[])
             except PartialResults as e:
                 installed: list[Package] = []
                 failed: list[tuple[Package, BaseException]] = []
@@ -70,25 +70,29 @@ class Manager:
                 for package, result in zip(packages, e.results):
                     if isinstance(result, PartialException):
                         failed.append((package, result.exception))
-                    elif result.result:
-                        installed.append(result.result)
+                    else:
+                        installed.extend(result.result)
 
                 return InstallResult(installed=installed, failed=failed)
 
     async def install_package(
         self, tracker: ManagerTracker, package: Package
-    ) -> Optional[Package]:
+    ) -> AsyncIterable[Package]:
+        async for prerequisite in package.prerequisites():
+            async for result in self.install_package(tracker, prerequisite):
+                yield result
+
         try:
             if not await package.applicable():
-                return None
+                return
 
             if await package.is_installed():
                 tracker.skip(package.name)
-                return None
+                return
 
             await package.install(tracker=tracker.track(package.name))
         except:
             tracker.skip(package.name)
             raise
 
-        return package
+        yield package

@@ -66,23 +66,26 @@ case "$OSTYPE" in
         then
           sudo_ apt update
         fi
-
-        ensure curl
-        ensure git
-        ensure sudo
-        ensure python3 python3{,-venv}
-        ensure pip python3-pip
-        ensure unzip
         ;;
       fedora)
         INSTALLER=(sudo_ dnf install --assumeyes)
+        ;;
+    esac
 
-        ensure git
-        ensure pip python3-pip
-        ensure bzip2
-        ensure xz
-        ensure unzip
+    ensure curl
+    ensure git
+    ensure sudo
+    ensure bzip2
+    ensure unzip
+
+    case $DISTRO in
+      debian|ubuntu)
+        ensure python3 python3{,-venv}
+        ensure xz xz-utils
+        ;;
+      fedora)
         ensure chsh util-linux-user
+        ensure xz
         ;;
     esac
     ;;

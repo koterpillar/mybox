@@ -1,3 +1,5 @@
+from mybox.package import Package
+
 from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
 
 
@@ -16,8 +18,8 @@ class TestClone(DestinationPackageTestBase, RootPackageTestBase):
 
 
 class TestCloneBranchSwitch(TestClone):
-    async def install_prerequisites(self):
-        await super().install_prerequisites()
+    async def install_prerequisites(self, package: Package):
+        await super().install_prerequisites(package)
         destination = await self.driver.home() / self.dir_name
         await self.driver.run(
             "git", "clone", "https://github.com/ohmyzsh/ohmyzsh.git", destination
