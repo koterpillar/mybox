@@ -9,12 +9,11 @@ from ..configparser import DesktopEntry
 from ..tracker import Tracker
 from ..utils import allow_singular_none
 from .manual_version import ManualVersion
-from .root import Root
 
 RESOLUTION_RE = re.compile(r"(\d+)x(\d+)")
 
 
-class ManualPackage(Root, ManualVersion, ABC):
+class ManualPackage(ManualVersion, ABC):
     binaries: list[str] = Field(default_factory=list, alias="binary")
     binaries_val = allow_singular_none("binaries")
 
@@ -32,7 +31,7 @@ class ManualPackage(Root, ManualVersion, ABC):
 
     async def install_binary(self, name: str, tracker: Tracker) -> None:
         binary = await self.binary_path(name)
-        target = await self.local() / "bin" / name
+        target = await self.driver.local() / "bin" / name
         if self.binary_wrapper:
             await self.install_binary_wrapper(binary, target)
         else:
@@ -67,7 +66,7 @@ class ManualPackage(Root, ManualVersion, ABC):
             raise ValueError(f"Unknown icon type: '{path}'")
 
         return (
-            (await self.local())
+            (await self.driver.local())
             / "share"
             / "icons"
             / "hicolor"
@@ -82,7 +81,7 @@ class ManualPackage(Root, ManualVersion, ABC):
         )(name, tracker)
 
     async def application_path(self) -> Path:
-        return await self.local() / "share" / "applications"
+        return await self.driver.local() / "share" / "applications"
 
     async def install_desktop_file(self, path: Path, tracker: Tracker) -> None:
         target = await self.application_path() / path.name
@@ -112,7 +111,7 @@ class ManualPackage(Root, ManualVersion, ABC):
 
     async def install_font(self, name: str, tracker: Tracker) -> None:
         font_dir = (await self.driver.os()).switch(
-            linux=await self.local() / "share" / "fonts",
+            linux=await self.driver.local() / "share" / "fonts",
             macos=await self.driver.home() / "Library" / "Fonts",
         )
         source = await self.font_path(name)

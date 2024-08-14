@@ -33,7 +33,7 @@ class ArchivePackage(ManualPackage, ABC):
 
     @async_cached
     async def package_directory(self) -> Path:
-        return (await self.local()) / "mybox" / self.pathname
+        return (await self.driver.local()) / "mybox" / self.pathname
 
     async def extract(self, url: str, source: Path) -> None:
         if self.raw:

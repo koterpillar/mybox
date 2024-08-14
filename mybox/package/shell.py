@@ -4,13 +4,12 @@ from typing import AsyncIterable, Optional
 from ..tracker import Tracker
 from ..utils import async_cached
 from .base import Package
-from .root import Root
 from .system import SystemPackage
 
 SHELLS_FILE = Path("/etc/shells")
 
 
-class Shell(Root):
+class Shell(Package):
     shell: Path
 
     def derive_name(self) -> str:

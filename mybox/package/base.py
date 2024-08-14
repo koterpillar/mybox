@@ -31,9 +31,11 @@ class Package(BaseModel, ABC):
     db: DB
     driver_: Driver = Field(..., alias="driver")
 
+    root: bool = False
+
     @property
     def driver(self) -> Driver:
-        return self.driver_
+        return self.driver_.with_root(self.root)
 
     @property
     def name(self) -> str:

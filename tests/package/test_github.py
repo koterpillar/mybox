@@ -6,10 +6,10 @@ from mybox.driver import Driver, LocalDriver
 from mybox.package.github import GitHubPackage
 from mybox.state import DB
 
-from .base import PackageArgs, PackageTestBase, RootPackageTestBase
+from .base import PackageArgs, PackageTestBase
 
 
-class TestNeovim(RootPackageTestBase):
+class TestNeovim(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         args: PackageArgs = {
             "repo": "neovim/neovim",
