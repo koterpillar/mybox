@@ -81,7 +81,7 @@ class DummyPackage(ManualVersion):
         for name in self.prerequisite_packages or []:
             yield DummyPackage(
                 db=self.db,
-                driver=self.driver,
+                driver=self.driver_,
                 name=name,
                 files=[],
                 version="1",

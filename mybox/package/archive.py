@@ -141,5 +141,5 @@ class ArchivePackage(ManualPackage, ABC):
             yield SystemPackage(
                 system=system,
                 db=self.db,
-                driver=self.driver,
+                driver=self.driver_,
             )
