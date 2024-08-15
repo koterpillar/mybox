@@ -147,6 +147,8 @@ class Driver(metaclass=ABCMeta):
         return Path(result)
 
     async def local(self) -> Path:
+        if self.root:
+            return Path("/usr/local")
         return await self.home() / ".local"
 
     async def find(

@@ -5,11 +5,11 @@ import pytest
 from mybox.package.shell import Shell
 from mybox.state import DB
 
-from .base import CI, DummyTracker, PackageArgs, RootPackageTestBase, requires_driver
+from .base import CI, DummyTracker, PackageArgs, PackageTestBase, requires_driver
 from .driver import TestDriver
 
 
-class ShellTestBase(RootPackageTestBase):
+class ShellTestBase(PackageTestBase):
     shell: str = "/bin/sh"
 
     async def constructor_args(self) -> PackageArgs:

@@ -53,8 +53,6 @@ case "$OSTYPE" in
     then
       "${INSTALLER[@]}" python@3
     fi
-
-    ensure gtar gnu-tar
     ;;
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
@@ -75,17 +73,10 @@ case "$OSTYPE" in
     ensure curl
     ensure git
     ensure sudo
-    ensure bzip2
-    ensure unzip
 
     case $DISTRO in
       debian|ubuntu)
         ensure python3 python3{,-venv}
-        ensure xz xz-utils
-        ;;
-      fedora)
-        ensure chsh util-linux-user
-        ensure xz
         ;;
     esac
     ;;

@@ -1,9 +1,9 @@
 from mybox.package import Package
 
-from .base import DestinationPackageTestBase, PackageArgs, RootPackageTestBase
+from .base import DestinationPackageTestBase, PackageArgs
 
 
-class TestClone(DestinationPackageTestBase, RootPackageTestBase):
+class TestClone(DestinationPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "clone": "ohmyzsh/ohmyzsh",

@@ -4,10 +4,10 @@ from pathlib import Path
 from pydantic import Field
 
 from ..utils import async_cached
-from .root import Root
+from .base import Package
 
 
-class Destination(Root, ABC):
+class Destination(Package, ABC):
     destination_: Path = Field(..., alias="destination")
 
     @async_cached

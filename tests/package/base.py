@@ -92,9 +92,11 @@ class PackageTestBase(metaclass=ABCMeta):
     ) -> Package:
         return parse_package(constructor_args, db=db or self.setup_db(), driver=driver)
 
+    root = False
+
     @property
     def check_driver(self) -> Driver:
-        return self.driver
+        return self.driver.with_root(self.root)
 
     async def check_installed(self):
         command = await self.check_installed_command()
@@ -214,17 +216,14 @@ class PackageTestBase(metaclass=ABCMeta):
     async def os(self) -> OS:
         return await LocalDriver().os()
 
-    @async_cached
-    async def local(self) -> Path:
-        return await self.driver.local()
-
     async def assert_desktop_file_exists(
         self, file_name: str, *, name: str, executable: Optional[str] = None
     ) -> None:
-        if not (await self.driver.os()).switch(linux=True, macos=False):
+        if not (await self.check_driver.os()).switch(linux=True, macos=False):
             return
 
-        local = await self.local()
+        # File location depends on root, even if check_driver is overridden
+        local = await self.driver.with_root(self.root).local()
 
         desktop_file = await self.check_driver.run_output(
             "cat", local / "share" / "applications" / f"{file_name}.desktop"
@@ -250,10 +249,11 @@ class PackageTestBase(metaclass=ABCMeta):
     ]
 
     async def assert_icon_exists(self, name: str) -> None:
-        if not (await self.driver.os()).switch(linux=True, macos=False):
+        if not (await self.check_driver.os()).switch(linux=True, macos=False):
             return
 
-        local = await self.local()
+        # File location depends on root, even if check_driver is overridden
+        local = await self.driver.with_root(self.root).local()
         icons = local / "share" / "icons"
 
         assert await self.check_driver.is_dir(
@@ -294,17 +294,3 @@ class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
             return await super().test_installs(make_driver)
         finally:
             await self.check_driver.run("rm", "-rf", await self.destination())
-
-
-class RootPackageTestBase(PackageTestBase, metaclass=ABCMeta):
-    root = False
-
-    @property
-    def check_driver(self) -> Driver:
-        return super().check_driver.with_root(self.root)
-
-    @async_cached
-    async def local(self) -> Path:
-        if self.root:
-            return Path("/usr/local")
-        return await super().local()

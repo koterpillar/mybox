@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable
+from typing import AsyncIterable, Iterable
 
 from pydantic import Field
 
 from ..extractor import get_extractor
 from ..tracker import Tracker
 from ..utils import allow_singular_none, async_cached, with_extensions
+from .base import Package
 from .manual import ManualPackage
+from .system import SystemPackage
 
 ICON_EXTENSIONS = ["svg", "png"]
 
@@ -31,7 +33,7 @@ class ArchivePackage(ManualPackage, ABC):
 
     @async_cached
     async def package_directory(self) -> Path:
-        return (await self.local()) / "mybox" / self.pathname
+        return (await self.driver.local()) / "mybox" / self.pathname
 
     async def extract(self, url: str, source: Path) -> None:
         if self.raw:
@@ -119,3 +121,25 @@ class ArchivePackage(ManualPackage, ABC):
             await self.extract(url, archive_path)
 
         await super().install(tracker=tracker)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        os = await self.driver.os()
+
+        for system in os.switch_(
+            linux=lambda linux: [
+                "bzip2",
+                "unzip",
+                {"debian": "xz-utils", "ubuntu": "xz-utils", "fedora": "xz"}[
+                    linux.distribution
+                ],
+            ],
+            macos=lambda: ["gnu-tar", "xz"],
+        ):
+            yield SystemPackage(
+                system=system,
+                db=self.db,
+                driver=self.driver_,
+            )

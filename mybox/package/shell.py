@@ -1,14 +1,15 @@
 from pathlib import Path
-from typing import Optional
+from typing import AsyncIterable, Optional
 
 from ..tracker import Tracker
 from ..utils import async_cached
-from .root import Root
+from .base import Package
+from .system import SystemPackage
 
 SHELLS_FILE = Path("/etc/shells")
 
 
-class Shell(Root):
+class Shell(Package):
     shell: Path
 
     def derive_name(self) -> str:
@@ -55,3 +56,21 @@ class Shell(Root):
         await self.driver.run("chsh", "-s", self.shell, show_output=True)
 
         await super().install(tracker=tracker)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        os = await self.driver.os()
+
+        for system in os.switch_(
+            linux=lambda linux: (
+                ["util-linux-user"] if linux.distribution == "fedora" else []
+            ),
+            macos=lambda: [],
+        ):
+            yield SystemPackage(
+                system=system,
+                db=self.db,
+                driver=self.driver_,
+            )

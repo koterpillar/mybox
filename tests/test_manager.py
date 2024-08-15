@@ -10,7 +10,6 @@ from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
-from mybox.package.root import Root
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
 from mybox.utils import RunArg, allow_singular_none
@@ -56,7 +55,7 @@ class DummyDriver(Driver):
         return RunResultOutput(ok=True, output=output)
 
 
-class DummyPackage(Root, ManualVersion):
+class DummyPackage(ManualVersion):
     files: list[str] = Field(default_factory=list)
     files_val = allow_singular_none("files")
 
@@ -82,7 +81,7 @@ class DummyPackage(Root, ManualVersion):
         for name in self.prerequisite_packages or []:
             yield DummyPackage(
                 db=self.db,
-                driver=self.driver,
+                driver=self.driver_,
                 name=name,
                 files=[],
                 version="1",
