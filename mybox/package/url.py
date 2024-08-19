@@ -35,4 +35,4 @@ class URLPackage(ArchivePackage):
         return name
 
     async def get_remote_version(self) -> str:
-        return url_version(await self.url())
+        return await url_version(await self.url())

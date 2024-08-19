@@ -2,10 +2,8 @@ import json
 from dataclasses import dataclass
 from typing import Optional
 
-import requests
-
 from ...driver import RunResultOutput
-from ...utils import async_cached, async_cached_lock
+from ...utils import async_cached, async_cached_lock, http_get
 from .base import PackageCacheInstaller, PackageVersionInfo
 
 
@@ -172,10 +170,9 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
         # If queried for installed packages, check for any casks with the same
         # names as installed formulae
         if not package:
-            cask_response = requests.get("https://formulae.brew.sh/api/cask.json")
-            cask_response.raise_for_status()
+            cask_response = await http_get("https://formulae.brew.sh/api/cask.json")
 
-            all_casks = cask_response.json()
+            all_casks = json.loads(cask_response)
             for cask in all_casks:
                 name = cask["token"]
                 if name not in results:

@@ -1,14 +1,20 @@
+import json
 import os
 from dataclasses import dataclass
 from subprocess import CalledProcessError
 from typing import Any, Iterator, Optional
 
-import requests
 from pydantic import Field
 
 from ..driver import OS, Architecture
 from ..filters import Filter, Filters, choose
-from ..utils import allow_singular_none, async_cached, async_cached_lock, run_output
+from ..utils import (
+    allow_singular_none,
+    async_cached,
+    async_cached_lock,
+    http_get,
+    run_output,
+)
 from .archive import ArchivePackage
 
 
@@ -34,10 +40,9 @@ async def github_api(url: str) -> Any:
     if token:
         headers["Authorization"] = f"token {token}"
 
-    result = requests.get(f"https://api.github.com/{url}", headers=headers)
-    result.raise_for_status()
+    result = await http_get(f"https://api.github.com/{url}", headers=headers)
 
-    return result.json()
+    return json.loads(result)
 
 
 @dataclass
