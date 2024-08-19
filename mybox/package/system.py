@@ -33,7 +33,7 @@ class SystemPackage(ManualVersion):
 
     async def get_remote_version(self) -> str:
         if url := await self.url():
-            return url_version(url)
+            return await url_version(url)
         if self.auto_updates:
             return "latest"
         return await (await self.installer()).latest_version(self.system)

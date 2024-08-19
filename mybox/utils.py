@@ -3,7 +3,7 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, overload
 
-import requests
+import httpx
 import trio
 from pydantic import field_validator
 
@@ -79,8 +79,17 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-def url_version(url: str) -> str:
-    head_response = requests.head(url, allow_redirects=True)
+http_client = httpx.AsyncClient()
+
+
+async def http_get(url: str, headers: Optional[dict[str, str]] = None) -> str:
+    response = await http_client.get(url, headers=headers)
+    response.raise_for_status()
+    return response.text
+
+
+async def url_version(url: str) -> str:
+    head_response = await http_client.head(url, follow_redirects=True)
     return head_response.headers["etag"]
 
 

@@ -2,7 +2,6 @@ import json
 from abc import ABC, abstractmethod
 from typing import Annotated, Any
 
-import requests
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
@@ -10,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.functional_validators import BeforeValidator
 
 from .filters import Filters, choose
+from .utils import http_get
 
 
 class ValueC(BaseModel, ABC):
@@ -57,7 +57,7 @@ class Derived(ValueC, ABC):
 
 class URL(Derived):
     async def derived_value(self, contents: str) -> str:
-        return requests.get(contents).text
+        return await http_get(contents)
 
 
 class JSONPath(Derived, Filters):
