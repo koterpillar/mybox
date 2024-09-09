@@ -44,6 +44,7 @@ jobs:
         with:
           name: coverage-data-${{ matrix.os }}-${{ matrix.docker }}
           path: .coverage*
+          if-no-files-found: error
 
   coverage:
     needs: ci
