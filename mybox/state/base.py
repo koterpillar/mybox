@@ -1,5 +1,5 @@
 import dataclasses
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, Generic, Iterable, Type, TypeVar
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ else:
     M = TypeVar("M")
 
 
-class Storage(Generic[M], metaclass=ABCMeta):
+class Storage(Generic[M], ABC):
     @abstractmethod
     def __getitem__(self, key: str) -> M:
         pass

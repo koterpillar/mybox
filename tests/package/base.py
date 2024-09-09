@@ -1,5 +1,5 @@
 import random
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from functools import cached_property, wraps
 from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar, overload
@@ -56,7 +56,7 @@ class DummyTracker(Tracker):
         self.tracked.add(target)
 
 
-class PackageTestBase(metaclass=ABCMeta):
+class PackageTestBase(ABC):
     db: DB
     driver: TestDriver
 
@@ -279,7 +279,7 @@ class PackageTestBase(metaclass=ABCMeta):
         assert False, f"Icon '{name}' not found. Files in icons directory: {files}"
 
 
-class DestinationPackageTestBase(PackageTestBase, metaclass=ABCMeta):
+class DestinationPackageTestBase(PackageTestBase, ABC):
     @cached_property
     def dir_name(self) -> str:
         return f"mybox_test_{random.randint(0, 1000000)}"

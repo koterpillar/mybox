@@ -1,5 +1,5 @@
 import subprocess
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from os import environ
@@ -21,7 +21,7 @@ from .parallel import parallel_map_pause
 from .utils import RunArg, Some, T, async_cached, intercalate, unsome
 
 
-class OS(metaclass=ABCMeta):
+class OS(ABC):
     @abstractmethod
     def switch_(self, *, linux: Callable[["Linux"], T], macos: Callable[[], T]) -> T:
         pass
@@ -70,7 +70,7 @@ class RunResultOutput(RunResult):
     output: str
 
 
-class Driver(metaclass=ABCMeta):
+class Driver(ABC):
     def __init__(self, *, root: bool = False) -> None:
         self.root = root
         super().__init__()
@@ -253,7 +253,7 @@ class Driver(metaclass=ABCMeta):
             raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
 
-class SubprocessDriver(Driver, metaclass=ABCMeta):
+class SubprocessDriver(Driver, ABC):
     def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
         return list(args)
 
