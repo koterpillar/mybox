@@ -44,6 +44,7 @@ jobs:
         with:
           name: coverage-data-${{ matrix.os }}-${{ matrix.docker }}
           path: .coverage*
+          include-hidden-files: true
           if-no-files-found: error
 
   coverage:
