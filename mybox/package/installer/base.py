@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, Optional, Protocol, TypeVar
 
@@ -7,7 +7,7 @@ import trio
 from ...driver import Driver
 
 
-class Installer(metaclass=ABCMeta):
+class Installer(ABC):
     def __init__(self, driver: Driver) -> None:
         self.driver = driver
         super().__init__()
@@ -45,7 +45,7 @@ class PackageVersionInfo:
     latest: str
 
 
-class PackageCacheInstaller(Generic[PV], Installer, metaclass=ABCMeta):
+class PackageCacheInstaller(Generic[PV], Installer, ABC):
     cache: Optional[dict[str, PV]]
 
     def __init__(self, driver: Driver) -> None:
