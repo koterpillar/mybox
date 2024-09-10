@@ -99,10 +99,5 @@ fi
 
 if [ "${1:-}" != "--development" ]
 then
-  if pipx list --short | grep -qE '^mybox ' >/dev/null 2>&1
-  then
-    pipx upgrade mybox
-  else
-    pipx install mybox
-  fi
+  pipx upgrade --install mybox
 fi
