@@ -69,6 +69,8 @@ class DNF(PackageCacheInstaller[PackageVersionInfo]):
         return all packages' versions.
         """
 
+        await self.driver.run("dnf", "--quiet", "clean", "expire-cache")
+
         arch = await self.driver.architecture()
 
         args = [
