@@ -23,6 +23,6 @@ class TestChoose:
 
     def test_short_circuit(self):
         def broken_filter(x: int):
-            raise Exception("broken filter")
+            raise Exception("broken filter")  # pragma: no cover
 
         assert choose([10, 20], iter([lambda x: x > 15, broken_filter])) == 20
