@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterable, Iterable
+from typing import AsyncIterable, Iterable, Sequence
 
 import yaml
 
 from .driver import Driver
-from .package import Package, parse_package
+from .package import Package, parse_packages
 from .parallel import PartialException, PartialResults, parallel_map_tqdm
 from .state import DB, VERSIONS
 from .tracker import ManagerTracker, Tracker
@@ -24,13 +24,10 @@ class Manager:
     driver: Driver
     component_path: Path
 
-    def load_component(self, component: str) -> list[Package]:
+    def load_component(self, component: str) -> Sequence[Package]:
         with open(self.component_path / f"{component}.yaml") as f:
             packages = yaml.safe_load(f)
-            return [
-                parse_package(package, db=self.db, driver=self.driver)
-                for package in packages
-            ]
+            return parse_packages(packages, db=self.db, driver=self.driver)
 
     def load_components(self, components: frozenset[str]) -> list[Package]:
         return flatten(self.load_component(component) for component in components)

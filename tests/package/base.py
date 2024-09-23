@@ -8,7 +8,7 @@ import pytest
 
 from mybox.driver import OS, LocalDriver
 from mybox.manager import Manager
-from mybox.package import Package, parse_package
+from mybox.package import Package, parse_package, parse_packages
 from mybox.state import DB
 from mybox.tracker import Tracker
 from mybox.utils import AsyncRet, RunArg, T, async_cached
@@ -83,15 +83,6 @@ class PackageTestBase(ABC):
     def setup_db(self) -> DB:
         return DB.temporary()
 
-    def parse_package(
-        self,
-        constructor_args: PackageArgs,
-        *,
-        driver: Driver,
-        db: Optional[DB] = None,
-    ) -> Package:
-        return parse_package(constructor_args, db=db or self.setup_db(), driver=driver)
-
     root = False
 
     @property
@@ -109,10 +100,7 @@ class PackageTestBase(ABC):
     async def install_prerequisites(self, package: Package) -> None:
         db = self.setup_db()
         manager = Manager(db=db, driver=self.driver, component_path=Path("/dev/null"))
-        packages = [
-            parse_package(args, db=db, driver=self.driver)
-            for args in self.prerequisites
-        ]
+        packages = list(parse_packages(self.prerequisites, db=db, driver=self.driver))
         async for prerequisite in package.prerequisites():
             packages.append(prerequisite)
         result = await manager.install_packages(packages)
@@ -143,7 +131,7 @@ class PackageTestBase(ABC):
         preexisting_files = await self.all_files()
 
         args = await self.constructor_args()
-        package = self.parse_package(args, driver=self.driver, db=db)
+        package = parse_package(args, driver=self.driver, db=db)
 
         assert await package.applicable()
 
@@ -155,7 +143,7 @@ class PackageTestBase(ABC):
         await self.check_installed()
 
         # Create the package again to reset cached properties
-        package = self.parse_package(args, driver=self.driver, db=db)
+        package = parse_package(args, driver=self.driver, db=db)
         assert (
             await package.is_installed()
         ), "Package should be reported installed after installation."
@@ -181,10 +169,12 @@ class PackageTestBase(ABC):
 
         # Installing prerequisites might require root
         args = await self.constructor_args()
-        package_pre = self.parse_package(args, driver=self.driver)
+        package_pre = parse_package(args, driver=self.driver, db=self.setup_db())
         await self.install_prerequisites(package_pre)
 
-        package = self.parse_package(args, driver=self.driver.disable_root())
+        package = parse_package(
+            args, driver=self.driver.disable_root(), db=self.setup_db()
+        )
         assert await package.applicable()
 
         # Check that the property works, installation status doesn't matter
@@ -195,7 +185,9 @@ class PackageTestBase(ABC):
     @pytest.mark.trio
     @requires_driver
     async def test_has_name(self, make_driver: TestDriver):
-        package = self.parse_package(await self.constructor_args(), driver=make_driver)
+        package = parse_package(
+            await self.constructor_args(), driver=make_driver, db=self.setup_db()
+        )
         assert package.name != ""
 
     JAVA: list[PackageArgs] = [
