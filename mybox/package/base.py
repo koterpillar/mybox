@@ -13,7 +13,10 @@ from ..utils import allow_singular, async_cached, matches_if_specified
 
 class Package(BaseModel, ABC):
     model_config = ConfigDict(
-        frozen=True, arbitrary_types_allowed=True, ignored_types=(cached_property,)
+        frozen=True,
+        arbitrary_types_allowed=True,
+        ignored_types=(cached_property,),
+        extra="forbid",
     )
 
     def __hash__(self) -> int:
