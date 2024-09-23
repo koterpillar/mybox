@@ -1,61 +1,45 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Annotated, Any
+from typing import Any, Union
 
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
-from pydantic import BaseModel, ConfigDict, field_validator
-from pydantic.functional_validators import BeforeValidator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 
 from .filters import Filters, choose
 from .utils import http_get
 
 
 class ValueC(BaseModel, ABC):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     @abstractmethod
     async def compute(self) -> str:
         raise NotImplementedError
 
 
-def parse_value(value: Any) -> ValueC:
+async def compute(value: Union[str, ValueC]) -> str:
     if isinstance(value, str):
-        return Const(value=value)
-    if isinstance(value, dict):
-        if base := value.pop("url", None):
-            return URL(base=base)
-        if base := value.pop("links", None):
-            return HTMLLinks(base=base, **value)
-        if "format" in value:
-            return Format(**value)
-        if "jsonpath" in value:
-            return JSONPath(**value)
-    raise ValueError(f"Cannot parse URL from {value!r}.")
-
-
-Value = Annotated[ValueC, BeforeValidator(parse_value)]
-
-
-class Const(ValueC):
-    value: str
-
-    async def compute(self):
-        return self.value
+        return value
+    return await value.compute()
 
 
 class Derived(ValueC, ABC):
-    base: Value
+    base: "Value"
 
     @abstractmethod
     async def derived_value(self, contents: str) -> str:
         raise NotImplementedError
 
     async def compute(self) -> str:
-        base = await self.base.compute()
+        base = await compute(self.base)
         return await self.derived_value(base)
 
 
 class URL(Derived):
+    base: "Value" = Field(..., alias="url")
+
     async def derived_value(self, contents: str) -> str:
         return await http_get(contents)
 
@@ -86,9 +70,21 @@ class Format(Derived):
 
 
 class HTMLLinks(Derived, Filters):
+    base: "Value" = Field(..., alias="links")
+
     async def derived_value(self, contents: str) -> str:
         soup = BeautifulSoup(contents, "html.parser")
         candidates: list[str] = list(
             filter(None, (link.get("href") for link in soup.find_all("a")))
         )
         return choose(candidates, self.filters())
+
+
+Value = Union[str, URL, HTMLLinks, Format, JSONPath]
+
+
+ValueAdapter: TypeAdapter[Value] = TypeAdapter(Value)
+
+
+def parse_value(value: Any) -> Value:
+    return ValueAdapter.validate_python(value)
