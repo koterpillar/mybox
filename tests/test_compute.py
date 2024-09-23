@@ -1,11 +1,11 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any, cast
+from typing import Any
 
 import pytest
 import trio
 
-from mybox.compute import URL, Const, Format, HTMLLinks, JSONPath, parse_value
+from mybox.compute import URL, Format, HTMLLinks, JSONPath, compute, parse_value
 from mybox.utils import T
 
 
@@ -17,14 +17,14 @@ class TestParse:
         return result
 
     def test_static(self):
-        value = self.parse_as(Const, "example")
+        value = self.parse_as(str, "example")
 
-        assert value.value == "example"
+        assert value == "example"
 
     def test_url(self):
         value = self.parse_as(URL, {"url": "https://example.com"})
 
-        assert cast(Const, value.base).value == "https://example.com"
+        assert value.base == "https://example.com"
 
     def test_format(self):
         value = self.parse_as(Format, {"base": "foo", "format": r"bar {}"})
@@ -37,13 +37,13 @@ class TestParse:
             {"base": r"{'json': true}", "jsonpath": "foo[*].bar", "include": "nice"},
         )
 
-        assert cast(Const, value.base).value == r"{'json': true}"
+        assert value.base == r"{'json': true}"
         assert str(value.jsonpath) == "foo.[*].bar"
 
     def test_links(self):
         value = self.parse_as(HTMLLinks, {"links": r"<html></html>"})
 
-        assert cast(Const, value.base).value == r"<html></html>"
+        assert value.base == r"<html></html>"
 
     def test_errors(self):
         with pytest.raises(ValueError):
@@ -66,7 +66,7 @@ async def test_jsonpath():
         }
     )
 
-    assert (await value.compute()) == "aaaa"
+    assert (await compute(value)) == "aaaa"
 
 
 @pytest.mark.trio
@@ -85,7 +85,7 @@ async def test_jsonpath_filter():
         }
     )
 
-    assert (await value.compute()) == "one"
+    assert (await compute(value)) == "one"
 
 
 @pytest.mark.trio
@@ -103,7 +103,7 @@ async def test_url():
 
     value = parse_value({"url": f"http://localhost:{server.server_port}"})
 
-    assert await value.compute() == "Hello World"
+    assert await compute(value) == "Hello World"
 
 
 @pytest.mark.trio
@@ -112,11 +112,11 @@ async def test_links():
         {"links": "<html><a href='https://example.com'>example</a></html>"}
     )
 
-    assert (await value.compute()) == "https://example.com"
+    assert (await compute(value)) == "https://example.com"
 
 
 @pytest.mark.trio
 async def test_format():
     value = parse_value({"base": "foo", "format": "bar {}"})
 
-    assert (await value.compute()) == "bar foo"
+    assert (await compute(value)) == "bar foo"

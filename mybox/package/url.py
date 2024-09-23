@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 
 from pydantic import Field
 
-from ..compute import Const, Value
+from ..compute import Value, compute
 from ..utils import async_cached, url_version
 from .archive import ArchivePackage
 
@@ -12,14 +12,14 @@ class URLPackage(ArchivePackage):
 
     @async_cached
     async def url(self) -> str:
-        return await self.url_.compute()
+        return await compute(self.url_)
 
     async def archive_url(self) -> str:
         return await self.url()
 
     def derive_name(self) -> str:
-        if isinstance(self.url_, Const):
-            url_str = self.url_.value
+        if isinstance(self.url_, str):
+            url_str = self.url_
         else:
             raise ValueError(
                 "Cannot derive name from computed URL and no name override."

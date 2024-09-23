@@ -3,7 +3,7 @@ from typing import Optional
 import trio
 from pydantic import Field
 
-from ..compute import Value
+from ..compute import Value, compute
 from ..tracker import Tracker
 from ..utils import allow_singular_none, async_cached, url_version
 from .installer import make_installer
@@ -28,7 +28,7 @@ class SystemPackage(ManualVersion):
     @async_cached
     async def url(self) -> Optional[str]:
         if self.url_:
-            return await self.url_.compute()
+            return await compute(self.url_)
         return None
 
     async def get_remote_version(self) -> str:

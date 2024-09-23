@@ -10,6 +10,7 @@ from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
+from mybox.package.url import URLPackage
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
 from mybox.utils import RunArg, allow_singular_none
@@ -336,13 +337,24 @@ class TestManager:
         assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
 
     def test_parses_packages(self):
-        self.write_component("one", {"repo": "asdf/asdf", "binary": ["asdf"]})
+        self.write_component(
+            "one",
+            {"repo": "asdf/asdf", "binary": ["asdf"]},
+            {
+                "name": "asdf",
+                "url": {
+                    "base": {"url": "https://example.com/asdf"},
+                    "jsonpath": "asdf.asdf[0]",
+                },
+            },
+        )
         self.write_component("two", {"name": "foo"})
 
         packages = self.manager.load_components(frozenset(["one"]))
 
-        assert len(packages) == 1
-        package = packages[0]
-        assert isinstance(package, GitHubPackage)
-        assert package.repo == "asdf/asdf"
-        assert package.binaries == ["asdf"]
+        assert len(packages) == 2
+        github_package, url_package = packages
+        assert isinstance(github_package, GitHubPackage)
+        assert github_package.repo == "asdf/asdf"
+        assert github_package.binaries == ["asdf"]
+        assert isinstance(url_package, URLPackage)
