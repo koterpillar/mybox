@@ -116,7 +116,7 @@ class TestAmmonite(PackageTestBase):
 
 class TestGitHubCLI(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {"repo": "cli/cli", "binary": "gh", "strip": 1}
+        return {"repo": "cli/cli", "binary": "gh"}
 
     async def check_installed_command(self):
         return ["gh", "--version"]
