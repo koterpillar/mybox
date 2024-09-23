@@ -109,7 +109,7 @@ class DockerDriver(TestDriver, SubprocessDriver):
                     RUN useradd --create-home --password '' {DOCKER_USER}
                     COPY bootstrap /bootstrap
                     RUN /bootstrap --development
-                    ENV PATH /home/{DOCKER_USER}/.local/bin:$PATH
+                    ENV PATH=/home/{DOCKER_USER}/.local/bin:$PATH
                     USER {DOCKER_USER}
                     # populate dnf cache so each test doesn't have to do it
                     RUN command -v dnf >/dev/null && dnf check-update || true
