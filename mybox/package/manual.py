@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from pydantic import Field
 

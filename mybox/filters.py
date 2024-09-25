@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Iterator
+from collections.abc import Callable, Iterator
 
 from pydantic import BaseModel, Field
 

@@ -1,19 +1,11 @@
 import subprocess
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager, nullcontext
+from collections.abc import AsyncIterator, Callable, Iterable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
-from typing import (
-    Any,
-    AsyncContextManager,
-    AsyncIterator,
-    Callable,
-    Iterable,
-    Literal,
-    Optional,
-    cast,
-)
+from typing import Any, Literal, Optional, cast
 
 from trio import run_process
 
@@ -279,7 +271,7 @@ class SubprocessDriver(Driver, ABC):
             stderr = None
 
         # https://github.com/python/mypy/issues/5512
-        cm: AsyncContextManager
+        cm: AbstractAsyncContextManager
         if show_output:
             cm = parallel_map_pause()
         else:

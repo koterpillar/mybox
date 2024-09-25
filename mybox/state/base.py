@@ -1,6 +1,7 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Generic, Iterable, Type, TypeVar
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
 from uuid import uuid4
 
 from .db import DB

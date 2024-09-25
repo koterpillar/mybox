@@ -1,8 +1,9 @@
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable, Iterable
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import Callable, Iterable, Optional, TypeVar, overload
+from typing import Optional, TypeVar, overload
 
 import pytest
 
@@ -10,7 +11,7 @@ from mybox.manager import Manager
 from mybox.package import Package, parse_package, parse_packages
 from mybox.state import DB
 from mybox.tracker import Tracker
-from mybox.utils import AsyncRet, RunArg, T
+from mybox.utils import RunArg, T, U
 
 from ..base import CI, DOCKER
 from .driver import Driver, TestDriver
@@ -23,21 +24,21 @@ TEST = TypeVar("TEST", bound="PackageTestBase")
 
 @overload
 def requires_driver(
-    test_fn: Callable[[TEST, TestDriver], AsyncRet[None]]
-) -> Callable[[TEST, TestDriver], AsyncRet[None]]: ...
+    test_fn: Callable[[TEST, TestDriver], Awaitable[T]]
+) -> Callable[[TEST, TestDriver], Awaitable[T]]: ...
 
 
 @overload
 def requires_driver(
-    test_fn: Callable[[TEST, TestDriver, T], AsyncRet[None]]
-) -> Callable[[TEST, TestDriver, T], AsyncRet[None]]: ...
+    test_fn: Callable[[TEST, TestDriver, T], Awaitable[U]]
+) -> Callable[[TEST, TestDriver, T], Awaitable[U]]: ...
 
 
 def requires_driver(
-    test_fn: Callable[..., AsyncRet[None]]
-) -> Callable[..., AsyncRet[None]]:
+    test_fn: Callable[..., Awaitable[T]]
+) -> Callable[..., Awaitable[T]]:
     @wraps(test_fn)
-    async def wrapper(self: TEST, make_driver: TestDriver, *args, **kwargs) -> None:
+    async def wrapper(self: TEST, make_driver: TestDriver, *args, **kwargs) -> T:
         self.driver = make_driver
         await self.check_applicable()
         return await test_fn(self, make_driver, *args, **kwargs)

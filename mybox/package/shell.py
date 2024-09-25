@@ -1,5 +1,6 @@
+from collections.abc import AsyncIterable
 from pathlib import Path
-from typing import AsyncIterable, Optional
+from typing import Optional
 
 from ..tracker import Tracker
 from ..utils import async_cached

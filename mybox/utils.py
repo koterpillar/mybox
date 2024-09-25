@@ -1,7 +1,8 @@
 import subprocess
+from collections.abc import Awaitable, Callable, Iterable
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Iterable, Optional, TypeVar, overload
+from typing import Any, Optional, TypeVar, overload
 
 import httpx
 import trio
@@ -112,42 +113,41 @@ def raise_(exception: BaseException) -> Any:
     raise exception
 
 
-AsyncRet = Coroutine[Any, Any, T]
+@overload
+def async_cached(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[T]]: ...
 
 
 @overload
-def async_cached(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]: ...
-
-
-@overload
-def async_cached(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]: ...
+def async_cached(fn: Callable[[U], Awaitable[T]]) -> Callable[[U], Awaitable[T]]: ...
 
 
 @overload
 def async_cached(
-    fn: Callable[[U, V], AsyncRet[T]]
-) -> Callable[[U, V], AsyncRet[T]]: ...
+    fn: Callable[[U, V], Awaitable[T]]
+) -> Callable[[U, V], Awaitable[T]]: ...
 
 
-def async_cached(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
+def async_cached(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return _async_cached_lock(None, fn)
 
 
 @overload
-def async_cached_lock(fn: Callable[[], AsyncRet[T]]) -> Callable[[], AsyncRet[T]]: ...
-
-
-@overload
-def async_cached_lock(fn: Callable[[U], AsyncRet[T]]) -> Callable[[U], AsyncRet[T]]: ...
+def async_cached_lock(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[T]]: ...
 
 
 @overload
 def async_cached_lock(
-    fn: Callable[[U, V], AsyncRet[T]]
-) -> Callable[[U, V], AsyncRet[T]]: ...
+    fn: Callable[[U], Awaitable[T]]
+) -> Callable[[U], Awaitable[T]]: ...
 
 
-def async_cached_lock(fn: Callable[..., AsyncRet[T]]) -> Callable[..., AsyncRet[T]]:
+@overload
+def async_cached_lock(
+    fn: Callable[[U, V], Awaitable[T]]
+) -> Callable[[U, V], Awaitable[T]]: ...
+
+
+def async_cached_lock(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return _async_cached_lock(trio.Lock(), fn)
 
 
@@ -163,8 +163,8 @@ NO_LOCK = NoLock()
 
 
 def _async_cached_lock(
-    lock: Optional[trio.Lock], fn: Callable[..., AsyncRet[T]]
-) -> Callable[..., AsyncRet[T]]:
+    lock: Optional[trio.Lock], fn: Callable[..., Awaitable[T]]
+) -> Callable[..., Awaitable[T]]:
     cache: dict[Any, T] = {}
 
     @wraps(fn)

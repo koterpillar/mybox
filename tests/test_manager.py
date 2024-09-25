@@ -1,5 +1,6 @@
+from collections.abc import AsyncIterable
 from pathlib import Path
-from typing import AsyncIterable, Optional
+from typing import Optional
 
 import pytest
 import yaml

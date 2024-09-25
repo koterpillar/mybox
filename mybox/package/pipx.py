@@ -1,7 +1,8 @@
 import json
 import re
+from collections.abc import AsyncIterable
 from pathlib import Path
-from typing import Any, AsyncIterable, Optional
+from typing import Any, Optional
 
 from pydantic import Field, field_validator
 
