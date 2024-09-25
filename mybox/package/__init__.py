@@ -17,16 +17,16 @@ from .url import URLPackage
 from .yum_repo import YumRepo
 
 AnyPackageT = Union[
-    SystemPackage,
-    GitHubPackage,
-    URLPackage,
+    BrewRepo,
     Clone,
+    GitHubPackage,
+    Links,
     NpmPackage,
     PipxPackage,
     Shell,
-    Links,
+    SystemPackage,
+    URLPackage,
     YumRepo,
-    BrewRepo,
 ]
 
 AnyPackage: TypeAdapter[AnyPackageT] = TypeAdapter(AnyPackageT)
