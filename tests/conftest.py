@@ -27,5 +27,9 @@ async def fixture_driver(
         # Required for fc-cache
         await driver.link_to_real_home(".local", "share", "fonts")
 
+        # Required for Daemon tests
+        await driver.link_to_real_home(".local", "share", "systemd", "user")
+        await driver.link_to_real_home("Library", "LaunchAgents")
+
     yield driver
     await driver.stop()
