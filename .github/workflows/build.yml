@@ -7,22 +7,23 @@ on:
 
 jobs:
   ci:
+    name: "Test (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.os) }})"
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu
             docker: debian
             python-version: "3.11"
-          - os: ubuntu-latest
+          - os: ubuntu
             docker: ubuntu
             python-version: "3.11"
-          - os: ubuntu-latest
+          - os: ubuntu
             docker: fedora
             python-version: "3.11"
-          - os: macos-latest
+          - os: macos
             python-version: "3.11"
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,7 +43,7 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.docker }}
+          name: coverage-data-${{ matrix.os }}-${{ matrix.docker || 'host' }}
           path: .coverage*
           include-hidden-files: true
           if-no-files-found: error
