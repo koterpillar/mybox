@@ -21,6 +21,8 @@ jobs:
           - os: ubuntu
             docker: fedora
             python-version: "3.11"
+          - os: ubuntu
+            python-version: "3.11"
           - os: macos
             python-version: "3.11"
     runs-on: ${{ matrix.os }}-latest

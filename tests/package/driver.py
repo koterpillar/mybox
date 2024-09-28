@@ -57,6 +57,13 @@ class OverrideHomeDriver(TestDriver, LocalDriver):
             return await super().home()
         return self.override_home
 
+    async def link_to_real_home(self, *path: str) -> None:
+        overridden_dir = Path(self.override_home, *path)
+        real_dir = Path.home() / Path(*path)
+
+        await self.makedirs(real_dir)
+        await self.link(real_dir, overridden_dir)
+
 
 DOCKER_USER = "regular_user"
 

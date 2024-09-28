@@ -5,7 +5,14 @@ import pytest
 from mybox.package.shell import Shell
 from mybox.state import DB
 
-from .base import CI, DummyTracker, PackageArgs, PackageTestBase, requires_driver
+from .base import (
+    CI,
+    DOCKER,
+    DummyTracker,
+    PackageArgs,
+    PackageTestBase,
+    requires_driver,
+)
 from .driver import TestDriver
 
 
@@ -31,8 +38,10 @@ class TestShell(ShellTestBase):
     @pytest.mark.trio
     @requires_driver
     async def test_installs(self, make_driver: TestDriver):
-        if (await self.os()).switch(linux=False, macos=CI):
-            pytest.skip("Cannot test normal user's shell on macOS on GitHub Actions.")
+        if CI and not DOCKER:
+            pytest.skip(
+                "Cannot test normal user's shell without Docker on GitHub Actions."
+            )
         return await super().test_installs(make_driver)
 
 
