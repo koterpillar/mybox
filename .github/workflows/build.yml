@@ -42,7 +42,7 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.docker }}
+          name: coverage-data-${{ matrix.os }}-${{ matrix.docker || 'host' }}
           path: .coverage*
           include-hidden-files: true
           if-no-files-found: error
