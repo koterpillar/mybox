@@ -99,6 +99,7 @@ class TestAmmonite(PackageTestBase):
             "raw": "amm",
             "raw_executable": True,
             "binary": "amm",
+            "skip_release": "3.0.0",
         }
 
     prerequisites = PackageTestBase.JAVA
