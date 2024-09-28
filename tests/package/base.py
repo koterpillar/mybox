@@ -6,12 +6,11 @@ from typing import Callable, Iterable, Optional, TypeVar, overload
 
 import pytest
 
-from mybox.driver import OS, LocalDriver
 from mybox.manager import Manager
 from mybox.package import Package, parse_package, parse_packages
 from mybox.state import DB
 from mybox.tracker import Tracker
-from mybox.utils import AsyncRet, RunArg, T, async_cached
+from mybox.utils import AsyncRet, RunArg, T
 
 from ..base import CI, DOCKER
 from .driver import Driver, TestDriver
@@ -203,10 +202,6 @@ class PackageTestBase(ABC):
         {"system": "nodejs", "os": "linux"},
         {"system": "node", "os": "darwin"},
     ]
-
-    @async_cached
-    async def os(self) -> OS:
-        return await LocalDriver().os()
 
     async def assert_desktop_file_exists(
         self, file_name: str, *, name: str, executable: Optional[str] = None
