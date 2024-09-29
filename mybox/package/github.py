@@ -1,8 +1,9 @@
 import json
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass
 from subprocess import CalledProcessError
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 from pydantic import Field
 

@@ -1,7 +1,8 @@
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import AsyncIterator, Awaitable, Callable, Generic, Optional
+from typing import Generic, Optional
 
 import tqdm
 import trio

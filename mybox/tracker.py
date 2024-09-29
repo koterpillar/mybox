@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator
 
 from .driver import Driver
 from .state import DB, INSTALLED_FILES, InstalledFile, Storage

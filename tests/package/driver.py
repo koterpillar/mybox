@@ -1,9 +1,9 @@
 import shlex
 import shutil
 import tempfile
+from collections.abc import Iterable
 from os import getpid
 from pathlib import Path
-from typing import Iterable
 
 from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import RunArg, run, run_output

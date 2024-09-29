@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterable
 from functools import cached_property
-from typing import AsyncIterable, Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 

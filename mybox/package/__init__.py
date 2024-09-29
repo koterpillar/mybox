@@ -1,4 +1,5 @@
-from typing import Any, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Union
 
 from pydantic import TypeAdapter
 
@@ -17,16 +18,16 @@ from .url import URLPackage
 from .yum_repo import YumRepo
 
 AnyPackageT = Union[
-    SystemPackage,
-    GitHubPackage,
-    URLPackage,
+    BrewRepo,
     Clone,
+    GitHubPackage,
+    Links,
     NpmPackage,
     PipxPackage,
     Shell,
-    Links,
+    SystemPackage,
+    URLPackage,
     YumRepo,
-    BrewRepo,
 ]
 
 AnyPackage: TypeAdapter[AnyPackageT] = TypeAdapter(AnyPackageT)

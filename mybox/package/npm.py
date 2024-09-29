@@ -1,5 +1,5 @@
 import shlex
-from typing import AsyncIterable
+from collections.abc import AsyncIterable
 
 from pydantic import Field
 

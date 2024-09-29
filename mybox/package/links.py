@@ -1,6 +1,7 @@
 import hashlib
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Optional
 
 from pydantic import Field, field_validator
 
