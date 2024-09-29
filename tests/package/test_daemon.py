@@ -1,3 +1,6 @@
+import pytest
+
+from ..base import DOCKER
 from .base import PackageArgs, PackageTestBase
 
 
@@ -39,3 +42,8 @@ class TestDaemon(PackageTestBase):
         )
 
     check_installed_output = "Mybox: sleep 3600"
+
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if DOCKER:
+            pytest.skip("Daemon relies on systemd, which is not available in Docker.")
