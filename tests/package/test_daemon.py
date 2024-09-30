@@ -21,10 +21,11 @@ class TestDaemon(PackageTestBase):
         await self.driver.run("systemctl", "--user", "daemon-reload")
 
     async def cleanup_macos(self) -> None:
-        uid = await self.driver.run_output("id", "-u")
-        await self.driver.run(
-            "launchctl", "bootout", f"gui/{uid}/com.koterpillar.mybox.sleep_3600"
-        )
+        daemons = await self.driver.run_output("launchctl", "list")
+        if "Mybox" in daemons:
+            await self.driver.run(
+                "launchctl", "unload", "com.koterpillar.mybox.sleep_3600"
+            )
         await self.driver.rm(
             await self.driver.home()
             / "Library"
