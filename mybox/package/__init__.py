@@ -8,6 +8,7 @@ from ..state import DB
 from .base import Package
 from .brew_repo import BrewRepo
 from .clone import Clone
+from .daemon import Daemon
 from .github import GitHubPackage
 from .links import Links
 from .npm import NpmPackage
@@ -20,6 +21,7 @@ from .yum_repo import YumRepo
 AnyPackageT = Union[
     BrewRepo,
     Clone,
+    Daemon,
     GitHubPackage,
     Links,
     NpmPackage,

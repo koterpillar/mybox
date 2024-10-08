@@ -121,6 +121,9 @@ class PackageTestBase(ABC):
     async def ignored_paths(self) -> set[Path]:
         return set([await self.driver.home() / ".cache"])
 
+    async def cleanup(self) -> None:
+        pass
+
     @pytest.mark.trio
     @requires_driver
     async def test_installs(
@@ -138,24 +141,27 @@ class PackageTestBase(ABC):
         await self.install_prerequisites(package)
 
         tracker = DummyTracker()
-        await package.install(tracker=tracker)
+        try:
+            await package.install(tracker=tracker)
 
-        await self.check_installed()
+            await self.check_installed()
 
-        # Create the package again to reset cached properties
-        package = parse_package(args, driver=self.driver, db=db)
-        assert (
-            await package.is_installed()
-        ), "Package should be reported installed after installation."
-        assert (await package.local_version()) == (
-            await package.get_remote_version()
-        ), "Package version should be the same as the remote version."
+            # Create the package again to reset cached properties
+            package = parse_package(args, driver=self.driver, db=db)
+            assert (
+                await package.is_installed()
+            ), "Package should be reported installed after installation."
+            assert (await package.local_version()) == (
+                await package.get_remote_version()
+            ), "Package version should be the same as the remote version."
 
-        for existing in await self.all_files() - preexisting_files:
-            if not any(
-                existing.is_relative_to(installed) for installed in tracker.tracked
-            ):
-                assert False, f"File {existing} was not tracked."
+            for existing in await self.all_files() - preexisting_files:
+                if not any(
+                    existing.is_relative_to(installed) for installed in tracker.tracked
+                ):
+                    assert False, f"File {existing} was not tracked."
+        finally:
+            await self.cleanup()
 
     root_required_for_is_installed = False
 
@@ -184,9 +190,11 @@ class PackageTestBase(ABC):
 
     @pytest.mark.trio
     @requires_driver
-    async def test_has_name(self, make_driver: TestDriver):
+    async def test_has_name(
+        self, make_driver: TestDriver  # pylint:disable=unused-argument
+    ):
         package = parse_package(
-            await self.constructor_args(), driver=make_driver, db=self.setup_db()
+            await self.constructor_args(), driver=self.driver, db=self.setup_db()
         )
         assert package.name != ""
 
