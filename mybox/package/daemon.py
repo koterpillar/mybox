@@ -1,3 +1,4 @@
+import re
 import shlex
 from pathlib import Path
 from textwrap import dedent
@@ -31,7 +32,9 @@ class Daemon(Package):
 
     @property
     def daemon_name(self) -> str:
-        return f"com.koterpillar.mybox.{self.daemon_cmd.replace(' ', '_')}"
+        return "com.koterpillar.mybox." + re.sub(
+            r"\W", lambda c: "" if c.group(0) in {'"', "'"} else "_", self.daemon_cmd
+        )
 
     @property
     def daemon_description(self) -> str:

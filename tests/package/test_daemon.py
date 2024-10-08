@@ -1,5 +1,9 @@
 import pytest
 
+from mybox.driver import LocalDriver
+from mybox.package import Daemon
+from mybox.state import DB
+
 from ..base import DOCKER
 from .base import PackageArgs, PackageTestBase
 
@@ -48,3 +52,31 @@ class TestDaemon(PackageTestBase):
         await super().check_applicable()
         if DOCKER:
             pytest.skip("Daemon relies on systemd, which is not available in Docker.")
+
+
+def test_daemon_name_description():
+    package = Daemon(
+        daemon=["echo", "multiple words", "привет мир", "/etc/passwd"],
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+
+    assert (
+        package.daemon_name
+        == "com.koterpillar.mybox.echo_multiple_words_привет_мир__etc_passwd"
+    )
+    assert (
+        package.daemon_description
+        == "Mybox: echo 'multiple words' 'привет мир' /etc/passwd"
+    )
+
+
+def test_explicit_daemon_name():
+    package = Daemon(
+        name="My daemon",
+        daemon=["echo", "hello"],
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+
+    assert package.daemon_description == "Mybox: My daemon"
