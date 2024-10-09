@@ -69,6 +69,8 @@ class Daemon(Package):
                     <true/>
                     <key>ProgramArguments</key>
                     <array>
+                    <string>/usr/bin/env</string>
+                    <string>-SPATH=${{HOME}}/.local/bin:${{PATH}}</string>
                     <string>/bin/sh</string>
                     <string>-c</string>
                     <string>{self.daemon_cmd}</string>
