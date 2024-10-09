@@ -49,9 +49,10 @@ class SystemPackage(ManualVersion):
 
     async def postinstall_linux(self):
         if self.services:
-            await self.driver.with_root(True).run("systemctl", "daemon-reload")
+            driver = self.driver.with_root(True)
+            await driver.run("systemctl", "daemon-reload")
             for service in self.services:
-                await self.driver.with_root(True).run("systemctl", "enable", service)
+                await driver.run("systemctl", "enable", "--now", service)
 
     async def postinstall_macos(self):
         pass
