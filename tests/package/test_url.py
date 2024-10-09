@@ -23,6 +23,21 @@ class TestYarn(PackageTestBase):
     check_installed_output = "Usage: yarn"
 
 
+class TestRawURL(PackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "name": "debian-readme",
+            "url": "https://ftp.debian.org/debian/README",
+            "raw": True,
+        }
+
+    async def check_installed_command(self):
+        home = await self.driver.home()
+        return ["cat", f"{home}/.local/mybox/debian-readme/README"]
+
+    check_installed_output = "Debian GNU/Linux"
+
+
 def test_name():
     package = URLPackage(
         url="https://example.com/somewhere/thing.tar.gz",
