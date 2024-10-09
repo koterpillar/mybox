@@ -37,7 +37,7 @@ class TestCask(PackageTestBase):
 
 
 class CaskFormulaPrecedence(PackageTestBase):
-    # affects_system = True
+    affects_system = True
 
     async def check_applicable(self) -> None:
         await super().check_applicable()
