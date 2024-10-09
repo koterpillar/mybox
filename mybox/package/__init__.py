@@ -38,15 +38,13 @@ AnyPackageList = TypeAdapter(list[AnyPackageT])
 
 
 def parse_package(package: Any, *, db: DB, driver: Driver) -> Package:
-    if not isinstance(package, dict):
-        raise ValueError(f"Dictionary expected, got: {package}.")
+    package = TypeAdapter(dict).validate_python(package)
 
     return AnyPackage.validate_python({**package, "db": db, "driver": driver})
 
 
 def parse_packages(packages: Any, *, db: DB, driver: Driver) -> Sequence[Package]:
-    if not isinstance(packages, list):
-        raise ValueError(f"List expected, got: {packages}.")
+    packages = TypeAdapter(list[dict]).validate_python(packages)
 
     return AnyPackageList.validate_python(
         [{**package, "db": db, "driver": driver} for package in packages]

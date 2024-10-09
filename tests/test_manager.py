@@ -1,10 +1,10 @@
 from collections.abc import AsyncIterable
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 import yaml
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from mybox.driver import Driver, RunResult, RunResultOutput
 from mybox.manager import InstallResult, Manager
@@ -111,9 +111,12 @@ class TestManager:
     def make_manager(self, tmp_path: Path) -> None:
         self.manager = Manager(db=self.db, driver=self.driver, component_path=tmp_path)
 
-    def write_component(self, name: str, *packages: dict) -> None:
+    def write_component_raw(self, name: str, contents: Any) -> None:
         with open(self.manager.component_path / f"{name}.yaml", "w") as out:
-            yaml.dump(list(packages), out, indent=4)
+            yaml.dump(contents, out, indent=4)
+
+    def write_component(self, name: str, *packages: dict) -> None:
+        self.write_component_raw(name, list(packages))
 
     def make_package(
         self,
@@ -359,3 +362,21 @@ class TestManager:
         assert github_package.repo == "asdf/asdf"
         assert github_package.binaries == ["asdf"]
         assert isinstance(url_package, URLPackage)
+
+    def test_parse_package_error_not_a_dict(self):
+        self.write_component_raw("one", ["not", "a", "dict"])
+
+        with pytest.raises(ValidationError):
+            self.manager.load_components(frozenset(["one"]))
+
+    def test_parse_package_error_invalid_dict(self):
+        self.write_component("one", ["not", "a", "package"])
+
+        with pytest.raises(ValidationError):
+            self.manager.load_components(frozenset(["one"]))
+
+    def test_parse_package_error_invalid_keys(self):
+        self.write_component("one", {"invalid": "package"})
+
+        with pytest.raises(ValidationError):
+            self.manager.load_components(frozenset(["one"]))
