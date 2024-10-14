@@ -44,6 +44,17 @@ class TestDriver(Driver):
         pass
 
 
+def package_root() -> Path:
+    return Path(__file__).parent.parent.parent.absolute()
+
+
+def bootstrap_script() -> Path:
+    bootstrap = package_root() / "bootstrap"
+    assert bootstrap.is_file()
+
+    return bootstrap
+
+
 class OverrideHomeDriver(TestDriver, LocalDriver):
     def __init__(self, *, override_home: Path, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -63,6 +74,12 @@ class OverrideHomeDriver(TestDriver, LocalDriver):
 
         await self.makedirs(real_dir)
         await self.link(real_dir, overridden_dir)
+
+    @classmethod
+    async def create(cls, *, override_home: Path) -> "OverrideHomeDriver":
+        driver = OverrideHomeDriver(override_home=override_home)
+        await driver.run(bootstrap_script(), "--development")
+        return driver
 
 
 DOCKER_USER = "regular_user"
@@ -99,16 +116,11 @@ class DockerDriver(TestDriver, SubprocessDriver):
 
     @classmethod
     async def create(cls, *, image: str) -> "DockerDriver":
-        package_root = Path(__file__).parent.parent.parent.absolute()
-
-        bootstrap = package_root / "bootstrap"
-        assert bootstrap.is_file()
-
         target_image = f"{DOCKER_IMAGE_PREFIX}{image}"
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
-            shutil.copy(bootstrap, tmppath / "bootstrap")
+            shutil.copy(bootstrap_script(), tmppath / "bootstrap")
             with open(tmppath / "Dockerfile", "w") as dockerfile:
                 dockerfile.write(
                     f"""
@@ -132,7 +144,7 @@ class DockerDriver(TestDriver, SubprocessDriver):
             "--rm",
             "--detach",
             "--volume",
-            f"{package_root}:{package_root}",
+            f"{package_root()}:{package_root()}",
             "--name",
             f"mybox-test-{getpid()}-{cls.container_number}",
             target_image,

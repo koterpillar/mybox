@@ -22,7 +22,7 @@ async def fixture_driver(
         local_bin = tmp_path / ".local" / "bin"
         monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
 
-        driver = OverrideHomeDriver(override_home=tmp_path)
+        driver = await OverrideHomeDriver.create(override_home=tmp_path)
 
         # Required for fc-cache
         await driver.link_to_real_home(".local", "share", "fonts")
