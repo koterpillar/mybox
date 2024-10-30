@@ -164,6 +164,22 @@ class TestFiraCode(PackageTestBase):
         }
 
 
+class TestRawGzipExecutable(PackageTestBase):
+    # This package ships as a gzip of its raw executable
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "repo": "argoproj/argo-workflows",
+            "binary": "argo",
+            "raw": "argo",
+            "raw_executable": True,
+        }
+
+    async def check_installed_command(self):
+        return ["argo", "version"]
+
+    check_installed_output = "argo: v"
+
+
 @pytest.mark.trio
 async def test_skip_release():
     package = GitHubPackage(

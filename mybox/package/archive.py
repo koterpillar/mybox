@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from ..extractor import get_extractor
+from ..extractor import get_extractor, get_single_extractor
 from ..tracker import Tracker
 from ..utils import allow_singular_none, async_cached, with_extensions
 from .base import Package
@@ -41,16 +41,21 @@ class ArchivePackage(ManualPackage, ABC):
                 filename = self.raw
             else:
                 filename = url.rsplit("/", 1)[-1]
-            target = await self.package_directory() / filename
-            await self.driver.copy(source, target)
-            if self.raw_executable:
-                await self.driver.make_executable(target)
-            return
+            await self.extract_raw(url, source, filename)
 
-        extractor = await get_extractor(url, driver=self.driver)
-        await extractor.extract(
-            archive=source, target_directory=await self.package_directory()
-        )
+        else:
+            extractor = await get_extractor(url, driver=self.driver)
+            await extractor.extract(
+                archive=source, target_directory=await self.package_directory()
+            )
+
+    async def extract_raw(self, url: str, source: Path, filename: str) -> None:
+        target = await self.package_directory() / filename
+
+        extractor = await get_single_extractor(url, driver=self.driver)
+        await extractor.extract(archive=source, target=target)
+        if self.raw_executable:
+            await self.driver.make_executable(target)
 
     async def find_in_package_directory(
         self,
