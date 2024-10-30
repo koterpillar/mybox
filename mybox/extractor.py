@@ -1,3 +1,4 @@
+import shlex
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
@@ -84,19 +85,64 @@ def _guess_extractor(url: str, *, driver: Driver) -> Extractor:
         raise ValueError(f"Unknown archive format: {url}")
 
 
+async def get_redirect_url(url: str, *, driver: Driver) -> str:
+    return await driver.run_output(
+        "curl",
+        "--write-out",
+        "%{url_effective}",
+        "--head",
+        "--no-include",
+        "--silent",
+        "--show-error",
+        "--location",
+        url,
+    )
+
+
 async def get_extractor(url: str, *, driver: Driver) -> Extractor:
     try:
         return _guess_extractor(url, driver=driver)
     except ValueError:
-        url = await driver.run_output(
-            "curl",
-            "--write-out",
-            "%{url_effective}",
-            "--head",
-            "--no-include",
-            "--silent",
-            "--show-error",
-            "--location",
-            url,
-        )
+        url = await get_redirect_url(url, driver=driver)
         return _guess_extractor(url, driver=driver)
+
+
+class RawExtractor(ABC):
+    def __init__(self, *, driver: Driver):
+        self.driver = driver
+
+    @abstractmethod
+    async def extract(self, *, archive: Path, target: Path) -> None:
+        pass
+
+
+class Gzip(RawExtractor):
+    async def extract(self, *, archive: Path, target: Path) -> None:
+        await self.driver.run(
+            "sh",
+            "-c",
+            f"gunzip < {shlex.quote(str(archive))} > {shlex.quote(str(target))}",
+        )
+
+
+class Move(RawExtractor):
+    async def extract(self, *, archive: Path, target: Path) -> None:
+        await self.driver.copy(archive, target)
+
+
+def _guess_single_extractor(url: str, *, driver: Driver) -> RawExtractor:
+    if url.endswith(".gz"):
+        return Gzip(driver=driver)
+    else:
+        raise ValueError(f"Unknown archive format: {url}")
+
+
+async def get_single_extractor(url: str, *, driver: Driver) -> RawExtractor:
+    try:
+        return _guess_single_extractor(url, driver=driver)
+    except ValueError:
+        url = await get_redirect_url(url, driver=driver)
+        try:
+            return _guess_single_extractor(url, driver=driver)
+        except ValueError:
+            return Move(driver=driver)
