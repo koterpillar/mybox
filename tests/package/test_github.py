@@ -97,7 +97,6 @@ class TestAmmonite(PackageTestBase):
             "repo": "com-lihaoyi/Ammonite",
             "regex": r"^2\.13-3\.[0-9]+\.[0-9]+-M[0-9]-bootstrap$",
             "raw": "amm",
-            "raw_executable": True,
             "binary": "amm",
             "skip_release": "3.0.0",
         }
@@ -131,7 +130,6 @@ class TestJQ(PackageTestBase):
             "repo": "jqlang/jq",
             "binary": "jq",
             "raw": "jq",
-            "raw_executable": True,
         }
 
     async def check_installed_command(self):
@@ -171,7 +169,6 @@ class TestRawGzipExecutable(PackageTestBase):
             "repo": "argoproj/argo-workflows",
             "binary": "argo",
             "raw": "argo",
-            "raw_executable": True,
         }
 
     async def check_installed_command(self):

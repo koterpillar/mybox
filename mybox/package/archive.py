@@ -18,7 +18,6 @@ FONT_EXTENSIONS = ["ttf", "otf"]
 
 class ArchivePackage(ManualPackage, ABC):
     raw: bool | str = False
-    raw_executable: bool = False
 
     binary_paths: list[str] = Field(default_factory=list, alias="binary_path")
     binary_paths_val = allow_singular_none("binary_paths")
@@ -54,7 +53,7 @@ class ArchivePackage(ManualPackage, ABC):
 
         extractor = await get_single_extractor(url, driver=self.driver)
         await extractor.extract(archive=source, target=target)
-        if self.raw_executable:
+        if filename in self.binaries:
             await self.driver.make_executable(target)
 
     async def find_in_package_directory(
