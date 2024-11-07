@@ -78,7 +78,7 @@ class DNF(PackageCacheInstaller[PackageVersionInfo]):
             "--quiet",
             "repoquery",
             "--queryformat",
-            "%{name} %{version}",
+            "%{name} %{version}\n",
             "--latest-limit",
             "1",
             "--arch",
