@@ -1,12 +1,15 @@
 import subprocess
 from collections.abc import Awaitable, Callable, Iterable
 from functools import wraps
+from importlib.metadata import version as importlib_version
 from pathlib import Path
 from typing import Any, Optional, TypeVar, overload
 
 import httpx
 import trio
 from pydantic import field_validator
+
+MYBOX_VERSION = importlib_version("mybox")
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -80,7 +83,9 @@ def flatten(items: Iterable[Iterable[T]]) -> list[T]:
     return [item for sublist in items for item in sublist]
 
 
-http_client = httpx.AsyncClient()
+http_client = httpx.AsyncClient(
+    headers={"user-agent": f"mybox/{MYBOX_VERSION} (github.com/koterpillar/mybox)"}
+)
 
 
 async def http_get(url: str, headers: Optional[dict[str, str]] = None) -> str:
