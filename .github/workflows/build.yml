@@ -6,37 +6,46 @@ on:
   pull_request:
 
 jobs:
-  ci:
-    name: "Test (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.os) }})"
+  lint:
+    name: "Lint (Python ${{ matrix.python }})"
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu
-            docker: debian
-            python-version: "3.11"
-          - os: ubuntu
-            docker: ubuntu
-            python-version: "3.11"
-          - os: ubuntu
-            docker: fedora
-            python-version: "3.11"
-          - os: ubuntu
-            python-version: "3.11"
-          - os: macos
-            python-version: "3.11"
-    runs-on: ${{ matrix.os }}-latest
+        python:
+          - "3.11"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python }}
       - name: Install dependencies
         run: ./install-dev
       - name: Lint
         run: ./lint
+  test:
+    name: "Test (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - docker: debian
+          - docker: ubuntu
+          - docker: fedora
+          - host: ubuntu
+          - host: macos
+    runs-on: ${{ matrix.host || 'ubuntu' }}-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: ./install-dev
       - name: Test
         run: ./test-script
         env:
@@ -45,13 +54,15 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.docker || 'host' }}
+          name: coverage-data-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}
           path: .coverage*
           include-hidden-files: true
           if-no-files-found: error
 
   coverage:
-    needs: ci
+    needs:
+      - lint
+      - test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -76,7 +87,7 @@ jobs:
 
   publish:
     needs:
-      - ci
+      - test
       - coverage
     runs-on: ubuntu-latest
     permissions:
