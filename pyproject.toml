@@ -25,7 +25,7 @@ fawltydeps = "^0.17.0"
 isort = "^5.13.2"
 mypy = "^1.13.0"
 pylint = "^3.3.2"
-pylint-pydantic = "^0.3.2"
+pylint-pydantic = "^0.3.3"
 pytest = "^8.3.4"
 pytest-trio = "^0.8.0"
 trio-typing = {extras = ["mypy"], version = "^0.10.0"}
