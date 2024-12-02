@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from mybox.driver import LocalDriver
-from mybox.extractor import Tar, get_extractor
+from mybox.extractor import Tar, get_extractor, get_single_extractor
 from mybox.utils import run
 
 
@@ -87,3 +87,24 @@ async def test_get_extractor_unknown():
         ValueError, match="Unknown archive format: https://example.com/"
     ):
         await get_extractor("https://example.com", driver=LocalDriver())
+
+
+@pytest.mark.trio
+@pytest.mark.parametrize(
+    "compress_command,extension", [("gzip", "gz"), ("xz", "xz"), ("bzip2", "bz2")]
+)
+async def test_single_extractor(compress_command: str, extension: str):
+    with tempfile.TemporaryDirectory() as srcdir:
+        srcpath = Path(srcdir)
+        (srcpath / "myfile").write_text("contents")
+        await run(compress_command, srcpath / "myfile")
+
+        archive = srcpath / f"myfile.{extension}"
+
+        extractor = await get_single_extractor(str(archive), driver=LocalDriver())
+        with tempfile.TemporaryDirectory() as destdir:
+            destpath = Path(destdir) / "target"
+
+            await extractor.extract(archive=archive, target=destpath)
+
+            assert destpath.read_text() == "contents"
