@@ -116,12 +116,16 @@ class RawExtractor(ABC):
         pass
 
 
-class Gzip(RawExtractor):
+class ShellRedirectRawExtractor(RawExtractor):
+    def __init__(self, *, driver: Driver, command: str):
+        super().__init__(driver=driver)
+        self.command = command
+
     async def extract(self, *, archive: Path, target: Path) -> None:
         await self.driver.run(
             "sh",
             "-c",
-            f"gunzip < {shlex.quote(str(archive))} > {shlex.quote(str(target))}",
+            f"{self.command} < {shlex.quote(str(archive))} > {shlex.quote(str(target))}",
         )
 
 
@@ -132,7 +136,9 @@ class Move(RawExtractor):
 
 def _guess_single_extractor(url: str, *, driver: Driver) -> RawExtractor:
     if url.endswith(".gz"):
-        return Gzip(driver=driver)
+        return ShellRedirectRawExtractor(driver=driver, command="gunzip")
+    elif url.endswith(".xz"):
+        return ShellRedirectRawExtractor(driver=driver, command="xzcat")
     else:
         raise ValueError(f"Unknown archive format: {url}")
 
