@@ -139,6 +139,8 @@ def _guess_single_extractor(url: str, *, driver: Driver) -> RawExtractor:
         return ShellRedirectRawExtractor(driver=driver, command="gunzip")
     elif url.endswith(".xz"):
         return ShellRedirectRawExtractor(driver=driver, command="xzcat")
+    elif url.endswith(".bz2"):
+        return ShellRedirectRawExtractor(driver=driver, command="bunzip2")
     else:
         raise ValueError(f"Unknown archive format: {url}")
 

@@ -90,7 +90,9 @@ async def test_get_extractor_unknown():
 
 
 @pytest.mark.trio
-@pytest.mark.parametrize("compress_command,extension", [("gzip", "gz"), ("xz", "xz")])
+@pytest.mark.parametrize(
+    "compress_command,extension", [("gzip", "gz"), ("xz", "xz"), ("bzip2", "bz2")]
+)
 async def test_single_extractor(compress_command: str, extension: str):
     with tempfile.TemporaryDirectory() as srcdir:
         srcpath = Path(srcdir)
