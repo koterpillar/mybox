@@ -328,13 +328,13 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "fawltydeps"
-version = "0.17.0"
+version = "0.18.0"
 description = "Find undeclared and unused 3rd-party dependencies in your Python project."
 optional = false
 python-versions = ">=3.7.2"
 files = [
-    {file = "fawltydeps-0.17.0-py3-none-any.whl", hash = "sha256:90c8329efc88da365979320caff77f5143cd8bd4a0ecab154cd3dce6c60623ed"},
-    {file = "fawltydeps-0.17.0.tar.gz", hash = "sha256:5c80fd8093e3100045c13efb420ccf8a4f78a35fd195d6b84a0ce1fbb210fa81"},
+    {file = "fawltydeps-0.18.0-py3-none-any.whl", hash = "sha256:acea88bd387ba8fb6b36ba6676fd7c5ff20c58186336836c95b4b3fa62f38f7d"},
+    {file = "fawltydeps-0.18.0.tar.gz", hash = "sha256:c0976539e55cf51850d4000bb4a62e7ce12f0ab33352aa71dc9844379cebec9f"},
 ]
 
 [package.dependencies]
@@ -343,6 +343,7 @@ isort = {version = ">=5.10,<6.0", markers = "python_version >= \"3.8\""}
 packaging = ">=24.0"
 pip-requirements-parser = ">=32.0.1"
 pydantic = ">=1.10.4,<3.0.0"
+PyYAML = ">=6.0.1"
 
 [package.extras]
 uv = ["uv (>=0.1.6)"]
@@ -1152,4 +1153,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "21f4ee1d6b403023fbc6d55705c3f0a5bad1b7d41172496f88ba954b14498425"
+content-hash = "3f92fb50af7af1dfd089464e7470550a92e0f7d06144cd8f94f12784f547c0e6"
