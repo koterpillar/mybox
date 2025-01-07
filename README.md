@@ -26,7 +26,7 @@ different ones for different roles).
 * Run the [bootstrap](bootstrap) script:
 
   ```shell
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/koterpillar/mybox/main/bootstrap)"
+  /bin/bash -c "$(curl -fsSL https://github.com/koterpillar/mybox/releases/latest/download/bootstrap)"
   ```
 
 * Run `mybox` from the directory with package definitions.
