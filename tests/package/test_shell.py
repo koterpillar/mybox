@@ -25,11 +25,7 @@ class ShellTestBase(PackageTestBase):
     affects_system = True
 
     async def check_installed_command(self):
-        return [
-            "sh",
-            "-c",
-            f"cat /etc/passwd | grep {await self.check_driver.username()}",
-        ]
+        return ["grep", await self.check_driver.username(), "/etc/passwd"]
 
     check_installed_output = "/bin/sh"
 
