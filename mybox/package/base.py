@@ -9,7 +9,12 @@ from ..driver import Driver
 from ..parallel import gather_
 from ..state import DB
 from ..tracker import Tracker
-from ..utils import allow_singular, async_cached, matches_if_specified
+from ..utils import (
+    allow_singular,
+    allow_singular_none,
+    async_cached,
+    matches_if_specified,
+)
 
 
 class Package(BaseModel, ABC):
@@ -32,10 +37,13 @@ class Package(BaseModel, ABC):
     distribution: Optional[list[str]] = None
     distribution_val = allow_singular("distribution")
 
+    root: bool = False
+
+    post: list[str] = Field(default_factory=list)
+    post_val = allow_singular_none("post")
+
     db: DB
     driver_: Driver = Field(..., alias="driver")
-
-    root: bool = False
 
     @property
     def driver(self) -> Driver:
@@ -66,7 +74,8 @@ class Package(BaseModel, ABC):
 
     @abstractmethod
     async def install(self, *, tracker: Tracker) -> None:
-        pass
+        for cmd in self.post:
+            await self.driver.run("sh", "-c", cmd)
 
     async def applicable(self) -> bool:
         os = await self.driver.os()
