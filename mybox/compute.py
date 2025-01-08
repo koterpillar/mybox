@@ -26,14 +26,16 @@ async def compute(value: Union[str, ValueC]) -> str:
 
 
 class Derived(ValueC, ABC):
-    base: "Value"
-
     @abstractmethod
     async def derived_value(self, contents: str) -> str:
         raise NotImplementedError
 
     async def compute(self) -> str:
-        base = await compute(self.base)
+        # mypy doesn't like inherited pydantic fields with aliases:
+        # https://github.com/pydantic/pydantic/issues/11009
+        # https://github.com/python/mypy/issues/18216
+        # therefore the base field is defined on every subclass
+        base = await compute(self.base)  # type: ignore
         return await self.derived_value(base)
 
 
@@ -47,6 +49,7 @@ class URL(Derived):
 class JSONPath(Derived, Filters):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    base: "Value"
     jsonpath: JSONPathT
 
     @field_validator("jsonpath", mode="before")
@@ -63,6 +66,7 @@ class JSONPath(Derived, Filters):
 
 
 class Format(Derived):
+    base: "Value"
     format: str  # pylint:disable=redefined-builtin
 
     async def derived_value(self, contents: str) -> str:
