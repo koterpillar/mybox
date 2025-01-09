@@ -119,7 +119,12 @@ class PackageTestBase(ABC):
         }
 
     async def ignored_paths(self) -> set[Path]:
-        return set([await self.driver.home() / ".cache"])
+        return set(
+            [
+                await self.driver.home() / ".cache",
+                await self.driver.home() / "Library" / "Preferences",
+            ]
+        )
 
     async def cleanup(self) -> None:
         pass
