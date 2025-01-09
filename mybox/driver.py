@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from dataclasses import dataclass
+from functools import cache
 from os import environ
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
@@ -70,6 +71,7 @@ class Driver(ABC):
     def deconstruct(self) -> dict:
         return {"root": self.root}
 
+    @cache
     def with_root(self, /, root: bool) -> "Driver":
         if self.root == root:
             return self
