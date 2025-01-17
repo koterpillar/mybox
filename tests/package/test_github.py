@@ -10,6 +10,13 @@ from .base import PackageArgs, PackageTestBase
 
 
 class TestNeovim(PackageTestBase):
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if (await self.driver.os()).switch(linux=True, macos=False) and (
+            await self.check_driver.architecture()
+        ) == "aarch64":
+            pytest.skip("Neovim doesn't provide Linux ARM binaries")
+
     async def constructor_args(self) -> PackageArgs:
         args: PackageArgs = {
             "repo": "neovim/neovim",
