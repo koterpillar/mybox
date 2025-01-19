@@ -1,6 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import AsyncIterable, Iterable
 from pathlib import Path
 
 from pydantic import Field
@@ -8,7 +8,9 @@ from pydantic import Field
 from ..configparser import DesktopEntry
 from ..tracker import Tracker
 from ..utils import allow_singular_none
+from .base import Package
 from .manual_version import ManualVersion
+from .system import SystemPackage
 
 RESOLUTION_RE = re.compile(r"(\d+)x(\d+)")
 
@@ -118,8 +120,7 @@ class ManualPackage(ManualVersion, ABC):
         target = font_dir / source.name
         await self.driver.copy(source, target)
         tracker.track(target, root=self.root)
-        if await self.driver.executable_exists("fc-cache"):
-            await self.driver.run("fc-cache", "-f", font_dir)
+        await self.driver.run("fc-cache", "-f", font_dir)
 
     @abstractmethod
     async def install(self, *, tracker: Tracker) -> None:
@@ -131,3 +132,14 @@ class ManualPackage(ManualVersion, ABC):
             await self.install_font(font, tracker)
 
         await super().install(tracker=tracker)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        if self.fonts:
+            yield SystemPackage(
+                system="fontconfig",
+                db=self.db,
+                driver=self.driver_,
+            )

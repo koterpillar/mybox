@@ -142,8 +142,6 @@ class TestFiraCode(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {"repo": "tonsky/FiraCode", "font": ["FiraCode-Regular"]}
 
-    prerequisites = [{"system": "fontconfig"}]
-
     async def check_installed_command(self):
         return ["fc-list", "FiraCode"]
 
