@@ -40,14 +40,12 @@ async def test_remote_version_git():
 
 class TestPipx(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        return {"pipx": "django"}
+        return {"pipx": "tqdm"}
 
     async def check_installed_command(self):
-        return ["django-admin", "help"]
+        return ["tqdm", "--help"]
 
-    check_installed_output = (
-        "Type 'django-admin help <subcommand>' for help on a specific subcommand."
-    )
+    check_installed_output = "Usage:\n  tqdm"
 
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {
@@ -59,4 +57,4 @@ class TestPipx(PackageTestBase):
 
 class TestPipxGit(TestPipx):
     async def constructor_args(self) -> PackageArgs:
-        return {"pipx": "git+https://github.com/django/django.git"}
+        return {"pipx": "git+https://github.com/tqdm/tqdm.git"}
