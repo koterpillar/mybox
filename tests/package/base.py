@@ -24,18 +24,18 @@ TEST = TypeVar("TEST", bound="PackageTestBase")
 
 @overload
 def requires_driver(
-    test_fn: Callable[[TEST, TestDriver], Awaitable[T]]
+    test_fn: Callable[[TEST, TestDriver], Awaitable[T]],
 ) -> Callable[[TEST, TestDriver], Awaitable[T]]: ...
 
 
 @overload
 def requires_driver(
-    test_fn: Callable[[TEST, TestDriver, T], Awaitable[U]]
+    test_fn: Callable[[TEST, TestDriver, T], Awaitable[U]],
 ) -> Callable[[TEST, TestDriver, T], Awaitable[U]]: ...
 
 
 def requires_driver(
-    test_fn: Callable[..., Awaitable[T]]
+    test_fn: Callable[..., Awaitable[T]],
 ) -> Callable[..., Awaitable[T]]:
     @wraps(test_fn)
     async def wrapper(self: TEST, make_driver: TestDriver, *args, **kwargs) -> T:
