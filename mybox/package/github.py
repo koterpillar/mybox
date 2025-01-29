@@ -121,7 +121,7 @@ class GitHubPackage(ArchivePackage, Filters):
         for signature_hint in [".asc", ".sig", "sha256", "sha512", ".yml"]:
             yield cls.excludes_(signature_hint)
 
-        for system_package_hint in [".deb", ".rpm", ".dmg", ".exe"]:
+        for system_package_hint in [".deb", ".rpm", ".dmg", ".exe", ".appimage"]:
             yield cls.excludes_(system_package_hint)
 
         yield from cls.from_synonyms(
