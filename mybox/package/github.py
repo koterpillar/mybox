@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from subprocess import CalledProcessError
 from typing import Any, Optional
 
+import httpx
 from pydantic import Field
 
 from ..driver import OS, Architecture
@@ -56,9 +57,22 @@ class GitHubReleaseArtifact:
 class GitHubRelease:
     id: int
     tag_name: str
-    draft: bool
     prerelease: bool
     assets: list[GitHubReleaseArtifact]
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> "GitHubRelease":
+        return cls(
+            id=data["id"],
+            tag_name=data["tag_name"],
+            prerelease=data["prerelease"],
+            assets=[
+                GitHubReleaseArtifact(
+                    name=result["name"], url=result["browser_download_url"]
+                )
+                for result in data["assets"]
+            ],
+        )
 
 
 ARCHITECTURE_FILTERS: dict[str, list[str]] = {
@@ -85,31 +99,33 @@ class GitHubPackage(ArchivePackage, Filters):
     @async_cached
     async def releases(self) -> list[GitHubRelease]:
         result = await github_api(f"repos/{self.repo}/releases")
-        return [
-            GitHubRelease(
-                id=release["id"],
-                tag_name=release["tag_name"],
-                draft=release["draft"],
-                prerelease=release["prerelease"],
-                assets=[
-                    GitHubReleaseArtifact(
-                        name=result["name"], url=result["browser_download_url"]
-                    )
-                    for result in release["assets"]
-                ],
-            )
-            for release in result
-        ]
+        return [GitHubRelease.from_json(release) for release in result]
+
+    @async_cached
+    async def latest_release(self) -> Optional[GitHubRelease]:
+        try:
+            result = await github_api(f"repos/{self.repo}/releases/latest")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            raise  # pragma: no cover
+        return GitHubRelease.from_json(result)
+
+    def want_release(self, release: GitHubRelease) -> bool:
+        if release.prerelease:
+            return False
+        if release.tag_name in self.skip_releases:
+            return False
+        return True
 
     async def release(self) -> GitHubRelease:
+        latest = await self.latest_release()
+        if latest and self.want_release(latest):
+            return latest
+
         candidates = await self.releases()
         for candidate in candidates:
-            if candidate.draft:
-                # Can't find any stably draft releases to test with
-                continue  # pragma: no cover
-            if candidate.prerelease:
-                continue
-            if candidate.tag_name in self.skip_releases:
+            if not self.want_release(candidate):
                 continue
             return candidate
         raise ValueError(f"No releases found for {self.repo}.")
