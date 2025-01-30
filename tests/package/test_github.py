@@ -95,10 +95,9 @@ class TestAmmonite(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "com-lihaoyi/Ammonite",
-            "regex": r"^2\.13-3\.[0-9]+\.[0-9]+-M[0-9]-bootstrap$",
+            "regex": r"^2\.13-3\.[0-9]+\.[0-9]+-bootstrap$",
             "raw": "amm",
             "binary": "amm",
-            "skip_release": "3.0.0",
         }
 
     prerequisites = PackageTestBase.JAVA
