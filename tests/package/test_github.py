@@ -95,10 +95,9 @@ class TestAmmonite(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "com-lihaoyi/Ammonite",
-            "regex": r"^2\.13-3\.[0-9]+\.[0-9]+-M[0-9]-bootstrap$",
+            "regex": r"^2\.13-3\.[0-9]+\.[0-9]+-bootstrap$",
             "raw": "amm",
             "binary": "amm",
-            "skip_release": "3.0.0",
         }
 
     prerequisites = PackageTestBase.JAVA
@@ -121,7 +120,7 @@ class TestGitHubCLI(PackageTestBase):
     async def check_installed_command(self):
         return ["gh", "--version"]
 
-    check_installed_output = "gh version"
+    check_installed_output = "gh version 2."
 
 
 class TestJQ(PackageTestBase):
@@ -185,6 +184,18 @@ async def test_skip_release():
     )
     release = await package.release()
     assert release.tag_name == "v7.8.0"
+
+
+@pytest.mark.trio
+async def test_ignore_prereleases():
+    package = GitHubPackage(
+        repo="neovim/neovim",
+        skip_release=["v0.10.4", "stable"],
+        driver=LocalDriver(),
+        db=DB.temporary(),
+    )
+    release = await package.release()
+    assert release.tag_name == "v0.10.3"
 
 
 @pytest.mark.trio
