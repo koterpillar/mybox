@@ -19,6 +19,20 @@ class TestApt:
         return Apt(make_driver)
 
     @pytest.mark.trio
+    async def test_installed_version(self, apt: Apt):
+        version = await apt.installed_version("git")
+        # Git should be installed as a prerequisite
+        assert version is not None, "git is not installed"
+        # Remove epoch
+        if version.startswith("1:"):
+            version = version[2:]
+        assert "2.0" <= version <= "99"
+
+    @pytest.mark.trio
+    async def test_remote_version(self, apt: Apt):
+        assert "8.10" <= await apt.latest_version("ghc") <= "99"
+
+    @pytest.mark.trio
     async def test_non_existent_package(self, apt: Apt):
         with pytest.raises(ValueError, match="zzzzzzzz"):
             await apt.latest_version("zzzzzzzz")
