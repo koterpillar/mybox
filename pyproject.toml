@@ -20,7 +20,7 @@ httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
-coverage = {extras = ["toml"], version = "^7.6.10"}
+coverage = {extras = ["toml"], version = "^7.6.11"}
 fawltydeps = "^0.18.0"
 isort = "^5.13.2"
 mypy = "^1.15.0"
