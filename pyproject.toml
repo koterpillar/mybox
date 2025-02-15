@@ -37,7 +37,7 @@ types-tqdm = "^4.66.0.4"
 mybox = "mybox.main:sync_main"
 
 [build-system]
-requires = ["poetry-core>=2.0.1"]
+requires = ["poetry-core>=2.1.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
