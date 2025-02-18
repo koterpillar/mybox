@@ -16,7 +16,12 @@ class TestFlatpak:
 
     @pytest.mark.trio
     async def test_remote_version(self, flatpak: Flatpak):
-        assert "0.32" <= await flatpak.latest_version("org.gnome.Shotwell") <= "999"
+        version = await flatpak.latest_version("org.gnome.Shotwell")
+        # version is remote:hash
+        parts = version.split(":")
+        assert len(parts) == 2
+        assert parts[0] in {"fedora", "flathub"}
+        assert len(parts[1]) == 12
 
     @pytest.mark.trio
     async def test_non_existent_package(self, flatpak: Flatpak):

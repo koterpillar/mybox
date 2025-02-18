@@ -17,19 +17,19 @@ class Flatpak(PackageCacheInstaller[PackageVersionInfo]):
     def parse_versions(output: str) -> dict[str, str]:
         versions = {}
         for line in output.splitlines():
-            name, version = line.split()
-            versions[name] = version
+            name, origin, commit = line.split()
+            versions[name] = f"{origin}:{commit}"
         return versions
 
     async def get_installed(self) -> dict[str, str]:
         result = await self.driver.run_output(
-            "flatpak", "list", "--app", "--columns=application,version"
+            "flatpak", "list", "--app", "--columns=application,origin,active"
         )
         return self.parse_versions(result)
 
     async def get_latest(self) -> dict[str, str]:
         result = await self.driver.run_output(
-            "flatpak", "remote-ls", "--app", "--columns=application,version"
+            "flatpak", "remote-ls", "--app", "--columns=application,origin,commit"
         )
         return self.parse_versions(result)
 
