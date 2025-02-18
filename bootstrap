@@ -81,7 +81,10 @@ case "$OSTYPE" in
     esac
 
     ensure flatpak
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    if ! flatpak remotes | grep -q flathub
+    then
+      sudo_ flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    fi
     ;;
 esac
 
