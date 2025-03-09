@@ -79,6 +79,12 @@ case "$OSTYPE" in
         ensure python3 python3{,-venv}
         ;;
     esac
+
+    ensure flatpak
+    if ! flatpak remotes | grep -q flathub
+    then
+      sudo_ flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    fi
     ;;
 esac
 
