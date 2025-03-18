@@ -6,7 +6,6 @@ import pytest
 import yaml
 from pydantic import Field, ValidationError
 
-from mybox.driver import Driver, RunResult, RunResultOutput
 from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
@@ -14,47 +13,9 @@ from mybox.package.manual_version import ManualVersion
 from mybox.package.url import URLPackage
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
-from mybox.utils import RunArg, allow_singular_none
+from mybox.utils import allow_singular_none
 
-
-class DummyDriver(Driver):
-    commands: list[list[str]]
-
-    def __init__(self, *, commands: Optional[list[list[str]]] = None, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.commands = commands if commands is not None else []
-
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {"commands": self.commands}
-
-    def reset(self) -> None:
-        self.commands[:] = []
-
-    async def run_(
-        self,
-        *args: RunArg,
-        check: bool = True,
-        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        capture_output: bool = False,
-        show_output: bool = False,
-        silent: bool = False,
-    ) -> RunResult:
-        output = ""
-
-        args_ = [str(arg) for arg in args]
-
-        if args_[0] == "uname":
-            output = "Linux"
-        elif args_[0] == "cat":
-            if args_[1] == "/etc/os-release":
-                output = "ID=ubuntu"
-
-        if self.root:
-            args_.insert(0, "sudo")
-
-        self.commands.append(args_)
-
-        return RunResultOutput(ok=True, output=output)
+from .base import DummyDriver
 
 
 class DummyPackage(ManualVersion):
