@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -22,12 +23,15 @@ class InstallResult:
 class Manager:
     db: DB
     driver: Driver
-    component_path: Path
+    data_path: Path
+
+    def load_data(self, *path: str) -> Any:
+        with open(self.data_path / Path(*path)) as f:
+            return yaml.safe_load(f)
 
     def load_component(self, component: str) -> Sequence[Package]:
-        with open(self.component_path / f"{component}.yaml") as f:
-            packages = yaml.safe_load(f)
-            return parse_packages(packages, db=self.db, driver=self.driver)
+        packages = self.load_data("packages", f"{component}.yaml")
+        return parse_packages(packages, db=self.db, driver=self.driver)
 
     def load_components(self, components: frozenset[str]) -> list[Package]:
         return flatten(self.load_component(component) for component in components)

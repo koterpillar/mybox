@@ -109,10 +109,11 @@ class TestManager:
 
     @pytest.fixture(autouse=True)
     def make_manager(self, tmp_path: Path) -> None:
-        self.manager = Manager(db=self.db, driver=self.driver, component_path=tmp_path)
+        self.manager = Manager(db=self.db, driver=self.driver, data_path=tmp_path)
 
     def write_component_raw(self, name: str, contents: Any) -> None:
-        with open(self.manager.component_path / f"{name}.yaml", "w") as out:
+        (self.manager.data_path / "packages").mkdir(exist_ok=True)
+        with open(self.manager.data_path / "packages" / f"{name}.yaml", "w") as out:
             yaml.dump(contents, out, indent=4)
 
     def write_component(self, name: str, *packages: dict) -> None:

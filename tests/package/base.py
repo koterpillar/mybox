@@ -99,7 +99,7 @@ class PackageTestBase(ABC):
 
     async def install_prerequisites(self, package: Package) -> None:
         db = self.setup_db()
-        manager = Manager(db=db, driver=self.driver, component_path=Path("/dev/null"))
+        manager = Manager(db=db, driver=self.driver, data_path=Path("/dev/null"))
         packages = list(parse_packages(self.prerequisites, db=db, driver=self.driver))
         async for prerequisite in package.prerequisites():
             packages.append(prerequisite)
