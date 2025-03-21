@@ -51,9 +51,7 @@ class RemoveLinksTestBase(LinksTestBase):
                 driver=self.driver,
                 root=self.root,
             )
-            manager = Manager(
-                db=db, driver=self.driver, component_path=Path("/dev/null")
-            )
+            manager = Manager(db=db, driver=self.driver, data_path=Path("/dev/null"))
             await manager.install_packages([package])
 
         async def list_files() -> list[str]:

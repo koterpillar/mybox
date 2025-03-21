@@ -12,25 +12,22 @@ from .state import DB, DB_PATH
 
 
 class Args(TypedArgs):
-    component: list[str]
+    pass
 
 
 def parse_args(args: Optional[list[str]] = None) -> Args:
     result = argparse.ArgumentParser(description="Install the environment")
-    result.add_argument("component", nargs="*", help="The component to install")
     return Args.from_argparse(result.parse_args(args))
 
 
 async def main() -> int:
-    args = parse_args()
+    parse_args()
 
     db = DB(DB_PATH)
     driver = LocalDriver()
-    manager = Manager(db=db, driver=driver, component_path=Path("packages"))
+    manager = Manager(db=db, driver=driver, data_path=Path())
 
-    components: frozenset[str] = frozenset(args.component) | {"base"}
-
-    result = await manager.install(components)
+    result = await manager.install()
 
     if result.installed:
         print(

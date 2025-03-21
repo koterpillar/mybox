@@ -6,7 +6,6 @@ import pytest
 import yaml
 from pydantic import Field, ValidationError
 
-from mybox.driver import Driver, RunResult, RunResultOutput
 from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
 from mybox.package.github import GitHubPackage
@@ -14,47 +13,9 @@ from mybox.package.manual_version import ManualVersion
 from mybox.package.url import URLPackage
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
-from mybox.utils import RunArg, allow_singular_none
+from mybox.utils import allow_singular_none
 
-
-class DummyDriver(Driver):
-    commands: list[list[str]]
-
-    def __init__(self, *, commands: Optional[list[list[str]]] = None, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.commands = commands if commands is not None else []
-
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {"commands": self.commands}
-
-    def reset(self) -> None:
-        self.commands[:] = []
-
-    async def run_(
-        self,
-        *args: RunArg,
-        check: bool = True,
-        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        capture_output: bool = False,
-        show_output: bool = False,
-        silent: bool = False,
-    ) -> RunResult:
-        output = ""
-
-        args_ = [str(arg) for arg in args]
-
-        if args_[0] == "uname":
-            output = "Linux"
-        elif args_[0] == "cat":
-            if args_[1] == "/etc/os-release":
-                output = "ID=ubuntu"
-
-        if self.root:
-            args_.insert(0, "sudo")
-
-        self.commands.append(args_)
-
-        return RunResultOutput(ok=True, output=output)
+from .base import DummyDriver
 
 
 class DummyPackage(ManualVersion):
@@ -90,6 +51,13 @@ class DummyPackage(ManualVersion):
             )
 
 
+class DummyManager(Manager):
+    """Dummy manager that reports all packages installed without doing anything"""
+
+    async def install_packages(self, packages: list[Package]) -> InstallResult:
+        return InstallResult(installed=packages, failed=[])
+
+
 class TestManager:
     @classmethod
     def package_names(cls, result: InstallResult) -> list[str]:
@@ -109,10 +77,11 @@ class TestManager:
 
     @pytest.fixture(autouse=True)
     def make_manager(self, tmp_path: Path) -> None:
-        self.manager = Manager(db=self.db, driver=self.driver, component_path=tmp_path)
+        self.manager = Manager(db=self.db, driver=self.driver, data_path=tmp_path)
 
     def write_component_raw(self, name: str, contents: Any) -> None:
-        with open(self.manager.component_path / f"{name}.yaml", "w") as out:
+        (self.manager.data_path / "packages").mkdir(exist_ok=True)
+        with open(self.manager.data_path / "packages" / f"{name}.yaml", "w") as out:
             yaml.dump(contents, out, indent=4)
 
     def write_component(self, name: str, *packages: dict) -> None:
@@ -380,3 +349,25 @@ class TestManager:
 
         with pytest.raises(ValidationError):
             self.manager.load_components(frozenset(["one"]))
+
+    @pytest.mark.trio
+    async def test_load_config_and_components(self):
+        dummy_manager = DummyManager(
+            db=self.db, driver=self.driver, data_path=self.manager.data_path
+        )
+
+        with open(self.manager.data_path / "mybox.yaml", "w") as out:
+            yaml.dump(
+                [
+                    {"host": "*", "component": "one"},
+                    {"host": "never", "component": "two"},
+                ],
+                out,
+            )
+
+        self.write_component("one", {"system": "one"})
+        self.write_component("two", {"system": "two"})
+
+        result = await dummy_manager.install()
+        assert len(result.installed) == 1
+        assert result.installed[0].name == "one"
