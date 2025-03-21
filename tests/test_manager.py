@@ -51,6 +51,13 @@ class DummyPackage(ManualVersion):
             )
 
 
+class DummyManager(Manager):
+    """Dummy manager that reports all packages installed without doing anything"""
+
+    async def install_packages(self, packages: list[Package]) -> InstallResult:
+        return InstallResult(installed=packages, failed=[])
+
+
 class TestManager:
     @classmethod
     def package_names(cls, result: InstallResult) -> list[str]:
@@ -342,3 +349,25 @@ class TestManager:
 
         with pytest.raises(ValidationError):
             self.manager.load_components(frozenset(["one"]))
+
+    @pytest.mark.trio
+    async def test_load_config_and_components(self):
+        dummy_manager = DummyManager(
+            db=self.db, driver=self.driver, data_path=self.manager.data_path
+        )
+
+        with open(self.manager.data_path / "mybox.yaml", "w") as out:
+            yaml.dump(
+                [
+                    {"host": "*", "component": "one"},
+                    {"host": "never", "component": "two"},
+                ],
+                out,
+            )
+
+        self.write_component("one", {"system": "one"})
+        self.write_component("two", {"system": "two"})
+
+        result = await dummy_manager.install()
+        assert len(result.installed) == 1
+        assert result.installed[0].name == "one"
