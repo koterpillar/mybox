@@ -1,11 +1,11 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import AbstractContextManager, asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Generic, Optional
+from typing import Generic, Optional, Protocol
 
-import tqdm
 import trio
+from alive_progress import alive_bar  # type: ignore
 
 from .utils import T, U, raise_
 
@@ -30,41 +30,46 @@ class PartialResults(Exception, Generic[T]):
 
 TERMINAL_LOCK = trio.Lock()
 
-CURRENT_TQDM: Optional[tqdm.tqdm] = None
+
+class ProgressBar(Protocol):
+    def pause(self) -> AbstractContextManager[None]: ...
+    def __call__(self) -> None: ...
 
 
-async def parallel_map_tqdm(
+CURRENT_PROGRESS: Optional[ProgressBar] = None
+
+
+async def parallel_map_progress(
     action: Callable[[T], Awaitable[U]], items: list[T]
 ) -> list[U]:
-    with tqdm.tqdm(total=len(items)) as progress:
-        global CURRENT_TQDM  # pylint:disable=global-statement
+    with alive_bar(len(items)) as progress:
+        global CURRENT_PROGRESS  # pylint:disable=global-statement
         async with TERMINAL_LOCK:
-            CURRENT_TQDM = progress
+            CURRENT_PROGRESS = progress
+
         try:
 
             async def action_and_update(item: T) -> U:
                 result = await action(item)
                 async with TERMINAL_LOCK:
-                    progress.update(1)
+                    if CURRENT_PROGRESS is not None:
+                        CURRENT_PROGRESS()
                 return result
 
             return await gather(*(partial(action_and_update, item) for item in items))
         finally:
             async with TERMINAL_LOCK:
-                CURRENT_TQDM = None
+                CURRENT_PROGRESS = None
 
 
 @asynccontextmanager
 async def parallel_map_pause() -> AsyncIterator[None]:
     async with TERMINAL_LOCK:
-        progress = CURRENT_TQDM
-        if progress:
-            progress.clear()
-        try:
+        if CURRENT_PROGRESS is None:
             yield
-        finally:
-            if progress:
-                progress.refresh()
+        else:
+            with CURRENT_PROGRESS.pause():
+                yield
 
 
 async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:

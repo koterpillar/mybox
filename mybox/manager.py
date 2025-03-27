@@ -8,7 +8,7 @@ import yaml
 from .config import MatchConfig, parse_config
 from .driver import Driver
 from .package import Package, parse_packages
-from .parallel import PartialException, PartialResults, parallel_map_tqdm
+from .parallel import PartialException, PartialResults, parallel_map_progress
 from .state import DB, VERSIONS
 from .tracker import ManagerTracker, Tracker
 from .utils import flatten
@@ -65,7 +65,7 @@ class Manager:
                 return [pkg async for pkg in self.install_package(tracker, package)]
 
             try:
-                results = await parallel_map_tqdm(process_and_record, packages)
+                results = await parallel_map_progress(process_and_record, packages)
 
                 await self.cleanup(packages)
 
