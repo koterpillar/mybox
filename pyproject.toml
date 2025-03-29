@@ -36,7 +36,7 @@ types-PyYAML = "^6.0.12.12"
 mybox = "mybox.main:sync_main"
 
 [build-system]
-requires = ["poetry-core>=2.1.1"]
+requires = ["poetry-core>=2.1.2"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
