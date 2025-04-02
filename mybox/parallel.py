@@ -40,8 +40,9 @@ CURRENT_PROGRESS: Optional[ProgressBar] = None
 
 
 async def parallel_map_progress(
-    action: Callable[[T], Awaitable[U]], items: list[T]
+    action: Callable[[T], Awaitable[U]], items: list[T], name: Callable[[T], str] = str
 ) -> list[U]:
+    processing: set[str] = set()
     with alive_bar(len(items)) as progress:
         global CURRENT_PROGRESS  # pylint:disable=global-statement
         async with TERMINAL_LOCK:
@@ -50,7 +51,13 @@ async def parallel_map_progress(
         try:
 
             async def action_and_update(item: T) -> U:
-                result = await action(item)
+                processing.add(name(item))
+                progress.title(", ".join(processing))
+                try:   
+                    result = await action(item)
+                finally:
+                    processing.remove(name(item))
+                    progress.title(", ".join(processing))
                 async with TERMINAL_LOCK:
                     if CURRENT_PROGRESS is not None:
                         CURRENT_PROGRESS()

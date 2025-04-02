@@ -65,7 +65,7 @@ class Manager:
                 return [pkg async for pkg in self.install_package(tracker, package)]
 
             try:
-                results = await parallel_map_progress(process_and_record, packages)
+                results = await parallel_map_progress(process_and_record, packages, lambda p: p.name)
 
                 await self.cleanup(packages)
 
