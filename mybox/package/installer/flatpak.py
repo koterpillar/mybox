@@ -1,9 +1,18 @@
 from typing import Optional
 
+from ..base import PackageArgs
 from .base import PackageCacheInstaller, PackageVersionInfo
 
 
 class Flatpak(PackageCacheInstaller[PackageVersionInfo]):
+    # FIXME: postinstall for system packages should always run as root
+    FLATPAK: PackageArgs = {
+        "system": "flatpak",
+        "os": "linux",
+        "service": "dbus",
+        "post": "sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo",
+    }
+
     async def install(self, package: str) -> None:
         await self.driver.run("flatpak", "install", "-y", package)
         await super().install(package)

@@ -1,10 +1,14 @@
 import pytest
 
+from mybox.package.installer.flatpak import Flatpak
+
 from .base import PackageArgs, PackageTestBase
 
 
 class TestFlatpak(PackageTestBase):
     affects_system = True
+
+    prerequisites = [Flatpak.FLATPAK]
 
     async def constructor_args(self) -> PackageArgs:
         return {

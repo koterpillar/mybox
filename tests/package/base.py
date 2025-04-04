@@ -8,16 +8,13 @@ from typing import Optional, TypeVar, overload
 import pytest
 
 from mybox.manager import Manager
-from mybox.package import Package, parse_package, parse_packages
+from mybox.package import Package, PackageArgs, parse_package, parse_packages
 from mybox.state import DB
 from mybox.tracker import Tracker
 from mybox.utils import RunArg, T, U
 
 from ..base import CI, DOCKER
 from .driver import Driver, TestDriver
-
-PackageArgs = dict[str, str | bool | int | Path | list[str]]
-
 
 TEST = TypeVar("TEST", bound="PackageTestBase")
 
