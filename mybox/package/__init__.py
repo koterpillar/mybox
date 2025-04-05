@@ -5,10 +5,11 @@ from pydantic import TypeAdapter
 
 from ..driver import Driver
 from ..state import DB
-from .base import Package
+from .base import Package, PackageArgs
 from .brew_repo import BrewRepo
 from .clone import Clone
 from .daemon import Daemon
+from .flatpak import FlatpakPackage
 from .github import GitHubPackage
 from .links import Links
 from .npm import NpmPackage
@@ -23,6 +24,7 @@ AnyPackageT = Union[
     Clone,
     Daemon,
     GitHubPackage,
+    FlatpakPackage,
     Links,
     NpmPackage,
     PipxPackage,
