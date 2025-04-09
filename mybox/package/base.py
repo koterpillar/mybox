@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable
 from functools import cached_property
+from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -15,6 +16,8 @@ from ..utils import (
     async_cached,
     matches_if_specified,
 )
+
+PackageArgs = dict[str, str | bool | int | Path | list[str]]
 
 
 class Package(BaseModel, ABC):
