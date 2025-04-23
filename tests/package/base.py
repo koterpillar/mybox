@@ -204,7 +204,7 @@ class PackageTestBase(ABC):
         assert package.name != ""
 
     JAVA: list[PackageArgs] = [
-        {"system": "java-17-openjdk", "os": "linux", "distribution": "fedora"},
+        {"system": "java-21-openjdk", "os": "linux", "distribution": "fedora"},
         {
             "system": "openjdk-17-jre",
             "os": "linux",
