@@ -190,12 +190,12 @@ async def test_skip_release():
 async def test_ignore_prereleases():
     package = GitHubPackage(
         repo="neovim/neovim",
-        skip_release=["v0.11.0", "stable"],
+        skip_release=["v0.11.1", "stable"],
         driver=LocalDriver(),
         db=DB.temporary(),
     )
     release = await package.release()
-    assert release.tag_name == "v0.10.4"
+    assert release.tag_name == "v0.11.0"
 
 
 @pytest.mark.trio
