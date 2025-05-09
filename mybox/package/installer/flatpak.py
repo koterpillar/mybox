@@ -43,12 +43,9 @@ class Flatpak(PackageCacheInstaller[PackageVersionInfo]):
         return self.parse_versions(result)
 
     async def get_package_info(
-        self, package: Optional[str]
+        self, _package: Optional[str]
     ) -> dict[str, PackageVersionInfo]:
-        if package is not None:
-            # Getting all package versions is complete, no package-specific
-            # queries needed
-            return dict()
+        # FIXME: Cannot selectively query for only a single package
 
         latest = await self.get_latest()
         installed = await self.get_installed()
