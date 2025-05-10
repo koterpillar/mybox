@@ -5,16 +5,19 @@ from .base import PackageCacheInstaller, PackageVersionInfo
 
 
 class Flatpak(PackageCacheInstaller[PackageVersionInfo]):
+    REPO_URL = "https://dl.flathub.org/repo/flathub.flatpakrepo"
+    REPO_NAME = "flathub"
+
     # FIXME: postinstall for system packages should always run as root
     FLATPAK: PackageArgs = {
         "system": "flatpak",
         "os": "linux",
         "service": "dbus",
-        "post": "sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo",
+        "post": f"sudo flatpak remote-add --if-not-exists {REPO_NAME} {REPO_URL}",
     }
 
     async def install(self, package: str) -> None:
-        await self.driver.run("flatpak", "install", "-y", package)
+        await self.driver.run("flatpak", "install", "-y", self.REPO_NAME, package)
         await super().install(package)
 
     # can't install an old version of a package in tests
