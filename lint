@@ -15,7 +15,7 @@ fi
 DIR=$(cd "$(dirname "$0")" && pwd)
 
 # shellcheck disable=SC2046
-shellcheck $(grep -lER '^#!.+sh$' "$DIR")
+shellcheck $(grep -lER --exclude-dir .git '^#!.+(ba)?sh$' "$DIR")
 
 PYTHON=("${DIR}/mybox" "${DIR}/tests")
 
