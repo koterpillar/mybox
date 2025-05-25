@@ -82,10 +82,11 @@ case "$(uname -s)" in
     ;;
 esac
 
-PIPX=/usr/local/bin/pipx
+PIPX="$HOME/.local/mybox/pipx"
 if ! [ -f "$PIPX" ]
 then
-  sudo_ touch -t 200001010000 "$PIPX"
+  mkdir -p "$(dirname "$PIPX")"
+  touch -t 200001010000 "$PIPX"
 fi
 
 PIPX_TEMP=$(mktemp)
@@ -93,11 +94,11 @@ trap 'rm -f "$PIPX_TEMP"' EXIT
 curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
 if [ -s "$PIPX_TEMP" ]
 then
-  sudo_ mv "$PIPX_TEMP" "$PIPX"
-  sudo_ chmod +rx "$PIPX"
+  mv "$PIPX_TEMP" "$PIPX"
+  chmod +rx "$PIPX"
 fi
 
 if [ "${1:-}" != "--development" ]
 then
-  pipx upgrade --install mybox
+  "$PIPX" upgrade --install mybox
 fi
