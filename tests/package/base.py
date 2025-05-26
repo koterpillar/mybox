@@ -134,8 +134,6 @@ class PackageTestBase(ABC):
     ):
         db = self.setup_db()
 
-        preexisting_files = await self.all_files()
-
         args = await self.constructor_args()
         package = parse_package(args, driver=self.driver, db=db)
 
@@ -145,6 +143,8 @@ class PackageTestBase(ABC):
 
         tracker = DummyTracker()
         try:
+            preexisting_files = await self.all_files()
+
             await package.install(tracker=tracker)
 
             await self.check_installed()
