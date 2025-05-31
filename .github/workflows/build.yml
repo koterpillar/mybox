@@ -122,6 +122,8 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: ./install-dev
+      - name: Package
+        run: ./package
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
