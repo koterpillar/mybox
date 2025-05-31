@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from mybox.driver import Driver, LocalDriver
-from mybox.package.github import GitHubPackage
+from mybox.package.github import GitHubPackage, github_api
 from mybox.state import DB
 
 from .base import PackageArgs, PackageTestBase
@@ -188,14 +188,21 @@ async def test_skip_release():
 
 @pytest.mark.trio
 async def test_ignore_prereleases():
+    releases = await github_api("repos/neovim/neovim/releases")
+    latest_release, previous_release, *_ = (
+        release["tag_name"]
+        for release in releases
+        if release["tag_name"].startswith("v")
+    )
+
     package = GitHubPackage(
         repo="neovim/neovim",
-        skip_release=["v0.11.1", "stable"],
+        skip_release=[latest_release, "stable"],
         driver=LocalDriver(),
         db=DB.temporary(),
     )
     release = await package.release()
-    assert release.tag_name == "v0.11.0"
+    assert release.tag_name == previous_release
 
 
 @pytest.mark.trio
