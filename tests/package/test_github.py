@@ -87,34 +87,16 @@ class TestKitty(PackageTestBase):
 
 class TestEza(PackageTestBase):
     async def constructor_args(self) -> PackageArgs:
-        # eza doesn't provide macOS binaries:
-        # https://github.com/eza-community/eza/issues/228
-        return (await self.check_driver.os()).switch(
-            linux={
-                "repo": "eza-community/eza",
-                "binary": "eza",
-                "exclude": ".zip",
-            },
-            macos={
-                "repo": "ogham/exa",
-                "binary": "exa",
-            },
-        )
+        return {
+            "repo": "eza-community/eza",
+            "binary": "eza",
+            "exclude": ".zip",
+        }
 
     async def check_installed_command(self):
-        binary = (await self.check_driver.os()).switch(linux="eza", macos="exa")
-        return [binary, "--version"]
+        return ["eza", "--version"]
 
-    async def check_installed(self):
-        command = await self.check_installed_command()
-        output = await self.check_driver.run_output(*command)
-
-        expected = (await self.check_driver.os()).switch(
-            linux="eza - A modern, maintained replacement for ls",
-            macos="exa - list files",
-        )
-
-        assert expected in output
+    check_installed_output = "eza - A modern, maintained replacement for ls"
 
 
 class TestAmmonite(PackageTestBase):
