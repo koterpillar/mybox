@@ -148,7 +148,7 @@ class GitHubPackage(ArchivePackage, Filters):
 
         if target_os.switch(linux=True, macos=False):
             yield cls.includes_("gnu")
-            yield cls.excludes_("musl")
+            yield cls.excludes_("musl")  # pragma: no cover
 
     def all_filters(
         self, *, target_os: OS, target_arch: Architecture
