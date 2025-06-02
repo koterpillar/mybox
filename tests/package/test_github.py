@@ -166,6 +166,7 @@ class TestRawGzipExecutable(PackageTestBase):
             "repo": "argoproj/argo-workflows",
             "binary": "argo",
             "raw": "argo",
+            "skip_release": "v3.6.8",
         }
 
     async def check_installed_command(self):
