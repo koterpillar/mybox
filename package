@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Package mybox as a single file
+
+set -euo pipefail
+
+mkdir -p out
+poetry run shiv -e mybox.main:sync_main -o out/mybox .
