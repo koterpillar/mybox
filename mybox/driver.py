@@ -241,8 +241,7 @@ class Driver(ABC):
         if result == "x86_64":
             return "x86_64"
         elif result in {"arm64", "aarch64"}:
-            # No ARM runners on CI
-            return "aarch64"  # pragma: no cover
+            return "aarch64"
         else:
             raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
