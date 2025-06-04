@@ -1,23 +1,23 @@
-import argparse
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import cast
 
 import trio
-from typed_argparse import TypedArgs
+import typed_argparse as tap
 
 from .driver import LocalDriver
 from .manager import Manager
 from .state import DB, DB_PATH
 
 
-class Args(TypedArgs):
+class Args(tap.TypedArgs):
     pass
 
 
-def parse_args(args: Optional[list[str]] = None) -> Args:
-    result = argparse.ArgumentParser(description="Install the environment")
-    return Args.from_argparse(result.parse_args(args))
+def parse_args() -> Args:
+    return cast(
+        Args, tap.Parser(Args, description="Install the environment").parse_args()
+    )
 
 
 async def main() -> int:
