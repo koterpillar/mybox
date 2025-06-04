@@ -10,6 +10,13 @@ from .base import PackageArgs, PackageTestBase
 
 
 class TestNeovim(PackageTestBase):
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if (await self.driver.os()).switch(linux=True, macos=False) and (
+            await self.check_driver.architecture()
+        ) == "aarch64":
+            pytest.skip("Neovim doesn't provide Linux ARM binaries")
+
     async def constructor_args(self) -> PackageArgs:
         args: PackageArgs = {
             "repo": "neovim/neovim",
@@ -78,17 +85,23 @@ class TestKitty(PackageTestBase):
         )
 
 
-class TestExa(PackageTestBase):
+class TestEza(PackageTestBase):
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("eza doesn't provide macOS binaries")
+
     async def constructor_args(self) -> PackageArgs:
         return {
-            "repo": "ogham/exa",
-            "binary": "exa",
+            "repo": "eza-community/eza",
+            "binary": "eza",
+            "exclude": [".zip", "no_libgit"],
         }
 
     async def check_installed_command(self):
-        return ["exa", "--version"]
+        return ["eza", "--version"]
 
-    check_installed_output = "exa - list files"
+    check_installed_output = "eza - A modern, maintained replacement for ls"
 
 
 class TestAmmonite(PackageTestBase):
