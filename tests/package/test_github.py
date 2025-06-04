@@ -95,7 +95,7 @@ class TestEza(PackageTestBase):
         return {
             "repo": "eza-community/eza",
             "binary": "eza",
-            "exclude": ".zip",
+            "exclude": [".zip", "no_libgit"],
         }
 
     async def check_installed_command(self):
