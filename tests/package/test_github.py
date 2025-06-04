@@ -86,6 +86,11 @@ class TestKitty(PackageTestBase):
 
 
 class TestEza(PackageTestBase):
+    async def check_applicable(self) -> None:
+        await super().check_applicable()
+        if not (await self.driver.os()).switch(linux=True, macos=False):
+            pytest.skip("eza doesn't provide macOS binaries")
+
     async def constructor_args(self) -> PackageArgs:
         return {
             "repo": "eza-community/eza",
