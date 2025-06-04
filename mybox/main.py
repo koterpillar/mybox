@@ -1,17 +1,17 @@
 import sys
 from pathlib import Path
-from typing import cast
+from typing import Optional, cast
 
 import trio
 import typed_argparse as tap
 
-from .driver import LocalDriver
+from .driver import Driver, LocalDriver, SSHDriver
 from .manager import Manager
 from .state import DB, DB_PATH
 
 
 class Args(tap.TypedArgs):
-    pass
+    ssh: Optional[str] = tap.arg(help="Install on a remote host via SSH")
 
 
 def parse_args() -> Args:
@@ -21,10 +21,16 @@ def parse_args() -> Args:
 
 
 async def main() -> int:
-    parse_args()
+    args = parse_args()
 
     db = DB(DB_PATH)
-    driver = LocalDriver()
+
+    driver: Driver
+    if args.ssh:
+        driver = SSHDriver(host=args.ssh)
+    else:
+        driver = LocalDriver()
+
     manager = Manager(db=db, driver=driver, data_path=Path())
 
     result = await manager.install()

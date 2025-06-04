@@ -343,3 +343,15 @@ class LocalDriver(SubprocessDriver):
             show_output=show_output,
             silent=silent,
         )
+
+
+class SSHDriver(SubprocessDriver):
+    def __init__(self, *, host: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.host = host
+
+    def deconstruct(self) -> dict:
+        return super().deconstruct() | {"host": self.host}
+
+    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
+        return super().prepare_command(["ssh", self.host, *args])
