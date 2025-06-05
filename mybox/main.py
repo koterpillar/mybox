@@ -23,12 +23,12 @@ def parse_args() -> Args:
 async def main() -> int:
     args = parse_args()
 
-    db = DB(DB_PATH)
-
     driver: Driver
     if args.ssh:
+        db = DB(f"state_{args.ssh}.sqlite")
         driver = SSHDriver(host=args.ssh)
     else:
+        db = DB(DB_PATH)
         driver = LocalDriver()
 
     manager = Manager(db=db, driver=driver, data_path=Path())
