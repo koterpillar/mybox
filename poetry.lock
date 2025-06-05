@@ -392,19 +392,19 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "fawltydeps"
-version = "0.19.0"
+version = "0.20.0"
 description = "Find undeclared and unused 3rd-party dependencies in your Python project."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9.2"
 groups = ["dev"]
 files = [
-    {file = "fawltydeps-0.19.0-py3-none-any.whl", hash = "sha256:fbdd3da5620dd3c6b12a8c00ac655d17376aacf6d105fa61fe44fa4fa195baed"},
-    {file = "fawltydeps-0.19.0.tar.gz", hash = "sha256:0fbe9b1736f3a1c7060d5b3489e24f594187a0c98afa5ea888b27e70e63b0ae0"},
+    {file = "fawltydeps-0.20.0-py3-none-any.whl", hash = "sha256:d3bfb260c54135ec5dfa2583a7381c45d2759deb23f6de6f4905da9adac67512"},
+    {file = "fawltydeps-0.20.0.tar.gz", hash = "sha256:ad080b284a2278c9940540b643483aff8b57794a1362735d3024c270810c0182"},
 ]
 
 [package.dependencies]
 importlib_metadata = ">=6.6.0"
-isort = {version = ">=5.10", markers = "python_version >= \"3.9\""}
+isort = ">=5.10"
 packaging = ">=24.0"
 pip-requirements-parser = ">=32.0.1"
 pydantic = ">=1.10.4,<3.0.0"
@@ -1285,4 +1285,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "1f4ed251e7052e9a2a0d92ddc4ee5036a9ea663c4bc2496dbb2b4342280c2ea1"
+content-hash = "a46658973c88904eac0cf8e3fac5e53dc0e39f6b0db5084c9b1175a4af0c2323"
