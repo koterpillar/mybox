@@ -38,6 +38,8 @@ class Linux(OS):
         for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
+                if v.startswith('"') and v.endswith('"'):
+                    v = v[1:-1]
                 return v
 
         raise ValueError(f"Cannot find distribution ID in {cls.RELEASE_FILE}.")
