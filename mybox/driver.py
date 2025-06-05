@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable
@@ -356,4 +357,4 @@ class SSHDriver(SubprocessDriver):
         return super().deconstruct() | {"host": self.host}
 
     def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
-        return super().prepare_command(["ssh", self.host, *args])
+        return super().prepare_command(["ssh", self.host, shlex.join(map(str, args))])
