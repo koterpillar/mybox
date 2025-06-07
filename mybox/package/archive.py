@@ -133,13 +133,17 @@ class ArchivePackage(ManualPackage, ABC):
         os = await self.driver.os()
 
         for system in os.switch_(
-            linux=lambda linux: [
-                "bzip2",
-                "unzip",
-                {"debian": "xz-utils", "ubuntu": "xz-utils", "fedora": "xz"}[
-                    linux.distribution
-                ],
-            ],
+            linux=lambda linux: (
+                []
+                if linux.distribution == "libreelec"
+                else [
+                    "bzip2",
+                    "unzip",
+                    {"debian": "xz-utils", "ubuntu": "xz-utils", "fedora": "xz"}[
+                        linux.distribution
+                    ],
+                ]
+            ),
             macos=lambda: ["gnu-tar", "xz"],
         ):
             yield SystemPackage(
