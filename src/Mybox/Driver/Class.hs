@@ -1,5 +1,6 @@
 module Mybox.Driver.Class where
 
+import Data.List.NonEmpty (NonEmpty(..))
 import           Data.Text   (Text)
 
 import           System.Exit (ExitCode)
@@ -34,18 +35,18 @@ class Monad m =>
   drvRun_ ::
        RunExit e -- ^ Exit behavior
     -> RunOutput o -- ^ Output behavior
-    -> [Text] -- ^ Command and arguments
+    -> NonEmpty Text -- ^ Command and arguments
     -> m (RunResult e o)
 
-drvRun :: MonadDriver m => [Text] -> m ()
+drvRun :: MonadDriver m => NonEmpty Text -> m ()
 drvRun = fmap rrSimplify <$> drvRun_ RunExitError RunOutputShow
 
-drvRunOk :: MonadDriver m => [Text] -> m ExitCode
+drvRunOk :: MonadDriver m => NonEmpty Text -> m ExitCode
 drvRunOk = fmap rrSimplify <$> drvRun_ RunExitReturn RunOutputShow
 
 drvRunOutput_ ::
-     MonadDriver m => RunExit e -> [Text] -> m (RunResult e Text)
+     MonadDriver m => RunExit e -> NonEmpty Text -> m (RunResult e Text)
 drvRunOutput_ exit = drvRun_ exit RunOutputReturn
 
-drvRunOutput :: MonadDriver m => [Text] -> m Text
+drvRunOutput :: MonadDriver m => NonEmpty Text -> m Text
 drvRunOutput = fmap rrSimplify <$> drvRunOutput_ RunExitError
