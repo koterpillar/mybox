@@ -17,6 +17,17 @@ data RunResult e o = RunResult
   , rrOutput :: o
   } deriving (Show, Eq)
 
+class RunResultSimplified rr o | rr -> o where rrSimplify :: rr -> o
+
+instance RunResultSimplified (RunResult () ()) () where
+  rrSimplify (RunResult () ()) = ()
+
+instance RunResultSimplified (RunResult ExitCode ()) ExitCode where
+  rrSimplify (RunResult exitCode ()) = exitCode
+
+instance RunResultSimplified (RunResult () Text) Text where
+  rrSimplify (RunResult () output) = output
+
 class Monad m =>
       MonadDriver m
   where
@@ -27,20 +38,14 @@ class Monad m =>
     -> m (RunResult e o)
 
 drvRun :: MonadDriver m => [Text] -> m ()
-drvRun cmd = do
-  RunResult () () <- drvRun_ RunExitError RunOutputShow cmd
-  pure ()
+drvRun = fmap rrSimplify <$> drvRun_ RunExitError RunOutputShow
 
 drvRunOk :: MonadDriver m => [Text] -> m ExitCode
-drvRunOk cmd = do
-  RunResult rrExit () <- drvRun_ RunExitReturn RunOutputShow cmd
-  pure rrExit
+drvRunOk = fmap rrSimplify <$> drvRun_ RunExitReturn RunOutputShow
 
 drvRunOutput_ ::
      MonadDriver m => RunExit e -> [Text] -> m (RunResult e Text)
 drvRunOutput_ exit = drvRun_ exit RunOutputReturn
 
 drvRunOutput :: MonadDriver m => [Text] -> m Text
-drvRunOutput cmd = do
-  RunResult () output <- drvRunOutput_ RunExitError cmd
-  pure output
+drvRunOutput = fmap rrSimplify <$> drvRunOutput_ RunExitError

@@ -38,6 +38,7 @@ library
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       base
+    , safe-exceptions
     , text
   default-language: GHC2021
 
@@ -65,5 +66,6 @@ executable mybox
   build-depends:
       base
     , mybox
+    , safe-exceptions
     , text
   default-language: GHC2021

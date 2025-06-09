@@ -1,9 +1,10 @@
 module Mybox.Driver.Ops where
 
-import           Data.Text           (Text)
-import qualified Data.Text           as Text
+import           Control.Exception.Safe (MonadMask, bracket)
+import           Data.Text              (Text)
+import qualified Data.Text              as Text
 import           Mybox.Driver.Class
-import           System.Exit         (ExitCode (..))
+import           System.Exit            (ExitCode (..))
 
 -- | Check if a path is executable.
 drvIsExecutable :: MonadDriver m => Text -> m Bool
@@ -43,25 +44,40 @@ drvLocal = do
   home <- drvHome
   pure (home <> "/.local")
 
--- | Create a symbolic link from source to target.
-drvLink :: MonadDriver m => Text -> Text -> m ()
-drvLink source target = do
-  () <- drvRun ["mkdir", "-p", dirname target]
-  () <- drvRun ["rm", "-r", "-f", target]
-  () <- drvRun ["ln", "-s", "-f", source, target]
-  pure ()
+-- | Remove a file or directory.
+drvRm :: MonadDriver m => Text -> m ()
+drvRm path = drvRun ["rm", "-r", "-f", path]
 
 -- | Create directories recursively.
 drvMkdir :: MonadDriver m => Text -> m ()
 drvMkdir path = drvRun ["mkdir", "-p", path]
 
+-- | Create a symbolic link from source to target.
+drvLink :: MonadDriver m => Text -> Text -> m ()
+drvLink source target = do
+  drvMkdir $ dirname target
+  drvRm target
+  drvRun ["ln", "-s", "-f", source, target]
+
 -- | Copy a file or directory recursively
 drvCopy :: MonadDriver m => Text -> Text -> m ()
 drvCopy source target = do
-  () <- drvRun ["mkdir", "-p", dirname target]
-  () <- drvRun ["rm", "-r", "-f", target]
-  () <- drvRun ["cp", "-R", "-f", source, target]
-  pure ()
+  drvMkdir $ dirname target
+  drvRm target
+  drvRun ["cp", "-R", "-f", source, target]
+
+drvTemp_ :: (MonadDriver m, MonadMask m) => Bool -> (Text -> m a) -> m a
+drvTemp_ isDirectory = bracket (drvRunOutput $ "mktemp" : args) drvRm
+  where
+    args = ["-d" | isDirectory]
+
+-- | Execute an action with a temporary file, cleaning up afterwards
+drvTempFile :: (MonadDriver m, MonadMask m) => (Text -> m a) -> m a
+drvTempFile = drvTemp_ False
+
+-- | Execute an action with a temporary directory, cleaning up afterwards
+drvTempDir :: (MonadDriver m, MonadMask m) => (Text -> m a) -> m a
+drvTempDir = drvTemp_ True
 
 -- | Helper: dirname (get parent directory as text)
 dirname :: Text -> Text
