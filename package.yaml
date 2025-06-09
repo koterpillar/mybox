@@ -1,0 +1,38 @@
+name: mybox
+version: 0.0.1
+description: Manage the configuration and tools on your workstation without bothering the OS too much
+author: Alexey Kotlyarov <a@koterpillar.com>
+maintainer: Alexey Kotlyarov <a@koterpillar.com>
+license: GPL-3.0-or-later
+language: GHC2021
+default-extensions:
+  - FunctionalDependencies
+  - OverloadedStrings
+  - RecordWildCards
+  # GHC2024
+  - DataKinds
+  - DerivingStrategies
+  - DisambiguateRecordFields
+  - ExplicitNamespaces
+  - GADTs
+  - LambdaCase
+  - MonoLocalBinds
+  - RoleAnnotations
+dependencies:
+  - base
+  - text
+ghc-options:
+  - -Wall
+  - -Werror
+  - -threaded
+library:
+  source-dirs: src
+executables:
+  mybox:
+    main: Main.hs
+    source-dirs: app
+    dependencies:
+      - mybox
+    ghc-options:
+      - -rtsopts
+      - -with-rtsopts=-N
