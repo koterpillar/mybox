@@ -1,0 +1,69 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mybox
+version:        0.0.1
+description:    Manage the configuration and tools on your workstation without bothering the OS too much
+author:         Alexey Kotlyarov <a@koterpillar.com>
+maintainer:     Alexey Kotlyarov <a@koterpillar.com>
+license:        GPL-3.0-or-later
+build-type:     Simple
+
+library
+  exposed-modules:
+      Mybox.Driver
+      Mybox.Driver.Class
+      Mybox.Driver.Ops
+  other-modules:
+      Paths_mybox
+  autogen-modules:
+      Paths_mybox
+  hs-source-dirs:
+      src
+  default-extensions:
+      FunctionalDependencies
+      OverloadedStrings
+      RecordWildCards
+      DataKinds
+      DerivingStrategies
+      DisambiguateRecordFields
+      ExplicitNamespaces
+      GADTs
+      LambdaCase
+      MonoLocalBinds
+      RoleAnnotations
+  ghc-options: -Wall -Werror -threaded
+  build-depends:
+      base
+    , text
+  default-language: GHC2021
+
+executable mybox
+  main-is: Main.hs
+  other-modules:
+      Paths_mybox
+  autogen-modules:
+      Paths_mybox
+  hs-source-dirs:
+      app
+  default-extensions:
+      FunctionalDependencies
+      OverloadedStrings
+      RecordWildCards
+      DataKinds
+      DerivingStrategies
+      DisambiguateRecordFields
+      ExplicitNamespaces
+      GADTs
+      LambdaCase
+      MonoLocalBinds
+      RoleAnnotations
+  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+    , mybox
+    , text
+  default-language: GHC2021
