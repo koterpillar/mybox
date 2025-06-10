@@ -35,7 +35,7 @@ library
       LambdaCase
       MonoLocalBinds
       RoleAnnotations
-  ghc-options: -Wall -Werror -threaded
+  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       base
     , text
@@ -61,7 +61,7 @@ executable mybox
       LambdaCase
       MonoLocalBinds
       RoleAnnotations
-  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       base
     , mybox
