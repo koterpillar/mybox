@@ -20,6 +20,10 @@ default-extensions:
   - RoleAnnotations
 dependencies:
   - base
+  - data-has
+  - mtl
+  - process
+  - safe-exceptions
   - text
 ghc-options:
   - -Wall

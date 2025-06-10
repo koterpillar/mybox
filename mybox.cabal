@@ -16,7 +16,9 @@ library
   exposed-modules:
       Mybox.Driver
       Mybox.Driver.Class
+      Mybox.Driver.IO
       Mybox.Driver.Ops
+      Mybox.Main
   other-modules:
       Paths_mybox
   autogen-modules:
@@ -38,6 +40,10 @@ library
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       base
+    , data-has
+    , mtl
+    , process
+    , safe-exceptions
     , text
   default-language: GHC2021
 
@@ -64,6 +70,10 @@ executable mybox
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       base
+    , data-has
+    , mtl
     , mybox
+    , process
+    , safe-exceptions
     , text
   default-language: GHC2021

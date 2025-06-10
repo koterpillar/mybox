@@ -1,11 +1,5 @@
 module Main
-  ( main
+  ( module Mybox.Main
   ) where
 
-import           System.Exit
-import           System.IO
-
-main :: IO ()
-main = do
-  hPutStrLn stderr "Not implemented yet."
-  exitFailure
+import Mybox.Main
