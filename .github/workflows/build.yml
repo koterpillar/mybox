@@ -81,8 +81,6 @@ jobs:
         uses: freckle/stack-action@v5
         with:
           stack-build-arguments: --fast --lock-file error-on-write
-        # CPP errors, https://github.com/koterpillar/mybox/actions/runs/15529313375/job/43714705766?pr=370#step:7:124
-        if: matrix.host && matrix.host != 'macos'
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
