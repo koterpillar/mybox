@@ -5,8 +5,6 @@ module Mybox.Main
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader   (runReaderT)
 
-import          Data.List.NonEmpty     (NonEmpty (..))
-
 import           Mybox.Driver
 
 import           System.Exit
