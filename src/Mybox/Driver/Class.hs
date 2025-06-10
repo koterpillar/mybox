@@ -1,9 +1,9 @@
 module Mybox.Driver.Class where
 
-import Data.List.NonEmpty (NonEmpty(..))
-import           Data.Text   (Text)
+import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.Text          (Text)
 
-import           System.Exit (ExitCode)
+import           System.Exit        (ExitCode (..))
 
 data RunExit e where
   RunExitError :: RunExit () -- ^ Throw an error if the command fails
@@ -18,7 +18,8 @@ data RunResult e o = RunResult
   , rrOutput :: o
   } deriving (Show, Eq)
 
-class RunResultSimplified rr o | rr -> o where rrSimplify :: rr -> o
+class RunResultSimplified rr o | rr -> o where
+  rrSimplify :: rr -> o
 
 instance RunResultSimplified (RunResult () ()) () where
   rrSimplify (RunResult () ()) = ()

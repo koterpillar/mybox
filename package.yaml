@@ -32,6 +32,18 @@ ghc-options:
   - -optP-Wno-nonportable-include-path
 library:
   source-dirs: src
+tests:
+  tests:
+    main: TestMain.hs
+    source-dirs:
+      - test
+    dependencies:
+      - mybox
+      - tasty
+      - tasty-discover
+      - tasty-hunit
+    build-tools:
+      - tasty-discover
 executables:
   mybox:
     main: Main.hs

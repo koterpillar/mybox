@@ -77,3 +77,41 @@ executable mybox
     , safe-exceptions
     , text
   default-language: GHC2021
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: TestMain.hs
+  other-modules:
+      Mybox.Driver.IOTest
+      Paths_mybox
+  autogen-modules:
+      Paths_mybox
+  hs-source-dirs:
+      test
+  default-extensions:
+      FunctionalDependencies
+      OverloadedStrings
+      RecordWildCards
+      DataKinds
+      DerivingStrategies
+      DisambiguateRecordFields
+      ExplicitNamespaces
+      GADTs
+      LambdaCase
+      MonoLocalBinds
+      RoleAnnotations
+  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      base
+    , data-has
+    , mtl
+    , mybox
+    , process
+    , safe-exceptions
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , text
+  default-language: GHC2021
