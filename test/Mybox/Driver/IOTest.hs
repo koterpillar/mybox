@@ -18,6 +18,12 @@ unit_trueCommandExitSuccess = do
   result <- localRun $ drvRunOk $ "true" :| []
   result @?= ExitSuccess
 
+unit_trueCommandExitSuccessDocker :: IO ()
+unit_trueCommandExitSuccessDocker = do
+  drv <- dockerDriver "debian"
+  result <- flip runReaderT drv $ drvRunOk $ "true" :| []
+  result @?= ExitSuccess
+
 -- Test that "false" command returns ExitFailure
 unit_falseCommandExitFailure :: IO ()
 unit_falseCommandExitFailure = do

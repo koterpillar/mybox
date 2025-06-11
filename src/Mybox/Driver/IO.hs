@@ -85,7 +85,7 @@ dockerDriver baseImage = do
     localRun
       $ drvTempDir
       $ \tempDir -> do
-          drvCopy "bootstrap" tempDir
+          drvCopy "bootstrap" (tempDir <> "/bootstrap")
           drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
           let image = dockerImagePrefix <> baseImage
             -- Build image
