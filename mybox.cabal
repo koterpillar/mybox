@@ -40,6 +40,7 @@ library
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       base
+    , containers
     , data-has
     , mtl
     , process
@@ -70,6 +71,7 @@ executable mybox
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       base
+    , containers
     , data-has
     , mtl
     , mybox
@@ -105,6 +107,7 @@ test-suite tests
       tasty-discover:tasty-discover
   build-depends:
       base
+    , containers
     , data-has
     , mtl
     , mybox

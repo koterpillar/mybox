@@ -91,6 +91,6 @@ drvDirname path =
     [_] -> "."
     xs  -> Text.intercalate "/" (init xs)
 
-drvShell :: NonEmpty Text -> NonEmpty Text
+drvShell :: Args -> Args
 drvShell args =
   "sh" :| ["-c", Text.intercalate " " $ NonEmpty.toList args] -- FIXME quote args
