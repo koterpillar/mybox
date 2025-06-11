@@ -2,8 +2,9 @@ module Mybox.Driver.Ops where
 
 import           Control.Exception.Safe (MonadMask, bracket)
 
+import           Data.Foldable
+
 import           Data.List.NonEmpty     (NonEmpty (..))
-import qualified Data.List.NonEmpty     as NonEmpty
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
 
@@ -83,6 +84,12 @@ drvTempFile = drvTemp_ False
 drvTempDir :: (MonadDriver m, MonadMask m) => (Text -> m a) -> m a
 drvTempDir = drvTemp_ True
 
+drvWriteFile :: MonadDriver m => Text -> Text -> m ()
+drvWriteFile path content = do
+  drvMkdir $ drvDirname path
+  drvRm path
+  drvRun $ drvShell $ "echo" :| [content, ">", path]
+
 -- | Helper: dirname (get parent directory as text)
 drvDirname :: Text -> Text
 drvDirname path =
@@ -93,4 +100,4 @@ drvDirname path =
 
 drvShell :: Args -> Args
 drvShell args =
-  "sh" :| ["-c", Text.intercalate " " $ NonEmpty.toList args] -- FIXME quote args
+  "sh" :| ["-c", Text.intercalate " " $ toList args] -- FIXME quote args

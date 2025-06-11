@@ -44,6 +44,7 @@ library
     , data-has
     , mtl
     , process
+    , random
     , safe-exceptions
     , text
   default-language: GHC2021
@@ -76,6 +77,7 @@ executable mybox
     , mtl
     , mybox
     , process
+    , random
     , safe-exceptions
     , text
   default-language: GHC2021
@@ -112,6 +114,7 @@ test-suite tests
     , mtl
     , mybox
     , process
+    , random
     , safe-exceptions
     , tasty
     , tasty-discover

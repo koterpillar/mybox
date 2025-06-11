@@ -4,11 +4,15 @@
 module Mybox.Driver.IO
   ( IODriver
   , localDriver
+  , dockerDriver
   ) where
 
+import           Control.Exception.Safe (MonadMask)
 import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Reader   (MonadReader, asks)
+import           Control.Monad.Reader   (MonadReader, asks, runReaderT)
+
+import           Data.Foldable
 
 import           Data.Has
 
@@ -22,9 +26,11 @@ import qualified Data.Text              as Text
 import qualified Data.Text.IO           as Text
 
 import           Mybox.Driver.Class
+import           Mybox.Driver.Ops
 
 import           System.Exit            (ExitCode (..))
 import           System.Process         (readProcessWithExitCode)
+import           System.Random
 
 data IODriver = IODriver
   { idTransformArgs :: Args -> Args
@@ -58,3 +64,61 @@ instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m 
 
 localDriver :: IODriver
 localDriver = IODriver {idTransformArgs = id, idOverrides = mempty}
+
+-- FIXME: Cleanup or ResourceT
+dockerDriver ::
+     forall m. (MonadIO m, MonadMask m)
+  => Text -- ^ Base image
+  -> m IODriver
+dockerDriver baseImage = do
+  let localRun ::
+           (forall n. (MonadDriver n, MonadIO n, MonadMask n) => n a) -> m a
+      localRun action = runReaderT action localDriver
+  containerId <- Text.pack . show <$> liftIO (randomIO @Int)
+  container <-
+    localRun
+      $ drvTempDir
+      $ \tempDir -> do
+          drvCopy "bootstrap" tempDir
+          drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
+          let image = dockerImagePrefix <> baseImage
+            -- Build image
+          drvRun $ "docker" :| ["build", "--tag", image, tempDir]
+            -- Start container
+            -- FIXME: --volume for package root
+          drvRunOutput
+            $ "docker"
+                :| [ "run"
+                   , "--rm"
+                   , "--detach"
+                   , "--name"
+                   , "mybox-test-" <> containerId
+                   , image
+                   , "sleep"
+                   , "86400000"
+                   ]
+  let idTransformArgs :: Args -> Args
+      idTransformArgs args =
+        "docker" :| ["exec", "--interactive", container] <> toList args
+  pure IODriver {idTransformArgs, idOverrides = mempty}
+
+dockerfile ::
+     Text -- ^ base image
+  -> Text
+dockerfile baseImage =
+  Text.unlines
+    [ "FROM " <> baseImage
+    , "RUN useradd --create-home --password '' " <> dockerUser
+    , "COPY bootstrap /bootstrap"
+    , "RUN /bootstrap --development"
+    , "ENV PATH=/home/{DOCKER_USER}/.local/bin:$PATH"
+    , "USER " <> dockerUser
+    -- populate dnf cache so each test doesn't have to do it
+    , "RUN command -v dnf >/dev/null && dnf check-update || true"
+    ]
+
+dockerUser :: Text
+dockerUser = "regular_user"
+
+dockerImagePrefix :: Text
+dockerImagePrefix = "mybox-test-"

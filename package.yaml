@@ -24,6 +24,7 @@ dependencies:
   - data-has
   - mtl
   - process
+  - random
   - safe-exceptions
   - text
 ghc-options:
