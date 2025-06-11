@@ -45,7 +45,7 @@ instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m 
       Nothing -> do
         (cmd :| args) <-
           asks $ fmap Text.unpack . ($ args_) . idTransformArgs . getter
-        (exitCode, stdout, _stderr) <-
+        (exitCode, stdout, stderr) <-
           liftIO $ readProcessWithExitCode cmd args ""
         let stdoutText = Text.pack stdout
         rrExit <-
@@ -54,7 +54,13 @@ instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m 
               case exitCode of
                 ExitSuccess -> pure ()
                 ExitFailure code ->
-                  error $ "Process failed with exit code: " ++ show code
+                  error
+                    $ "Process "
+                        <> Text.unpack (shellJoin args_)
+                        <> " failed with exit code: "
+                        ++ show code
+                        ++ " and stderr: "
+                        ++ stderr
             RunExitReturn -> pure exitCode
         rrOutput <-
           case outputBehavior of
