@@ -2,6 +2,8 @@ module Mybox.Driver.Ops where
 
 import           Control.Exception.Safe (MonadMask, bracket)
 
+import           Data.Char              (isAlphaNum)
+
 import           Data.Foldable
 
 import           Data.List.NonEmpty     (NonEmpty (..))
@@ -88,7 +90,7 @@ drvWriteFile :: MonadDriver m => Text -> Text -> m ()
 drvWriteFile path content = do
   drvMkdir $ drvDirname path
   drvRm path
-  drvRun $ drvShell $ "echo" :| [content, ">", path]
+  drvRun $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
 -- | Helper: dirname (get parent directory as text)
 drvDirname :: Text -> Text
@@ -99,5 +101,15 @@ drvDirname path =
     xs  -> Text.intercalate "/" (init xs)
 
 drvShell :: Args -> Args
-drvShell args =
-  "sh" :| ["-c", Text.intercalate " " $ toList args] -- FIXME quote args
+drvShell args = "sh" :| ["-c", shellJoin args]
+
+shellJoin :: (Foldable f, Functor f) => f Text -> Text
+shellJoin = Text.unwords . toList . fmap shellQuote
+
+shellQuote :: Text -> Text
+shellQuote t
+  | Text.all safe t && not (Text.null t) = t
+  | otherwise = q <> Text.intercalate "'\"'\"'" (Text.splitOn q t) <> q
+  where
+    q = "'"
+    safe c = isAlphaNum c || c == '_'
