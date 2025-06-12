@@ -14,11 +14,11 @@ import           Mybox.Driver.IO
 import           System.Environment
 import           System.Exit          (ExitCode (..))
 
-testDriver :: (IODriver -> IO ()) -> IO ()
-testDriver act = do
+withDriver :: (IODriver -> IO ()) -> IO ()
+withDriver act = do
   image_ <- lookupEnv "DOCKER_IMAGE"
   case image_ of
-    Nothing    -> act localDriver
+    Nothing    -> testHostDriver act
     Just image -> dockerDriver (Text.pack image) act
 
 run :: IODriver -> (forall m. MonadDriver m => m a) -> IO a
@@ -26,7 +26,7 @@ run drv action = runReaderT action drv
 
 spec :: Spec
 spec =
-  around testDriver $ do
+  around withDriver $ do
     it "returns ExitSuccess for true command" $ \drv -> do
       result <- run drv $ drvRunOk $ "true" :| []
       result `shouldBe` ExitSuccess

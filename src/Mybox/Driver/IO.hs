@@ -4,10 +4,11 @@
 module Mybox.Driver.IO
   ( IODriver
   , localDriver
+  , testHostDriver
   , dockerDriver
   ) where
 
-import           Control.Exception.Safe (MonadMask, bracket)
+import           Control.Exception.Safe
 import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Reader   (MonadReader, asks, runReaderT)
@@ -18,9 +19,6 @@ import           Data.Has
 
 import           Data.List.NonEmpty     (NonEmpty (..))
 
-import           Data.Map.Strict        (Map)
-import qualified Data.Map.Strict        as Map
-
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import qualified Data.Text.IO           as Text
@@ -28,54 +26,79 @@ import qualified Data.Text.IO           as Text
 import           Mybox.Driver.Class
 import           Mybox.Driver.Ops
 
+import           System.Environment
 import           System.Exit            (ExitCode (..))
 import           System.Process         (readProcessWithExitCode)
 import           System.Random
 
-data IODriver = IODriver
+newtype IODriver = IODriver
   { idTransformArgs :: Args -> Args
-  , idOverrides     :: Map Args (RunResult ExitCode Text)
   }
 
 instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m where
   drvRun_ exitBehavior outputBehavior args_ = do
-    override <- asks $ Map.lookup args_ . idOverrides . getter
-    case override of
-      Just result -> pure $ rrLower exitBehavior outputBehavior result
-      Nothing -> do
-        (cmd :| args) <-
-          asks $ fmap Text.unpack . ($ args_) . idTransformArgs . getter
-        (exitCode, stdout, stderr) <-
-          liftIO $ readProcessWithExitCode cmd args ""
-        let stdoutText = Text.pack stdout
-        rrExit <-
-          case exitBehavior of
-            RunExitError ->
-              case exitCode of
-                ExitSuccess -> pure ()
-                ExitFailure code ->
-                  error
-                    $ "Process "
-                        <> Text.unpack (shellJoin args_)
-                        <> " failed with exit code: "
-                        ++ show code
-                        ++ " and stderr: "
-                        ++ stderr
-            RunExitReturn -> pure exitCode
-        rrOutput <-
-          case outputBehavior of
-            RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
-            RunOutputReturn -> pure $ Text.strip stdoutText
-        pure $ RunResult {..}
+    (cmd :| args) <-
+      asks $ fmap Text.unpack . ($ args_) . idTransformArgs . getter
+    (exitCode, stdout, stderr) <- liftIO $ readProcessWithExitCode cmd args ""
+    let stdoutText = Text.pack stdout
+    rrExit <-
+      case exitBehavior of
+        RunExitError ->
+          case exitCode of
+            ExitSuccess -> pure ()
+            ExitFailure code ->
+              error
+                $ "Process "
+                    <> Text.unpack (shellJoin args_)
+                    <> " failed with exit code: "
+                    ++ show code
+                    ++ " and stderr: "
+                    ++ stderr
+        RunExitReturn -> pure exitCode
+    rrOutput <-
+      case outputBehavior of
+        RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
+        RunOutputReturn -> pure $ Text.strip stdoutText
+    pure $ RunResult {..}
 
 localDriver :: IODriver
-localDriver = IODriver {idTransformArgs = id, idOverrides = mempty}
+localDriver = IODriver {idTransformArgs = id}
 
 localRun ::
      (MonadIO m, MonadMask m)
   => (forall n. (MonadDriver n, MonadIO n, MonadMask n) => n a)
   -> m a
 localRun action = runReaderT action localDriver
+
+withAddedPath :: (MonadIO m, MonadMask m) => Text -> m a -> m a
+withAddedPath addPath action = do
+  originalPath <- fmap Text.pack $ liftIO $ getEnv "PATH"
+  let newPath = addPath <> ":" <> originalPath
+  bracket_
+    (liftIO $ setEnv "PATH" $ Text.unpack newPath)
+    (liftIO $ setEnv "PATH" $ Text.unpack originalPath)
+    action
+
+testHostDriver ::
+     forall m a. (MonadIO m, MonadMask m)
+  => (IODriver -> m a)
+  -> m a
+testHostDriver act = do
+  originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
+  bracket (localRun drvTempDir) (\home -> localRun $ drvRm home) $ \home -> do
+    withAddedPath (home <> "/.local/bin") $ do
+      let linkToOriginalHome path =
+            let op = originalHome <> "/" <> path
+                np = home <> "/" <> path
+             in localRun $ do
+                  drvMkdir $ drvDirname np
+                  drvLink op np
+      linkToOriginalHome ".local/share/fonts"
+      linkToOriginalHome ".local/share/systemd/user"
+      linkToOriginalHome "Library/LaunchAgents"
+      let idTransformArgs ("sh" :| ["-c", "eval echo ~"]) = "echo" :| [home]
+          idTransformArgs args                            = args
+      act $ IODriver {..}
 
 dockerDriver ::
      forall m a. (MonadIO m, MonadMask m)
@@ -88,7 +111,7 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
     mkContainer = do
       containerName <- Text.pack . show <$> liftIO (randomIO @Int)
       localRun
-        $ drvTempDir
+        $ bracket drvTempDir drvRm
         $ \tempDir -> do
             drvCopy "bootstrap" (tempDir <> "/bootstrap")
             drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
@@ -117,7 +140,6 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
         idTransformArgs :: Args -> Args
         idTransformArgs args =
           "docker" :| ["exec", "--interactive", container] <> toList args
-        idOverrides = mempty
 
 dockerfile ::
      Text -- ^ base image
