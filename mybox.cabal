@@ -84,9 +84,9 @@ executable mybox
 
 test-suite tests
   type: exitcode-stdio-1.0
-  main-is: TestMain.hs
+  main-is: Spec.hs
   other-modules:
-      Mybox.Driver.IOTest
+      Mybox.Driver.IOSpec
       Paths_mybox
   autogen-modules:
       Paths_mybox
@@ -106,18 +106,16 @@ test-suite tests
       RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-tool-depends:
-      tasty-discover:tasty-discover
+      hspec-discover:hspec-discover
   build-depends:
       base
     , containers
     , data-has
+    , hspec
     , mtl
     , mybox
     , process
     , random
     , safe-exceptions
-    , tasty
-    , tasty-discover
-    , tasty-hunit
     , text
   default-language: GHC2021

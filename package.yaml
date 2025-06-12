@@ -36,16 +36,14 @@ library:
   source-dirs: src
 tests:
   tests:
-    main: TestMain.hs
+    main: Spec.hs
     source-dirs:
       - test
     dependencies:
       - mybox
-      - tasty
-      - tasty-discover
-      - tasty-hunit
+      - hspec
     build-tools:
-      - tasty-discover
+      - hspec-discover
 executables:
   mybox:
     main: Main.hs
