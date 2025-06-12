@@ -7,7 +7,7 @@ module Mybox.Driver.IO
   , dockerDriver
   ) where
 
-import           Control.Exception.Safe (MonadMask)
+import           Control.Exception.Safe (MonadMask, bracket)
 import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Reader   (MonadReader, asks, runReaderT)
@@ -71,42 +71,53 @@ instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m 
 localDriver :: IODriver
 localDriver = IODriver {idTransformArgs = id, idOverrides = mempty}
 
--- FIXME: Cleanup or ResourceT
+localRun ::
+     (MonadIO m, MonadMask m)
+  => (forall n. (MonadDriver n, MonadIO n, MonadMask n) => n a)
+  -> m a
+localRun action = runReaderT action localDriver
+
 dockerDriver ::
-     forall m. (MonadIO m, MonadMask m)
+     forall m a. (MonadIO m, MonadMask m)
   => Text -- ^ Base image
-  -> m IODriver
-dockerDriver baseImage = do
-  let localRun ::
-           (forall n. (MonadDriver n, MonadIO n, MonadMask n) => n a) -> m a
-      localRun action = runReaderT action localDriver
-  containerId <- Text.pack . show <$> liftIO (randomIO @Int)
-  container <-
-    localRun
-      $ drvTempDir
-      $ \tempDir -> do
-          drvCopy "bootstrap" (tempDir <> "/bootstrap")
-          drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
-          let image = dockerImagePrefix <> baseImage
-            -- Build image
-          drvRun $ "docker" :| ["build", "--tag", image, tempDir]
-            -- Start container
-            -- FIXME: --volume for package root
-          drvRunOutput
-            $ "docker"
-                :| [ "run"
-                   , "--rm"
-                   , "--detach"
-                   , "--name"
-                   , "mybox-test-" <> containerId
-                   , image
-                   , "sleep"
-                   , "86400000"
-                   ]
-  let idTransformArgs :: Args -> Args
-      idTransformArgs args =
-        "docker" :| ["exec", "--interactive", container] <> toList args
-  pure IODriver {idTransformArgs, idOverrides = mempty}
+  -> (IODriver -> m a)
+  -> m a
+dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
+  where
+    mkContainer :: m Text
+    mkContainer = do
+      containerName <- Text.pack . show <$> liftIO (randomIO @Int)
+      localRun
+        $ drvTempDir
+        $ \tempDir -> do
+            drvCopy "bootstrap" (tempDir <> "/bootstrap")
+            drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
+            let image = dockerImagePrefix <> baseImage
+                  -- Build image
+            drvRun $ "docker" :| ["build", "--tag", image, tempDir]
+                  -- Start container
+                  -- FIXME: --volume for package root
+            drvRunOutput
+              $ "docker"
+                  :| [ "run"
+                     , "--rm"
+                     , "--detach"
+                     , "--name"
+                     , "mybox-test-" <> containerName
+                     , image
+                     , "sleep"
+                     , "86400000"
+                     ]
+    rmContainer :: Text -> m ()
+    rmContainer container =
+      localRun $ drvRun $ "docker" :| ["rm", "--force", container]
+    mkDriver :: Text -> IODriver
+    mkDriver container = IODriver {..}
+      where
+        idTransformArgs :: Args -> Args
+        idTransformArgs args =
+          "docker" :| ["exec", "--interactive", container] <> toList args
+        idOverrides = mempty
 
 dockerfile ::
      Text -- ^ base image
