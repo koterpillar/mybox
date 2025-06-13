@@ -1,15 +1,16 @@
 module Mybox.Driver.Ops where
 
-import           Control.Exception.Safe (MonadMask, bracket)
+import           Data.Char          (isAlphaNum)
 
-import           Data.List.NonEmpty     (NonEmpty (..))
-import qualified Data.List.NonEmpty     as NonEmpty
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
+import           Data.Foldable
+
+import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.Text          (Text)
+import qualified Data.Text          as Text
 
 import           Mybox.Driver.Class
 
-import           System.Exit            (ExitCode (..))
+import           System.Exit        (ExitCode (..))
 
 -- | Check if a path is executable.
 drvIsExecutable :: MonadDriver m => Text -> m Bool
@@ -71,17 +72,21 @@ drvCopy source target = do
   drvRm target
   drvRun $ "cp" :| ["-R", "-f", source, target]
 
-drvTemp_ :: (MonadDriver m, MonadMask m) => Bool -> (Text -> m a) -> m a
-drvTemp_ isDirectory =
-  bracket (drvRunOutput $ "mktemp" :| ["-d" | isDirectory]) drvRm
+drvTemp_ :: MonadDriver m => Bool -> m Text
+drvTemp_ isDirectory = drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
--- | Execute an action with a temporary file, cleaning up afterwards
-drvTempFile :: (MonadDriver m, MonadMask m) => (Text -> m a) -> m a
+drvTempFile :: MonadDriver m => m Text
 drvTempFile = drvTemp_ False
 
--- | Execute an action with a temporary directory, cleaning up afterwards
-drvTempDir :: (MonadDriver m, MonadMask m) => (Text -> m a) -> m a
+drvTempDir :: MonadDriver m => m Text
 drvTempDir = drvTemp_ True
+
+drvWriteFile :: MonadDriver m => Text -> Text -> m ()
+drvWriteFile path content = do
+  drvMkdir $ drvDirname path
+  drvRm path
+  drvRun
+    $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
 -- | Helper: dirname (get parent directory as text)
 drvDirname :: Text -> Text
@@ -91,6 +96,16 @@ drvDirname path =
     [_] -> "."
     xs  -> Text.intercalate "/" (init xs)
 
-drvShell :: NonEmpty Text -> NonEmpty Text
-drvShell args =
-  "sh" :| ["-c", Text.intercalate " " $ NonEmpty.toList args] -- FIXME quote args
+drvShell :: Args -> Args
+drvShell args = "sh" :| ["-c", shellJoin args]
+
+shellJoin :: (Foldable f, Functor f) => f Text -> Text
+shellJoin = Text.unwords . toList . fmap shellQuote
+
+shellQuote :: Text -> Text
+shellQuote t
+  | Text.all safe t && not (Text.null t) = t
+  | otherwise = q <> Text.intercalate "'\"'\"'" (Text.splitOn q t) <> q
+  where
+    q = "'"
+    safe c = isAlphaNum c || c == '_'
