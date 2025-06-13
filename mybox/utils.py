@@ -102,10 +102,12 @@ async def url_version(url: str) -> str:
 GIT_PREFIX = "git+"
 
 
-async def repo_version(repo: str) -> str:
+async def repo_version(repo: str, *, branch: Optional[str] = None) -> str:
     if repo.startswith(GIT_PREFIX):
         repo = repo.removeprefix(GIT_PREFIX)
-    return (await run_output("git", "ls-remote", repo, "HEAD")).split()[0]
+    if not branch:
+        branch = "HEAD"
+    return (await run_output("git", "ls-remote", repo, branch)).split()[0]
 
 
 def with_extensions(name: str, extensions: list[str]) -> list[str]:
