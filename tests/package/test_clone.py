@@ -17,6 +17,20 @@ class TestClone(DestinationPackageTestBase):
     check_installed_output = "alias ohmyzsh"
 
 
+class TestCloneBranch(DestinationPackageTestBase):
+    async def constructor_args(self) -> PackageArgs:
+        return {
+            "clone": "node-fetch/node-fetch",
+            "branch": "2.x",
+            "destination": self.dir_name,
+        }
+
+    async def check_installed_command(self):
+        return ["cat", await self.destination() / "package.json"]
+
+    check_installed_output = '"version": "2'
+
+
 class TestCloneBranchSwitch(TestClone):
     async def install_prerequisites(self, package: Package):
         await super().install_prerequisites(package)

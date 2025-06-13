@@ -11,6 +11,7 @@ DEFAULT_REMOTE = "origin"
 
 class Clone(Destination):
     repo: str = Field(..., alias="clone")
+    branch: Optional[str] = None
 
     def derive_name(self) -> str:
         return self.repo
@@ -40,7 +41,7 @@ class Clone(Destination):
         return f"https://github.com/{self.repo}.git"
 
     async def get_remote_version(self) -> str:
-        return await repo_version(self.remote)
+        return await repo_version(self.remote, branch=self.branch)
 
     async def branch_name(self, ref: str) -> str:
         return await self.run_git_output("rev-parse", "--abbrev-ref", ref)
@@ -55,14 +56,18 @@ class Clone(Destination):
 
         await self.run_git("remote", "set-url", DEFAULT_REMOTE, self.remote)
 
-        default_remote_branch = await self.branch_name(f"{DEFAULT_REMOTE}/HEAD")
-        default_branch = default_remote_branch.split("/")[1]
-        await self.run_git("fetch", "--no-tags", DEFAULT_REMOTE, default_branch)
+        if self.branch:
+            remote_branch = f"{DEFAULT_REMOTE}/{self.branch}"
+        else:
+            remote_branch = await self.branch_name(f"{DEFAULT_REMOTE}/HEAD")
+
+        branch = remote_branch.split("/")[1]
+        await self.run_git("fetch", "--no-tags", DEFAULT_REMOTE, branch)
 
         current_branch = await self.branch_name("HEAD")
-        if current_branch != default_branch:
-            await self.run_git("switch", default_branch)
-        await self.run_git("reset", "--hard", default_remote_branch)
+        if current_branch != branch:
+            await self.run_git("switch", branch)
+        await self.run_git("reset", "--hard", remote_branch)
 
         tracker.track(destination, root=self.root)
 
