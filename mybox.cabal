@@ -90,6 +90,9 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.Driver.IOSpec
+      Mybox.Package.CloneSpec
+      Mybox.Package.SpecBase
+      Mybox.SpecBase
       Paths_mybox
   autogen-modules:
       Paths_mybox
