@@ -19,6 +19,9 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Main
+      Mybox.Package.Class
+      Mybox.Package.Clone
+      Mybox.Utils
   other-modules:
       Paths_mybox
   autogen-modules:
