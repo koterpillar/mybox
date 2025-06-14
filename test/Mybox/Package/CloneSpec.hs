@@ -2,20 +2,31 @@ module Mybox.Package.CloneSpec where
 
 import           Data.Function          ((&))
 
-import           Data.List.NonEmpty     (NonEmpty (..))
+import           Data.Text              (Text)
 
 import           Test.Hspec
 
+import           Mybox.Driver
 import           Mybox.Package.Clone
 import           Mybox.Package.SpecBase
 
 spec :: Spec
 spec = do
-  packageSpec $ \PackageSpecArgs {..} ->
-    ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psaDirectory)
-      & psCheckInstalledCommandOutput
-          ("cat" :| [psaDirectory <> "/templates/zshrc.zsh-template"])
-          "alias ohmyzsh"
+  let baseClone (PackageSpecArgs {..}) =
+        ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psaDirectory)
+          & psCheckInstalledCommandOutput
+              ("cat" :| [psaDirectory <> "/templates/zshrc.zsh-template"])
+              "alias ohmyzsh"
+  packageSpec baseClone
+  let checkoutEarlierCommit :: MonadDriver m => Text -> m ()
+      checkoutEarlierCommit dir = do
+        drvRun
+          $ "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", dir]
+        drvRun $ "git" :| ["-C", dir, "checkout", "HEAD~"]
+  packageSpec $ \psa ->
+    baseClone psa
+      & psName "branch switch"
+      & psPreinstall (checkoutEarlierCommit (psaDirectory psa))
   packageSpec $ \PackageSpecArgs {..} ->
     ps (ClonePackage "node-fetch/node-fetch" (Just "2.x") psaDirectory)
       & psCheckInstalledCommandOutput

@@ -2,12 +2,16 @@ module Mybox.Package.SpecBase
   ( PackageSpecArgs(..)
   , PackageSpec
   , ps
+  , psName
   , psCheckInstalled
   , psCheckInstalledCommandOutput
+  , psPreinstall
   , packageSpec
   ) where
 
 import           Control.Monad.IO.Class
+
+import           Data.Maybe
 
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
@@ -36,17 +40,24 @@ psaSpec f = runIO mkPSA >>= f
 
 data PackageSpec a = PackageSpec
   { psPackage         :: a
+  , psName_           :: Maybe Text
   , psCheckInstalled_ :: forall m. (MonadDriver m, MonadIO m) => m ()
+  , psPreinstall_     :: forall m. MonadDriver m => m ()
   }
 
 ps :: a -> PackageSpec a
 ps p =
   PackageSpec
     { psPackage = p
+    , psName_ = Nothing
     , psCheckInstalled_ = liftIO $ expectationFailure "psCheckInstalled not set"
+    , psPreinstall_ = pure ()
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
+
+psName :: Text -> MPS a
+psName n s = s {psName_ = Just n}
 
 psCheckInstalled :: (forall m. (MonadDriver m, MonadIO m) => m ()) -> MPS a
 psCheckInstalled f s = s {psCheckInstalled_ = f}
@@ -57,6 +68,9 @@ psCheckInstalledCommandOutput cmd expectedOutput =
     actualOutput <- drvRunOutput cmd
     liftIO $ Text.unpack actualOutput `shouldContain` Text.unpack expectedOutput
 
+psPreinstall :: (forall m. MonadDriver m => m ()) -> MPS a
+psPreinstall f s = s {psPreinstall_ = psPreinstall_ s >> f}
+
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
   around withDriver
@@ -64,9 +78,10 @@ packageSpec makePS =
     $ \psa -> do
         let s = makePS psa
         let p = psPackage s
-        describe (Text.unpack $ pkgName p) $ do
+        describe (Text.unpack $ fromMaybe (pkgName p) (psName_ s)) $ do
           it "has a name" $ \_ -> pkgName p `shouldSatisfy` (not . Text.null)
           it "installs" $ \drv ->
             run drv $ do
+              psPreinstall_ s
               pkgInstall p
               psCheckInstalled_ s
