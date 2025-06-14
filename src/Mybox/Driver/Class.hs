@@ -1,9 +1,6 @@
 module Mybox.Driver.Class where
 
-import           Data.List.NonEmpty (NonEmpty (..))
-import           Data.Text          (Text)
-
-import           System.Exit        (ExitCode (..))
+import           Mybox.Prelude
 
 data RunExit e where
   RunExitError :: RunExit () -- ^ Throw an error if the command fails

@@ -2,15 +2,10 @@ module Mybox.Driver.Ops where
 
 import           Data.Char          (isAlphaNum)
 
-import           Data.Foldable
-
-import           Data.List.NonEmpty (NonEmpty (..))
-import           Data.Text          (Text)
 import qualified Data.Text          as Text
 
 import           Mybox.Driver.Class
-
-import           System.Exit        (ExitCode (..))
+import           Mybox.Prelude
 
 -- | Check if a path is executable.
 drvIsExecutable :: MonadDriver m => Text -> m Bool

@@ -8,26 +8,18 @@ module Mybox.Driver.IO
   , dockerDriver
   ) where
 
-import           Control.Exception.Safe
-import           Control.Monad
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Reader   (MonadReader, asks, runReaderT)
-
-import           Data.Foldable
+import           Control.Monad.Reader (MonadReader, asks, runReaderT)
 
 import           Data.Has
 
-import           Data.List.NonEmpty     (NonEmpty (..))
-
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
-import qualified Data.Text.IO           as Text
+import qualified Data.Text            as Text
+import qualified Data.Text.IO         as Text
 
 import           Mybox.Driver.Class
 import           Mybox.Driver.Ops
+import           Mybox.Prelude
 
 import           System.Environment
-import           System.Exit            (ExitCode (..))
 import           System.Process
 import           System.Random
 

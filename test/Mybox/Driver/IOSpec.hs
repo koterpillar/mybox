@@ -1,13 +1,10 @@
 module Mybox.Driver.IOSpec where
 
-import           Data.List.NonEmpty (NonEmpty (..))
-
 import           Test.Hspec
 
 import           Mybox.Driver.Class
+import           Mybox.Prelude
 import           Mybox.SpecBase
-
-import           System.Exit        (ExitCode (..))
 
 spec :: Spec
 spec =
