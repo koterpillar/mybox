@@ -28,18 +28,22 @@ import           Mybox.Driver.Ops
 
 import           System.Environment
 import           System.Exit            (ExitCode (..))
-import           System.Process         (readProcessWithExitCode)
+import           System.Process
 import           System.Random
 
-newtype IODriver = IODriver
+data IODriver = IODriver
   { idTransformArgs :: Args -> Args
+  , idCwd           :: Maybe Text
   }
 
 instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m where
   drvRun_ exitBehavior outputBehavior args_ = do
     (cmd :| args) <-
       asks $ fmap Text.unpack . ($ args_) . idTransformArgs . getter
-    (exitCode, stdout, stderr) <- liftIO $ readProcessWithExitCode cmd args ""
+    cwd <- asks $ idCwd . getter
+    let process = (proc cmd args) {cwd = Text.unpack <$> cwd}
+    (exitCode, stdout, stderr) <-
+      liftIO $ readCreateProcessWithExitCode process ""
     let stdoutText = Text.pack stdout
     rrExit <-
       case exitBehavior of
@@ -62,7 +66,7 @@ instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m 
     pure $ RunResult {..}
 
 localDriver :: IODriver
-localDriver = IODriver {idTransformArgs = id}
+localDriver = IODriver {idTransformArgs = id, idCwd = Nothing}
 
 localRun ::
      (MonadIO m, MonadMask m)
@@ -96,8 +100,9 @@ testHostDriver act = do
       linkToOriginalHome ".local/share/fonts"
       linkToOriginalHome ".local/share/systemd/user"
       linkToOriginalHome "Library/LaunchAgents"
-      let idTransformArgs ("sh" :| ["-c", "eval echo ~"]) = "echo" :| [home]
-          idTransformArgs args                            = args
+      let idTransformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
+          idTransformArgs args                              = args
+      let idCwd = Just home
       act $ IODriver {..}
 
 dockerDriver ::
@@ -137,6 +142,7 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
     mkDriver :: Text -> IODriver
     mkDriver container = IODriver {..}
       where
+        idCwd = Nothing
         idTransformArgs :: Args -> Args
         idTransformArgs args =
           "docker" :| ["exec", "--interactive", container] <> toList args

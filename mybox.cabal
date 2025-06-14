@@ -19,6 +19,9 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Main
+      Mybox.Package.Class
+      Mybox.Package.Clone
+      Mybox.Utils
   other-modules:
       Paths_mybox
   autogen-modules:
@@ -87,6 +90,9 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.Driver.IOSpec
+      Mybox.Package.CloneSpec
+      Mybox.Package.SpecBase
+      Mybox.SpecBase
       Paths_mybox
   autogen-modules:
       Paths_mybox

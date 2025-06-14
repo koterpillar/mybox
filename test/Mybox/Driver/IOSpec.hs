@@ -1,28 +1,13 @@
 module Mybox.Driver.IOSpec where
 
-import           Control.Monad.Reader (runReaderT)
-
-import           Data.List.NonEmpty   (NonEmpty (..))
-
-import qualified Data.Text            as Text
+import           Data.List.NonEmpty (NonEmpty (..))
 
 import           Test.Hspec
 
 import           Mybox.Driver.Class
-import           Mybox.Driver.IO
+import           Mybox.SpecBase
 
-import           System.Environment
-import           System.Exit          (ExitCode (..))
-
-withDriver :: (IODriver -> IO ()) -> IO ()
-withDriver act = do
-  image_ <- lookupEnv "DOCKER_IMAGE"
-  case image_ of
-    Nothing    -> testHostDriver act
-    Just image -> dockerDriver (Text.pack image) act
-
-run :: IODriver -> (forall m. MonadDriver m => m a) -> IO a
-run drv action = runReaderT action drv
+import           System.Exit        (ExitCode (..))
 
 spec :: Spec
 spec =
