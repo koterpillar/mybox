@@ -2,10 +2,10 @@ module Mybox.Main
   ( main
   ) where
 
-import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader   (runReaderT)
+import           Control.Monad.Reader (runReaderT)
 
 import           Mybox.Driver
+import           Mybox.Prelude
 
 import           System.Exit
 

@@ -1,11 +1,9 @@
 module Mybox.Utils where
 
-import           Data.Maybe
-
-import           Data.Text    (Text)
-import qualified Data.Text    as Text
+import qualified Data.Text     as Text
 
 import           Mybox.Driver
+import           Mybox.Prelude
 
 repoBranchVersion ::
      MonadDriver m

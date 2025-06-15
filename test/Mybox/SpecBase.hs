@@ -1,12 +1,12 @@
 module Mybox.SpecBase where
 
-import           Control.Monad.IO.Class (MonadIO)
-import           Control.Monad.Reader   (runReaderT)
+import           Control.Monad.Reader (runReaderT)
 
-import qualified Data.Text              as Text
+import qualified Data.Text            as Text
 
 import           Mybox.Driver.Class
 import           Mybox.Driver.IO
+import           Mybox.Prelude
 
 import           System.Environment
 

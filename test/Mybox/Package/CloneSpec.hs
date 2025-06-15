@@ -1,14 +1,11 @@
 module Mybox.Package.CloneSpec where
 
-import           Data.Function          ((&))
-
-import           Data.Text              (Text)
-
 import           Test.Hspec
 
 import           Mybox.Driver
 import           Mybox.Package.Clone
 import           Mybox.Package.SpecBase
+import           Mybox.Prelude
 
 spec :: Spec
 spec = do

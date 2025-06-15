@@ -2,14 +2,11 @@ module Mybox.Package.Clone
   ( ClonePackage(..)
   ) where
 
-import           Control.Monad
-import           Data.Foldable
-
-import           Data.Text           (Text)
 import qualified Data.Text           as Text
 
 import           Mybox.Driver
 import           Mybox.Package.Class
+import           Mybox.Prelude
 import           Mybox.Utils
 
 data ClonePackage = ClonePackage

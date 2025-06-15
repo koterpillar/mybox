@@ -1,8 +1,7 @@
 module Mybox.Package.Class where
 
-import           Data.Text    (Text)
-
 import           Mybox.Driver
+import           Mybox.Prelude
 
 class Package a where
   pkgName :: a -> Text

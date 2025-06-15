@@ -9,17 +9,13 @@ module Mybox.Package.SpecBase
   , packageSpec
   ) where
 
-import           Control.Monad.IO.Class
-
-import           Data.Maybe
-
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
+import qualified Data.Text           as Text
 
 import           Test.Hspec
 
 import           Mybox.Driver.Class
 import           Mybox.Package.Class
+import           Mybox.Prelude
 import           Mybox.SpecBase
 
 import           System.Random
