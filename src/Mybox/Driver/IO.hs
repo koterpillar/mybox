@@ -113,10 +113,8 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
             drvCopy "bootstrap" (tempDir <> "/bootstrap")
             drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
             let image = dockerImagePrefix <> baseImage
-                  -- Build image
             drvRun $ "docker" :| ["build", "--tag", image, tempDir]
-                  -- Start container
-                  -- FIXME: --volume for package root
+            -- FIXME: --volume for package root
             drvRunOutput
               $ "docker"
                   :| [ "run"
@@ -136,6 +134,9 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
       where
         idCwd = Nothing
         idTransformArgs :: Args -> Args
+        idTransformArgs ("sudo" :| args') =
+          "docker" :| ["exec", "--user", "root", "--interactive", container]
+            <> args'
         idTransformArgs args =
           "docker" :| ["exec", "--interactive", container] <> toList args
 
