@@ -21,7 +21,7 @@ default-extensions:
 dependencies:
   - base
   - containers
-  - data-has
+  - effectful
   - mtl
   - process
   - random

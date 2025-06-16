@@ -1,4 +1,8 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Mybox.Driver.Class where
+
+import           Effectful.Dispatch.Dynamic
 
 import           Mybox.Prelude
 
@@ -39,23 +43,23 @@ instance RunResultSimplified (RunResult () Text) Text where
 
 type Args = NonEmpty Text
 
-class Monad m =>
-      MonadDriver m
-  where
-  drvRun_ ::
-       RunExit e -- ^ Exit behavior
+data Driver :: Effect where
+  DrvRun
+    :: RunExit e -- ^ Exit behavior
     -> RunOutput o -- ^ Output behavior
     -> Args -- ^ Command and arguments
-    -> m (RunResult e o)
+    -> Driver m (RunResult e o)
 
-drvRun :: MonadDriver m => Args -> m ()
-drvRun = fmap rrSimplify <$> drvRun_ RunExitError RunOutputShow
+type instance DispatchOf Driver = Dynamic
 
-drvRunOk :: MonadDriver m => Args -> m ExitCode
-drvRunOk = fmap rrSimplify <$> drvRun_ RunExitReturn RunOutputShow
+drvRun :: Driver :> es => Args -> Eff es ()
+drvRun = fmap rrSimplify . send . DrvRun RunExitError RunOutputShow
 
-drvRunOutput_ :: MonadDriver m => RunExit e -> Args -> m (RunResult e Text)
-drvRunOutput_ exit = drvRun_ exit RunOutputReturn
+drvRunOk :: Driver :> es => Args -> Eff es ExitCode
+drvRunOk = fmap rrSimplify . send . DrvRun RunExitReturn RunOutputShow
 
-drvRunOutput :: MonadDriver m => Args -> m Text
+drvRunOutput_ :: Driver :> es => RunExit e -> Args -> Eff es (RunResult e Text)
+drvRunOutput_ exit = send . DrvRun exit RunOutputReturn
+
+drvRunOutput :: Driver :> es => Args -> Eff es Text
 drvRunOutput = fmap rrSimplify <$> drvRunOutput_ RunExitError

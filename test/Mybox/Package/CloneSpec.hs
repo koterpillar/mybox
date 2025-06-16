@@ -29,10 +29,10 @@ spec = do
           ("cat" :| [psaDirectory </> "package.json"])
           "\"version\": \"2"
 
-createEmptyDirectory :: MonadDriver m => PackageSpecArgs -> m ()
+createEmptyDirectory :: Driver :> es => PackageSpecArgs -> Eff es ()
 createEmptyDirectory PackageSpecArgs {..} = drvMkdir psaDirectory
 
-checkoutEarlierCommit :: MonadDriver m => PackageSpecArgs -> m ()
+checkoutEarlierCommit :: Driver :> es => PackageSpecArgs -> Eff es ()
 checkoutEarlierCommit PackageSpecArgs {..} = do
   drvRun
     $ "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psaDirectory]

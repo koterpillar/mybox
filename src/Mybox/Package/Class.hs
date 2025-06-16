@@ -5,11 +5,11 @@ import           Mybox.Prelude
 
 class Package a where
   pkgName :: a -> Text
-  pkgRemoteVersion :: MonadDriver m => a -> m Text
-  pkgLocalVersion :: MonadDriver m => a -> m (Maybe Text)
-  pkgInstall :: MonadDriver m => a -> m ()
+  pkgRemoteVersion :: Driver :> es => a -> Eff es Text
+  pkgLocalVersion :: Driver :> es => a -> Eff es (Maybe Text)
+  pkgInstall :: Driver :> es => a -> Eff es ()
 
-pkgIsInstalled :: (Package a, MonadDriver m) => a -> m Bool
+pkgIsInstalled :: (Package a, Driver :> es) => a -> Eff es Bool
 pkgIsInstalled pkg = do
   lv <- pkgLocalVersion pkg
   case lv of

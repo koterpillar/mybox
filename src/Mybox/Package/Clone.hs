@@ -18,7 +18,7 @@ data ClonePackage = ClonePackage
 cpName :: ClonePackage -> Text
 cpName ClonePackage {..} = Text.intercalate "#" $ cpRepo : toList cpBranch
 
-cpDestinationPath :: MonadDriver m => ClonePackage -> m Text
+cpDestinationPath :: Driver :> es => ClonePackage -> Eff es Text
 cpDestinationPath p = do
   home <- drvHome
   pure $ home </> cpDestination p
@@ -31,35 +31,35 @@ cpRemote p
   where
     r = cpRepo p
 
-cpGitArgs :: MonadDriver m => [Text] -> ClonePackage -> m (NonEmpty Text)
+cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do
   dest <- cpDestinationPath p
   pure $ "git" :| (["-C", dest] <> args)
 
-cpRunGit :: MonadDriver m => [Text] -> ClonePackage -> m ()
+cpRunGit :: Driver :> es => [Text] -> ClonePackage -> Eff es ()
 cpRunGit args p = cpGitArgs args p >>= drvRun
 
 cpRevParse ::
-     MonadDriver m
+     Driver :> es
   => Text -- ^ branch name
   -> Bool -- ^ abbrev-ref
   -> ClonePackage
-  -> m Text
+  -> Eff es Text
 cpRevParse branch abbrevRef p =
   cpGitArgs (join [["rev-parse"], ["--abbrev-ref" | abbrevRef], [branch]]) p
     >>= drvRunOutput
 
-cpDirectoryExists :: MonadDriver m => ClonePackage -> m Bool
+cpDirectoryExists :: Driver :> es => ClonePackage -> Eff es Bool
 cpDirectoryExists p = cpDestinationPath p >>= drvIsDir
 
-cpLocalVersion :: MonadDriver m => ClonePackage -> m (Maybe Text)
+cpLocalVersion :: Driver :> es => ClonePackage -> Eff es (Maybe Text)
 cpLocalVersion p = do
   exists <- cpDirectoryExists p
   if exists
     then Just <$> cpRevParse "HEAD" False p
     else pure Nothing
 
-cpRemoteVersion :: MonadDriver m => ClonePackage -> m Text
+cpRemoteVersion :: Driver :> es => ClonePackage -> Eff es Text
 cpRemoteVersion p = repoBranchVersion (cpRemote p) (cpBranch p)
 
 cpDefaultRemote :: Text
@@ -68,7 +68,7 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: MonadDriver m => ClonePackage -> m ()
+cpInstall :: Driver :> es => ClonePackage -> Eff es ()
 cpInstall p = do
   destination <- cpDestinationPath p
   exists <- drvIsDir $ destination </> ".git"
