@@ -10,7 +10,7 @@ from .driver import Driver
 from .package import Package, parse_packages
 from .parallel import PartialException, PartialResults, parallel_map_progress
 from .state import DB, VERSIONS
-from .tracker import ManagerTracker, Tracker
+from .tracker import ManagerTracker, tracking
 from .utils import flatten
 
 
@@ -59,7 +59,7 @@ class Manager:
         return await self.install_packages(packages)
 
     async def install_packages(self, packages: list[Package]) -> InstallResult:
-        async with Tracker.tracking(driver=self.driver, db=self.db) as tracker:
+        async with tracking(driver=self.driver, db=self.db) as tracker:
 
             async def process_and_record(package: Package) -> Iterable[Package]:
                 return [pkg async for pkg in self.install_package(tracker, package)]
@@ -97,7 +97,7 @@ class Manager:
                 tracker.skip(package.name)
                 return
 
-            await package.install(tracker=tracker.track(package.name))
+            await package.install(tracker=tracker.for_package(package.name))
         except:
             tracker.skip(package.name)
             raise

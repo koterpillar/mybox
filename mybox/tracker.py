@@ -8,34 +8,34 @@ from .driver import Driver
 from .state import DB, INSTALLED_FILES, InstalledFile, Storage
 
 
+@asynccontextmanager
+async def tracking(*, driver: Driver, db: DB) -> AsyncIterator["ManagerTracker"]:
+    installed_files = INSTALLED_FILES(db)
+
+    stale = set(installed_files.find())
+    current: set[InstalledFile] = set()
+
+    tracker = ManagerTracker(
+        storage=installed_files,
+        stale=stale,
+        current=current,
+    )
+
+    try:
+        yield tracker
+    finally:
+        current_paths = set(current_file.path for current_file in current)
+
+        for stale_file in stale:
+            if stale_file.path not in current_paths:
+                await driver.with_root(stale_file.root).rm(stale_file.path_)
+            installed_files.delete(package=stale_file.package, path=stale_file.path)
+
+
 class Tracker(ABC):
     @abstractmethod
     def track(self, target: Path, *, root: bool = False) -> None:
         pass
-
-    @staticmethod
-    @asynccontextmanager
-    async def tracking(*, driver: Driver, db: DB) -> AsyncIterator["ManagerTracker"]:
-        installed_files = INSTALLED_FILES(db)
-
-        stale = set(installed_files.find())
-        current: set[InstalledFile] = set()
-
-        tracker = ManagerTracker(
-            storage=installed_files,
-            stale=stale,
-            current=current,
-        )
-
-        try:
-            yield tracker
-        finally:
-            current_paths = set(current_file.path for current_file in current)
-
-            for stale_file in stale:
-                if stale_file.path not in current_paths:
-                    await driver.with_root(stale_file.root).rm(stale_file.path_)
-                installed_files.delete(package=stale_file.package, path=stale_file.path)
 
 
 @dataclass
@@ -53,7 +53,7 @@ class ManagerTracker:
         self.stale -= intact
         self.current |= intact
 
-    def track(self, package: str) -> Tracker:
+    def for_package(self, package: str) -> Tracker:
         return PackageTracker(parent=self, name=package)
 
 
