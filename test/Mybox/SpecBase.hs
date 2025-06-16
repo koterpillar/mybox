@@ -1,5 +1,7 @@
 module Mybox.SpecBase where
 
+import           Test.Hspec
+
 import           Mybox.Driver.Class
 import           Mybox.Driver.IO
 import           Mybox.Prelude
@@ -10,3 +12,6 @@ newtype WD =
 withDriver :: (WD -> IO ()) -> IO ()
 withDriver ioa =
   runEff $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ WD unlift
+
+itEff :: String -> Eff '[ Driver, IOE] () -> SpecWith WD
+itEff name act = it name $ \(WD unlift) -> unlift act

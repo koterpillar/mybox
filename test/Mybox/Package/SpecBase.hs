@@ -75,9 +75,10 @@ packageSpec makePS =
         let s = makePS psa
         let p = psPackage s
         describe (Text.unpack $ fromMaybe (pkgName p) (psName_ s)) $ do
-          it "has a name" $ \_ -> pkgName p `shouldSatisfy` (not . Text.null)
-          it "installs" $ \(WD drv) ->
-            drv $ do
-              psPreinstall_ s
-              pkgInstall p
-              psCheckInstalled_ s
+          itEff "has a name"
+            $ liftIO
+            $ pkgName p `shouldSatisfy` (not . Text.null)
+          itEff "installs" $ do
+            psPreinstall_ s
+            pkgInstall p
+            psCheckInstalled_ s
