@@ -83,7 +83,6 @@ drvWriteFile path content = do
   drvRun
     $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
--- | Helper: dirname (get parent directory as text)
 drvDirname :: Text -> Text
 drvDirname path =
   case Text.splitOn "/" path of
