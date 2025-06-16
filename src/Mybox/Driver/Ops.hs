@@ -43,7 +43,7 @@ drvHome = drvRunOutput $ drvShell $ "eval" :| ["echo", "~"]
 drvLocal :: MonadDriver m => m Text
 drvLocal = do
   home <- drvHome
-  pure (home <> "/.local")
+  pure (home </> ".local")
 
 -- | Remove a file or directory.
 drvRm :: MonadDriver m => Text -> m ()

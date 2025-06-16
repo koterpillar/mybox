@@ -12,7 +12,7 @@ spec = do
   let baseClone (PackageSpecArgs {..}) =
         ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psaDirectory)
           & psCheckInstalledCommandOutput
-              ("cat" :| [psaDirectory <> "/templates/zshrc.zsh-template"])
+              ("cat" :| [psaDirectory </> "templates" </> "zshrc.zsh-template"])
               "alias ohmyzsh"
   packageSpec baseClone
   packageSpec $ \psa ->
@@ -26,7 +26,7 @@ spec = do
   packageSpec $ \PackageSpecArgs {..} ->
     ps (ClonePackage "node-fetch/node-fetch" (Just "2.x") psaDirectory)
       & psCheckInstalledCommandOutput
-          ("cat" :| [psaDirectory <> "/package.json"])
+          ("cat" :| [psaDirectory </> "package.json"])
           "\"version\": \"2"
 
 createEmptyDirectory :: MonadDriver m => PackageSpecArgs -> m ()
