@@ -21,7 +21,7 @@ cpName ClonePackage {..} = Text.intercalate "#" $ cpRepo : toList cpBranch
 cpDestinationPath :: MonadDriver m => ClonePackage -> m Text
 cpDestinationPath p = do
   home <- drvHome
-  pure $ home <> "/" <> cpDestination p
+  pure $ home </> cpDestination p
 
 cpRemote :: ClonePackage -> Text
 cpRemote p
@@ -65,10 +65,13 @@ cpRemoteVersion p = repoBranchVersion (cpRemote p) (cpBranch p)
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"
 
+cpRemoteBranch :: Text -> Text
+cpRemoteBranch b = cpDefaultRemote <> "/" <> b
+
 cpInstall :: MonadDriver m => ClonePackage -> m ()
 cpInstall p = do
   destination <- cpDestinationPath p
-  exists <- drvIsDir $ destination <> "/.git"
+  exists <- drvIsDir $ destination </> ".git"
   if exists
     then cpRunGit ["remote", "set-url", cpDefaultRemote, cpRemote p] p
     else do
@@ -77,8 +80,8 @@ cpInstall p = do
       drvRun $ "git" :| ["clone", cpRemote p, destination]
   remoteBranch <-
     case cpBranch p of
-      Just branch -> pure $ cpDefaultRemote <> "/" <> branch
-      Nothing     -> cpRevParse (cpDefaultRemote <> "/HEAD") True p
+      Just branch -> pure $ cpRemoteBranch branch
+      Nothing     -> cpRevParse (cpRemoteBranch "HEAD") True p
   let branch = Text.takeWhileEnd (/= '/') remoteBranch
   cpRunGit ["fetch", "--no-tags", cpDefaultRemote, branch] p
   currentBranch <- cpRevParse "HEAD" True p

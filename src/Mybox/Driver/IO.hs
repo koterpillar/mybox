@@ -82,10 +82,10 @@ testHostDriver ::
 testHostDriver act = do
   originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
   bracket (localRun drvTempDir) (\home -> localRun $ drvRm home) $ \home -> do
-    withAddedPath (home <> "/.local/bin") $ do
+    withAddedPath (home </> ".local" </> "bin") $ do
       let linkToOriginalHome path =
-            let op = originalHome <> "/" <> path
-                np = home <> "/" <> path
+            let op = originalHome </> path
+                np = home </> path
              in localRun $ do
                   drvMkdir $ drvDirname np
                   drvLink op np
@@ -110,8 +110,8 @@ dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
       localRun
         $ bracket drvTempDir drvRm
         $ \tempDir -> do
-            drvCopy "bootstrap" (tempDir <> "/bootstrap")
-            drvWriteFile (tempDir <> "/Dockerfile") $ dockerfile baseImage
+            drvCopy "bootstrap" (tempDir </> "bootstrap")
+            drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
             let image = dockerImagePrefix <> baseImage
             drvRun $ "docker" :| ["build", "--tag", image, tempDir]
             -- FIXME: --volume for package root

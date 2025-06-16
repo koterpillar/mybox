@@ -43,7 +43,7 @@ drvHome = drvRunOutput $ drvShell $ "eval" :| ["echo", "~"]
 drvLocal :: MonadDriver m => m Text
 drvLocal = do
   home <- drvHome
-  pure (home <> "/.local")
+  pure (home </> ".local")
 
 -- | Remove a file or directory.
 drvRm :: MonadDriver m => Text -> m ()
@@ -83,7 +83,6 @@ drvWriteFile path content = do
   drvRun
     $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
--- | Helper: dirname (get parent directory as text)
 drvDirname :: Text -> Text
 drvDirname path =
   case Text.splitOn "/" path of

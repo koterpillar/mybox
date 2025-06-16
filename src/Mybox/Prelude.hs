@@ -8,6 +8,7 @@ module Mybox.Prelude
   , NonEmpty(..)
   , ExitCode(..)
   , Text
+  , (</>)
   ) where
 
 import           Control.Exception.Safe
@@ -19,3 +20,6 @@ import           Data.List.NonEmpty     (NonEmpty (..))
 import           Data.Maybe
 import           Data.Text              (Text)
 import           System.Exit            (ExitCode (..))
+
+(</>) :: Text -> Text -> Text
+a </> b = a <> "/" <> b
