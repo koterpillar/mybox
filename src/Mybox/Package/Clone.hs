@@ -68,11 +68,12 @@ cpDefaultRemote = "origin"
 cpInstall :: MonadDriver m => ClonePackage -> m ()
 cpInstall p = do
   destination <- cpDestinationPath p
-  exists <- drvIsDir destination
+  exists <- drvIsDir $ destination <> "/.git"
   if exists
     then cpRunGit ["remote", "set-url", cpDefaultRemote, cpRemote p] p
     else do
       drvMkdir $ drvDirname destination
+      drvRm destination
       drvRun $ "git" :| ["clone", cpRemote p, destination]
   remoteBranch <-
     case cpBranch p of
