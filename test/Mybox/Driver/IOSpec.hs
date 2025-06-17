@@ -6,7 +6,7 @@ import           Mybox.SpecBase
 
 spec :: Spec
 spec =
-  around withDriver $ do
+  around withTestEnv $ do
     it "returns ExitSuccess for true command" $ do
       result <- drvRunOk $ "true" :| []
       result `shouldBe` ExitSuccess

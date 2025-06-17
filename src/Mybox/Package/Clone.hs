@@ -88,8 +88,10 @@ cpInstall p = do
   when (currentBranch /= branch) $ cpRunGit ["switch", branch] p
   cpRunGit ["reset", "--hard", remoteBranch] p
 
-instance Package ClonePackage where
+instance PackageName ClonePackage where
   pkgName = cpName
+
+instance Package ClonePackage where
   pkgLocalVersion = cpLocalVersion
   pkgRemoteVersion = cpRemoteVersion
   pkgInstall = cpInstall

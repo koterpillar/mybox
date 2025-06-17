@@ -67,7 +67,7 @@ psPreinstall f s = s {psPreinstall_ = psPreinstall_ s >> f}
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
-  around withDriver
+  around withTestEnv
     $ psaSpec
     $ \psa -> do
         let s = makePS psa

@@ -21,7 +21,9 @@ library
       Mybox.Main
       Mybox.Package.Class
       Mybox.Package.Clone
+      Mybox.Package.Name
       Mybox.Prelude
+      Mybox.Tracker
       Mybox.Utils
   other-modules:
       Paths_mybox

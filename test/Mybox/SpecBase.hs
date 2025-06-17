@@ -1,6 +1,6 @@
 module Mybox.SpecBase
   ( module Test.Hspec
-  , withDriver
+  , withTestEnv
   , it
   , shouldBe
   , shouldSatisfy
@@ -12,13 +12,18 @@ import           Test.Hspec         hiding (it, shouldBe, shouldSatisfy)
 import           Mybox.Driver.Class
 import           Mybox.Driver.IO
 import           Mybox.Prelude
+import           Mybox.Tracker
 
 newtype RunEff es =
   RunEff (forall r. Eff es r -> IO r)
 
-withDriver :: (RunEff '[ Driver, IOE] -> IO ()) -> IO ()
-withDriver ioa =
-  runEff $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+withTestEnv :: (RunEff '[ Tracker, Driver, IOE] -> IO ()) -> IO ()
+withTestEnv ioa =
+  runEff
+    $ testDriver
+    $ nullTracker
+    $ withSeqEffToIO
+    $ \unlift -> ioa $ RunEff unlift
 
 it :: String -> Eff ef () -> SpecWith (RunEff ef)
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
