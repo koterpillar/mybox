@@ -1,5 +1,6 @@
 module Mybox.SpecBase
   ( module Test.Hspec
+  , withIOEnv
   , withTestEnv
   , it
   , shouldBe
@@ -17,11 +18,14 @@ import           Mybox.Tracker
 newtype RunEff es =
   RunEff (forall r. Eff es r -> IO r)
 
-withTestEnv :: (RunEff '[ Tracker, Driver, IOE] -> IO ()) -> IO ()
+withIOEnv :: (RunEff '[ IOE] -> IO ()) -> IO ()
+withIOEnv ioa = runEff $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+
+withTestEnv :: (RunEff '[ PackageTracker, Driver, IOE] -> IO ()) -> IO ()
 withTestEnv ioa =
   runEff
     $ testDriver
-    $ nullTracker
+    $ nullPackageTracker
     $ withSeqEffToIO
     $ \unlift -> ioa $ RunEff unlift
 

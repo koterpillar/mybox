@@ -14,7 +14,7 @@ class PackageName a =>
   where
   pkgRemoteVersion :: Driver :> es => a -> Eff es Text
   pkgLocalVersion :: Driver :> es => a -> Eff es (Maybe Text)
-  pkgInstall :: (Driver :> es, Tracker :> es) => a -> Eff es ()
+  pkgInstall :: (Driver :> es, PackageTracker :> es) => a -> Eff es ()
 
 pkgIsInstalled :: (Package a, Driver :> es) => a -> Eff es Bool
 pkgIsInstalled pkg = do

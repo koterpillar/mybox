@@ -96,6 +96,7 @@ test-suite tests
       Mybox.Package.CloneSpec
       Mybox.Package.SpecBase
       Mybox.SpecBase
+      Mybox.TrackerSpec
       Paths_mybox
   autogen-modules:
       Paths_mybox
