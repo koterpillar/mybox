@@ -11,8 +11,6 @@ module Mybox.Package.SpecBase
 
 import qualified Data.Text           as Text
 
-import           Test.Hspec
-
 import           Mybox.Driver.Class
 import           Mybox.Package.Class
 import           Mybox.Prelude
@@ -37,8 +35,8 @@ psaSpec f = runIO mkPSA >>= f
 data PackageSpec a = PackageSpec
   { psPackage         :: a
   , psName_           :: Maybe Text
-  , psCheckInstalled_ :: forall m. (MonadDriver m, MonadIO m) => m ()
-  , psPreinstall_     :: forall m. MonadDriver m => m ()
+  , psCheckInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
+  , psPreinstall_     :: forall es. Driver :> es => Eff es ()
   }
 
 ps :: a -> PackageSpec a
@@ -55,7 +53,7 @@ type MPS a = PackageSpec a -> PackageSpec a
 psName :: Text -> MPS a
 psName n s = s {psName_ = Just n}
 
-psCheckInstalled :: (forall m. (MonadDriver m, MonadIO m) => m ()) -> MPS a
+psCheckInstalled :: (forall es. (Driver :> es, IOE :> es) => Eff es ()) -> MPS a
 psCheckInstalled f s = s {psCheckInstalled_ = f}
 
 psCheckInstalledCommandOutput :: Args -> Text -> MPS a
@@ -64,7 +62,7 @@ psCheckInstalledCommandOutput cmd expectedOutput =
     actualOutput <- drvRunOutput cmd
     liftIO $ Text.unpack actualOutput `shouldContain` Text.unpack expectedOutput
 
-psPreinstall :: (forall m. MonadDriver m => m ()) -> MPS a
+psPreinstall :: (forall es. (Driver :> es) => Eff es ()) -> MPS a
 psPreinstall f s = s {psPreinstall_ = psPreinstall_ s >> f}
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
@@ -75,9 +73,8 @@ packageSpec makePS =
         let s = makePS psa
         let p = psPackage s
         describe (Text.unpack $ fromMaybe (pkgName p) (psName_ s)) $ do
-          it "has a name" $ \_ -> pkgName p `shouldSatisfy` (not . Text.null)
-          it "installs" $ \drv ->
-            run drv $ do
-              psPreinstall_ s
-              pkgInstall p
-              psCheckInstalled_ s
+          it "has a name" $ pkgName p `shouldSatisfy` (not . Text.null)
+          it "installs" $ do
+            psPreinstall_ s
+            pkgInstall p
+            psCheckInstalled_ s

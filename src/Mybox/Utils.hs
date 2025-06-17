@@ -6,10 +6,10 @@ import           Mybox.Driver
 import           Mybox.Prelude
 
 repoBranchVersion ::
-     MonadDriver m
+     Driver :> es
   => Text -- ^ Repository
   -> Maybe Text -- ^ Branch
-  -> m Text
+  -> Eff es Text
 repoBranchVersion repo_ branch_ = do
   let repo = fromMaybe repo_ $ Text.stripPrefix "git+" repo_
   let branch = fromMaybe "HEAD" branch_

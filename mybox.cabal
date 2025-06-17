@@ -45,7 +45,7 @@ library
   build-depends:
       base
     , containers
-    , data-has
+    , effectful
     , mtl
     , process
     , random
@@ -77,7 +77,7 @@ executable mybox
   build-depends:
       base
     , containers
-    , data-has
+    , effectful
     , mtl
     , mybox
     , process
@@ -117,7 +117,7 @@ test-suite tests
   build-depends:
       base
     , containers
-    , data-has
+    , effectful
     , hspec
     , mtl
     , mybox

@@ -8,75 +8,75 @@ import           Mybox.Driver.Class
 import           Mybox.Prelude
 
 -- | Check if a path is executable.
-drvIsExecutable :: MonadDriver m => Text -> m Bool
+drvIsExecutable :: Driver :> es => Text -> Eff es Bool
 drvIsExecutable path = do
   code <- drvRunOk $ "test" :| ["-x", path]
   pure (code == ExitSuccess)
 
 -- | Check if a path is a regular file.
-drvIsFile :: MonadDriver m => Text -> m Bool
+drvIsFile :: Driver :> es => Text -> Eff es Bool
 drvIsFile path = do
   code <- drvRunOk $ "test" :| ["-f", path]
   pure (code == ExitSuccess)
 
 -- | Check if an executable exists in PATH.
-drvExecutableExists :: MonadDriver m => Text -> m Bool
+drvExecutableExists :: Driver :> es => Text -> Eff es Bool
 drvExecutableExists exe = do
   code <- drvRunOk $ drvShell $ "command" :| ["-v", exe]
   pure (code == ExitSuccess)
 
 -- | Check if a path is a directory.
-drvIsDir :: MonadDriver m => Text -> m Bool
+drvIsDir :: Driver :> es => Text -> Eff es Bool
 drvIsDir path = do
   code <- drvRunOk $ "test" :| ["-d", path]
   pure (code == ExitSuccess)
 
 -- | Get the current username (FIXME: check root)
-drvUsername :: MonadDriver m => m Text
+drvUsername :: Driver :> es => Eff es Text
 drvUsername = drvRunOutput $ "whoami" :| []
 
 -- | Get the home directory for the user (FIXME: check root)
-drvHome :: MonadDriver m => m Text
+drvHome :: Driver :> es => Eff es Text
 drvHome = drvRunOutput $ drvShell $ "eval" :| ["echo", "~"]
 
 -- | Get the local directory for the user (FIXME: check root)
-drvLocal :: MonadDriver m => m Text
+drvLocal :: Driver :> es => Eff es Text
 drvLocal = do
   home <- drvHome
   pure (home </> ".local")
 
 -- | Remove a file or directory.
-drvRm :: MonadDriver m => Text -> m ()
+drvRm :: Driver :> es => Text -> Eff es ()
 drvRm path = drvRun $ "rm" :| ["-r", "-f", path]
 
 -- | Create directories recursively.
-drvMkdir :: MonadDriver m => Text -> m ()
+drvMkdir :: Driver :> es => Text -> Eff es ()
 drvMkdir path = drvRun $ "mkdir" :| ["-p", path]
 
 -- | Create a symbolic link from source to target.
-drvLink :: MonadDriver m => Text -> Text -> m ()
+drvLink :: Driver :> es => Text -> Text -> Eff es ()
 drvLink source target = do
   drvMkdir $ drvDirname target
   drvRm target
   drvRun $ "ln" :| ["-s", "-f", source, target]
 
 -- | Copy a file or directory recursively
-drvCopy :: MonadDriver m => Text -> Text -> m ()
+drvCopy :: Driver :> es => Text -> Text -> Eff es ()
 drvCopy source target = do
   drvMkdir $ drvDirname target
   drvRm target
   drvRun $ "cp" :| ["-R", "-f", source, target]
 
-drvTemp_ :: MonadDriver m => Bool -> m Text
+drvTemp_ :: Driver :> es => Bool -> Eff es Text
 drvTemp_ isDirectory = drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
-drvTempFile :: MonadDriver m => m Text
+drvTempFile :: Driver :> es => Eff es Text
 drvTempFile = drvTemp_ False
 
-drvTempDir :: MonadDriver m => m Text
+drvTempDir :: Driver :> es => Eff es Text
 drvTempDir = drvTemp_ True
 
-drvWriteFile :: MonadDriver m => Text -> Text -> m ()
+drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir $ drvDirname path
   drvRm path

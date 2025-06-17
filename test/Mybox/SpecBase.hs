@@ -1,21 +1,31 @@
-module Mybox.SpecBase where
+module Mybox.SpecBase
+  ( module Test.Hspec
+  , withDriver
+  , it
+  , shouldBe
+  , shouldSatisfy
+  ) where
 
-import           Control.Monad.Reader (runReaderT)
-
-import qualified Data.Text            as Text
+import qualified Test.Hspec         as Hspec
+import           Test.Hspec         hiding (it, shouldBe, shouldSatisfy)
 
 import           Mybox.Driver.Class
 import           Mybox.Driver.IO
 import           Mybox.Prelude
 
-import           System.Environment
+newtype RunEff es =
+  RunEff (forall r. Eff es r -> IO r)
 
-withDriver :: (IODriver -> IO ()) -> IO ()
-withDriver act = do
-  image_ <- lookupEnv "DOCKER_IMAGE"
-  case image_ of
-    Nothing    -> testHostDriver act
-    Just image -> dockerDriver (Text.pack image) act
+withDriver :: (RunEff '[ Driver, IOE] -> IO ()) -> IO ()
+withDriver ioa =
+  runEff $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 
-run :: IODriver -> (forall m. (MonadDriver m, MonadIO m) => m a) -> IO a
-run drv action = runReaderT action drv
+it :: String -> Eff ef () -> SpecWith (RunEff ef)
+it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
+
+shouldBe :: (HasCallStack, Eq a, Show a, IOE :> es) => a -> a -> Eff es ()
+shouldBe a b = liftIO $ Hspec.shouldBe a b
+
+shouldSatisfy ::
+     (HasCallStack, Show a, IOE :> es) => a -> (a -> Bool) -> Eff es ()
+shouldSatisfy a f = liftIO $ Hspec.shouldSatisfy a f

@@ -4,16 +4,14 @@
 module Mybox.Driver.IO
   ( IODriver
   , localDriver
-  , testHostDriver
-  , dockerDriver
+  , testDriver
   ) where
 
-import           Control.Monad.Reader (MonadReader, asks, runReaderT)
+import qualified Data.Text                  as Text
+import qualified Data.Text.IO               as Text
 
-import           Data.Has
-
-import qualified Data.Text            as Text
-import qualified Data.Text.IO         as Text
+import           Effectful.Dispatch.Dynamic
+import           Effectful.Exception
 
 import           Mybox.Driver.Class
 import           Mybox.Driver.Ops
@@ -28,45 +26,39 @@ data IODriver = IODriver
   , idCwd           :: Maybe Text
   }
 
-instance (Monad m, MonadIO m, Has IODriver r, MonadReader r m) => MonadDriver m where
-  drvRun_ exitBehavior outputBehavior args_ = do
-    (cmd :| args) <-
-      asks $ fmap Text.unpack . ($ args_) . idTransformArgs . getter
-    cwd <- asks $ idCwd . getter
-    let process = (proc cmd args) {cwd = Text.unpack <$> cwd}
-    (exitCode, stdout, stderr) <-
-      liftIO $ readCreateProcessWithExitCode process ""
-    let stdoutText = Text.pack stdout
-    rrExit <-
-      case exitBehavior of
-        RunExitError ->
-          case exitCode of
-            ExitSuccess -> pure ()
-            ExitFailure code ->
-              error
-                $ "Process "
-                    <> Text.unpack (shellJoin args_)
-                    <> " failed with exit code: "
-                    ++ show code
-                    ++ " and stderr: "
-                    ++ stderr
-        RunExitReturn -> pure exitCode
-    rrOutput <-
-      case outputBehavior of
-        RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
-        RunOutputReturn -> pure $ Text.strip stdoutText
-    pure $ RunResult {..}
+runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
+runDriverIO drv =
+  interpret_ $ \case
+    DrvRun exitBehavior outputBehavior args_ -> do
+      let (cmd :| args) = Text.unpack <$> idTransformArgs drv args_
+      let process = (proc cmd args) {cwd = Text.unpack <$> idCwd drv}
+      (exitCode, stdout, stderr) <-
+        liftIO $ readCreateProcessWithExitCode process ""
+      let stdoutText = Text.pack stdout
+      rrExit <-
+        case exitBehavior of
+          RunExitError ->
+            case exitCode of
+              ExitSuccess -> pure ()
+              ExitFailure code ->
+                error
+                  $ "Process "
+                      <> Text.unpack (shellJoin args_)
+                      <> " failed with exit code: "
+                      ++ show code
+                      ++ " and stderr: "
+                      ++ stderr
+          RunExitReturn -> pure exitCode
+      rrOutput <-
+        case outputBehavior of
+          RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputReturn -> pure $ Text.strip stdoutText
+      pure $ RunResult {..}
 
-localDriver :: IODriver
-localDriver = IODriver {idTransformArgs = id, idCwd = Nothing}
+localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
+localDriver = runDriverIO $ IODriver {idTransformArgs = id, idCwd = Nothing}
 
-localRun ::
-     (MonadIO m, MonadMask m)
-  => (forall n. (MonadDriver n, MonadIO n, MonadMask n) => n a)
-  -> m a
-localRun action = runReaderT action localDriver
-
-withAddedPath :: (MonadIO m, MonadMask m) => Text -> m a -> m a
+withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
 withAddedPath addPath action = do
   originalPath <- fmap Text.pack $ liftIO $ getEnv "PATH"
   let newPath = addPath <> ":" <> originalPath
@@ -75,18 +67,15 @@ withAddedPath addPath action = do
     (liftIO $ setEnv "PATH" $ Text.unpack originalPath)
     action
 
-testHostDriver ::
-     forall m a. (MonadIO m, MonadMask m)
-  => (IODriver -> m a)
-  -> m a
+testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
   originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
-  bracket (localRun drvTempDir) (\home -> localRun $ drvRm home) $ \home -> do
+  bracket (localDriver drvTempDir) (\home -> localDriver $ drvRm home) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $ do
       let linkToOriginalHome path =
             let op = originalHome </> path
                 np = home </> path
-             in localRun $ do
+             in localDriver $ do
                   drvMkdir $ drvDirname np
                   drvLink op np
       linkToOriginalHome ".local/share/fonts"
@@ -95,40 +84,36 @@ testHostDriver act = do
       let idTransformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
           idTransformArgs args                              = args
       let idCwd = Just home
-      act $ IODriver {..}
+      flip runDriverIO act $ IODriver {..}
 
-dockerDriver ::
-     forall m a. (MonadIO m, MonadMask m)
-  => Text -- ^ Base image
-  -> (IODriver -> m a)
-  -> m a
-dockerDriver baseImage act = bracket mkContainer rmContainer (act . mkDriver)
+dockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
+dockerDriver baseImage act =
+  bracket mkContainer rmContainer (flip runDriverIO act . mkDriver)
   where
-    mkContainer :: m Text
-    mkContainer = do
-      containerName <- Text.pack . show <$> liftIO (randomIO @Int)
-      localRun
-        $ bracket drvTempDir drvRm
-        $ \tempDir -> do
-            drvCopy "bootstrap" (tempDir </> "bootstrap")
-            drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
-            let image = dockerImagePrefix <> baseImage
-            drvRun $ "docker" :| ["build", "--tag", image, tempDir]
-            -- FIXME: --volume for package root
-            drvRunOutput
-              $ "docker"
-                  :| [ "run"
-                     , "--rm"
-                     , "--detach"
-                     , "--name"
-                     , "mybox-test-" <> containerName
-                     , image
-                     , "sleep"
-                     , "86400000"
-                     ]
-    rmContainer :: Text -> m ()
+    mkContainer :: IOE :> es => Eff es Text
+    mkContainer =
+      localDriver $ do
+        containerName <- Text.pack . show <$> liftIO (randomIO @Int)
+        bracket drvTempDir drvRm $ \tempDir -> do
+          drvCopy "bootstrap" (tempDir </> "bootstrap")
+          drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
+          let image = dockerImagePrefix <> baseImage
+          drvRun $ "docker" :| ["build", "--tag", image, tempDir]
+          -- FIXME: --volume for package root
+          drvRunOutput
+            $ "docker"
+                :| [ "run"
+                   , "--rm"
+                   , "--detach"
+                   , "--name"
+                   , "mybox-test-" <> containerName
+                   , image
+                   , "sleep"
+                   , "86400000"
+                   ]
+    rmContainer :: IOE :> es => Text -> Eff es ()
     rmContainer container =
-      localRun $ drvRun $ "docker" :| ["rm", "--force", container]
+      localDriver $ drvRun $ "docker" :| ["rm", "--force", container]
     mkDriver :: Text -> IODriver
     mkDriver container = IODriver {..}
       where
@@ -160,3 +145,10 @@ dockerUser = "regular_user"
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
+
+testDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
+testDriver act = do
+  image_ <- liftIO $ lookupEnv "DOCKER_IMAGE"
+  case image_ of
+    Nothing    -> testHostDriver act
+    Just image -> dockerDriver (Text.pack image) act
