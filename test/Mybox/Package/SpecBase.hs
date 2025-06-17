@@ -11,8 +11,6 @@ module Mybox.Package.SpecBase
 
 import qualified Data.Text           as Text
 
-import           Test.Hspec
-
 import           Mybox.Driver.Class
 import           Mybox.Package.Class
 import           Mybox.Prelude
@@ -75,10 +73,8 @@ packageSpec makePS =
         let s = makePS psa
         let p = psPackage s
         describe (Text.unpack $ fromMaybe (pkgName p) (psName_ s)) $ do
-          itEff "has a name"
-            $ liftIO
-            $ pkgName p `shouldSatisfy` (not . Text.null)
-          itEff "installs" $ do
+          it "has a name" $ pkgName p `shouldSatisfy` (not . Text.null)
+          it "installs" $ do
             psPreinstall_ s
             pkgInstall p
             psCheckInstalled_ s
