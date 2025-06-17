@@ -14,9 +14,11 @@ module Mybox.Tracker
   , stateTracker
   ) where
 
-import           Data.Set                   (Set)
+import           Data.Set                     (Set)
+import qualified Data.Set                     as Set
 
 import           Effectful.Dispatch.Dynamic
+import           Effectful.State.Static.Local
 
 import           Mybox.Package.Name
 import           Mybox.Prelude
@@ -63,11 +65,7 @@ data Tracker :: Effect where
 type instance DispatchOf Tracker = Dynamic
 
 trkSession :: Eff (TrackerSession : es) a -> Eff (Tracker : es) a
-trkSession _ = do
-  _ <- send TrkGet
-  send $ TrkRemember undefined
-  send $ TrkRemove undefined
-  error "Not implemented"
+trkSession = undefined
 
 data TrackerState = TrackerState
   { tsTracked :: !(Set TrackedFile)
@@ -76,4 +74,9 @@ data TrackerState = TrackerState
 
 stateTracker ::
      Set TrackedFile -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
-stateTracker = undefined
+stateTracker ts0 =
+  reinterpret_ (runState $ TrackerState ts0 mempty) $ \case
+    TrkGet -> gets tsTracked
+    TrkRemember tf -> modify $ \s -> s {tsTracked = Set.insert tf (tsTracked s)}
+    TrkRemove file ->
+      modify $ \s -> s {tsDeleted = Set.insert file (tsDeleted s)}
