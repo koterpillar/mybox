@@ -42,4 +42,4 @@ spec =
                         <> map
                              (TrackedFile "pkg3")
                              ["common-file", "pkg3-file-new"])
-      deleted `shouldBe` Set.fromList ["pkg4-file"]
+      deleted `shouldBe` Set.fromList ["pkg3-file", "pkg4-file"]
