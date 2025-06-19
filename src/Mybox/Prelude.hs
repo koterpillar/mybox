@@ -4,6 +4,7 @@ module Mybox.Prelude
   , module Data.Maybe
   , module Effectful
   , (&)
+  , on
   , NonEmpty(..)
   , ExitCode(..)
   , Text
@@ -12,7 +13,7 @@ module Mybox.Prelude
 
 import           Control.Monad
 import           Data.Foldable
-import           Data.Function      ((&))
+import           Data.Function      (on, (&))
 import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Maybe
 import           Data.Text          (Text)
