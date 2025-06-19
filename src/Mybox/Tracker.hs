@@ -57,15 +57,38 @@ data TrackedFile = TrackedFile
   , tfPath :: !Text
   } deriving (Ord, Eq, Show)
 
+tfMake :: PackageName p => p -> Text -> TrackedFile
+tfMake = TrackedFile . pkgName
+
+tfBelongsTo :: PackageName p => p -> TrackedFile -> Bool
+tfBelongsTo pkg tf = pkgName pkg == tfName tf
+
 data Tracker :: Effect where
-  TrkGet :: Tracker m (Set TrackedFile)
-  TrkRemember :: TrackedFile -> Tracker m ()
-  TrkRemove :: Text -> Tracker m ()
+  TrkGet :: Tracker m (Set TrackedFile) -- ^ Get all currently tracked files
+  TrkRemember :: TrackedFile -> Tracker m () -- ^ Add file to tracker
+  TrkRemove :: Text -> Tracker m () -- ^ Remove file from tracker and disk
 
 type instance DispatchOf Tracker = Dynamic
 
-trkSession :: Eff (TrackerSession : es) a -> Eff (Tracker : es) a
-trkSession = undefined
+trkSession :: forall es a. Eff (TrackerSession : es) a -> Eff (Tracker : es) a
+trkSession act = do
+  ts0 <- send TrkGet
+  (r, ts1) <-
+    reinterpret_
+      (runState mempty)
+      (\case
+         TrkAdd_ pkg file -> modify $ Set.insert $ tfMake pkg file
+         TrkSkip pkg -> modify $ Set.union $ Set.filter (tfBelongsTo pkg) ts0)
+      $ inject act
+  let newFiles = Set.difference ts1 ts0
+  for_ newFiles $ send . TrkRemember
+  let deletedFiles = (Set.difference `on` Set.map tfPath) ts0 ts1
+  let deletedPackages = (Set.difference `on` Set.map tfName) ts0 ts1
+  let deletedPackagesFiles =
+        Set.map tfPath
+          $ Set.filter (\tf -> tfName tf `Set.member` deletedPackages) ts0
+  for_ (deletedFiles <> deletedPackagesFiles) $ send . TrkRemove
+  pure r
 
 data TrackerState = TrackerState
   { tsTracked :: !(Set TrackedFile)
@@ -79,4 +102,8 @@ stateTracker ts0 =
     TrkGet -> gets tsTracked
     TrkRemember tf -> modify $ \s -> s {tsTracked = Set.insert tf (tsTracked s)}
     TrkRemove file ->
-      modify $ \s -> s {tsDeleted = Set.insert file (tsDeleted s)}
+      modify $ \s ->
+        s
+          { tsTracked = Set.filter ((/= file) . tfPath) (tsTracked s)
+          , tsDeleted = Set.insert file (tsDeleted s)
+          }
