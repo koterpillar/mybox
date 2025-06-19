@@ -1,13 +1,20 @@
-module Mybox.Package.Class where
+module Mybox.Package.Class
+  ( Package(..)
+  , PackageName(..)
+  , pkgIsInstalled
+  ) where
 
 import           Mybox.Driver
+import           Mybox.Package.Name
 import           Mybox.Prelude
+import           Mybox.Tracker
 
-class Package a where
-  pkgName :: a -> Text
+class PackageName a =>
+      Package a
+  where
   pkgRemoteVersion :: Driver :> es => a -> Eff es Text
   pkgLocalVersion :: Driver :> es => a -> Eff es (Maybe Text)
-  pkgInstall :: Driver :> es => a -> Eff es ()
+  pkgInstall :: (Driver :> es, PackageTracker :> es) => a -> Eff es ()
 
 pkgIsInstalled :: (Package a, Driver :> es) => a -> Eff es Bool
 pkgIsInstalled pkg = do
