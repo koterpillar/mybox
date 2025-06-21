@@ -19,7 +19,7 @@ class Extractor(ABC):
             stripped = 0
 
             while True:
-                contents = await self.driver.find(source_dir, mindepth=1, maxdepth=1)
+                contents = await self.driver.find(source_dir, maxdepth=1)
                 if len(contents) != 1:
                     # Multiple files/directories on this level
                     break
@@ -36,7 +36,7 @@ class Extractor(ABC):
                         f"Too many nested directories after extracting, got {source_dir}."
                     )
 
-            for element in await self.driver.find(source_dir, mindepth=1, maxdepth=1):
+            for element in contents:
                 await self.driver.copy(element, target_directory / element.name)
 
     @abstractmethod

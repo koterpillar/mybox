@@ -153,10 +153,9 @@ class Driver(ABC):
         *,
         name: Some[str] = None,
         file_type: Some[str] = None,
-        mindepth: Optional[int] = None,
         maxdepth: Optional[int] = None,
     ) -> list[Path]:
-        args: list[RunArg] = ["find", path]
+        args: list[RunArg] = ["find", path, "-mindepth", "1"]
 
         def add_some_arg(arg: str, values: list[str]) -> None:
             if values:
@@ -170,7 +169,6 @@ class Driver(ABC):
             if value is not None:
                 args.extend([arg, str(value)])
 
-        add_optional_arg("-mindepth", mindepth)
         add_optional_arg("-maxdepth", maxdepth)
         add_some_arg("-name", unsome(name))
         add_some_arg("-type", unsome(file_type))
