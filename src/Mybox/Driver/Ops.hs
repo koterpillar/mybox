@@ -1,8 +1,12 @@
 module Mybox.Driver.Ops where
 
-import           Data.Char          (isAlphaNum)
+import           Control.Applicative ((<|>))
 
-import qualified Data.Text          as Text
+import           Data.Char           (isAlphaNum)
+
+import qualified Data.Set            as Set
+
+import qualified Data.Text           as Text
 
 import           Mybox.Driver.Class
 import           Mybox.Prelude
@@ -56,14 +60,14 @@ drvMkdir path = drvRun $ "mkdir" :| ["-p", path]
 -- | Create a symbolic link from source to target.
 drvLink :: Driver :> es => Text -> Text -> Eff es ()
 drvLink source target = do
-  drvMkdir $ drvDirname target
+  drvMkdir $ pDirname target
   drvRm target
   drvRun $ "ln" :| ["-s", "-f", source, target]
 
 -- | Copy a file or directory recursively
 drvCopy :: Driver :> es => Text -> Text -> Eff es ()
 drvCopy source target = do
-  drvMkdir $ drvDirname target
+  drvMkdir $ pDirname target
   drvRm target
   drvRun $ "cp" :| ["-R", "-f", source, target]
 
@@ -78,17 +82,41 @@ drvTempDir = drvTemp_ True
 
 drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
-  drvMkdir $ drvDirname path
+  drvMkdir $ pDirname path
   drvRm path
   drvRun
     $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
-drvDirname :: Text -> Text
-drvDirname path =
-  case Text.splitOn "/" path of
-    []  -> "."
-    [_] -> "."
-    xs  -> Text.intercalate "/" (init xs)
+data FindOptions = FindOptions
+  { foMaxDepth  :: Maybe Int
+  , foOnlyFiles :: Bool
+  , foName      :: Maybe [Text]
+  } deriving (Ord, Eq, Show)
+
+instance Semigroup FindOptions where
+  FindOptions d1 f1 n1 <> FindOptions d2 f2 n2 =
+    FindOptions (d2 <|> d1) (f1 || f2) (n1 <> n2)
+
+instance Monoid FindOptions where
+  mempty = FindOptions Nothing False Nothing
+
+drvFind :: Driver :> es => Text -> FindOptions -> Eff es (Set Text)
+drvFind path FindOptions {..} = do
+  let maybeArg :: Text -> Maybe [Text] -> [Text]
+      maybeArg _ Nothing     = []
+      maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
+  let args =
+        [path, "-mindepth", "1"]
+          ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> foMaxDepth)
+          ++ maybeArg "-name" foName
+          ++ maybeArg
+               "-type"
+               (if foOnlyFiles
+                  then Just ["f", "l"]
+                  else Nothing)
+          ++ ["-print0"]
+  o <- drvRunOutput $ "find" :| args
+  pure $ Set.fromList $ Text.split (== '\0') o
 
 drvShell :: Args -> Args
 drvShell args = "sh" :| ["-c", shellJoin args]

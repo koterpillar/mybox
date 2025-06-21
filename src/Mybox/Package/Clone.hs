@@ -7,6 +7,7 @@ import qualified Data.Text           as Text
 import           Mybox.Driver
 import           Mybox.Package.Class
 import           Mybox.Prelude
+import           Mybox.Tracker
 import           Mybox.Utils
 
 data ClonePackage = ClonePackage
@@ -68,14 +69,14 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: Driver :> es => ClonePackage -> Eff es ()
+cpInstall :: (Driver :> es, PackageTracker :> es) => ClonePackage -> Eff es ()
 cpInstall p = do
   destination <- cpDestinationPath p
   exists <- drvIsDir $ destination </> ".git"
   if exists
     then cpRunGit ["remote", "set-url", cpDefaultRemote, cpRemote p] p
     else do
-      drvMkdir $ drvDirname destination
+      drvMkdir $ pDirname destination
       drvRm destination
       drvRun $ "git" :| ["clone", cpRemote p, destination]
   remoteBranch <-
@@ -86,6 +87,7 @@ cpInstall p = do
   cpRunGit ["fetch", "--no-tags", cpDefaultRemote, branch] p
   currentBranch <- cpRevParse "HEAD" True p
   when (currentBranch /= branch) $ cpRunGit ["switch", branch] p
+  trkAdd destination
   cpRunGit ["reset", "--hard", remoteBranch] p
 
 instance PackageName ClonePackage where

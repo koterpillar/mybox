@@ -22,6 +22,7 @@ library
       Mybox.Package.Class
       Mybox.Package.Clone
       Mybox.Package.Name
+      Mybox.Path
       Mybox.Prelude
       Mybox.Tracker
       Mybox.Utils
@@ -95,6 +96,7 @@ test-suite tests
       Mybox.Driver.IOSpec
       Mybox.Package.CloneSpec
       Mybox.Package.SpecBase
+      Mybox.PathSpec
       Mybox.SpecBase
       Mybox.TrackerSpec
       Paths_mybox
