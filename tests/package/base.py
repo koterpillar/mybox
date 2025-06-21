@@ -107,9 +107,7 @@ class PackageTestBase(ABC):
         return {
             path
             for base_path in [await self.check_driver.home()]
-            for path in await self.check_driver.find(
-                base_path, mindepth=1, file_type=["f", "l"]
-            )
+            for path in await self.check_driver.find(base_path, file_type=["f", "l"])
             if not any(
                 path.is_relative_to(ignored) for ignored in await self.ignored_paths()
             )

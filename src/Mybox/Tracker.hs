@@ -14,7 +14,6 @@ module Mybox.Tracker
   , stateTracker
   ) where
 
-import           Data.Set                     (Set)
 import qualified Data.Set                     as Set
 
 import           Effectful.Dispatch.Dynamic
