@@ -12,13 +12,21 @@ module Mybox.Tracker
   , trkAdd
   , nullPackageTracker
   , stateTracker
+  , drvTracker
   ) where
 
+import qualified Data.Aeson                   as Aeson
+
+import qualified Data.ByteString.Lazy         as LBS
+
 import qualified Data.Set                     as Set
+
+import qualified Data.Text.Encoding           as Text
 
 import           Effectful.Dispatch.Dynamic
 import           Effectful.State.Static.Local
 
+import           Mybox.Driver
 import           Mybox.Package.Name
 import           Mybox.Prelude
 
@@ -54,7 +62,12 @@ trkPackage pkg = interpret_ (\(TrkAdd file) -> send (TrkAdd_ pkg file)) . inject
 data TrackedFile = TrackedFile
   { name :: !Text
   , path :: !Text
-  } deriving (Ord, Eq, Show)
+  } deriving (Ord, Eq, Show, Generic)
+
+instance Aeson.FromJSON TrackedFile
+
+instance Aeson.ToJSON TrackedFile where
+  toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
 
 tfMake :: PackageName p => p -> Text -> TrackedFile
 tfMake = TrackedFile . (.name)
@@ -65,7 +78,7 @@ tfBelongsTo pkg tf = pkg.name == tf.name
 data Tracker :: Effect where
   TrkGet :: Tracker m (Set TrackedFile) -- ^ Get all currently tracked files
   TrkSet :: Set TrackedFile -> Tracker m () -- ^ Set all tracked files
-  TrkRemove :: Text -> Tracker m () -- ^ Remove file from tracker and disk
+  TrkRemove :: Text -> Tracker m () -- ^ Remove file from disk
 
 type instance DispatchOf Tracker = Dynamic
 
@@ -97,3 +110,29 @@ stateTracker tfs =
     TrkSet tfs' -> modify $ \s -> s {tracked = tfs'}
     TrkRemove file ->
       modify $ \s -> s {deleted = Set.insert file s.deleted}
+
+newtype TrackedFiles = TrackedFiles
+  { getTrackedFiles :: Set TrackedFile
+  } deriving (Ord, Eq, Show, Generic)
+
+instance Aeson.FromJSON TrackedFiles
+
+instance Aeson.ToJSON TrackedFiles where
+  toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+drvTracker :: Driver :> es => Text -> Eff (Tracker : es) a -> Eff es a
+drvTracker stateFile =
+  interpret_ $ \case
+    TrkGet -> do
+      exists <- drvIsFile stateFile
+      if exists
+        then maybe mempty getTrackedFiles . Aeson.decodeStrictText
+               <$> drvReadFile stateFile
+        else pure mempty
+    TrkSet tfs ->
+      drvWriteFile stateFile
+        $ Text.decodeUtf8
+        $ LBS.toStrict
+        $ Aeson.encode
+        $ TrackedFiles tfs
+    TrkRemove file -> drvRm file

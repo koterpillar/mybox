@@ -80,6 +80,9 @@ drvTempFile = drvTemp_ False
 drvTempDir :: Driver :> es => Eff es Text
 drvTempDir = drvTemp_ True
 
+drvReadFile :: Driver :> es => Text -> Eff es Text
+drvReadFile path = drvRunOutput $ "cat" :| [path]
+
 drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir $ pDirname path

@@ -48,7 +48,9 @@ library
       RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
-      base
+      aeson
+    , base
+    , bytestring
     , containers
     , effectful
     , mtl
@@ -56,6 +58,7 @@ library
     , random
     , safe-exceptions
     , text
+    , yaml
   default-language: GHC2021
 
 executable mybox
@@ -82,7 +85,9 @@ executable mybox
       RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
-      base
+      aeson
+    , base
+    , bytestring
     , containers
     , effectful
     , mtl
@@ -91,6 +96,7 @@ executable mybox
     , random
     , safe-exceptions
     , text
+    , yaml
   default-language: GHC2021
 
 test-suite tests
@@ -126,7 +132,9 @@ test-suite tests
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base
+      aeson
+    , base
+    , bytestring
     , containers
     , effectful
     , hspec
@@ -136,4 +144,5 @@ test-suite tests
     , random
     , safe-exceptions
     , text
+    , yaml
   default-language: GHC2021

@@ -22,7 +22,9 @@ default-extensions:
   - MonoLocalBinds
   - RoleAnnotations
 dependencies:
+  - aeson
   - base
+  - bytestring
   - containers
   - effectful
   - mtl
@@ -30,6 +32,7 @@ dependencies:
   - random
   - safe-exceptions
   - text
+  - yaml
 ghc-options:
   - -Wall
   - -Werror
