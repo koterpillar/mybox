@@ -36,7 +36,7 @@ class NpmPackage(ManualVersion):
 
         await self.driver.run(*args, "true")
 
-        npx_paths = await self.driver.run_output(*args, "echo $PATH")
+        npx_paths = await self.driver.run_output(*args, "sh", "-c", "echo $PATH")
         npx_path = next((path for path in npx_paths.split(":") if "_npx" in path), None)
         if not npx_path:
             raise Exception(
