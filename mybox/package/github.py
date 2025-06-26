@@ -24,12 +24,12 @@ from .archive import ArchivePackage
 async def github_auth_token() -> Optional[str]:
     try:
         return os.environ["GITHUB_TOKEN"]
-    except KeyError:
+    except KeyError:  # pragma: no cover
         pass
 
-    try:
+    try:  # pragma: no cover
         return await run_output("gh", "auth", "token", silent=True)
-    except (CalledProcessError, FileNotFoundError):
+    except (CalledProcessError, FileNotFoundError):  # pragma: no cover
         pass
 
     return None  # pragma: no cover

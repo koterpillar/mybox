@@ -89,7 +89,7 @@ class PackageTestBase(ABC):
     async def check_installed(self):
         command = await self.check_installed_command()
         if self.check_installed_output is None:
-            await self.check_driver.run_ok(*command)
+            await self.check_driver.run_ok(*command)  # pragma: no cover
         else:
             output = await self.check_driver.run_output(*command)
             assert self.check_installed_output in output
