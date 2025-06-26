@@ -9,6 +9,9 @@ default-extensions:
   - FunctionalDependencies
   - OverloadedStrings
   - RecordWildCards
+  - DuplicateRecordFields
+  - OverloadedRecordDot
+  # FIXME: all in on record fields? NoFieldSelectors
   # GHC2024
   - DataKinds
   - DerivingStrategies

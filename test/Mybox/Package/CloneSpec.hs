@@ -9,31 +9,31 @@ import           Mybox.Prelude
 
 spec :: Spec
 spec = do
-  let baseClone (PackageSpecArgs {..}) =
-        ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psaDirectory)
-          & psCheckInstalledCommandOutput
-              ("cat" :| [psaDirectory </> "templates" </> "zshrc.zsh-template"])
+  let baseClone psa =
+        ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psa.directory)
+          & checkInstalledCommandOutput
+              ("cat" :| [psa.directory </> "templates" </> "zshrc.zsh-template"])
               "alias ohmyzsh"
   packageSpec baseClone
   packageSpec $ \psa ->
     baseClone psa
       & psName "branch switch"
-      & psPreinstall (checkoutEarlierCommit psa)
+      & preinstall (checkoutEarlierCommit psa)
   packageSpec $ \psa ->
     baseClone psa
       & psName "empty directory"
-      & psPreinstall (createEmptyDirectory psa)
-  packageSpec $ \PackageSpecArgs {..} ->
-    ps (ClonePackage "node-fetch/node-fetch" (Just "2.x") psaDirectory)
-      & psCheckInstalledCommandOutput
-          ("cat" :| [psaDirectory </> "package.json"])
+      & preinstall (createEmptyDirectory psa)
+  packageSpec $ \psa ->
+    ps (ClonePackage "node-fetch/node-fetch" (Just "2.x") psa.directory)
+      & checkInstalledCommandOutput
+          ("cat" :| [psa.directory </> "package.json"])
           "\"version\": \"2"
 
 createEmptyDirectory :: Driver :> es => PackageSpecArgs -> Eff es ()
-createEmptyDirectory PackageSpecArgs {..} = drvMkdir psaDirectory
+createEmptyDirectory psa = drvMkdir psa.directory
 
 checkoutEarlierCommit :: Driver :> es => PackageSpecArgs -> Eff es ()
-checkoutEarlierCommit PackageSpecArgs {..} = do
+checkoutEarlierCommit psa = do
   drvRun
-    $ "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psaDirectory]
-  drvRun $ "git" :| ["-C", psaDirectory, "checkout", "HEAD~"]
+    $ "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psa.directory]
+  drvRun $ "git" :| ["-C", psa.directory, "checkout", "HEAD~"]

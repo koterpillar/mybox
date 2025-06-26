@@ -52,15 +52,15 @@ trkPackage ::
 trkPackage pkg = interpret_ (\(TrkAdd file) -> send (TrkAdd_ pkg file)) . inject
 
 data TrackedFile = TrackedFile
-  { tfName :: !Text
-  , tfPath :: !Text
+  { name :: !Text
+  , path :: !Text
   } deriving (Ord, Eq, Show)
 
 tfMake :: PackageName p => p -> Text -> TrackedFile
-tfMake = TrackedFile . pkgName
+tfMake = TrackedFile . (.name)
 
 tfBelongsTo :: PackageName p => p -> TrackedFile -> Bool
-tfBelongsTo pkg tf = pkgName pkg == tfName tf
+tfBelongsTo pkg tf = pkg.name == tf.name
 
 data Tracker :: Effect where
   TrkGet :: Tracker m (Set TrackedFile) -- ^ Get all currently tracked files
@@ -79,21 +79,21 @@ trkSession act = do
          TrkAdd_ pkg file -> modify $ Set.insert $ tfMake pkg file
          TrkSkip pkg -> modify $ Set.union $ Set.filter (tfBelongsTo pkg) ts0)
       $ inject act
-  let deletedFiles = (Set.difference `on` Set.map tfPath) ts0 ts1
+  let deletedFiles = (Set.difference `on` Set.map (.path)) ts0 ts1
   for_ deletedFiles $ send . TrkRemove
   send $ TrkSet ts1
   pure r
 
 data TrackerState = TrackerState
-  { tsTracked :: !(Set TrackedFile)
-  , tsDeleted :: !(Set Text)
+  { tracked :: !(Set TrackedFile)
+  , deleted :: !(Set Text)
   } deriving (Ord, Eq, Show)
 
 stateTracker ::
      Set TrackedFile -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
 stateTracker tfs =
   reinterpret_ (runState $ TrackerState tfs mempty) $ \case
-    TrkGet -> gets tsTracked
-    TrkSet tfs' -> modify $ \s -> s {tsTracked = tfs'}
+    TrkGet -> gets @TrackerState (.tracked)
+    TrkSet tfs' -> modify $ \s -> s {tracked = tfs'}
     TrkRemove file ->
-      modify $ \s -> s {tsDeleted = Set.insert file (tsDeleted s)}
+      modify $ \s -> s {deleted = Set.insert file s.deleted}

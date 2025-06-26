@@ -6,6 +6,7 @@ module Mybox.Prelude
   , module Mybox.Path
   , (&)
   , on
+  , HasField(..)
   , NonEmpty(..)
   , ExitCode(..)
   , Set
@@ -20,5 +21,6 @@ import           Data.Maybe
 import           Data.Set           (Set)
 import           Data.Text          (Text)
 import           Effectful
+import           GHC.Records        (HasField(..))
 import           Mybox.Path
 import           System.Exit        (ExitCode (..))

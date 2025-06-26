@@ -15,8 +15,8 @@ data RunOutput o where
   RunOutputReturn :: RunOutput Text
 
 data RunResult e o = RunResult
-  { rrExit   :: e
-  , rrOutput :: o
+  { exit   :: e
+  , output :: o
   } deriving (Show, Eq)
 
 class RunResultSimplified rr o | rr -> o where

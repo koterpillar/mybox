@@ -36,6 +36,8 @@ library
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards
+      DuplicateRecordFields
+      OverloadedRecordDot
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields
@@ -68,6 +70,8 @@ executable mybox
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards
+      DuplicateRecordFields
+      OverloadedRecordDot
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields
@@ -108,6 +112,8 @@ test-suite tests
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards
+      DuplicateRecordFields
+      OverloadedRecordDot
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields

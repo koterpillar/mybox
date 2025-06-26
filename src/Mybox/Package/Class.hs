@@ -1,6 +1,6 @@
 module Mybox.Package.Class
   ( Package(..)
-  , PackageName(..)
+  , PackageName
   , pkgIsInstalled
   ) where
 
@@ -12,15 +12,15 @@ import           Mybox.Tracker
 class PackageName a =>
       Package a
   where
-  pkgRemoteVersion :: Driver :> es => a -> Eff es Text
-  pkgLocalVersion :: Driver :> es => a -> Eff es (Maybe Text)
-  pkgInstall :: (Driver :> es, PackageTracker :> es) => a -> Eff es ()
+  remoteVersion :: Driver :> es => a -> Eff es Text
+  localVersion :: Driver :> es => a -> Eff es (Maybe Text)
+  install :: (Driver :> es, PackageTracker :> es) => a -> Eff es ()
 
 pkgIsInstalled :: (Package a, Driver :> es) => a -> Eff es Bool
 pkgIsInstalled pkg = do
-  lv <- pkgLocalVersion pkg
+  lv <- localVersion pkg
   case lv of
     Nothing -> pure False
     Just lv' -> do
-      rv <- pkgRemoteVersion pkg
+      rv <- remoteVersion pkg
       pure $ lv' == rv
