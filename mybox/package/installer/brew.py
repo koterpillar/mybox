@@ -3,54 +3,21 @@ from dataclasses import dataclass
 from typing import Optional
 
 from ...driver import RunResultOutput
-from ...utils import async_cached, async_cached_lock, http_get
-from .base import PackageCacheInstaller, PackageVersionInfo
+from ...utils import async_cached, async_cached_lock
+from .base import PackageCacheInstaller
 
 
 @dataclass
 class BrewPackageVersionInfo:
     """
-    Brew installer prefers casks to formulae with the same name. Brew itself
-    reports both separately, but it requires specifying homebrew/cask/
-    everywhere so it's easier for the users to assume a cask if one exists.
+    Both casks and formulae share the same namespace but have distinct names.
+    Regardless, we need to know if it's a cask or a formula to install or
+    upgrade.
     """
 
-    cask: Optional[PackageVersionInfo]
-    formula: Optional[PackageVersionInfo]
-
-    @staticmethod
-    def formula_version(version: str) -> str:
-        """
-        To distinguish a cask from a formula of the same name, especially if
-        they have the same versions, prepend the formula version with
-        "formula_".
-        """
-        return f"formula_{version}"
-
-    @property
-    def installed(self) -> Optional[str]:
-        """
-        Report installed state of both cask and formula so that any state but
-        "cask is installed and formula isn't" results in a different version.
-        """
-        cask_installed = self.cask.installed if self.cask else None
-        formula_installed = (
-            self.formula_version(self.formula.installed)
-            if self.formula and self.formula.installed
-            else None
-        )
-
-        if cask_installed and formula_installed:
-            return f"{cask_installed} {formula_installed}"
-        return cask_installed or formula_installed
-
-    @property
-    def latest(self) -> str:
-        if self.cask:
-            return self.cask.latest
-        if self.formula:
-            return self.formula_version(self.formula.latest)
-        raise ValueError("No cask or formula info.")  # pragma: no cover
+    installed: Optional[str]
+    latest: str
+    cask: bool
 
 
 class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
@@ -69,32 +36,13 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
             await self.driver.run(await self.brew(), "install", package)
         await super().install(package)
 
-    async def upgrade(self, package: str) -> None:
+    async def upgrade(self, package: str) -> None:  # pragma: no cover
         info = await self.package_info(package)
         if not info.installed:
-            raise ValueError(
-                "Expected package to be installed when upgrading."
-            )  # pragma: no cover
-        if info.cask:
-            if info.formula and info.formula.installed:
-                # We want a cask, not a formula, uninstall the formula
-                await self.driver.run(await self.brew(), "uninstall", package)
-            if info.cask.installed:
-                # Both formula and cask were installed; formula was uninstalled,
-                # upgrade the cask if needed
-                if info.cask.latest != info.cask.installed:
-                    # Can't install an old version of a package in tests
-                    await self.driver.run(
-                        await self.brew(), "upgrade", "--cask", package
-                    )  # pragma: no cover
-            else:
-                # Formula was installed (thus upgrading), but cask wasn't
-                await self.driver.run(await self.brew(), "install", "--cask", package)
-        else:
-            # Can't install an old version of a package in tests
-            await self.driver.run(
-                await self.brew(), "upgrade", package
-            )  # pragma: no cover
+            raise ValueError("Expected package to be installed when upgrading.")
+        await self.driver.run(
+            await self.brew(), "upgrade", *(["--cask"] if info.cask else []), package
+        )
         await super().upgrade(package)
 
     @async_cached
@@ -144,10 +92,7 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
             else:
                 name = f"{cask['tap']}/{cask['token']}"
             results[name] = BrewPackageVersionInfo(
-                cask=PackageVersionInfo(
-                    installed=cask["installed"], latest=cask["version"]
-                ),
-                formula=None,
+                installed=cask["installed"], latest=cask["version"], cask=True
             )
 
         for formula in info["formulae"]:
@@ -157,33 +102,15 @@ class Brew(PackageCacheInstaller[BrewPackageVersionInfo]):
             except IndexError:
                 installed = None
             latest = self.formula_version(formula)
-            pvi = PackageVersionInfo(installed=installed, latest=latest)
 
             if installed and name in results:
-                # Cask with the same name exists. If a _formula_ is installed
-                # instead, record the formula version as installed too, so the
-                # package will be updated to cask.
-                results[name].formula = pvi
-            else:
-                results[name] = BrewPackageVersionInfo(cask=None, formula=pvi)
-
-        # If queried for installed packages, check for any casks with the same
-        # names as installed formulae
-        if not package:
-            cask_response = await http_get("https://formulae.brew.sh/api/cask.json")
-
-            all_casks = json.loads(cask_response)
-            for cask in all_casks:
-                name = cask["token"]
-                if name not in results:
-                    continue  # No formula with this name installed, can ignore
-                if results[name].cask:
-                    continue  # Already know about this cask
-                # Record this cask as available but not installed (it would have
-                # been already found otherwise)
-                results[name].cask = PackageVersionInfo(
-                    installed=None, latest=cask["version"]
-                )
+                # Cask with the same name exists. This should not happen.
+                raise ValueError(
+                    f"Found cask and formula with the same name: {name}."
+                )  # pragma: no cover
+            results[name] = BrewPackageVersionInfo(
+                installed=installed, latest=latest, cask=False
+            )
 
         return results
 
