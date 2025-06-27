@@ -1,30 +1,28 @@
 module Mybox.Package.SpecBase
-  ( PackageSpecArgs(..)
-  , PackageSpec
-  , ps
-  , psName
-  , checkInstalled
-  , checkInstalledCommandOutput
-  , preinstall
-  , ignorePath
-  , packageSpec
-  ) where
+  ( PackageSpecArgs (..),
+    PackageSpec,
+    ps,
+    psName,
+    checkInstalled,
+    checkInstalledCommandOutput,
+    preinstall,
+    ignorePath,
+    packageSpec,
+  )
+where
 
-import qualified Data.Set            as Set
-
-import qualified Data.Text           as Text
-
-import           Mybox.Driver
-import           Mybox.Package.Class
-import           Mybox.Prelude
-import           Mybox.SpecBase
-import           Mybox.Tracker
-
-import           System.Random
+import Data.Set qualified as Set
+import Data.Text qualified as Text
+import Mybox.Driver
+import Mybox.Package.Class
+import Mybox.Prelude
+import Mybox.SpecBase
+import Mybox.Tracker
+import System.Random
 
 data PackageSpecArgs = PackageSpecArgs
-  { random    :: StdGen
-  , directory :: Text
+  { random :: StdGen,
+    directory :: Text
   }
 
 mkPSA :: IO PackageSpecArgs
@@ -37,21 +35,21 @@ psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
 psaSpec f = runIO mkPSA >>= f
 
 data PackageSpec a = PackageSpec
-  { package         :: a
-  , name_           :: Maybe Text
-  , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
-  , preinstall_     :: forall es. Driver :> es => Eff es ()
-  , ignoredPaths_   :: Set Text
+  { package :: a,
+    name_ :: Maybe Text,
+    checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es (),
+    preinstall_ :: forall es. (Driver :> es) => Eff es (),
+    ignoredPaths_ :: Set Text
   }
 
 ps :: a -> PackageSpec a
 ps p =
   PackageSpec
-    { package = p
-    , name_ = Nothing
-    , checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set"
-    , preinstall_ = pure ()
-    , ignoredPaths_ = Set.empty
+    { package = p,
+      name_ = Nothing,
+      checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set",
+      preinstall_ = pure (),
+      ignoredPaths_ = Set.empty
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
@@ -77,11 +75,11 @@ isIgnored s path = any (`pUnder` path) s.ignoredPaths_
 preinstall :: (forall es. (Driver :> es) => Eff es ()) -> MPS a
 preinstall f s = s {preinstall_ = preinstall_ s >> f}
 
-packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
+packageSpec :: (Package a) => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
-  around withTestEnv
-    $ psaSpec
-    $ \psa -> do
+  around withTestEnv $
+    psaSpec $
+      \psa -> do
         let s = makePS psa
         let p = s.package
         describe (Text.unpack $ fromMaybe p.name s.name_) $ do
@@ -94,18 +92,18 @@ packageSpec makePS =
             checkAllTracked s preexistingFiles ts
             checkInstalled_ s
 
-trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set Text)
+trackableFiles :: (Driver :> es) => PackageSpec a -> Eff es (Set Text)
 trackableFiles s = do
   home <- drvHome
   existing <- drvFind home (mempty {onlyFiles = True})
   pure $ Set.filter (not . isIgnored s) existing
 
 checkAllTracked ::
-     (IOE :> es, Driver :> es)
-  => PackageSpec a
-  -> Set Text
-  -> TrackerState
-  -> Eff es ()
+  (IOE :> es, Driver :> es) =>
+  PackageSpec a ->
+  Set Text ->
+  TrackerState ->
+  Eff es ()
 checkAllTracked s preexisting ts = do
   current <- trackableFiles s
   let new = Set.difference current preexisting

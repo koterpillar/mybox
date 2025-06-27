@@ -1,5 +1,5 @@
-module Main
-  ( module Mybox.Main
-  ) where
+module Main (
+  module Mybox.Main,
+) where
 
 import Mybox.Main

@@ -1,20 +1,21 @@
-module Mybox.Package.Clone
-  ( ClonePackage(..)
-  ) where
+module Mybox.Package.Clone (
+  ClonePackage (..),
+) where
 
-import qualified Data.Text           as Text
+import Data.Text qualified as Text
 
-import           Mybox.Driver
-import           Mybox.Package.Class
-import           Mybox.Prelude
-import           Mybox.Tracker
-import           Mybox.Utils
+import Mybox.Driver
+import Mybox.Package.Class
+import Mybox.Prelude
+import Mybox.Tracker
+import Mybox.Utils
 
 data ClonePackage = ClonePackage
-  { repo        :: Text
-  , branch      :: Maybe Text
+  { repo :: Text
+  , branch :: Maybe Text
   , destination :: Text
-  } deriving (Show, Eq)
+  }
+  deriving (Eq, Show)
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
@@ -29,8 +30,8 @@ cpRemote p
   | Text.isPrefixOf "https://" r = r
   | Text.isInfixOf "@" r = r
   | otherwise = "https://github.com/" <> r <> ".git"
-  where
-    r = p.repo
+ where
+  r = p.repo
 
 cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do
@@ -41,11 +42,13 @@ cpRunGit :: Driver :> es => [Text] -> ClonePackage -> Eff es ()
 cpRunGit args p = cpGitArgs args p >>= drvRun
 
 cpRevParse ::
-     Driver :> es
-  => Text -- ^ branch name
-  -> Bool -- ^ abbrev-ref
-  -> ClonePackage
-  -> Eff es Text
+  Driver :> es =>
+  -- | branch name
+  Text ->
+  -- | abbrev-ref
+  Bool ->
+  ClonePackage ->
+  Eff es Text
 cpRevParse branch abbrevRef p =
   cpGitArgs (join [["rev-parse"], ["--abbrev-ref" | abbrevRef], [branch]]) p
     >>= drvRunOutput
@@ -82,7 +85,7 @@ cpInstall p = do
   remoteBranch <-
     case p.branch of
       Just branch -> pure $ cpRemoteBranch branch
-      Nothing     -> cpRevParse (cpRemoteBranch "HEAD") True p
+      Nothing -> cpRevParse (cpRemoteBranch "HEAD") True p
   let branch = Text.takeWhileEnd (/= '/') remoteBranch
   cpRunGit ["fetch", "--no-tags", cpDefaultRemote, branch] p
   currentBranch <- cpRevParse "HEAD" True p

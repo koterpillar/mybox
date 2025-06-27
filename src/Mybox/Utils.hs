@@ -1,15 +1,17 @@
 module Mybox.Utils where
 
-import qualified Data.Text     as Text
+import Data.Text qualified as Text
 
-import           Mybox.Driver
-import           Mybox.Prelude
+import Mybox.Driver
+import Mybox.Prelude
 
 repoBranchVersion ::
-     Driver :> es
-  => Text -- ^ Repository
-  -> Maybe Text -- ^ Branch
-  -> Eff es Text
+  Driver :> es =>
+  -- | Repository
+  Text ->
+  -- | Branch
+  Maybe Text ->
+  Eff es Text
 repoBranchVersion repo_ branch_ = do
   let repo = fromMaybe repo_ $ Text.stripPrefix "git+" repo_
   let branch = fromMaybe "HEAD" branch_

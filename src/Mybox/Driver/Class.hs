@@ -2,35 +2,40 @@
 
 module Mybox.Driver.Class where
 
-import           Effectful.Dispatch.Dynamic
+import Effectful.Dispatch.Dynamic
 
-import           Mybox.Prelude
+import Mybox.Prelude
 
 data RunExit e where
-  RunExitError :: RunExit () -- ^ Throw an error if the command fails
-  RunExitReturn :: RunExit ExitCode -- ^ Return the exit code
+  RunExitError ::
+    -- | Throw an error if the command fails
+    RunExit ()
+  RunExitReturn ::
+    -- | Return the exit code
+    RunExit ExitCode
 
 data RunOutput o where
   RunOutputShow :: RunOutput ()
   RunOutputReturn :: RunOutput Text
 
 data RunResult e o = RunResult
-  { exit   :: e
+  { exit :: e
   , output :: o
-  } deriving (Show, Eq)
+  }
+  deriving (Eq, Show)
 
 class RunResultSimplified rr o | rr -> o where
   rrSimplify :: rr -> o
 
 rrLower :: RunExit e -> RunOutput o -> RunResult ExitCode Text -> RunResult e o
 rrLower re ro (RunResult e o) = RunResult (lowerE re e) (lowerO ro o)
-  where
-    lowerE :: RunExit e -> ExitCode -> e
-    lowerE RunExitError _   = ()
-    lowerE RunExitReturn ec = ec
-    lowerO :: RunOutput o -> Text -> o
-    lowerO RunOutputShow _        = ()
-    lowerO RunOutputReturn output = output
+ where
+  lowerE :: RunExit e -> ExitCode -> e
+  lowerE RunExitError _ = ()
+  lowerE RunExitReturn ec = ec
+  lowerO :: RunOutput o -> Text -> o
+  lowerO RunOutputShow _ = ()
+  lowerO RunOutputReturn output = output
 
 instance RunResultSimplified (RunResult () ()) () where
   rrSimplify (RunResult () ()) = ()
@@ -44,11 +49,14 @@ instance RunResultSimplified (RunResult () Text) Text where
 type Args = NonEmpty Text
 
 data Driver :: Effect where
-  DrvRun
-    :: RunExit e -- ^ Exit behavior
-    -> RunOutput o -- ^ Output behavior
-    -> Args -- ^ Command and arguments
-    -> Driver m (RunResult e o)
+  DrvRun ::
+    -- | Exit behavior
+    RunExit e ->
+    -- | Output behavior
+    RunOutput o ->
+    -- | Command and arguments
+    Args ->
+    Driver m (RunResult e o)
 
 type instance DispatchOf Driver = Dynamic
 

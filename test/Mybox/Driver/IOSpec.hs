@@ -1,8 +1,8 @@
 module Mybox.Driver.IOSpec where
 
-import           Mybox.Driver.Class
-import           Mybox.Prelude
-import           Mybox.SpecBase
+import Mybox.Driver.Class
+import Mybox.Prelude
+import Mybox.SpecBase
 
 spec :: Spec
 spec =
