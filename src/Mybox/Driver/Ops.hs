@@ -80,6 +80,9 @@ drvTempFile = drvTemp_ False
 drvTempDir :: Driver :> es => Eff es Text
 drvTempDir = drvTemp_ True
 
+drvReadFile :: Driver :> es => Text -> Eff es Text
+drvReadFile path = drvRunOutput $ "cat" :| [path]
+
 drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir $ pDirname path
@@ -88,9 +91,9 @@ drvWriteFile path content = do
     $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
 data FindOptions = FindOptions
-  { foMaxDepth  :: Maybe Int
-  , foOnlyFiles :: Bool
-  , foName      :: Maybe [Text]
+  { maxDepth  :: Maybe Int
+  , onlyFiles :: Bool
+  , name      :: Maybe [Text]
   } deriving (Ord, Eq, Show)
 
 instance Semigroup FindOptions where
@@ -101,17 +104,17 @@ instance Monoid FindOptions where
   mempty = FindOptions Nothing False Nothing
 
 drvFind :: Driver :> es => Text -> FindOptions -> Eff es (Set Text)
-drvFind path FindOptions {..} = do
+drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing     = []
       maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
   let args =
         [path, "-mindepth", "1"]
-          ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> foMaxDepth)
-          ++ maybeArg "-name" foName
+          ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
+          ++ maybeArg "-name" fo.name
           ++ maybeArg
                "-type"
-               (if foOnlyFiles
+               (if fo.onlyFiles
                   then Just ["f", "l"]
                   else Nothing)
           ++ ["-print0"]

@@ -22,20 +22,20 @@ import           System.Process
 import           System.Random
 
 data IODriver = IODriver
-  { idTransformArgs :: Args -> Args
-  , idCwd           :: Maybe Text
+  { transformArgs :: Args -> Args
+  , cwd           :: Maybe Text
   }
 
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
 runDriverIO drv =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
-      let (cmd :| args) = Text.unpack <$> idTransformArgs drv args_
-      let process = (proc cmd args) {cwd = Text.unpack <$> idCwd drv}
+      let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
+      let process = (proc cmd args) {System.Process.cwd = Text.unpack <$> drv.cwd}
       (exitCode, stdout, stderr) <-
         liftIO $ readCreateProcessWithExitCode process ""
       let stdoutText = Text.pack stdout
-      rrExit <-
+      exit <-
         case exitBehavior of
           RunExitError ->
             case exitCode of
@@ -49,14 +49,14 @@ runDriverIO drv =
                       ++ " and stderr: "
                       ++ stderr
           RunExitReturn -> pure exitCode
-      rrOutput <-
+      output <-
         case outputBehavior of
           RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
           RunOutputReturn -> pure $ Text.strip stdoutText
       pure $ RunResult {..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
-localDriver = runDriverIO $ IODriver {idTransformArgs = id, idCwd = Nothing}
+localDriver = runDriverIO $ IODriver {transformArgs = id, cwd = Nothing}
 
 withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
 withAddedPath addPath action = do
@@ -81,9 +81,9 @@ testHostDriver act = do
       linkToOriginalHome ".local/share/fonts"
       linkToOriginalHome ".local/share/systemd/user"
       linkToOriginalHome "Library/LaunchAgents"
-      let idTransformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
-          idTransformArgs args                              = args
-      let idCwd = Just home
+      let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
+          transformArgs args                              = args
+      let cwd = Just home
       flip runDriverIO act $ IODriver {..}
 
 dockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
@@ -117,12 +117,12 @@ dockerDriver baseImage act =
     mkDriver :: Text -> IODriver
     mkDriver container = IODriver {..}
       where
-        idCwd = Nothing
-        idTransformArgs :: Args -> Args
-        idTransformArgs ("sudo" :| args') =
+        cwd = Nothing
+        transformArgs :: Args -> Args
+        transformArgs ("sudo" :| args') =
           "docker" :| ["exec", "--user", "root", "--interactive", container]
             <> args'
-        idTransformArgs args =
+        transformArgs args =
           "docker" :| ["exec", "--interactive", container] <> toList args
 
 dockerfile ::

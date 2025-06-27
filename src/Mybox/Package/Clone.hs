@@ -11,18 +11,18 @@ import           Mybox.Tracker
 import           Mybox.Utils
 
 data ClonePackage = ClonePackage
-  { cpRepo        :: Text
-  , cpBranch      :: Maybe Text
-  , cpDestination :: Text
+  { repo        :: Text
+  , branch      :: Maybe Text
+  , destination :: Text
   } deriving (Show, Eq)
 
-cpName :: ClonePackage -> Text
-cpName ClonePackage {..} = Text.intercalate "#" $ cpRepo : toList cpBranch
+instance HasField "name" ClonePackage Text where
+  getField p = Text.intercalate "#" $ p.repo : toList p.branch
 
 cpDestinationPath :: Driver :> es => ClonePackage -> Eff es Text
 cpDestinationPath p = do
   home <- drvHome
-  pure $ home </> cpDestination p
+  pure $ home </> p.destination
 
 cpRemote :: ClonePackage -> Text
 cpRemote p
@@ -30,7 +30,7 @@ cpRemote p
   | Text.isInfixOf "@" r = r
   | otherwise = "https://github.com/" <> r <> ".git"
   where
-    r = cpRepo p
+    r = p.repo
 
 cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do
@@ -61,7 +61,7 @@ cpLocalVersion p = do
     else pure Nothing
 
 cpRemoteVersion :: Driver :> es => ClonePackage -> Eff es Text
-cpRemoteVersion p = repoBranchVersion (cpRemote p) (cpBranch p)
+cpRemoteVersion p = repoBranchVersion (cpRemote p) p.branch
 
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"
@@ -80,7 +80,7 @@ cpInstall p = do
       drvRm destination
       drvRun $ "git" :| ["clone", cpRemote p, destination]
   remoteBranch <-
-    case cpBranch p of
+    case p.branch of
       Just branch -> pure $ cpRemoteBranch branch
       Nothing     -> cpRevParse (cpRemoteBranch "HEAD") True p
   let branch = Text.takeWhileEnd (/= '/') remoteBranch
@@ -90,10 +90,7 @@ cpInstall p = do
   trkAdd destination
   cpRunGit ["reset", "--hard", remoteBranch] p
 
-instance PackageName ClonePackage where
-  pkgName = cpName
-
 instance Package ClonePackage where
-  pkgLocalVersion = cpLocalVersion
-  pkgRemoteVersion = cpRemoteVersion
-  pkgInstall = cpInstall
+  localVersion = cpLocalVersion
+  remoteVersion = cpRemoteVersion
+  install = cpInstall

@@ -2,17 +2,13 @@ module Mybox.TrackerSpec where
 
 import qualified Data.Set           as Set
 
-import           Mybox.Package.Name
 import           Mybox.Prelude
 import           Mybox.SpecBase
 import           Mybox.Tracker
 
 newtype DummyPackage =
-  DummyPackage Text
+  DummyPackage { name :: Text }
   deriving (Eq, Ord, Show)
-
-instance PackageName DummyPackage where
-  pkgName (DummyPackage name) = name
 
 spec :: Spec
 spec =

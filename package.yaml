@@ -9,6 +9,9 @@ default-extensions:
   - FunctionalDependencies
   - OverloadedStrings
   - RecordWildCards
+  - DuplicateRecordFields
+  - OverloadedRecordDot
+  # FIXME: all in on record fields? NoFieldSelectors
   # GHC2024
   - DataKinds
   - DerivingStrategies
@@ -19,7 +22,9 @@ default-extensions:
   - MonoLocalBinds
   - RoleAnnotations
 dependencies:
+  - aeson
   - base
+  - bytestring
   - containers
   - effectful
   - mtl
@@ -27,6 +32,7 @@ dependencies:
   - random
   - safe-exceptions
   - text
+  - yaml
 ghc-options:
   - -Wall
   - -Werror

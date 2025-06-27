@@ -6,8 +6,10 @@ module Mybox.Prelude
   , module Mybox.Path
   , (&)
   , on
-  , NonEmpty(..)
   , ExitCode(..)
+  , Generic
+  , HasField(..)
+  , NonEmpty(..)
   , Set
   , Text
   ) where
@@ -20,5 +22,7 @@ import           Data.Maybe
 import           Data.Set           (Set)
 import           Data.Text          (Text)
 import           Effectful
+import           GHC.Records        (HasField(..))
+import           GHC.Generics       (Generic)
 import           Mybox.Path
 import           System.Exit        (ExitCode (..))
