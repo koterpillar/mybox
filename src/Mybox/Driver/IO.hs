@@ -1,29 +1,27 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Mybox.Driver.IO
-  ( IODriver
-  , localDriver
-  , testDriver
-  ) where
+module Mybox.Driver.IO (
+  IODriver,
+  localDriver,
+  testDriver,
+) where
 
-import qualified Data.Text                  as Text
-import qualified Data.Text.IO               as Text
+import Data.Text qualified as Text
+import Data.Text.IO qualified as Text
+import Effectful.Dispatch.Dynamic
+import Effectful.Exception
+import System.Environment
+import System.Process
+import System.Random
 
-import           Effectful.Dispatch.Dynamic
-import           Effectful.Exception
-
-import           Mybox.Driver.Class
-import           Mybox.Driver.Ops
-import           Mybox.Prelude
-
-import           System.Environment
-import           System.Process
-import           System.Random
+import Mybox.Driver.Class
+import Mybox.Driver.Ops
+import Mybox.Prelude
 
 data IODriver = IODriver
   { transformArgs :: Args -> Args
-  , cwd           :: Maybe Text
+  , cwd :: Maybe Text
   }
 
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
@@ -31,7 +29,7 @@ runDriverIO drv =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
-      let process = (proc cmd args) {System.Process.cwd = Text.unpack <$> drv.cwd}
+      let process = (proc cmd args){System.Process.cwd = Text.unpack <$> drv.cwd}
       (exitCode, stdout, stderr) <-
         liftIO $ readCreateProcessWithExitCode process ""
       let stdoutText = Text.pack stdout
@@ -41,22 +39,22 @@ runDriverIO drv =
             case exitCode of
               ExitSuccess -> pure ()
               ExitFailure code ->
-                error
-                  $ "Process "
-                      <> Text.unpack (shellJoin args_)
-                      <> " failed with exit code: "
-                      ++ show code
-                      ++ " and stderr: "
-                      ++ stderr
+                error $
+                  "Process "
+                    <> Text.unpack (shellJoin args_)
+                    <> " failed with exit code: "
+                    ++ show code
+                    ++ " and stderr: "
+                    ++ stderr
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
-          RunOutputShow   -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputShow -> void $ liftIO $ Text.putStr stdoutText
           RunOutputReturn -> pure $ Text.strip stdoutText
-      pure $ RunResult {..}
+      pure $ RunResult{..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
-localDriver = runDriverIO $ IODriver {transformArgs = id, cwd = Nothing}
+localDriver = runDriverIO $ IODriver{transformArgs = id, cwd = Nothing}
 
 withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
 withAddedPath addPath action = do
@@ -82,52 +80,53 @@ testHostDriver act = do
       linkToOriginalHome ".local/share/systemd/user"
       linkToOriginalHome "Library/LaunchAgents"
       let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
-          transformArgs args                              = args
+          transformArgs args = args
       let cwd = Just home
-      flip runDriverIO act $ IODriver {..}
+      flip runDriverIO act $ IODriver{..}
 
 dockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
 dockerDriver baseImage act =
   bracket mkContainer rmContainer (flip runDriverIO act . mkDriver)
-  where
-    mkContainer :: IOE :> es => Eff es Text
-    mkContainer =
-      localDriver $ do
-        containerName <- Text.pack . show <$> liftIO (randomIO @Int)
-        bracket drvTempDir drvRm $ \tempDir -> do
-          drvCopy "bootstrap" (tempDir </> "bootstrap")
-          drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
-          let image = dockerImagePrefix <> baseImage
-          drvRun $ "docker" :| ["build", "--tag", image, tempDir]
-          -- FIXME: --volume for package root
-          drvRunOutput
-            $ "docker"
-                :| [ "run"
-                   , "--rm"
-                   , "--detach"
-                   , "--name"
-                   , "mybox-test-" <> containerName
-                   , image
-                   , "sleep"
-                   , "86400000"
-                   ]
-    rmContainer :: IOE :> es => Text -> Eff es ()
-    rmContainer container =
-      localDriver $ drvRun $ "docker" :| ["rm", "--force", container]
-    mkDriver :: Text -> IODriver
-    mkDriver container = IODriver {..}
-      where
-        cwd = Nothing
-        transformArgs :: Args -> Args
-        transformArgs ("sudo" :| args') =
-          "docker" :| ["exec", "--user", "root", "--interactive", container]
-            <> args'
-        transformArgs args =
-          "docker" :| ["exec", "--interactive", container] <> toList args
+ where
+  mkContainer :: IOE :> es => Eff es Text
+  mkContainer =
+    localDriver $ do
+      containerName <- Text.pack . show <$> liftIO (randomIO @Int)
+      bracket drvTempDir drvRm $ \tempDir -> do
+        drvCopy "bootstrap" (tempDir </> "bootstrap")
+        drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
+        let image = dockerImagePrefix <> baseImage
+        drvRun $ "docker" :| ["build", "--tag", image, tempDir]
+        -- FIXME: --volume for package root
+        drvRunOutput $
+          "docker"
+            :| [ "run"
+               , "--rm"
+               , "--detach"
+               , "--name"
+               , "mybox-test-" <> containerName
+               , image
+               , "sleep"
+               , "86400000"
+               ]
+  rmContainer :: IOE :> es => Text -> Eff es ()
+  rmContainer container =
+    localDriver $ drvRun $ "docker" :| ["rm", "--force", container]
+  mkDriver :: Text -> IODriver
+  mkDriver container = IODriver{..}
+   where
+    cwd = Nothing
+    transformArgs :: Args -> Args
+    transformArgs ("sudo" :| args') =
+      "docker" :| ["exec", "--user", "root", "--interactive", container]
+        <> args'
+    transformArgs args =
+      "docker" :| ["exec", "--interactive", container] <> toList args
 
 dockerfile ::
-     Text -- ^ base image
-  -> Text
+  -- | base image
+  Text ->
+  Text
 dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage
@@ -136,8 +135,8 @@ dockerfile baseImage =
     , "RUN /bootstrap --development"
     , "ENV PATH=/home/{DOCKER_USER}/.local/bin:$PATH"
     , "USER " <> dockerUser
-    -- populate dnf cache so each test doesn't have to do it
-    , "RUN command -v dnf >/dev/null && dnf check-update || true"
+    , -- populate dnf cache so each test doesn't have to do it
+      "RUN command -v dnf >/dev/null && dnf check-update || true"
     ]
 
 dockerUser :: Text
@@ -150,5 +149,5 @@ testDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testDriver act = do
   image_ <- liftIO $ lookupEnv "DOCKER_IMAGE"
   case image_ of
-    Nothing    -> testHostDriver act
+    Nothing -> testHostDriver act
     Just image -> dockerDriver (Text.pack image) act

@@ -28,4 +28,33 @@ then
   pip install poetry
 fi
 
+GH_CURL=(curl)
+if [ -n "${GITHUB_TOKEN-}" ]
+then
+  GH_CURL+=(--header "authorization: Bearer $GITHUB_TOKEN")
+elif command_exists gh && gh auth status >/dev/null 2>&1
+then
+  GH_CURL+=(--header "authorization: Bearer $(gh auth token)")
+fi
+
+if ! command_exists fourmolu
+then
+  OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/osx/;s/linux.+/linux/')
+  ARCH=$(uname -m | sed 's/aarch64/arm64/')
+
+  FILENAME=$(
+    "${GH_CURL[@]}" -fsSL "https://api.github.com/repos/fourmolu/fourmolu/releases/latest" | \
+    python3 -c 'import sys,json;[print(a["name"]) for a in json.load(sys.stdin)["assets"]]' | \
+    grep "${OS}-${ARCH}" || (echo "Warning: no fourmolu binary for ${OS}-${ARCH}" >&2)
+  )
+
+  if [ -n "$FILENAME" ]
+  then
+    mkdir -p ~/.local/bin
+    FOURMOLU_URL="https://github.com/fourmolu/fourmolu/releases/latest/download/${FILENAME}"
+    "${GH_CURL[@]}" -fsSL "$FOURMOLU_URL" -o ~/.local/bin/fourmolu
+    chmod +x ~/.local/bin/fourmolu
+  fi
+fi
+
 poetry install

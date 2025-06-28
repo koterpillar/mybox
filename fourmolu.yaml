@@ -1,0 +1,13 @@
+respectful: false
+indentation: 2
+column-width: 120
+import-grouping: by-scope
+haddock-style: single-line
+let-style: inline
+in-style: right-align
+single-constraint-parens: never
+single-deriving-parens: always
+sort-constraints: true
+sort-derived-classes: true
+sort-deriving-clauses: true
+trailing-section-operators: true

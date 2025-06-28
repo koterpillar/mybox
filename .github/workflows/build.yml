@@ -7,15 +7,6 @@ on:
 
 jobs:
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: FIXME
-        run: |
-          echo "FIXME: Lint Haskell"
-  lint-py:
     name: "Lint (Python ${{ matrix.python }})"
     strategy:
       fail-fast: false
@@ -92,7 +83,6 @@ jobs:
   coverage:
     needs:
       - lint
-      - lint-py
       - test
     runs-on: ubuntu-latest
     steps:

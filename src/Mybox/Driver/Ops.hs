@@ -1,15 +1,12 @@
 module Mybox.Driver.Ops where
 
-import           Control.Applicative ((<|>))
+import Control.Applicative ((<|>))
+import Data.Char (isAlphaNum)
+import Data.Set qualified as Set
+import Data.Text qualified as Text
 
-import           Data.Char           (isAlphaNum)
-
-import qualified Data.Set            as Set
-
-import qualified Data.Text           as Text
-
-import           Mybox.Driver.Class
-import           Mybox.Prelude
+import Mybox.Driver.Class
+import Mybox.Prelude
 
 -- | Check if a path is executable.
 drvIsExecutable :: Driver :> es => Text -> Eff es Bool
@@ -87,14 +84,15 @@ drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir $ pDirname path
   drvRm path
-  drvRun
-    $ "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
+  drvRun $
+    "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
 
 data FindOptions = FindOptions
-  { maxDepth  :: Maybe Int
+  { maxDepth :: Maybe Int
   , onlyFiles :: Bool
-  , name      :: Maybe [Text]
-  } deriving (Ord, Eq, Show)
+  , name :: Maybe [Text]
+  }
+  deriving (Eq, Ord, Show)
 
 instance Semigroup FindOptions where
   FindOptions d1 f1 n1 <> FindOptions d2 f2 n2 =
@@ -106,17 +104,18 @@ instance Monoid FindOptions where
 drvFind :: Driver :> es => Text -> FindOptions -> Eff es (Set Text)
 drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
-      maybeArg _ Nothing     = []
+      maybeArg _ Nothing = []
       maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
   let args =
         [path, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
           ++ maybeArg "-name" fo.name
           ++ maybeArg
-               "-type"
-               (if fo.onlyFiles
-                  then Just ["f", "l"]
-                  else Nothing)
+            "-type"
+            ( if fo.onlyFiles
+                then Just ["f", "l"]
+                else Nothing
+            )
           ++ ["-print0"]
   o <- drvRunOutput $ "find" :| args
   pure $ Set.fromList $ Text.split (== '\0') o
@@ -131,6 +130,6 @@ shellQuote :: Text -> Text
 shellQuote t
   | Text.all safe t && not (Text.null t) = t
   | otherwise = q <> Text.intercalate "'\"'\"'" (Text.splitOn q t) <> q
-  where
-    q = "'"
-    safe c = isAlphaNum c || c == '_'
+ where
+  q = "'"
+  safe c = isAlphaNum c || c == '_'

@@ -6,13 +6,19 @@ set -euo pipefail
 # nounset; keep command and args together as a workaround.
 ISORT=(isort)
 BLACK=(black)
+FOURMOLU=(fourmolu)
 if [ "${1-}" != "--format" ]
 then
     ISORT+=(--check)
     BLACK+=(--check)
+    FOURMOLU+=(--mode check)
+else
+    FOURMOLU+=(--mode inplace)
 fi
 
 DIR=$(cd "$(dirname "$0")" && pwd)
+
+"${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/tests"
 
 # shellcheck disable=SC2046
 shellcheck $(grep -lER --exclude-dir .git '^#!.+(ba)?sh$' "$DIR")
