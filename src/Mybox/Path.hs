@@ -21,3 +21,6 @@ pFilename path = listToMaybe $ reverse $ Text.splitOn "/" path
 
 pUnder :: Text -> Text -> Bool
 pUnder = isPrefixOf `on` Text.splitOn "/"
+
+pMyboxState :: Text
+pMyboxState = ".local/share/mybox"
