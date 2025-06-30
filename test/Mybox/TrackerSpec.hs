@@ -1,6 +1,7 @@
 module Mybox.TrackerSpec where
 
 import Data.Set qualified as Set
+
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker

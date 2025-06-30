@@ -3,8 +3,8 @@ module Mybox.Package.ManualVersionSpec where
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
-import Mybox.SpecBase
 import Mybox.Prelude
+import Mybox.SpecBase
 import Mybox.Tracker
 
 newtype DummyPackage

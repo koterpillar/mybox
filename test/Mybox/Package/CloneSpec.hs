@@ -1,10 +1,11 @@
 module Mybox.Package.CloneSpec where
 
+import Test.Hspec
+
 import Mybox.Driver
 import Mybox.Package.Clone
 import Mybox.Package.SpecBase
 import Mybox.Prelude
-import Test.Hspec
 
 spec :: Spec
 spec = do
@@ -28,10 +29,10 @@ spec = do
         ("cat" :| [psa.directory </> "package.json"])
         "\"version\": \"2"
 
-createEmptyDirectory :: (Driver :> es) => PackageSpecArgs -> Eff es ()
+createEmptyDirectory :: Driver :> es => PackageSpecArgs -> Eff es ()
 createEmptyDirectory psa = drvMkdir psa.directory
 
-checkoutEarlierCommit :: (Driver :> es) => PackageSpecArgs -> Eff es ()
+checkoutEarlierCommit :: Driver :> es => PackageSpecArgs -> Eff es ()
 checkoutEarlierCommit psa = do
   drvRun $
     "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psa.directory]

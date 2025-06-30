@@ -18,7 +18,7 @@ fi
 
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-"${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/tests"
+"${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/test"
 
 # shellcheck disable=SC2046
 shellcheck $(grep -lER --exclude-dir .git '^#!.+(ba)?sh$' "$DIR")
