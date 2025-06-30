@@ -5,13 +5,16 @@ module Mybox.SpecBase
     it,
     shouldBe,
     shouldSatisfy,
+    shouldThrow,
   )
 where
+
+import Control.Exception.Safe (Exception)
 
 import Mybox.Driver.Class
 import Mybox.Driver.IO
 import Mybox.Prelude
-import Test.Hspec hiding (it, shouldBe, shouldSatisfy)
+import Test.Hspec hiding (it, shouldBe, shouldSatisfy, shouldThrow)
 import Test.Hspec qualified as Hspec
 
 newtype RunEff es
@@ -33,3 +36,6 @@ shouldBe a b = liftIO $ Hspec.shouldBe a b
 shouldSatisfy ::
   (HasCallStack, Show a, IOE :> es) => a -> (a -> Bool) -> Eff es ()
 shouldSatisfy a f = liftIO $ Hspec.shouldSatisfy a f
+
+shouldThrow :: (HasCallStack, Exception e, IOE :> es) => Eff es a -> Selector e -> Eff es ()
+shouldThrow act ex = withSeqEffToIO $ \unlift -> Hspec.shouldThrow (unlift act) ex
