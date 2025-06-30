@@ -20,7 +20,7 @@ spec = do
   let expressGenerator _ =
         ps (NPMPackage "express-generator" ["express"])
           & checkInstalledCommandOutput
-              ("express" :| ["--help"])
-              "engine support"
+            ("express" :| ["--help"])
+            "engine support"
           & ignorePath ".npm"
   packageSpec expressGenerator
