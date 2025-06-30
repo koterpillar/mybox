@@ -16,12 +16,11 @@ module Mybox.Tracker (
 ) where
 
 import Data.Aeson qualified as Aeson
-import Data.ByteString.Lazy qualified as LBS
 import Data.Set qualified as Set
-import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Name
 import Mybox.Prelude
@@ -119,7 +118,7 @@ stateTracker tfs =
       modify $ \s -> s{deleted = Set.insert file s.deleted}
 
 newtype TrackedFiles = TrackedFiles
-  { getTrackedFiles :: Set TrackedFile
+  { trackedFiles :: Set TrackedFile
   }
   deriving (Eq, Generic, Ord, Show)
 
@@ -135,13 +134,11 @@ drvTracker stateFile =
       exists <- drvIsFile stateFile
       if exists
         then
-          maybe mempty getTrackedFiles . Aeson.decodeStrictText
+          maybe mempty (.trackedFiles) . Aeson.decodeStrictText @TrackedFiles
             <$> drvReadFile stateFile
         else pure mempty
     TrkSet tfs ->
       drvWriteFile stateFile $
-        Text.decodeUtf8 $
-          LBS.toStrict $
-            Aeson.encode $
-              TrackedFiles tfs
+        jsonEncode $
+          TrackedFiles tfs
     TrkRemove file -> drvRm file

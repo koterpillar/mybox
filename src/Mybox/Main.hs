@@ -12,7 +12,7 @@ main :: IO ()
 main =
   runEff $
     localDriver $
-      drvTracker ".local/share/mybox/files.json" $
+      drvTracker (pMyboxState </> "files.json") $
         do
           drvRun $ "echo" :| ["Not implemented yet."]
           liftIO exitFailure

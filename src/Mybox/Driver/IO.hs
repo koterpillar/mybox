@@ -73,9 +73,7 @@ testHostDriver act = do
       let linkToOriginalHome path =
             let op = originalHome </> path
                 np = home </> path
-             in localDriver $ do
-                  drvMkdir $ pDirname np
-                  drvLink op np
+             in localDriver $ drvLink op np
       linkToOriginalHome ".local/share/fonts"
       linkToOriginalHome ".local/share/systemd/user"
       linkToOriginalHome "Library/LaunchAgents"
