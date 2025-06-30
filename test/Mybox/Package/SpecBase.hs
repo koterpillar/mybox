@@ -49,7 +49,7 @@ ps p =
       name_ = Nothing,
       checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set",
       preinstall_ = pure (),
-      ignoredPaths_ = Set.empty
+      ignoredPaths_ = Set.fromList [pMyboxState </> "versions"]
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
@@ -68,9 +68,6 @@ checkInstalledCommandOutput cmd expectedOutput =
 
 ignorePath :: Text -> MPS a
 ignorePath path s = s {ignoredPaths_ = Set.insert path s.ignoredPaths_}
-
-isIgnored :: PackageSpec a -> Text -> Bool
-isIgnored s path = any (`pUnder` path) s.ignoredPaths_
 
 preinstall :: (forall es. (Driver :> es) => Eff es ()) -> MPS a
 preinstall f s = s {preinstall_ = preinstall_ s >> f}
@@ -95,8 +92,9 @@ packageSpec makePS =
 trackableFiles :: (Driver :> es) => PackageSpec a -> Eff es (Set Text)
 trackableFiles s = do
   home <- drvHome
+  let ignored = Set.map (home </>) s.ignoredPaths_
   existing <- drvFind home (mempty {onlyFiles = True})
-  pure $ Set.filter (not . isIgnored s) existing
+  pure $ Set.filter (\p -> not $ any (`pUnder` p) ignored) existing
 
 checkAllTracked ::
   (IOE :> es, Driver :> es) =>

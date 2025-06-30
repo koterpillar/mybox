@@ -25,6 +25,7 @@ library
       Mybox.Package.Destination
       Mybox.Package.ManualVersion
       Mybox.Package.Name
+      Mybox.Package.NPM
       Mybox.Path
       Mybox.Prelude
       Mybox.Tracker
@@ -109,6 +110,7 @@ test-suite tests
       Mybox.Driver.IOSpec
       Mybox.Package.CloneSpec
       Mybox.Package.ManualVersionSpec
+      Mybox.Package.NPMSpec
       Mybox.Package.SpecBase
       Mybox.PathSpec
       Mybox.SpecBase

@@ -23,7 +23,7 @@ drvIsFile path = do
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
 drvExecutableExists exe = do
-  code <- drvRunOk $ drvShell $ "command" :| ["-v", exe]
+  code <- drvRunOk $ shell $ "command" :| ["-v", exe]
   pure (code == ExitSuccess)
 
 -- | Check if a path is a directory.
@@ -38,7 +38,7 @@ drvUsername = drvRunOutput $ "whoami" :| []
 
 -- | Get the home directory for the user (FIXME: check root)
 drvHome :: Driver :> es => Eff es Text
-drvHome = drvRunOutput $ drvShell $ "eval" :| ["echo", "~"]
+drvHome = drvRunOutput $ shell $ "eval" :| ["echo", "~"]
 
 -- | Get the local directory for the user (FIXME: check root)
 drvLocal :: Driver :> es => Eff es Text
@@ -84,8 +84,10 @@ drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir $ pDirname path
   drvRm path
-  drvRun $
-    "sh" :| ["-c", "echo " <> shellQuote content <> " > " <> shellQuote path]
+  drvRun $ shellRaw $ "echo " <> shellQuote content <> " > " <> shellQuote path
+
+drvMakeExecutable :: Driver :> es => Text -> Eff es ()
+drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path]
 
 data FindOptions = FindOptions
   { maxDepth :: Maybe Int
@@ -120,8 +122,11 @@ drvFind path fo = do
   o <- drvRunOutput $ "find" :| args
   pure $ Set.fromList $ Text.split (== '\0') o
 
-drvShell :: Args -> Args
-drvShell args = "sh" :| ["-c", shellJoin args]
+shellRaw :: Text -> Args
+shellRaw args = "sh" :| ["-c", args]
+
+shell :: Args -> Args
+shell = shellRaw . shellJoin
 
 shellJoin :: (Foldable f, Functor f) => f Text -> Text
 shellJoin = Text.unwords . toList . fmap shellQuote
