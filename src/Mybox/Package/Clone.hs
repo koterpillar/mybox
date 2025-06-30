@@ -6,6 +6,7 @@ import Data.Text qualified as Text
 
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Destination
 import Mybox.Prelude
 import Mybox.Tracker
 import Mybox.Utils
@@ -20,11 +21,6 @@ data ClonePackage = ClonePackage
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
 
-cpDestinationPath :: Driver :> es => ClonePackage -> Eff es Text
-cpDestinationPath p = do
-  home <- drvHome
-  pure $ home </> p.destination
-
 cpRemote :: ClonePackage -> Text
 cpRemote p
   | Text.isPrefixOf "https://" r = r
@@ -35,7 +31,7 @@ cpRemote p
 
 cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do
-  dest <- cpDestinationPath p
+  dest <- destinationPath p
   pure $ "git" :| (["-C", dest] <> args)
 
 cpRunGit :: Driver :> es => [Text] -> ClonePackage -> Eff es ()
@@ -53,12 +49,9 @@ cpRevParse branch abbrevRef p =
   cpGitArgs (join [["rev-parse"], ["--abbrev-ref" | abbrevRef], [branch]]) p
     >>= drvRunOutput
 
-cpDirectoryExists :: Driver :> es => ClonePackage -> Eff es Bool
-cpDirectoryExists p = cpDestinationPath p >>= drvIsDir
-
 cpLocalVersion :: Driver :> es => ClonePackage -> Eff es (Maybe Text)
 cpLocalVersion p = do
-  exists <- cpDirectoryExists p
+  exists <- destinationExists p
   if exists
     then Just <$> cpRevParse "HEAD" False p
     else pure Nothing
@@ -74,7 +67,7 @@ cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
 cpInstall :: (Driver :> es, PackageTracker :> es) => ClonePackage -> Eff es ()
 cpInstall p = do
-  destination <- cpDestinationPath p
+  destination <- destinationPath p
   exists <- drvIsDir $ destination </> ".git"
   if exists
     then cpRunGit ["remote", "set-url", cpDefaultRemote, cpRemote p] p
