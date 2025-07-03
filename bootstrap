@@ -2,6 +2,25 @@
 
 set -eu
 
+OPT_DEVELOPMENT=""
+OPT_HASKELL=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --development)
+      OPT_DEVELOPMENT="true"
+      shift
+      ;;
+    --haskell)
+      OPT_HASKELL="true"
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
 command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -49,7 +68,7 @@ case "$(uname -s)" in
     INSTALLER='brew install'
 
     # macOS has Python 3, but it's too old
-    if ! command_exists python3 || type python3 | grep -q /usr/bin/python3
+    if [ -z "$OPT_HASKELL" ] && ! command_exists python3 || type python3 | grep -q /usr/bin/python3
     then
       $INSTALLER python@3
     fi
@@ -76,29 +95,35 @@ case "$(uname -s)" in
 
     case $DISTRO in
       debian|ubuntu)
-        ensure python3 python3 python3-venv
+        if [ -z "$OPT_HASKELL" ]
+        then
+          ensure python3 python3 python3-venv
+        fi
         ;;
     esac
     ;;
 esac
 
-PIPX="$HOME/.local/mybox/pipx"
-if ! [ -f "$PIPX" ]
+if [ -z "$OPT_HASKELL" ]
 then
-  mkdir -p "$(dirname "$PIPX")"
-  touch -t 200001010000 "$PIPX"
-fi
+  PIPX="$HOME/.local/mybox/pipx"
+  if ! [ -f "$PIPX" ]
+  then
+    mkdir -p "$(dirname "$PIPX")"
+    touch -t 200001010000 "$PIPX"
+  fi
 
-PIPX_TEMP=$(mktemp)
-trap 'rm -f "$PIPX_TEMP"' EXIT
-curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
-if [ -s "$PIPX_TEMP" ]
-then
-  mv "$PIPX_TEMP" "$PIPX"
-  chmod +rx "$PIPX"
-fi
+  PIPX_TEMP=$(mktemp)
+  trap 'rm -f "$PIPX_TEMP"' EXIT
+  curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
+  if [ -s "$PIPX_TEMP" ]
+  then
+    mv "$PIPX_TEMP" "$PIPX"
+    chmod +rx "$PIPX"
+  fi
 
-if [ "${1:-}" != "--development" ]
-then
-  "$PIPX" upgrade --install mybox
+  if [ -z "$OPT_DEVELOPMENT" ]
+  then
+    "$PIPX" upgrade --install mybox
+  fi
 fi
