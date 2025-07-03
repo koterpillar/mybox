@@ -7,9 +7,13 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-newtype DummyPackage
-  = DummyPackage {name :: Text}
-  deriving (Eq, Ord, Show)
+data DummyPackage
+  = DummyPackage {name :: Text, number :: Text}
+  deriving (Eq, Generic, Ord, Show)
+
+instance FromJSON DummyPackage
+
+instance ToJSON DummyPackage
 
 versionFile :: Text
 versionFile = "dummy-package-version.txt"
@@ -30,7 +34,7 @@ hasInstallLog = drvIsFile installLogFile
 
 spec :: Spec
 spec = around withTestEnv $ do
-  let pkg = DummyPackage "dummy"
+  let pkg = DummyPackage "dummy" "one"
   it "is not reported installed initially" $ do
     setRemoteVersion "version1"
     localVersion pkg >>= (`shouldBe` Nothing)
@@ -39,3 +43,8 @@ spec = around withTestEnv $ do
     nullPackageTracker $ install pkg
     hasInstallLog >>= (`shouldBe` True)
     localVersion pkg >>= (`shouldBe` Just "version1")
+  it "is not reported installed when changed" $ do
+    setRemoteVersion "version1"
+    nullPackageTracker $ install pkg
+    let pkg' = pkg{number = "two"}
+    localVersion pkg' >>= (`shouldBe` Nothing)

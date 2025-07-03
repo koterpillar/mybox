@@ -2,7 +2,11 @@ module Mybox.Package.Class (
   Package (..),
   PackageName,
   pkgIsInstalled,
+  FromJSON,
+  ToJSON,
 ) where
+
+import Data.Aeson (FromJSON, ToJSON)
 
 import Mybox.Driver
 import Mybox.Package.Name
@@ -10,7 +14,7 @@ import Mybox.Prelude
 import Mybox.Tracker
 
 class
-  PackageName a =>
+  (FromJSON a, PackageName a, ToJSON a) =>
   Package a
   where
   remoteVersion :: Driver :> es => a -> Eff es Text
