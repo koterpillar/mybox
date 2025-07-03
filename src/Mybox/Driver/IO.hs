@@ -130,7 +130,7 @@ dockerfile baseImage =
     [ "FROM " <> baseImage
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "COPY bootstrap /bootstrap"
-    , "RUN /bootstrap --development"
+    , "RUN /bootstrap --development --haskell"
     , "ENV PATH=/home/{DOCKER_USER}/.local/bin:$PATH"
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
