@@ -26,6 +26,7 @@ library
       Mybox.Package.ManualVersion
       Mybox.Package.Name
       Mybox.Package.NPM
+      Mybox.Package.Pipx
       Mybox.Path
       Mybox.Prelude
       Mybox.Tracker
@@ -111,6 +112,7 @@ test-suite tests
       Mybox.Package.CloneSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
+      Mybox.Package.PipxSpec
       Mybox.Package.SpecBase
       Mybox.PathSpec
       Mybox.SpecBase
