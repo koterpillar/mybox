@@ -6,6 +6,7 @@ module Mybox.Package.SpecBase (
   checkInstalled,
   checkInstalledCommandOutput,
   preinstall,
+  preinstallPackage,
   ignorePath,
   packageSpec,
 ) where
@@ -71,6 +72,9 @@ ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 
 preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
+
+preinstallPackage :: Package a => a -> MPS a
+preinstallPackage p = preinstall $ nullPackageTracker $ install p
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
