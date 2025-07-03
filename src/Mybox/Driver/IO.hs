@@ -115,11 +115,20 @@ dockerDriver baseImage act =
    where
     cwd = Nothing
     transformArgs :: Args -> Args
-    transformArgs ("sudo" :| args') =
-      "docker" :| ["exec", "--user", "root", "--interactive", container]
-        <> args'
-    transformArgs args =
-      "docker" :| ["exec", "--interactive", container] <> toList args
+    transformArgs ("sudo" :| args') = dockerExec "root" args'
+    transformArgs args = dockerExec dockerUser $ toList args
+    dockerExec :: Text -> [Text] -> Args
+    dockerExec user args =
+      "docker"
+        :| [ "exec"
+           , "--user"
+           , user
+           , "--workdir"
+           , homeOf user
+           , "--interactive"
+           , container
+           ]
+        <> args
 
 dockerfile ::
   -- | base image
@@ -131,7 +140,7 @@ dockerfile baseImage =
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"
-    , "ENV PATH=/home/{DOCKER_USER}/.local/bin:$PATH"
+    , "ENV PATH=" <> homeOf dockerUser <> "/.local/bin:$PATH"
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
       "RUN command -v dnf >/dev/null && dnf check-update || true"
@@ -139,6 +148,10 @@ dockerfile baseImage =
 
 dockerUser :: Text
 dockerUser = "regular_user"
+
+homeOf :: Text -> Text
+homeOf "root" = "/root"
+homeOf user = "/home" </> user
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
