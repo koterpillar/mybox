@@ -16,10 +16,14 @@ data ClonePackage = ClonePackage
   , branch :: Maybe Text
   , destination :: Text
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
+
+instance FromJSON ClonePackage
+
+instance ToJSON ClonePackage
 
 cpRemote :: ClonePackage -> Text
 cpRemote p

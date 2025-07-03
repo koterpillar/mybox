@@ -14,10 +14,14 @@ data NPMPackage = NPMPackage
   { package :: Text
   , binaries :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance HasField "name" NPMPackage Text where
   getField p = p.package
+
+instance FromJSON NPMPackage
+
+instance ToJSON NPMPackage
 
 viewVersion :: Driver :> es => NPMPackage -> Eff es Text
 viewVersion p = drvRunOutput $ "npm" :| ["view", p.package, "version"]
