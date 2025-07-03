@@ -34,9 +34,6 @@ different ones for different roles).
   For package definition examples, see
   [koterpillar/desktop](https://github.com/koterpillar/desktop/).
 
-* To install optional components, add their names as arguments, e.g.
-  `mybox development`.
-
 ## Development
 
 Pre-requisites (see [install-dev](install-dev) for ways to install):
