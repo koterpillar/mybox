@@ -145,7 +145,7 @@ dockerImagePrefix = "mybox-test-"
 
 testDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testDriver act = do
-  image_ <- liftIO $ lookupEnv "DOCKER_IMAGE"
+  image_ <- fmap (fromMaybe "") $ liftIO $ lookupEnv "DOCKER_IMAGE"
   case image_ of
-    Nothing -> testHostDriver act
-    Just image -> dockerDriver (Text.pack image) act
+    "" -> testHostDriver act
+    image -> dockerDriver (Text.pack image) act
