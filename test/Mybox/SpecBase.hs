@@ -3,13 +3,14 @@ module Mybox.SpecBase (
   withIOEnv,
   withTestEnv,
   it,
+  xit,
   shouldBe,
   shouldSatisfy,
   shouldThrow,
 ) where
 
 import Control.Exception.Safe (Exception)
-import Test.Hspec hiding (it, shouldBe, shouldSatisfy, shouldThrow)
+import Test.Hspec hiding (it, xit, shouldBe, shouldSatisfy, shouldThrow)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver.Class
@@ -28,6 +29,9 @@ withTestEnv ioa =
 
 it :: String -> Eff ef () -> SpecWith (RunEff ef)
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
+
+xit :: String -> Eff ef () -> SpecWith (RunEff ef)
+xit name act = Hspec.xit name $ \(RunEff unlift) -> unlift act
 
 shouldBe :: (Eq a, HasCallStack, IOE :> es, Show a) => a -> a -> Eff es ()
 shouldBe a b = liftIO $ Hspec.shouldBe a b
