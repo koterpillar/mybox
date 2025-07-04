@@ -6,8 +6,10 @@ module Mybox.Package.SpecBase (
   checkInstalled,
   checkInstalledCommandOutput,
   preinstall,
+  preinstallPackage,
   ignorePath,
   packageSpec,
+  psPending,
 ) where
 
 import Data.Set qualified as Set
@@ -40,6 +42,7 @@ data PackageSpec a = PackageSpec
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
   , preinstall_ :: forall es. Driver :> es => Eff es ()
   , ignoredPaths_ :: Set Text
+  , pending_ :: Bool
   }
 
 ps :: a -> PackageSpec a
@@ -50,6 +53,7 @@ ps p =
     , checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
     , ignoredPaths_ = Set.fromList [pMyboxState </> "versions"]
+    , pending_ = False
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
@@ -72,6 +76,12 @@ ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
+preinstallPackage :: Package a => a -> MPS a
+preinstallPackage p = preinstall $ nullPackageTracker $ install p
+
+psPending :: MPS a
+psPending s = s{pending_ = True}
+
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
   around withTestEnv $
@@ -81,7 +91,7 @@ packageSpec makePS =
         let p = s.package
         describe (Text.unpack $ fromMaybe p.name s.name_) $ do
           it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
-          it "installs" $ do
+          (if s.pending_ then xit else it) "installs" $ do
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-

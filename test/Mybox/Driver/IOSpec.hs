@@ -1,6 +1,7 @@
 module Mybox.Driver.IOSpec where
 
 import Mybox.Driver.Class
+import Mybox.Driver.Ops
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -24,3 +25,6 @@ spec =
     it "trims whitespace from output" $ do
       result <- drvRunOutput $ "echo" :| ["  trimmed  "]
       result `shouldBe` "trimmed"
+    it "writes and reads files" $ do
+      drvWriteFile "test.txt" "Hello World"
+      drvReadFile "test.txt" >>= (`shouldBe` "Hello World")
