@@ -109,7 +109,7 @@ dockerDriver baseImage act =
                ]
   rmContainer :: IOE :> es => Text -> Eff es ()
   rmContainer container =
-    localDriver $ drvRun $ "docker" :| ["rm", "--force", container]
+    localDriver $ void $ drvRunOutput $ "docker" :| ["rm", "--force", container]
   mkDriver :: Text -> IODriver
   mkDriver container = IODriver{..}
    where
