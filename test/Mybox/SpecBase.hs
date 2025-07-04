@@ -10,7 +10,7 @@ module Mybox.SpecBase (
 ) where
 
 import Control.Exception.Safe (Exception)
-import Test.Hspec hiding (it, xit, shouldBe, shouldSatisfy, shouldThrow)
+import Test.Hspec hiding (it, shouldBe, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver.Class

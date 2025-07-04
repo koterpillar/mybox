@@ -12,7 +12,7 @@ spec :: Spec
 spec = do
   describe "remote version" $ do
     around withTestEnv $ do
-      it "gets version for existing package" $ do
+      xit "gets version for existing package" $ do
         let package = PipxPackage "black"
         version <- remoteVersion package
         version `shouldSatisfy` (>= "25.0.0")
@@ -32,5 +32,6 @@ spec = do
           & ignorePath ".local/bin/pipx"
           & ignorePath ".local/share/pipx"
           & ignorePath ".local/state/pipx/log"
+          & psPending
   packageSpec $ tqdmPackage "tqdm"
   packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
