@@ -19,6 +19,8 @@ library
       Mybox.Driver.Class
       Mybox.Driver.IO
       Mybox.Driver.Ops
+      Mybox.Installer.Apt
+      Mybox.Installer.Class
       Mybox.Main
       Mybox.Package.Class
       Mybox.Package.Clone
@@ -110,6 +112,7 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.Driver.IOSpec
+      Mybox.Installer.AptSpec
       Mybox.Package.CloneSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
