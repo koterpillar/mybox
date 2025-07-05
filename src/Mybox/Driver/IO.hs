@@ -68,7 +68,7 @@ withAddedPath addPath action = do
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
   originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
-  bracket (localDriver drvTempDir) (\home -> localDriver $ drvRm home) $ \home -> do
+  bracket (localDriver drvTempDir) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $ do
       let linkToOriginalHome path =
             let op = originalHome </> path
