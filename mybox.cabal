@@ -29,6 +29,7 @@ library
       Mybox.Package.Pipx
       Mybox.Path
       Mybox.Prelude
+      Mybox.Stores
       Mybox.Tracker
       Mybox.Utils
   other-modules:
@@ -116,6 +117,7 @@ test-suite tests
       Mybox.Package.SpecBase
       Mybox.PathSpec
       Mybox.SpecBase
+      Mybox.StoresSpec
       Mybox.TrackerSpec
       Paths_mybox
   autogen-modules:
