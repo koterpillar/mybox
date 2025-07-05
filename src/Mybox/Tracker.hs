@@ -15,7 +15,6 @@ module Mybox.Tracker (
   drvTracker,
 ) where
 
-import Data.Aeson qualified as Aeson
 import Data.Set qualified as Set
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local
@@ -60,10 +59,10 @@ data TrackedFile = TrackedFile
   }
   deriving (Eq, Generic, Ord, Show)
 
-instance Aeson.FromJSON TrackedFile
+instance FromJSON TrackedFile
 
-instance Aeson.ToJSON TrackedFile where
-  toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+instance ToJSON TrackedFile where
+  toEncoding = genericToEncoding defaultOptions
 
 tfMake :: PackageName p => p -> Text -> TrackedFile
 tfMake = TrackedFile . (.name)
@@ -122,10 +121,10 @@ newtype TrackedFiles = TrackedFiles
   }
   deriving (Eq, Generic, Ord, Show)
 
-instance Aeson.FromJSON TrackedFiles
+instance FromJSON TrackedFiles
 
-instance Aeson.ToJSON TrackedFiles where
-  toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+instance ToJSON TrackedFiles where
+  toEncoding = genericToEncoding defaultOptions
 
 drvTracker :: Driver :> es => Text -> Eff (Tracker : es) a -> Eff es a
 drvTracker stateFile =
@@ -134,7 +133,7 @@ drvTracker stateFile =
       exists <- drvIsFile stateFile
       if exists
         then
-          maybe mempty (.trackedFiles) . Aeson.decodeStrictText @TrackedFiles
+          maybe mempty (.trackedFiles) . jsonDecode @TrackedFiles "tracked files"
             <$> drvReadFile stateFile
         else pure mempty
     TrkSet tfs ->

@@ -1,7 +1,5 @@
 module Mybox.Package.ManualVersion (manualVersion, manualVersionInstall) where
 
-import Data.Aeson qualified as Aeson
-
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
@@ -10,10 +8,10 @@ import Mybox.Tracker
 
 data InstallRecord = InstallRecord {hash :: Text, version :: Text} deriving (Eq, Generic, Ord, Show)
 
-instance Aeson.ToJSON InstallRecord where
-  toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+instance ToJSON InstallRecord where
+  toEncoding = genericToEncoding defaultOptions
 
-instance Aeson.FromJSON InstallRecord
+instance FromJSON InstallRecord
 
 versionFile :: PackageName p => p -> Text
 versionFile p = pMyboxState </> "versions" </> (p.name <> ".json")
@@ -25,7 +23,7 @@ manualVersion p = do
   if not exists
     then pure Nothing
     else do
-      v' <- Aeson.decodeStrictText @InstallRecord <$> drvReadFile (versionFile p)
+      v' <- jsonDecode @InstallRecord "install record" <$> drvReadFile (versionFile p)
       pure $ case v' of
         Nothing -> Nothing
         Just v -> if jsonEncode p == v.hash then Just v.version else Nothing

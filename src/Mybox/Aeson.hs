@@ -1,4 +1,4 @@
-module Mybox.Aeson (jsonEncode, jsonDecode) where
+module Mybox.Aeson (ToJSON (..), FromJSON (..), genericToEncoding, defaultOptions, jsonEncode, jsonDecode) where
 
 import Control.Exception.Safe (MonadThrow, throwString)
 import Data.Aeson
