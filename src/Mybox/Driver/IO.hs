@@ -39,13 +39,13 @@ runDriverIO drv =
             case exitCode of
               ExitSuccess -> pure ()
               ExitFailure code ->
-                error $
+                terror $
                   "Process "
-                    <> Text.unpack (shellJoin args_)
+                    <> shellJoin args_
                     <> " failed with exit code: "
-                    ++ show code
-                    ++ " and stderr: "
-                    ++ stderr
+                    <> Text.pack (show code)
+                    <> " and stderr: "
+                    <> Text.pack stderr
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
