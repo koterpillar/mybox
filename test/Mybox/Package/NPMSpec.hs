@@ -9,6 +9,12 @@ import Mybox.SpecBase
 
 spec :: Spec
 spec = do
+  jsonSpec
+    (Nothing @NPMPackage)
+    [ (Nothing, "{\"npm\": \"test\"}")
+    , (Just "single binary", "{\"npm\": \"test\", \"binary\": \"test\"}")
+    , (Just "multiple binaries", "{\"npm\": \"test\", \"binary\": [\"one\", \"two\"]}")
+    ]
   onlyIf (fmap (== ExitSuccess) $ drvRunOk $ "npm" :| ["--version"]) $
     describe "remote version" $ do
       around withTestEnv $ do

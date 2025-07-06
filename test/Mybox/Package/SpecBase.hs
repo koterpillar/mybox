@@ -10,12 +10,14 @@ module Mybox.Package.SpecBase (
   ignorePath,
   packageSpec,
   psPending,
+  jsonSpec,
 ) where
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import System.Random
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Prelude
@@ -118,3 +120,9 @@ checkAllTracked s preexisting ts = do
   let tracked = Set.map (.path) ts.tracked
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
+
+jsonSpec :: forall proxy a. Package a => proxy a -> [(Maybe Text, Text)] -> Spec
+jsonSpec _ examples = around withIOEnv $ describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+  it ("parses" <> Text.unpack (maybe mempty (" " <>) name)) $ do
+    let pkg = jsonDecode @a "example" json
+    pkg `shouldSatisfy` isRight

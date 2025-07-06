@@ -14,7 +14,7 @@ import Mybox.Prelude
 import Mybox.Tracker
 
 class
-  (FromJSON a, PackageName a, ToJSON a) =>
+  (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
   remoteVersion :: Driver :> es => a -> Eff es Text

@@ -11,6 +11,7 @@ import Mybox.SpecBase
 
 spec :: Spec
 spec = do
+  jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
   onlyIf (fmap (== ExitSuccess) $ drvRunOk $ "pipx" :| ["--version"]) $
     describe "remote version" $ do
       around withTestEnv $ do
