@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Optional, Protocol, TypeVar
+from typing import Optional
 
 import trio
 
@@ -29,24 +29,14 @@ class Installer(ABC):
         pass
 
 
-class PVP(Protocol):
-    @property
-    def installed(self) -> Optional[str]: ...
-    @property
-    def latest(self) -> str: ...
-
-
-PV = TypeVar("PV", bound=PVP)
-
-
 @dataclass
 class PackageVersionInfo:
     installed: Optional[str]
     latest: str
 
 
-class PackageCacheInstaller(Generic[PV], Installer, ABC):
-    cache: Optional[dict[str, PV]]
+class PackageCacheInstaller(Installer, ABC):
+    cache: Optional[dict[str, PackageVersionInfo]]
 
     def __init__(self, driver: Driver) -> None:
         self.cache = None
@@ -54,10 +44,12 @@ class PackageCacheInstaller(Generic[PV], Installer, ABC):
         super().__init__(driver)
 
     @abstractmethod
-    async def get_package_info(self, package: Optional[str]) -> dict[str, PV]:
+    async def get_package_info(
+        self, package: Optional[str]
+    ) -> dict[str, PackageVersionInfo]:
         pass
 
-    async def package_info(self, package: str) -> PV:
+    async def package_info(self, package: str) -> PackageVersionInfo:
         async with self.lock:
             if self.cache is None:
                 self.cache = await self.get_package_info(None)
