@@ -1,7 +1,6 @@
 module Mybox.Installer.Brew (Brew (..)) where
 
 import Data.Aeson
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
 import Mybox.Aeson
@@ -78,9 +77,9 @@ parseCask cask =
 parseVersions :: BrewInfo -> Map Text PackageVersion
 parseVersions info = Map.fromList $ map parseCask info.casks ++ map parseFormula info.formulae
 
-instance PackageCacheInstaller Brew where
-  pciStorePackages Brew = jsonStore "brew"
-  pciStoreGlobal Brew = jsonStore "brew-global"
-  pciInstall Brew = brewInstall "install"
-  pciUpgrade Brew = brewInstall "upgrade"
-  pciGetPackageInfo Brew = brewPackageInfo
+instance Installer Brew where
+  iStorePackages Brew = jsonStore "brew"
+  iStoreGlobal Brew = jsonStore "brew-global"
+  iInstall_ Brew = brewInstall "install"
+  iUpgrade_ Brew = brewInstall "upgrade"
+  iGetPackageInfo Brew = brewPackageInfo

@@ -1,6 +1,5 @@
 module Mybox.Installer.DNF (DNF (..)) where
 
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
@@ -83,22 +82,11 @@ parseVersions output package_ =
                 _ -> terror $ "Multiple versions for " <> package <> ": " <> Text.pack (show versions) <> "."
 
 dnfPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
-dnfPackageInfo package = do
-  latest <- dnfRepoQuery package
-  installed <- rpmQuery package
-  pure $
-    Map.mapWithKey
-      ( \name latestVersion ->
-          PackageVersion
-            { installed = Map.lookup name installed
-            , latest = latestVersion
-            }
-      )
-      latest
+dnfPackageInfo package = iCombineLatestInstalled <$> dnfRepoQuery package <*> rpmQuery package
 
-instance PackageCacheInstaller DNF where
-  pciStorePackages DNF = jsonStore "dnf"
-  pciStoreGlobal DNF = jsonStore "dnf-global"
-  pciInstall DNF = dnfInstall "install"
-  pciUpgrade DNF = dnfInstall "upgrade"
-  pciGetPackageInfo DNF = dnfPackageInfo
+instance Installer DNF where
+  iStorePackages DNF = jsonStore "dnf"
+  iStoreGlobal DNF = jsonStore "dnf-global"
+  iInstall_ DNF = dnfInstall "install"
+  iUpgrade_ DNF = dnfInstall "upgrade"
+  iGetPackageInfo DNF = dnfPackageInfo

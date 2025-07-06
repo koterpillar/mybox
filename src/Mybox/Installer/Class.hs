@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Mybox.Installer.Class where
+module Mybox.Installer.Class (module Mybox.Installer.Class, Map) where
 
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -9,12 +9,6 @@ import Mybox.Aeson
 import Mybox.Driver.Class
 import Mybox.Prelude
 import Mybox.Stores
-
-class Installer i where
-  iInstall :: (Driver :> es, Stores :> es) => i -> Text -> Eff es ()
-  iUpgrade :: (Driver :> es, Stores :> es) => i -> Text -> Eff es ()
-  iInstalledVersion :: (Driver :> es, Stores :> es) => i -> Text -> Eff es (Maybe Text)
-  iLatestVersion :: (Driver :> es, Stores :> es) => i -> Text -> Eff es Text
 
 data PackageVersion = PackageVersion
   { installed :: Maybe Text
@@ -27,41 +21,61 @@ instance FromJSON PackageVersion
 instance ToJSON PackageVersion where
   toEncoding = genericToEncoding defaultOptions
 
-class PackageCacheInstaller i where
-  pciStorePackages :: i -> Store PackageVersion
-  pciStoreGlobal :: i -> Store Bool
-  pciInstall :: Driver :> es => i -> Text -> Eff es ()
-  pciUpgrade :: Driver :> es => i -> Text -> Eff es ()
-  pciGetPackageInfo :: Driver :> es => i -> Maybe Text -> Eff es (Map Text PackageVersion)
+class Installer i where
+  iStorePackages :: i -> Store PackageVersion
+  iStoreGlobal :: i -> Store Bool
+  iInstall_ :: Driver :> es => i -> Text -> Eff es ()
+  iUpgrade_ :: Driver :> es => i -> Text -> Eff es ()
+  iGetPackageInfo :: Driver :> es => i -> Maybe Text -> Eff es (Map Text PackageVersion)
 
-pciPackageInfo :: (Driver :> es, PackageCacheInstaller i, Stores :> es) => i -> Text -> Eff es PackageVersion
-pciPackageInfo i package = do
-  cacheInitialized <- fromMaybe False <$> storeGet (pciStoreGlobal i) ""
+iGetCachePackageInfo :: (Driver :> es, Installer i, Stores :> es) => i -> Maybe Text -> Eff es (Map Text PackageVersion)
+iGetCachePackageInfo i package = do
+  results <- iGetPackageInfo i package
+  for_ (Map.toList results) $ \(pkgName, pkgInfo) -> do
+    storeSet (iStorePackages i) pkgName pkgInfo
+  pure results
+
+iPackageInfo :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es PackageVersion
+iPackageInfo i package = do
+  cacheInitialized <- fromMaybe False <$> storeGet (iStoreGlobal i) ""
   unless cacheInitialized $ do
-    allPackages <- pciGetPackageInfo i Nothing
-    for_ (Map.toList allPackages) $ \(pkgName, pkgInfo) -> do
-      storeSet (pciStorePackages i) pkgName pkgInfo
-    storeSet (pciStoreGlobal i) "" True
-  storeGet (pciStorePackages i) package
+    _ <- iGetCachePackageInfo i Nothing
+    storeSet (iStoreGlobal i) "" True
+  storeGet (iStorePackages i) package
     >>= \case
       Just info' -> pure info'
       Nothing -> do
-        info' <- pciGetPackageInfo i (Just package)
+        info' <- iGetCachePackageInfo i (Just package)
         case Map.lookup package info' of
-          Just info'' -> do
-            storeSet (pciStorePackages i) package info''
-            pure info''
+          Just info'' -> pure info''
           Nothing -> terror $ "Unknown package: " <> package
 
-pciInvalidate :: (Driver :> es, PackageCacheInstaller i, Stores :> es) => i -> Text -> Eff es ()
-pciInvalidate = storeDelete . pciStorePackages
+iInvalidate :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
+iInvalidate = storeDelete . iStorePackages
 
-instance {-# OVERLAPPABLE #-} PackageCacheInstaller i => Installer i where
-  iInstall i package = do
-    pciInstall i package
-    pciInvalidate i package
-  iUpgrade i package = do
-    pciUpgrade i package
-    pciInvalidate i package
-  iInstalledVersion i package = (.installed) <$> pciPackageInfo i package
-  iLatestVersion i package = (.latest) <$> pciPackageInfo i package
+iCombineLatestInstalled :: Map Text Text -> Map Text Text -> Map Text PackageVersion
+iCombineLatestInstalled latest installed =
+  Map.mapWithKey
+    ( \name latestVersion ->
+        PackageVersion
+          { installed = Map.lookup name installed
+          , latest = latestVersion
+          }
+    )
+    latest
+
+iInstall :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
+iInstall i package = do
+  iInstall_ i package
+  iInvalidate i package
+
+iUpgrade :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
+iUpgrade i package = do
+  iUpgrade_ i package
+  iInvalidate i package
+
+iInstalledVersion :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es (Maybe Text)
+iInstalledVersion i package = (.installed) <$> iPackageInfo i package
+
+iLatestVersion :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es Text
+iLatestVersion i package = (.latest) <$> iPackageInfo i package
