@@ -13,7 +13,7 @@ instance Installer Apt where
   iUpgrade Apt = aptInstall
   iInstalledVersion Apt package = do
     result <-
-      drvRunOutput_ RunExitReturn $
+      drvRunOutputExit $
         "dpkg-query"
           :| [ "--showformat"
              , "${Version}"

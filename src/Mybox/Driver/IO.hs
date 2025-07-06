@@ -50,6 +50,7 @@ runDriverIO drv =
       output <-
         case outputBehavior of
           RunOutputShow -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputHide -> pure ()
           RunOutputReturn -> pure $ Text.strip stdoutText
       pure $ RunResult{..}
 
@@ -109,7 +110,7 @@ dockerDriver baseImage act =
                ]
   rmContainer :: IOE :> es => Text -> Eff es ()
   rmContainer container =
-    localDriver $ void $ drvRunOutput $ "docker" :| ["rm", "--force", container]
+    localDriver $ drvRunSilent $ "docker" :| ["rm", "--force", container]
   mkDriver :: Text -> IODriver
   mkDriver container = IODriver{..}
    where
