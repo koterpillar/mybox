@@ -37,7 +37,7 @@ aptInstalled package = do
            , "--show"
            , package
            ]
-  pure $ if result.exit == ExitSuccess then Just result.output else Nothing
+  pure $ if result.exit == ExitSuccess && not (Text.null result.output) then Just result.output else Nothing
 
 aptLatest :: Driver :> es => Text -> Eff es Text
 aptLatest package = do
