@@ -4,7 +4,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
-import Mybox.Driver.Class
+import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
 import Mybox.Stores
@@ -39,7 +39,10 @@ dnfRepoQuery :: Driver :> es => Maybe Text -> Eff es (Map Text Text)
 dnfRepoQuery package_ = do
   drvRunSilent $ "dnf" :| ["--quiet", "clean", "expire-cache"]
 
-  arch <- drvRunOutput $ "uname" :| ["-m"]
+  arch <- drvArchitecture
+  let archStr = case arch of
+        X86_64 -> "x86_64"
+        Aarch64 -> "aarch64"
 
   result <-
     drvRunOutput $
@@ -51,7 +54,7 @@ dnfRepoQuery package_ = do
            , "--latest-limit"
            , "1"
            , "--arch"
-           , arch <> ",noarch"
+           , archStr <> ",noarch"
            ]
         <> case package_ of
           Just package -> ["--whatprovides", package]

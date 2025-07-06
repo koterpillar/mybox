@@ -3,6 +3,8 @@ module Mybox.SpecBase (
   withIOEnv,
   withTestEnv,
   EffSpec,
+  onlyIf,
+  skipIf,
   it,
   xit,
   shouldBe,
@@ -30,10 +32,20 @@ withTestEnv :: (RunEff '[Driver, IOE] -> IO ()) -> IO ()
 withTestEnv ioa =
   runEff $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 
-it :: String -> Eff ef () -> SpecWith (RunEff ef)
+onlyIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
+onlyIf cond spec =
+  runIO (runEff $ testDriver cond)
+    >>= \case
+      True -> spec
+      False -> xdescribe "(skipped)" spec
+
+skipIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
+skipIf cond = onlyIf $ fmap not cond
+
+it :: String -> Eff ef () -> EffSpec ef
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
 
-xit :: String -> Eff ef () -> SpecWith (RunEff ef)
+xit :: String -> Eff ef () -> EffSpec ef
 xit name act = Hspec.xit name $ \(RunEff unlift) -> unlift act
 
 shouldBe :: (Eq a, HasCallStack, IOE :> es, Show a) => a -> a -> Eff es ()
