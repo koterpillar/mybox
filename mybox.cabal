@@ -32,6 +32,7 @@ library
       Mybox.Package.Name
       Mybox.Package.NPM
       Mybox.Package.Pipx
+      Mybox.Package.Some
       Mybox.Path
       Mybox.Prelude
       Mybox.Stores
@@ -123,6 +124,7 @@ test-suite tests
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
       Mybox.Package.PipxSpec
+      Mybox.Package.SomeSpec
       Mybox.Package.SpecBase
       Mybox.PathSpec
       Mybox.SpecBase
