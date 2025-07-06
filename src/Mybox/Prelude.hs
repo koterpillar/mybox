@@ -5,6 +5,7 @@ module Mybox.Prelude (
   module Effectful,
   module Mybox.Path,
   (&),
+  for,
   on,
   ExitCode (..),
   Generic,
@@ -23,6 +24,7 @@ import Data.Maybe
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Traversable (for)
 import Effectful
 import GHC.Generics (Generic)
 import GHC.Records (HasField (..))

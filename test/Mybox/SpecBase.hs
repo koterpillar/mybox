@@ -2,6 +2,7 @@ module Mybox.SpecBase (
   module Test.Hspec,
   withIOEnv,
   withTestEnv,
+  EffSpec,
   it,
   xit,
   shouldBe,
@@ -19,6 +20,8 @@ import Mybox.Prelude
 
 newtype RunEff es
   = RunEff (forall r. Eff es r -> IO r)
+
+type EffSpec ef = SpecWith (RunEff ef)
 
 withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
 withIOEnv ioa = runEff $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift

@@ -20,6 +20,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Installer.Apt
+      Mybox.Installer.Brew
       Mybox.Installer.Class
       Mybox.Installer.DNF
       Mybox.Main
@@ -114,6 +115,7 @@ test-suite tests
   other-modules:
       Mybox.Driver.IOSpec
       Mybox.Installer.AptSpec
+      Mybox.Installer.BrewSpec
       Mybox.Installer.DNFSpec
       Mybox.Installer.SpecBase
       Mybox.Package.CloneSpec
