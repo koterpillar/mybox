@@ -38,7 +38,7 @@ npmInstall p = do
   let npxPath = find (Text.isInfixOf "_npx") $ Text.splitOn ":" npxPaths
 
   case npxPath of
-    Nothing -> error $ "Could not find npx path in " <> Text.unpack npxPaths
+    Nothing -> terror $ "Could not find npx path in " <> npxPaths
     Just path -> do
       local <- drvLocal
       let binDir = local </> "bin"

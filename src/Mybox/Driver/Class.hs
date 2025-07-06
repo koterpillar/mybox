@@ -16,6 +16,7 @@ data RunExit e where
 
 data RunOutput o where
   RunOutputShow :: RunOutput ()
+  RunOutputHide :: RunOutput ()
   RunOutputReturn :: RunOutput Text
 
 data RunResult e o = RunResult
@@ -35,6 +36,7 @@ rrLower re ro (RunResult e o) = RunResult (lowerE re e) (lowerO ro o)
   lowerE RunExitReturn ec = ec
   lowerO :: RunOutput o -> Text -> o
   lowerO RunOutputShow _ = ()
+  lowerO RunOutputHide _ = ()
   lowerO RunOutputReturn output = output
 
 instance RunResultSimplified (RunResult () ()) () where
@@ -66,8 +68,14 @@ drvRun = fmap rrSimplify . send . DrvRun RunExitError RunOutputShow
 drvRunOk :: Driver :> es => Args -> Eff es ExitCode
 drvRunOk = fmap rrSimplify . send . DrvRun RunExitReturn RunOutputShow
 
+drvRunSilent :: Driver :> es => Args -> Eff es ()
+drvRunSilent = fmap rrSimplify . send . DrvRun RunExitError RunOutputHide
+
 drvRunOutput_ :: Driver :> es => RunExit e -> Args -> Eff es (RunResult e Text)
 drvRunOutput_ exit = send . DrvRun exit RunOutputReturn
 
 drvRunOutput :: Driver :> es => Args -> Eff es Text
 drvRunOutput = fmap rrSimplify <$> drvRunOutput_ RunExitError
+
+drvRunOutputExit :: Driver :> es => Args -> Eff es (RunResult ExitCode Text)
+drvRunOutputExit = drvRunOutput_ RunExitReturn

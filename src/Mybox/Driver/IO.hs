@@ -39,17 +39,18 @@ runDriverIO drv =
             case exitCode of
               ExitSuccess -> pure ()
               ExitFailure code ->
-                error $
+                terror $
                   "Process "
-                    <> Text.unpack (shellJoin args_)
+                    <> shellJoin args_
                     <> " failed with exit code: "
-                    ++ show code
-                    ++ " and stderr: "
-                    ++ stderr
+                    <> Text.pack (show code)
+                    <> " and stderr: "
+                    <> Text.pack stderr
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
           RunOutputShow -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputHide -> pure ()
           RunOutputReturn -> pure $ Text.strip stdoutText
       pure $ RunResult{..}
 
@@ -68,7 +69,7 @@ withAddedPath addPath action = do
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
   originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
-  bracket (localDriver drvTempDir) (\home -> localDriver $ drvRm home) $ \home -> do
+  bracket (localDriver drvTempDir) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $ do
       let linkToOriginalHome path =
             let op = originalHome </> path
@@ -109,7 +110,7 @@ dockerDriver baseImage act =
                ]
   rmContainer :: IOE :> es => Text -> Eff es ()
   rmContainer container =
-    localDriver $ void $ drvRunOutput $ "docker" :| ["rm", "--force", container]
+    localDriver $ drvRunSilent $ "docker" :| ["rm", "--force", container]
   mkDriver :: Text -> IODriver
   mkDriver container = IODriver{..}
    where

@@ -3,7 +3,7 @@ from typing import Optional
 from .base import PackageCacheInstaller, PackageVersionInfo
 
 
-class DNF(PackageCacheInstaller[PackageVersionInfo]):
+class DNF(PackageCacheInstaller):
     async def install(self, package: str) -> None:
         await self.driver.with_root(True).run("dnf", "install", "-y", package)
         await super().install(package)

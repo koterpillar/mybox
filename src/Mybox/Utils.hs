@@ -18,4 +18,4 @@ repoBranchVersion repo_ branch_ = do
   output <- drvRunOutput $ "git" :| ["ls-remote", repo, branch]
   case Text.words output of
     [ref, _] -> pure ref
-    _ -> error $ "Failed to parse git ls-remote output: " <> Text.unpack output
+    _ -> terror $ "Failed to parse git ls-remote output: " <> output

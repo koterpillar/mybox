@@ -4,7 +4,7 @@ from ..base import PackageArgs
 from .base import PackageCacheInstaller, PackageVersionInfo
 
 
-class Flatpak(PackageCacheInstaller[PackageVersionInfo]):
+class Flatpak(PackageCacheInstaller):
     REPO_URL = "https://dl.flathub.org/repo/flathub.flatpakrepo"
     REPO_NAME = "flathub"
 

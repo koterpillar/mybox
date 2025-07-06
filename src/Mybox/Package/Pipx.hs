@@ -73,7 +73,7 @@ remoteVersionPipx p =
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]
-      maybe (error "Cannot parse pip output") pure $ do
+      maybe (terror "Cannot parse pip output") pure $ do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 

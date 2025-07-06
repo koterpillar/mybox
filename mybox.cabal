@@ -19,6 +19,11 @@ library
       Mybox.Driver.Class
       Mybox.Driver.IO
       Mybox.Driver.Ops
+      Mybox.Driver.Platform
+      Mybox.Installer.Apt
+      Mybox.Installer.Brew
+      Mybox.Installer.Class
+      Mybox.Installer.DNF
       Mybox.Main
       Mybox.Package.Class
       Mybox.Package.Clone
@@ -29,6 +34,7 @@ library
       Mybox.Package.Pipx
       Mybox.Path
       Mybox.Prelude
+      Mybox.Stores
       Mybox.Tracker
       Mybox.Utils
   other-modules:
@@ -109,6 +115,10 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.Driver.IOSpec
+      Mybox.Installer.AptSpec
+      Mybox.Installer.BrewSpec
+      Mybox.Installer.DNFSpec
+      Mybox.Installer.SpecBase
       Mybox.Package.CloneSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
@@ -116,6 +126,7 @@ test-suite tests
       Mybox.Package.SpecBase
       Mybox.PathSpec
       Mybox.SpecBase
+      Mybox.StoresSpec
       Mybox.TrackerSpec
       Paths_mybox
   autogen-modules:
