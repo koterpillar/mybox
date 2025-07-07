@@ -1,8 +1,8 @@
 module Mybox.Package.Some where
 
 import Control.Applicative ((<|>))
-import Data.Aeson
 
+import Mybox.Aeson
 import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.NPM

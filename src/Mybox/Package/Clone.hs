@@ -4,6 +4,7 @@ module Mybox.Package.Clone (
 
 import Data.Text qualified as Text
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.Destination
@@ -21,9 +22,20 @@ data ClonePackage = ClonePackage
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
 
-instance FromJSON ClonePackage
+instance FromJSON ClonePackage where
+  parseJSON = withObject "ClonePackage" $ \o -> do
+    repo <- o .: "clone"
+    branch <- o .:? "branch"
+    destination <- o .: "destination"
+    pure ClonePackage{..}
 
-instance ToJSON ClonePackage
+instance ToJSON ClonePackage where
+  toJSON p =
+    object
+      [ "clone" .= p.repo
+      , "branch" .= p.branch
+      , "destination" .= p.destination
+      ]
 
 cpRemote :: ClonePackage -> Text
 cpRemote p

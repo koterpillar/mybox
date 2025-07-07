@@ -121,8 +121,13 @@ checkAllTracked s preexisting ts = do
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
 
-jsonSpec :: forall proxy a. Package a => proxy a -> [(Maybe Text, Text)] -> Spec
+jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
 jsonSpec _ examples = around withIOEnv $ describe "JSON parsing" $ for_ examples $ \(name, json) -> do
-  it ("parses" <> Text.unpack (maybe mempty (" " <>) name)) $ do
-    let pkg = jsonDecode @a "example" json
-    pkg `shouldSatisfy` isRight
+  it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
+    let pkgE = jsonDecode @a "example" json
+    pkgE `shouldSatisfy` isRight
+    pkg <- either (error . show) pure pkgE
+    let json' = jsonEncode pkg
+    let pkgE' = jsonDecode @a "example" json'
+    pkg' <- either (error . show) pure pkgE'
+    pkg' `shouldBe` pkg

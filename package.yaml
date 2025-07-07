@@ -23,6 +23,7 @@ default-extensions:
   - RoleAnnotations
 dependencies:
   - aeson
+  - aeson-extra
   - base
   - bytestring
   - containers

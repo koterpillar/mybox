@@ -2,8 +2,6 @@ module Mybox.Package.Class (
   Package (..),
   PackageName,
   pkgIsInstalled,
-  FromJSON,
-  ToJSON,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)

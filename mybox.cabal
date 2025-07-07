@@ -61,6 +61,7 @@ library
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       aeson
+    , aeson-extra
     , base
     , bytestring
     , containers
@@ -98,6 +99,7 @@ executable mybox
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , aeson-extra
     , base
     , bytestring
     , containers
@@ -154,6 +156,7 @@ test-suite tests
       hspec-discover:hspec-discover
   build-depends:
       aeson
+    , aeson-extra
     , base
     , bytestring
     , containers

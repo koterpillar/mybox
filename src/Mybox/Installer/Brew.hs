@@ -1,6 +1,5 @@
 module Mybox.Installer.Brew (Brew (..)) where
 
-import Data.Aeson
 import Data.Map.Strict qualified as Map
 
 import Mybox.Aeson

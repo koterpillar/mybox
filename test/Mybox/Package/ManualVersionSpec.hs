@@ -1,5 +1,6 @@
 module Mybox.Package.ManualVersionSpec where
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion

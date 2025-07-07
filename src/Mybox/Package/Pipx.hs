@@ -2,7 +2,6 @@ module Mybox.Package.Pipx (
   PipxPackage (..),
 ) where
 
-import Data.Aeson
 import Data.Map (Map)
 import Data.Text qualified as Text
 
@@ -22,9 +21,13 @@ newtype PipxPackage = PipxPackage
 instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package
 
-instance FromJSON PipxPackage
+instance FromJSON PipxPackage where
+  parseJSON = withObject "PipxPackage" $ \o -> do
+    package <- o .: "pipx"
+    pure PipxPackage{..}
 
-instance ToJSON PipxPackage
+instance ToJSON PipxPackage where
+  toJSON p = object ["pipx" .= p.package]
 
 repo :: PipxPackage -> Maybe Text
 repo p = Text.stripPrefix "git+" p.package

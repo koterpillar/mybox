@@ -4,6 +4,7 @@ module Mybox.Package.NPM (
 
 import Data.Text qualified as Text
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
@@ -14,14 +15,19 @@ data NPMPackage = NPMPackage
   { package :: Text
   , binaries :: [Text]
   }
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Show)
 
 instance HasField "name" NPMPackage Text where
   getField p = p.package
 
-instance FromJSON NPMPackage
+instance FromJSON NPMPackage where
+  parseJSON = withObject "NPMPackage" $ \o -> do
+    package <- o .: "npm"
+    binaries <- parseCollapsedList o "binary"
+    pure NPMPackage{..}
 
-instance ToJSON NPMPackage
+instance ToJSON NPMPackage where
+  toJSON p = object ["npm" .= p.package, "binary" .= p.binaries]
 
 viewVersion :: Driver :> es => NPMPackage -> Eff es Text
 viewVersion p = drvRunOutput $ "npm" :| ["view", p.package, "version"]
