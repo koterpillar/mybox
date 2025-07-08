@@ -89,7 +89,7 @@ http_client = httpx.AsyncClient(
 
 
 async def http_get(url: str, headers: Optional[dict[str, str]] = None) -> str:
-    response = await http_client.get(url, headers=headers)
+    response = await http_client.get(url, headers=headers, follow_redirects=True)
     response.raise_for_status()
     return response.text
 
