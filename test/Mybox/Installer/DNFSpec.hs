@@ -10,4 +10,4 @@ fedora (Linux Fedora) = True
 fedora _ = False
 
 spec :: Spec
-spec = onlyIf (fedora <$> drvOS) $ installerSpec DNF
+spec = onlyIf (fedora <$> drvOS) $ installerSpec dnf

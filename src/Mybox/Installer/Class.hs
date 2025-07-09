@@ -21,27 +21,28 @@ instance FromJSON PackageVersion
 instance ToJSON PackageVersion where
   toEncoding = genericToEncoding defaultOptions
 
-class Installer i where
-  iStorePackages :: i -> Store PackageVersion
-  iStoreGlobal :: i -> Store Bool
-  iInstall_ :: Driver :> es => i -> Text -> Eff es ()
-  iUpgrade_ :: Driver :> es => i -> Text -> Eff es ()
-  iGetPackageInfo :: Driver :> es => i -> Maybe Text -> Eff es (Map Text PackageVersion)
+data Installer = Installer
+  { storePackages :: Store PackageVersion
+  , storeGlobal :: Store Bool
+  , install_ :: forall es. Driver :> es => Text -> Eff es ()
+  , upgrade_ :: forall es. Driver :> es => Text -> Eff es ()
+  , getPackageInfo :: forall es. Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
+  }
 
-iGetCachePackageInfo :: (Driver :> es, Installer i, Stores :> es) => i -> Maybe Text -> Eff es (Map Text PackageVersion)
+iGetCachePackageInfo :: (Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
-  results <- iGetPackageInfo i package
+  results <- getPackageInfo i package
   for_ (Map.toList results) $ \(pkgName, pkgInfo) -> do
-    storeSet (iStorePackages i) pkgName pkgInfo
+    storeSet i.storePackages pkgName pkgInfo
   pure results
 
-iPackageInfo :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es PackageVersion
+iPackageInfo :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do
-  cacheInitialized <- fromMaybe False <$> storeGet (iStoreGlobal i) ""
+  cacheInitialized <- fromMaybe False <$> storeGet i.storeGlobal ""
   unless cacheInitialized $ do
     _ <- iGetCachePackageInfo i Nothing
-    storeSet (iStoreGlobal i) "" True
-  storeGet (iStorePackages i) package
+    storeSet i.storeGlobal "" True
+  storeGet i.storePackages package
     >>= \case
       Just info' -> pure info'
       Nothing -> do
@@ -50,8 +51,8 @@ iPackageInfo i package = do
           Just info'' -> pure info''
           Nothing -> terror $ "Unknown package: " <> package
 
-iInvalidate :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
-iInvalidate = storeDelete . iStorePackages
+iInvalidate :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInvalidate = storeDelete . storePackages
 
 iCombineLatestInstalled :: Map Text Text -> Map Text Text -> Map Text PackageVersion
 iCombineLatestInstalled latest installed =
@@ -64,18 +65,18 @@ iCombineLatestInstalled latest installed =
     )
     latest
 
-iInstall :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
+iInstall :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iInstall i package = do
-  iInstall_ i package
+  install_ i package
   iInvalidate i package
 
-iUpgrade :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es ()
+iUpgrade :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iUpgrade i package = do
-  iUpgrade_ i package
+  upgrade_ i package
   iInvalidate i package
 
-iInstalledVersion :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es (Maybe Text)
+iInstalledVersion :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)
 iInstalledVersion i package = (.installed) <$> iPackageInfo i package
 
-iLatestVersion :: (Driver :> es, Installer i, Stores :> es) => i -> Text -> Eff es Text
+iLatestVersion :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es Text
 iLatestVersion i package = (.latest) <$> iPackageInfo i package

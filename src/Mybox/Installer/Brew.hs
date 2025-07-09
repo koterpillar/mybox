@@ -1,4 +1,4 @@
-module Mybox.Installer.Brew (Brew (..)) where
+module Mybox.Installer.Brew (brew) where
 
 import Data.Map.Strict qualified as Map
 
@@ -7,8 +7,6 @@ import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
 import Mybox.Stores
-
-data Brew = Brew
 
 brewInstall :: Driver :> es => Text -> Text -> Eff es ()
 brewInstall action package = do
@@ -76,9 +74,12 @@ parseCask cask =
 parseVersions :: BrewInfo -> Map Text PackageVersion
 parseVersions info = Map.fromList $ map parseCask info.casks ++ map parseFormula info.formulae
 
-instance Installer Brew where
-  iStorePackages Brew = jsonStore "brew"
-  iStoreGlobal Brew = jsonStore "brew-global"
-  iInstall_ Brew = brewInstall "install"
-  iUpgrade_ Brew = brewInstall "upgrade"
-  iGetPackageInfo Brew = brewPackageInfo
+brew :: Installer
+brew =
+  Installer
+    { storePackages = jsonStore "brew"
+    , storeGlobal = jsonStore "brew-global"
+    , install_ = brewInstall "install"
+    , upgrade_ = brewInstall "upgrade"
+    , getPackageInfo = brewPackageInfo
+    }

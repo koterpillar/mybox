@@ -17,7 +17,7 @@ gitVersion v = replaceEpoch v >= "2.0.0"
 ghcVersion :: Text -> Bool
 ghcVersion v = v > "8." && v < "99"
 
-installerSpec_ :: Installer i => i -> EffSpec '[Driver, IOE] -> Spec
+installerSpec_ :: Installer -> EffSpec '[Driver, IOE] -> Spec
 installerSpec_ i spec =
   around withTestEnv $ do
     describe "iInstalledVersion" $ do
@@ -39,5 +39,5 @@ installerSpec_ i spec =
           iLatestVersion i "xxxxxxxx" `shouldThrow` anyException
     spec
 
-installerSpec :: Installer i => i -> Spec
+installerSpec :: Installer -> Spec
 installerSpec i = installerSpec_ i $ pure ()

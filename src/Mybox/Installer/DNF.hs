@@ -1,4 +1,4 @@
-module Mybox.Installer.DNF (DNF (..)) where
+module Mybox.Installer.DNF (dnf) where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -7,8 +7,6 @@ import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
 import Mybox.Stores
-
-data DNF = DNF
 
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
 dnfInstall action package =
@@ -84,9 +82,12 @@ parseVersions output package_ =
 dnfPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
 dnfPackageInfo package = iCombineLatestInstalled <$> dnfRepoQuery package <*> rpmQuery package
 
-instance Installer DNF where
-  iStorePackages DNF = jsonStore "dnf"
-  iStoreGlobal DNF = jsonStore "dnf-global"
-  iInstall_ DNF = dnfInstall "install"
-  iUpgrade_ DNF = dnfInstall "upgrade"
-  iGetPackageInfo DNF = dnfPackageInfo
+dnf :: Installer
+dnf =
+  Installer
+    { storePackages = jsonStore "dnf"
+    , storeGlobal = jsonStore "dnf-global"
+    , install_ = dnfInstall "install"
+    , upgrade_ = dnfInstall "upgrade"
+    , getPackageInfo = dnfPackageInfo
+    }
