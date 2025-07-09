@@ -1,7 +1,8 @@
 module Mybox.Package.Class (
   Package (..),
   PackageName,
-  pkgIsInstalled,
+  isInstalled,
+  ensureInstalled,
 ) where
 
 import Mybox.Aeson
@@ -19,11 +20,16 @@ class
   localVersion :: Driver :> es => a -> Eff es (Maybe Text)
   install :: (Driver :> es, InstallQueue :> es, TrackerSession :> es) => a -> Eff es ()
 
-pkgIsInstalled :: (Driver :> es, Package a) => a -> Eff es Bool
-pkgIsInstalled pkg = do
+isInstalled :: (Driver :> es, Package a) => a -> Eff es Bool
+isInstalled pkg = do
   lv <- localVersion pkg
   case lv of
     Nothing -> pure False
     Just lv' -> do
       rv <- remoteVersion pkg
       pure $ lv' == rv
+
+ensureInstalled :: (Driver :> es, InstallQueue :> es, Package a, TrackerSession :> es) => a -> Eff es ()
+ensureInstalled pkg = do
+  installed <- isInstalled pkg
+  if installed then trkSkip pkg else install pkg

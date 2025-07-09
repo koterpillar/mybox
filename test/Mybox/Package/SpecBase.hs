@@ -80,7 +80,7 @@ preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
 preinstallPackage :: Package a => a -> MPS a
-preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ install p
+preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
 
 psPending :: MPS a
 psPending s = s{pending_ = True}

@@ -14,9 +14,9 @@ queueInstall ::
   (Driver :> es, InstallQueue :> es, Package p, TrackerSession :> es) =>
   p -> Eff es ()
 queueInstall pkg = do
-  isInstalled <- send $ IsInstalled pkg.name
-  unless isInstalled $ do
-    install pkg
+  alreadyInstalled <- send $ IsInstalled pkg.name
+  unless alreadyInstalled $ do
+    ensureInstalled pkg
     send $ MarkInstalled pkg.name
 
 type PackageSet = Set Text
