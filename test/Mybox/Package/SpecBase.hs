@@ -20,6 +20,7 @@ import System.Random
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -79,7 +80,7 @@ preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
 preinstallPackage :: Package a => a -> MPS a
-preinstallPackage p = preinstall $ nullTrackerSession $ install p
+preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ install p
 
 psPending :: MPS a
 psPending s = s{pending_ = True}
@@ -97,7 +98,7 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ install p
+              stateTracker mempty $ trkSession $ runInstallQueue $ install p
             checkAllTracked s preexistingFiles ts
             checkInstalled_ s
 

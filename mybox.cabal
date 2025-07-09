@@ -32,6 +32,8 @@ library
       Mybox.Package.Name
       Mybox.Package.NPM
       Mybox.Package.Pipx
+      Mybox.Package.Queue
+      Mybox.Package.Queue.Effect
       Mybox.Package.Some
       Mybox.Path
       Mybox.Prelude

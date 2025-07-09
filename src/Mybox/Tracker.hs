@@ -9,6 +9,7 @@ module Mybox.Tracker (
   trkSkip,
   trkAdd,
   nullTrackerSession,
+  nullTracker,
   stateTracker,
   drvTracker,
 ) where
@@ -33,12 +34,6 @@ trkSkip = send . TrkSkip
 
 trkAdd :: (PackageName p, TrackerSession :> es) => p -> Text -> Eff es ()
 trkAdd pkg file = send $ TrkAdd pkg file
-
-nullTrackerSession :: Eff (TrackerSession : es) a -> Eff es a
-nullTrackerSession =
-  interpret_ $ \case
-    TrkAdd _ _ -> pure ()
-    TrkSkip _ -> pure ()
 
 data TrackedFile = TrackedFile
   { name :: !Text
@@ -86,6 +81,15 @@ trkSession act = do
   for_ deletedFiles $ send . TrkRemove
   send $ TrkSet ts1
   pure r
+
+nullTracker :: Eff (Tracker : es) a -> Eff es a
+nullTracker = interpret_ $ \case
+  TrkGet -> pure mempty
+  TrkSet _ -> pure ()
+  TrkRemove _ -> pure ()
+
+nullTrackerSession :: Eff (TrackerSession : es) a -> Eff es a
+nullTrackerSession = nullTracker . trkSession . inject
 
 data TrackerState = TrackerState
   { tracked :: !(Set TrackedFile)

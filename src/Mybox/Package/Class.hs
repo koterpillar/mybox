@@ -4,10 +4,10 @@ module Mybox.Package.Class (
   pkgIsInstalled,
 ) where
 
-import Data.Aeson (FromJSON, ToJSON)
-
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Name
+import Mybox.Package.Queue.Effect
 import Mybox.Prelude
 import Mybox.Tracker
 
@@ -17,7 +17,7 @@ class
   where
   remoteVersion :: Driver :> es => a -> Eff es Text
   localVersion :: Driver :> es => a -> Eff es (Maybe Text)
-  install :: (Driver :> es, TrackerSession :> es) => a -> Eff es ()
+  install :: (Driver :> es, InstallQueue :> es, TrackerSession :> es) => a -> Eff es ()
 
 pkgIsInstalled :: (Driver :> es, Package a) => a -> Eff es Bool
 pkgIsInstalled pkg = do

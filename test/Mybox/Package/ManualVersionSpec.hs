@@ -4,6 +4,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -41,11 +42,11 @@ spec = around withTestEnv $ do
     localVersion pkg >>= (`shouldBe` Nothing)
   it "installs and is reported installed after installation" $ do
     setRemoteVersion "version1"
-    nullTrackerSession $ install pkg
+    nullTrackerSession $ runInstallQueue $ install pkg
     hasInstallLog >>= (`shouldBe` True)
     localVersion pkg >>= (`shouldBe` Just "version1")
   it "is not reported installed when changed" $ do
     setRemoteVersion "version1"
-    nullTrackerSession $ install pkg
+    nullTrackerSession $ runInstallQueue $ install pkg
     let pkg' = pkg{number = "two"}
     localVersion pkg' >>= (`shouldBe` Nothing)
