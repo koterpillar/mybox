@@ -16,14 +16,21 @@ drvArchitecture =
     "arm64" -> pure Aarch64
     arch -> terror $ "Unsupported architecture: " <> arch
 
-data OS = Linux {distribution :: Text} | MacOS deriving (Eq, Ord, Show)
+data Distribution = Debian {variant :: Text} | Fedora deriving (Eq, Ord, Show)
+
+data OS = Linux {distribution :: Distribution} | MacOS deriving (Eq, Ord, Show)
 
 drvOS :: Driver :> es => Eff es OS
 drvOS = do
   osStr <- drvRunOutput ("uname" :| [])
   case osStr of
     "Linux" -> do
-      distribution <- parseOsRelease <$> drvReadFile "/etc/os-release"
+      distributionStr <- parseOsRelease <$> drvReadFile "/etc/os-release"
+      distribution <- case distributionStr of
+        "debian" -> pure $ Debian "debian"
+        "ubuntu" -> pure $ Debian "ubuntu"
+        "fedora" -> pure Fedora
+        _ -> terror $ "Unsupported Linux distribution: " <> distributionStr
       pure $ Linux distribution
      where
       parseOsRelease :: Text -> Text
