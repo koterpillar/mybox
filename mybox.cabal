@@ -36,6 +36,7 @@ library
       Mybox.Package.Queue
       Mybox.Package.Queue.Effect
       Mybox.Package.Some
+      Mybox.Package.System
       Mybox.Path
       Mybox.Prelude
       Mybox.Stores
@@ -131,6 +132,7 @@ test-suite tests
       Mybox.Package.PipxSpec
       Mybox.Package.SomeSpec
       Mybox.Package.SpecBase
+      Mybox.Package.SystemSpec
       Mybox.PathSpec
       Mybox.SpecBase
       Mybox.StoresSpec

@@ -6,7 +6,6 @@ import Mybox.Installer.Class
 import Mybox.Installer.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
-import Mybox.Stores
 
 alacrittyVersion :: Text -> Bool
 alacrittyVersion v = v >= "0.13.2" && v < "99"
@@ -18,8 +17,6 @@ macOS _ = False
 spec :: Spec
 spec = onlyIf (macOS <$> drvOS) $ installerSpec_ brew $ do
   it "returns cask version" $
-    runStores $
-      iLatestVersion brew "alacritty" >>= (`shouldSatisfy` alacrittyVersion)
+    iLatestVersion brew "alacritty" >>= (`shouldSatisfy` alacrittyVersion)
   it "fails for non-tapped cask" $
-    runStores $
-      iInstalledVersion brew "homebrew/cask-zzzzzzz/yyyyyyy" `shouldThrow` anyException
+    iInstalledVersion brew "homebrew/cask-zzzzzzz/yyyyyyy" `shouldThrow` anyException

@@ -16,7 +16,7 @@ import Mybox.Utils
 newtype PipxPackage = PipxPackage
   { package :: Text
   }
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Show)
 
 instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package

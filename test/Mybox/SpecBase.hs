@@ -19,6 +19,7 @@ import Test.Hspec qualified as Hspec
 import Mybox.Driver.Class
 import Mybox.Driver.IO
 import Mybox.Prelude
+import Mybox.Stores
 
 newtype RunEff es
   = RunEff (forall r. Eff es r -> IO r)
@@ -28,9 +29,9 @@ type EffSpec ef = SpecWith (RunEff ef)
 withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
 withIOEnv ioa = runEff $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 
-withTestEnv :: (RunEff '[Driver, IOE] -> IO ()) -> IO ()
+withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
 withTestEnv ioa =
-  runEff $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+  runEff $ runStores $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 
 onlyIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
 onlyIf cond spec =

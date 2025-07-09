@@ -17,26 +17,21 @@ gitVersion v = replaceEpoch v >= "2.0.0"
 ghcVersion :: Text -> Bool
 ghcVersion v = v > "8." && v < "99"
 
-installerSpec_ :: Installer -> EffSpec '[Driver, IOE] -> Spec
+installerSpec_ :: Installer -> EffSpec '[Driver, Stores, IOE] -> Spec
 installerSpec_ i spec =
   around withTestEnv $ do
     describe "iInstalledVersion" $ do
       it "returns Git version" $
-        runStores $
-          iInstalledVersion i "git" >>= (`shouldSatisfy` any gitVersion)
+        iInstalledVersion i "git" >>= (`shouldSatisfy` any gitVersion)
       it "returns None for non-installed package" $
-        runStores $
-          iInstalledVersion i "fish" >>= (`shouldBe` Nothing)
+        iInstalledVersion i "fish" >>= (`shouldBe` Nothing)
       it "fails for non-existent package" $
-        runStores $
-          iInstalledVersion i "xxxxxxxx" `shouldThrow` anyException
+        iInstalledVersion i "xxxxxxxx" `shouldThrow` anyException
     describe "iLatestVersion" $ do
       it "returns latest version for GHC" $
-        runStores $
-          iLatestVersion i "ghc" >>= (`shouldSatisfy` ghcVersion)
+        iLatestVersion i "ghc" >>= (`shouldSatisfy` ghcVersion)
       it "fails for non-existent package" $
-        runStores $
-          iLatestVersion i "xxxxxxxx" `shouldThrow` anyException
+        iLatestVersion i "xxxxxxxx" `shouldThrow` anyException
     spec
 
 installerSpec :: Installer -> Spec
