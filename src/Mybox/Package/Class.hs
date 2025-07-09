@@ -17,11 +17,11 @@ class
   (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: (Driver :> es, Stores :> es) => a -> Eff es Text
-  localVersion :: (Driver :> es, Stores :> es) => a -> Eff es (Maybe Text)
+  remoteVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es Text
+  localVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es (Maybe Text)
   install :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es ()
 
-isInstalled :: (Driver :> es, Package a, Stores :> es) => a -> Eff es Bool
+isInstalled :: (Driver :> es, InstallQueue :> es, Package a, Stores :> es, TrackerSession :> es) => a -> Eff es Bool
 isInstalled pkg = do
   lv <- localVersion pkg
   case lv of

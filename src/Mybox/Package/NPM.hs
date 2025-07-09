@@ -8,7 +8,10 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Stores
 import Mybox.Tracker
 
 data NPMPackage = NPMPackage
@@ -29,11 +32,27 @@ instance FromJSON NPMPackage where
 instance ToJSON NPMPackage where
   toJSON p = object ["npm" .= p.package, "binary" .= p.binaries]
 
-viewVersion :: Driver :> es => NPMPackage -> Eff es Text
-viewVersion p = drvRunOutput $ "npm" :| ["view", p.package, "version"]
+prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
+prerequisites = do
+  os <- drvOS
+  let packages = case os of
+        Linux d ->
+          "nodejs" : case d of
+            Debian _ -> ["npm"]
+            Fedora -> ["nodejs-npm"]
+        MacOS -> ["node"]
+  for_ packages $ \package ->
+    queueInstall $ SystemPackage{name = package, url = Nothing, autoUpdates = False}
 
-npmInstall :: (Driver :> es, TrackerSession :> es) => NPMPackage -> Eff es ()
+viewVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => NPMPackage -> Eff es Text
+viewVersion p = do
+  prerequisites
+  drvRunOutput $ "npm" :| ["view", p.package, "version"]
+
+npmInstall :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => NPMPackage -> Eff es ()
 npmInstall p = do
+  prerequisites
+
   let npmExec args = ("npm" :| ["exec", "--yes", "--package", p.package, "--"]) <> args
 
   -- Implicitly install the package

@@ -29,7 +29,7 @@ data BrewFormula = BrewFormula
   , installed :: Maybe Text
   , latest :: Text
   }
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Show)
 
 instance FromJSON BrewFormula where
   parseJSON = withObject "BrewFormula" $ \o -> do

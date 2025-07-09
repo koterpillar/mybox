@@ -9,7 +9,10 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Stores
 import Mybox.Tracker
 import Mybox.Utils
 
@@ -42,6 +45,15 @@ instance FromJSON PipxList where
     packages <- obj .: "venvs"
     pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
 
+prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
+prerequisites = do
+  os <- drvOS
+  let packages = case os of
+        Linux _ -> ["python3-pip"]
+        MacOS -> []
+  for_ packages $ \package ->
+    queueInstall $ SystemPackage{name = package, url = Nothing, autoUpdates = False}
+
 data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
   deriving (Show)
 
@@ -68,11 +80,12 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: Driver :> es => PipxPackage -> Eff es Text
+remoteVersionPipx :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es Text
 remoteVersionPipx p =
   case repo p of
     Just r -> repoBranchVersion r Nothing
     Nothing -> do
+      prerequisites
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]

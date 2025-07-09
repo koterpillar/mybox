@@ -5,6 +5,7 @@ import Mybox.Driver
 import Mybox.Installer
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.Stores
 import Mybox.Tracker
@@ -48,7 +49,7 @@ systemLocalVersion p = case p.url of
     fmap (autoUpdateVersion p) <$> iInstalledVersion installer p.name
   Just _ -> manualVersion p
 
-systemInstall :: (Driver :> es, Stores :> es, TrackerSession :> es) => SystemPackage -> Eff es ()
+systemInstall :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => SystemPackage -> Eff es ()
 systemInstall p = do
   installer <- mkInstaller
   case p.url of

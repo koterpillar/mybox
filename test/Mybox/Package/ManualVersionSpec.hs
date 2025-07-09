@@ -37,16 +37,16 @@ hasInstallLog = drvIsFile installLogFile
 spec :: Spec
 spec = around withTestEnv $ do
   let pkg = DummyPackage "dummy" "one"
-  it "is not reported installed initially" $ do
+  it "is not reported installed initially" $ nullTrackerSession $ runInstallQueue $ do
     setRemoteVersion "version1"
     localVersion pkg >>= (`shouldBe` Nothing)
-  it "installs and is reported installed after installation" $ do
+  it "installs and is reported installed after installation" $ nullTrackerSession $ runInstallQueue $ do
     setRemoteVersion "version1"
-    nullTrackerSession $ runInstallQueue $ install pkg
+    install pkg
     hasInstallLog >>= (`shouldBe` True)
     localVersion pkg >>= (`shouldBe` Just "version1")
-  it "is not reported installed when changed" $ do
+  it "is not reported installed when changed" $ nullTrackerSession $ runInstallQueue $ do
     setRemoteVersion "version1"
-    nullTrackerSession $ runInstallQueue $ install pkg
+    install pkg
     let pkg' = pkg{number = "two"}
     localVersion pkg' >>= (`shouldBe` Nothing)
