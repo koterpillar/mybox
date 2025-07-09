@@ -29,7 +29,7 @@ manualVersion p = do
         Just v -> if jsonEncode p == v.hash then Just v.version else Nothing
 
 manualVersionInstall ::
-  (Driver :> es, Package p, PackageTracker :> es) => (p -> Eff es ()) -> p -> Eff es ()
+  (Driver :> es, Package p, TrackerSession :> es) => (p -> Eff es ()) -> p -> Eff es ()
 manualVersionInstall installAct p = do
   v <- remoteVersion p
   installAct p

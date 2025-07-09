@@ -24,13 +24,14 @@ spec =
         stateTracker filesBefore $
           trkSession $
             do
-              trkPackage (DummyPackage "pkg1") $ do
-                trkAdd "common-file"
-                trkAdd "pkg1-file"
-              trkSkip (DummyPackage "pkg2")
-              trkPackage (DummyPackage "pkg3") $ do
-                trkAdd "common-file"
-                trkAdd "pkg3-file-new"
+              let pkg1 = DummyPackage "pkg1"
+              let pkg2 = DummyPackage "pkg2"
+              let pkg3 = DummyPackage "pkg3"
+              trkAdd pkg1 "common-file"
+              trkAdd pkg1 "pkg1-file"
+              trkSkip pkg2
+              trkAdd pkg3 "common-file"
+              trkAdd pkg3 "pkg3-file-new"
       filesAfter
         `shouldBe` Set.fromList
           ( map (TrackedFile "pkg1") ["common-file", "pkg1-file"]

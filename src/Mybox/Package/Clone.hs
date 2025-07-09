@@ -81,7 +81,7 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: (Driver :> es, PackageTracker :> es) => ClonePackage -> Eff es ()
+cpInstall :: (Driver :> es, TrackerSession :> es) => ClonePackage -> Eff es ()
 cpInstall p = do
   destination <- destinationPath p
   exists <- drvIsDir $ destination </> ".git"
@@ -99,7 +99,7 @@ cpInstall p = do
   cpRunGit ["fetch", "--no-tags", cpDefaultRemote, branch] p
   currentBranch <- cpRevParse "HEAD" True p
   when (currentBranch /= branch) $ cpRunGit ["switch", branch] p
-  trkAdd destination
+  trkAdd p destination
   cpRunGit ["reset", "--hard", remoteBranch] p
 
 instance Package ClonePackage where

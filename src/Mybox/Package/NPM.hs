@@ -32,7 +32,7 @@ instance ToJSON NPMPackage where
 viewVersion :: Driver :> es => NPMPackage -> Eff es Text
 viewVersion p = drvRunOutput $ "npm" :| ["view", p.package, "version"]
 
-npmInstall :: (Driver :> es, PackageTracker :> es) => NPMPackage -> Eff es ()
+npmInstall :: (Driver :> es, TrackerSession :> es) => NPMPackage -> Eff es ()
 npmInstall p = do
   let npmExec args = ("npm" :| ["exec", "--yes", "--package", p.package, "--"]) <> args
 
@@ -60,7 +60,7 @@ npmInstall p = do
                 ]
         drvWriteFile target script
         drvMakeExecutable target
-        trkAdd target
+        trkAdd p target
 
 instance Package NPMPackage where
   localVersion = manualVersion

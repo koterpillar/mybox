@@ -80,20 +80,20 @@ remoteVersionPipx p =
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-pipxInstall :: (Driver :> es, PackageTracker :> es) => PipxPackage -> Eff es ()
+pipxInstall :: (Driver :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
 pipxInstall p = do
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
   -- track virtual environment
   local <- drvLocal
   let envPath = local </> "pipx" </> "venvs" </> p.package
-  trkAdd envPath
+  trkAdd p envPath
   -- Track binaries
   metadata_ <- getInstalled p
   for_ metadata_ $ \metadata ->
     for_ metadata.binaries $ \binary ->
       for_ (pFilename binary) $ \binName ->
         let binPath = local </> "bin" </> binName
-         in trkAdd binPath
+         in trkAdd p binPath
 
 instance Package PipxPackage where
   localVersion = localVersionPipx

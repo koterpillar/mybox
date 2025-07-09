@@ -79,7 +79,7 @@ preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
 preinstallPackage :: Package a => a -> MPS a
-preinstallPackage p = preinstall $ nullPackageTracker $ install p
+preinstallPackage p = preinstall $ nullTrackerSession $ install p
 
 psPending :: MPS a
 psPending s = s{pending_ = True}
@@ -97,7 +97,7 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ trkPackage p $ install p
+              stateTracker mempty $ trkSession $ install p
             checkAllTracked s preexistingFiles ts
             checkInstalled_ s
 

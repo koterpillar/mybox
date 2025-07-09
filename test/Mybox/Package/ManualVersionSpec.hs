@@ -41,11 +41,11 @@ spec = around withTestEnv $ do
     localVersion pkg >>= (`shouldBe` Nothing)
   it "installs and is reported installed after installation" $ do
     setRemoteVersion "version1"
-    nullPackageTracker $ install pkg
+    nullTrackerSession $ install pkg
     hasInstallLog >>= (`shouldBe` True)
     localVersion pkg >>= (`shouldBe` Just "version1")
   it "is not reported installed when changed" $ do
     setRemoteVersion "version1"
-    nullPackageTracker $ install pkg
+    nullTrackerSession $ install pkg
     let pkg' = pkg{number = "two"}
     localVersion pkg' >>= (`shouldBe` Nothing)
