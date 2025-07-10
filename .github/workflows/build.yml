@@ -74,7 +74,7 @@ jobs:
         if: ${{ !matrix.part || matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5
         with:
-          stack-build-arguments: --fast --lock-file error-on-write
+          stack-build-arguments: --fast --lock-file error-on-write --coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
@@ -84,13 +84,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
-      - name: Upload coverage
+      - name: Prepare coverage (Haskell)
+        if: ${{ !matrix.part || matrix.part == 'Haskell' }}
+        run: |
+          stack --no-terminal install hpc-codecov
+          stack --no-terminal exec -- hpc-codecov stack:all -f cobertura -o coverage-$(mktemp -u XXXXXX).xml
+      - name: Prepare coverage (Python)
         if: ${{ !matrix.part || matrix.part == 'Python' }}
+        run: |
+          poetry run coverage combine
+          poetry run coverage report
+          poetry run coverage xml -o coverage-$(mktemp -u XXXXXX).xml
+      - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}-${{ matrix.arch || 'default' }}
-          path: .coverage*
-          include-hidden-files: true
+          name: coverage-data-${{ matrix.part || '' }}-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}-${{ matrix.arch || 'default' }}
+          path: coverage-*.xml
           if-no-files-found: error
 
   coverage:
@@ -101,23 +110,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: ./install-dev
       - name: Download coverage
         uses: actions/download-artifact@v4
         with:
           pattern: 'coverage-data-*'
           merge-multiple: true
-      - name: Coverage report
-        run: ./coverage-report
+      - name: Merge coverage
+        run: npx @yartasdev/cobertura-collect -p -o coverage.xml -t coverage-*.xml
       - name: Upload coverage report
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: 'coverage.xml'
 
   publish:
     needs:
