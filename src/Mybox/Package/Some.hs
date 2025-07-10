@@ -7,6 +7,7 @@ import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
+import Mybox.Package.System
 import Mybox.Prelude
 
 newtype SomePackage = SomePackage {package :: forall r. (forall p. Package p => p -> r) -> r}
@@ -28,6 +29,7 @@ instance FromJSON SomePackage where
     mkSomePackageF (parseJSON @ClonePackage v)
       <|> mkSomePackageF (parseJSON @NPMPackage v)
       <|> mkSomePackageF (parseJSON @PipxPackage v)
+      <|> mkSomePackageF (parseJSON @SystemPackage v)
 
 instance ToJSON SomePackage where
   toJSON (SomePackage f) = f toJSON
