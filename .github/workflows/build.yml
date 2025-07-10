@@ -27,7 +27,7 @@ jobs:
       - name: Lint
         run: ./lint
   test:
-    name: "Test (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
+    name: "Test${{ matrix.part && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
       matrix:
@@ -38,7 +38,13 @@ jobs:
             arch: arm
           - docker: fedora
           - host: ubuntu
+            part: Python
+          - host: ubuntu
+            part: Haskell
           - host: macos
+            part: Python
+          - host: macos
+            part: Haskell
     runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
     steps:
       - name: Checkout
@@ -64,6 +70,7 @@ jobs:
             });
           EOF
       - name: Test (Haskell)
+        if: ${{ !matrix.part || matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5
         with:
           stack-build-arguments: --fast --lock-file error-on-write
@@ -71,11 +78,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Test (Python)
+        if: ${{ !matrix.part || matrix.part == 'Python' }}
         run: ./test-script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Upload coverage
+        if: ${{ !matrix.part || matrix.part == 'Python' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-data-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}-${{ matrix.arch || 'default' }}
