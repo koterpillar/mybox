@@ -28,7 +28,8 @@ class TestFlatpak:
         db = DB.temporary()
         manager = Manager(driver=make_driver, db=db, data_path=tmp_path)
         pkg = parse_package(Flatpak.FLATPAK, db=db, driver=make_driver)
-        await manager.install_packages([pkg])
+        install_result = await manager.install_packages([pkg])
+        install_result.raise_for_failures()
 
         return result
 
