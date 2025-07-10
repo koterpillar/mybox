@@ -6,6 +6,7 @@ import Mybox.Package.Clone
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Some
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -24,3 +25,4 @@ spec = around withIOEnv $ do
     roundtrip $ ClonePackage{repo = "ghc/ghc", branch = Nothing, destination = "ghc"}
     roundtrip $ NPMPackage{package = "express", binaries = ["express"]}
     roundtrip $ PipxPackage{package = "pipx"}
+    roundtrip $ SystemPackage{name = "ghc", url = Nothing, autoUpdates = False}
