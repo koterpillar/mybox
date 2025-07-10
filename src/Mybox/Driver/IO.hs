@@ -138,6 +138,7 @@ dockerfile ::
 dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage
+    , "ENV DOCKER=true"
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"

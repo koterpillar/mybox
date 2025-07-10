@@ -9,6 +9,11 @@ import Mybox.Prelude
 
 spec :: Spec
 spec = do
+  jsonSpec
+    (Nothing @ClonePackage)
+    [ (Nothing, "{\"clone\": \"test/test\", \"destination\": \"test\"}")
+    , (Just "branch", "{\"clone\": \"test/test\", \"branch\": \"test\", \"destination\": \"test\"}")
+    ]
   let baseClone psa =
         ps (ClonePackage "ohmyzsh/ohmyzsh" Nothing psa.directory)
           & checkInstalledCommandOutput

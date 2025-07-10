@@ -1,4 +1,4 @@
-module Mybox.Installer.Apt (Apt (..)) where
+module Mybox.Installer.Apt (apt) where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -7,8 +7,6 @@ import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
 import Mybox.Stores
-
-data Apt = Apt
 
 aptInstall :: Driver :> es => Text -> Eff es ()
 aptInstall package =
@@ -55,9 +53,12 @@ aptPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
 aptPackageInfo Nothing = pure mempty
 aptPackageInfo (Just package) = fmap (Map.singleton package) $ PackageVersion <$> aptInstalled package <*> aptLatest package
 
-instance Installer Apt where
-  iStorePackages Apt = jsonStore "apt"
-  iStoreGlobal Apt = jsonStore "apt"
-  iInstall_ Apt = aptInstall
-  iUpgrade_ Apt = aptInstall
-  iGetPackageInfo Apt = aptPackageInfo
+apt :: Installer
+apt =
+  Installer
+    { storePackages = jsonStore "apt"
+    , storeGlobal = jsonStore "apt-global"
+    , install_ = aptInstall
+    , upgrade_ = aptInstall
+    , getPackageInfo = aptPackageInfo
+    }

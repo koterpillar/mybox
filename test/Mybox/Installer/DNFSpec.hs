@@ -6,8 +6,8 @@ import Mybox.Installer.SpecBase
 import Mybox.SpecBase
 
 fedora :: OS -> Bool
-fedora (Linux "fedora") = True
+fedora (Linux Fedora) = True
 fedora _ = False
 
 spec :: Spec
-spec = onlyIf (fedora <$> drvOS) $ installerSpec DNF
+spec = onlyIf (fedora <$> drvOS) $ installerSpec dnf

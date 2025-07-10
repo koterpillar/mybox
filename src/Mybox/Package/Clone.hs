@@ -4,6 +4,7 @@ module Mybox.Package.Clone (
 
 import Data.Text qualified as Text
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.Destination
@@ -16,14 +17,25 @@ data ClonePackage = ClonePackage
   , branch :: Maybe Text
   , destination :: Text
   }
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Show)
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
 
-instance FromJSON ClonePackage
+instance FromJSON ClonePackage where
+  parseJSON = withObject "ClonePackage" $ \o -> do
+    repo <- o .: "clone"
+    branch <- o .:? "branch"
+    destination <- o .: "destination"
+    pure ClonePackage{..}
 
-instance ToJSON ClonePackage
+instance ToJSON ClonePackage where
+  toJSON p =
+    object
+      [ "clone" .= p.repo
+      , "branch" .= p.branch
+      , "destination" .= p.destination
+      ]
 
 cpRemote :: ClonePackage -> Text
 cpRemote p
@@ -69,7 +81,7 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: (Driver :> es, PackageTracker :> es) => ClonePackage -> Eff es ()
+cpInstall :: (Driver :> es, TrackerSession :> es) => ClonePackage -> Eff es ()
 cpInstall p = do
   destination <- destinationPath p
   exists <- drvIsDir $ destination </> ".git"
@@ -87,7 +99,7 @@ cpInstall p = do
   cpRunGit ["fetch", "--no-tags", cpDefaultRemote, branch] p
   currentBranch <- cpRevParse "HEAD" True p
   when (currentBranch /= branch) $ cpRunGit ["switch", branch] p
-  trkAdd destination
+  trkAdd p destination
   cpRunGit ["reset", "--hard", remoteBranch] p
 
 instance Package ClonePackage where

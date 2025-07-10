@@ -2,7 +2,6 @@ module Mybox.Package.Pipx (
   PipxPackage (..),
 ) where
 
-import Data.Aeson
 import Data.Map (Map)
 import Data.Text qualified as Text
 
@@ -10,21 +9,28 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Stores
 import Mybox.Tracker
 import Mybox.Utils
 
 newtype PipxPackage = PipxPackage
   { package :: Text
   }
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Show)
 
 instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package
 
-instance FromJSON PipxPackage
+instance FromJSON PipxPackage where
+  parseJSON = withObject "PipxPackage" $ \o -> do
+    package <- o .: "pipx"
+    pure PipxPackage{..}
 
-instance ToJSON PipxPackage
+instance ToJSON PipxPackage where
+  toJSON p = object ["pipx" .= p.package]
 
 repo :: PipxPackage -> Maybe Text
 repo p = Text.stripPrefix "git+" p.package
@@ -38,6 +44,15 @@ instance FromJSON PipxList where
   parseJSON = withObject "PipxList" $ \obj -> do
     packages <- obj .: "venvs"
     pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
+
+prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
+prerequisites = do
+  os <- drvOS
+  let packages = case os of
+        Linux _ -> ["python3-pip"]
+        MacOS -> []
+  for_ packages $ \package ->
+    queueInstall $ SystemPackage{name = package, url = Nothing, autoUpdates = False}
 
 data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
   deriving (Show)
@@ -65,11 +80,12 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: Driver :> es => PipxPackage -> Eff es Text
+remoteVersionPipx :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es Text
 remoteVersionPipx p =
   case repo p of
     Just r -> repoBranchVersion r Nothing
     Nothing -> do
+      prerequisites
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]
@@ -77,20 +93,20 @@ remoteVersionPipx p =
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-pipxInstall :: (Driver :> es, PackageTracker :> es) => PipxPackage -> Eff es ()
+pipxInstall :: (Driver :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
 pipxInstall p = do
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
   -- track virtual environment
   local <- drvLocal
   let envPath = local </> "pipx" </> "venvs" </> p.package
-  trkAdd envPath
+  trkAdd p envPath
   -- Track binaries
   metadata_ <- getInstalled p
   for_ metadata_ $ \metadata ->
     for_ metadata.binaries $ \binary ->
       for_ (pFilename binary) $ \binName ->
         let binPath = local </> "bin" </> binName
-         in trkAdd binPath
+         in trkAdd p binPath
 
 instance Package PipxPackage where
   localVersion = localVersionPipx

@@ -1,5 +1,6 @@
 module Mybox.Prelude (
   module Control.Monad,
+  module Data.Either,
   module Data.Foldable,
   module Data.Maybe,
   module Effectful,
@@ -17,6 +18,7 @@ module Mybox.Prelude (
 ) where
 
 import Control.Monad
+import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
 import Data.List.NonEmpty (NonEmpty (..))

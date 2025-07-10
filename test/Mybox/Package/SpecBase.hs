@@ -8,30 +8,46 @@ module Mybox.Package.SpecBase (
   preinstall,
   preinstallPackage,
   ignorePath,
-  packageSpec,
   psPending,
+  psPendingIf,
+  packageSpec,
+  jsonSpec,
 ) where
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import System.Environment
 import System.Random
 
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Stores
 import Mybox.Tracker
 
 data PackageSpecArgs = PackageSpecArgs
   { random :: StdGen
   , directory :: Text
+  , docker :: Bool
+  , ci :: Bool
   }
+
+instance HasField "virtualSystem" PackageSpecArgs Bool where
+  getField psa = psa.docker || psa.ci
+
+hasEnv :: String -> IO Bool
+hasEnv name = not . null <$> lookupEnv name
 
 mkPSA :: IO PackageSpecArgs
 mkPSA = do
   random_ <- newStdGen
   directory <- ("dest-" <>) . Text.pack . show <$> liftIO (randomIO @Int)
-  pure $ PackageSpecArgs{random = random_, directory = directory}
+  docker <- hasEnv "DOCKER_IMAGE"
+  ci <- hasEnv "CI"
+  pure $ PackageSpecArgs{random = random_, directory = directory, docker = docker, ci = ci}
 
 psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
 psaSpec f = runIO mkPSA >>= f
@@ -40,7 +56,7 @@ data PackageSpec a = PackageSpec
   { package :: a
   , name_ :: Maybe Text
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
-  , preinstall_ :: forall es. Driver :> es => Eff es ()
+  , preinstall_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
   , ignoredPaths_ :: Set Text
   , pending_ :: Bool
   }
@@ -73,14 +89,17 @@ checkInstalledCommandOutput cmd expectedOutput =
 ignorePath :: Text -> MPS a
 ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 
-preinstall :: (forall es. Driver :> es => Eff es ()) -> MPS a
+preinstall :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
 preinstallPackage :: Package a => a -> MPS a
-preinstallPackage p = preinstall $ nullPackageTracker $ install p
+preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
+
+psPendingIf :: Bool -> MPS a
+psPendingIf cond s = s{pending_ = cond || s.pending_}
 
 psPending :: MPS a
-psPending s = s{pending_ = True}
+psPending = psPendingIf True
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
@@ -95,7 +114,7 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ trkPackage p $ install p
+              stateTracker mempty $ trkSession $ runInstallQueue $ install p
             checkAllTracked s preexistingFiles ts
             checkInstalled_ s
 
@@ -118,3 +137,14 @@ checkAllTracked s preexisting ts = do
   let tracked = Set.map (.path) ts.tracked
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
+
+jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
+jsonSpec _ examples = around withIOEnv $ describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+  it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
+    let pkgE = jsonDecode @a "example" json
+    pkgE `shouldSatisfy` isRight
+    pkg <- either (error . show) pure pkgE
+    let json' = jsonEncode pkg
+    let pkgE' = jsonDecode @a "example" json'
+    pkg' <- either (error . show) pure pkgE'
+    pkg' `shouldBe` pkg

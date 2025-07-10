@@ -1,31 +1,36 @@
 module Mybox.Package.Class (
   Package (..),
   PackageName,
-  pkgIsInstalled,
-  FromJSON,
-  ToJSON,
+  isInstalled,
+  ensureInstalled,
 ) where
 
-import Data.Aeson (FromJSON, ToJSON)
-
+import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Name
+import Mybox.Package.Queue.Effect
 import Mybox.Prelude
+import Mybox.Stores
 import Mybox.Tracker
 
 class
-  (FromJSON a, PackageName a, ToJSON a) =>
+  (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: Driver :> es => a -> Eff es Text
-  localVersion :: Driver :> es => a -> Eff es (Maybe Text)
-  install :: (Driver :> es, PackageTracker :> es) => a -> Eff es ()
+  remoteVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es Text
+  localVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es (Maybe Text)
+  install :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es ()
 
-pkgIsInstalled :: (Driver :> es, Package a) => a -> Eff es Bool
-pkgIsInstalled pkg = do
+isInstalled :: (Driver :> es, InstallQueue :> es, Package a, Stores :> es, TrackerSession :> es) => a -> Eff es Bool
+isInstalled pkg = do
   lv <- localVersion pkg
   case lv of
     Nothing -> pure False
     Just lv' -> do
       rv <- remoteVersion pkg
       pure $ lv' == rv
+
+ensureInstalled :: (Driver :> es, InstallQueue :> es, Package a, Stores :> es, TrackerSession :> es) => a -> Eff es ()
+ensureInstalled pkg = do
+  installed <- isInstalled pkg
+  if installed then trkSkip pkg else install pkg

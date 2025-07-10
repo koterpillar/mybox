@@ -122,6 +122,9 @@ drvFind path fo = do
   o <- drvRunOutput $ "find" :| args
   pure $ Set.fromList $ Text.split (== '\0') o
 
+drvUrlEtag :: Driver :> es => Text -> Eff es Text
+drvUrlEtag url = drvRunOutput $ "curl" :| ["-fsSL", "-o", "/dev/null", "-w", "%header{etag}", url]
+
 shellRaw :: Text -> Args
 shellRaw args = "sh" :| ["-c", args]
 
