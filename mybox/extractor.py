@@ -92,6 +92,7 @@ async def get_redirect_url(url: str, *, driver: Driver) -> str:
         "%{url_effective}",
         "--head",
         "--no-include",
+        "--fail",
         "--silent",
         "--show-error",
         "--location",
