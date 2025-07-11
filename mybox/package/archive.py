@@ -109,6 +109,7 @@ class ArchivePackage(ManualPackage, ABC):
         async with self.driver.tempfile() as archive_path:
             await self.driver.run(
                 "curl",
+                "--fail",
                 "--silent",
                 "--show-error",
                 "--location",

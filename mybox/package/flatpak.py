@@ -1,11 +1,15 @@
+from collections.abc import AsyncIterable
 from functools import cached_property
 from typing import Optional
 
 import trio
+from pydantic import TypeAdapter
 
 from ..tracker import Tracker
+from .base import Package
 from .installer.flatpak import Flatpak
 from .manual_version import ManualVersion
+from .system import SystemPackage
 
 FLATPAK_LOCK = trio.Lock()
 
@@ -25,6 +29,18 @@ class FlatpakPackage(ManualVersion):
 
     async def local_version(self) -> Optional[str]:
         return await self.installer.installed_version(self.flatpak)
+
+    async def prerequisites(self) -> AsyncIterable[Package]:
+        async for package in super().prerequisites():
+            yield package  # pragma: no cover
+
+        yield TypeAdapter(SystemPackage).validate_python(
+            {
+                **self.installer.FLATPAK,
+                "db": self.db,
+                "driver": self.driver_,
+            }
+        )
 
     async def install(self, *, tracker: Tracker) -> None:
         async with FLATPAK_LOCK:

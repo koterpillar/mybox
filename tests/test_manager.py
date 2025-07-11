@@ -122,7 +122,7 @@ class TestManager:
 
     async def install_assert(self, *packages: DummyPackage) -> InstallResult:
         result = await self.install(*packages)
-        assert not result.failed
+        result.raise_for_failures()
         return result
 
     @pytest.mark.trio

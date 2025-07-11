@@ -19,6 +19,11 @@ class InstallResult:
     installed: list[Package]
     failed: list[tuple[Package, BaseException]]
 
+    def raise_for_failures(self) -> None:  # pragma: no cover
+        if self.failed:
+            for _, exc in self.failed:
+                raise exc
+
 
 @dataclass
 class Manager:

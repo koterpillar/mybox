@@ -101,7 +101,7 @@ class PackageTestBase(ABC):
         async for prerequisite in package.prerequisites():
             packages.append(prerequisite)
         result = await manager.install_packages(packages)
-        assert not result.failed
+        result.raise_for_failures()
 
     async def all_files(self) -> set[Path]:
         return {

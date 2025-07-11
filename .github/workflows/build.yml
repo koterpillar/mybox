@@ -55,7 +55,7 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: ./install-dev
-      - name: Configure Flatpak permissions
+      - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
         run: |
           sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
@@ -69,6 +69,7 @@ jobs:
               return polkit.Result.NOT_HANDLED;
             });
           EOF
+          command -v apt >/dev/null && sudo apt update || true
       - name: Test (Haskell)
         if: ${{ !matrix.part || matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5

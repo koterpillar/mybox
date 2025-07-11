@@ -68,7 +68,7 @@ ps p =
     , name_ = Nothing
     , checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
-    , ignoredPaths_ = Set.fromList [pMyboxState </> "versions"]
+    , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache/libdnf5"]
     , pending_ = False
     }
 
