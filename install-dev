@@ -3,6 +3,20 @@
 
 set -euo pipefail
 
+OPT_LINT="true"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-lint)
+      OPT_LINT=""
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
 command_exists() {
   type -f "$1" >/dev/null 2>&1
 }
@@ -14,7 +28,7 @@ case "$OSTYPE" in
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
 
-    if ! command_exists shellcheck
+    if [ -n "${OPT_LINT-}" ] && ! command_exists shellcheck
     then
       brew install shellcheck
     fi
@@ -37,7 +51,7 @@ then
   GH_CURL+=(--header "authorization: Bearer $(gh auth token)")
 fi
 
-if ! command_exists fourmolu
+if [ -n "${OPT_LINT-}" ] && ! command_exists fourmolu
 then
   OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/osx/;s/linux.+/linux/')
   ARCH=$(uname -m | sed 's/aarch64/arm64/')
@@ -45,16 +59,19 @@ then
   FILENAME=$(
     "${GH_CURL[@]}" -fsSL "https://api.github.com/repos/fourmolu/fourmolu/releases/latest" | \
     python3 -c 'import sys,json;[print(a["name"]) for a in json.load(sys.stdin)["assets"]]' | \
-    grep "${OS}-${ARCH}" || (echo "Warning: no fourmolu binary for ${OS}-${ARCH}" >&2)
+    grep "${OS}-${ARCH}"
   )
 
-  if [ -n "$FILENAME" ]
+  if [ -z "$FILENAME" ]
   then
-    mkdir -p ~/.local/bin
-    FOURMOLU_URL="https://github.com/fourmolu/fourmolu/releases/latest/download/${FILENAME}"
-    "${GH_CURL[@]}" -fsSL "$FOURMOLU_URL" -o ~/.local/bin/fourmolu
-    chmod +x ~/.local/bin/fourmolu
+    echo "Error: no fourmolu binary for ${OS}-${ARCH}" >&2
+    exit 1
   fi
+
+  mkdir -p ~/.local/bin
+  FOURMOLU_URL="https://github.com/fourmolu/fourmolu/releases/latest/download/${FILENAME}"
+  "${GH_CURL[@]}" -fsSL "$FOURMOLU_URL" -o ~/.local/bin/fourmolu
+  chmod +x ~/.local/bin/fourmolu
 fi
 
 poetry install
