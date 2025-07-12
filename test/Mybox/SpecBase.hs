@@ -5,6 +5,7 @@ module Mybox.SpecBase (
   EffSpec,
   beforeAll_,
   onlyIf,
+  onlyIfOS,
   skipIf,
   it,
   xit,
@@ -17,8 +18,7 @@ import Control.Exception.Safe (Exception)
 import Test.Hspec hiding (beforeAll_, it, shouldBe, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
-import Mybox.Driver.Class
-import Mybox.Driver.IO
+import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -43,6 +43,9 @@ onlyIf cond spec =
     >>= \case
       True -> spec
       False -> xdescribe "(skipped)" spec
+
+onlyIfOS :: (OS -> Bool) -> SpecWith a -> SpecWith a
+onlyIfOS cond = onlyIf $ cond <$> drvOS
 
 skipIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
 skipIf cond = onlyIf $ fmap not cond
