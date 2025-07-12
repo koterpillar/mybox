@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev
+        run: ./install-dev --no-lint
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
         run: |
@@ -140,7 +140,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev
+        run: ./install-dev --no-lint
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
