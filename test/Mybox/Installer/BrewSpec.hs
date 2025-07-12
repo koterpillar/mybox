@@ -15,7 +15,7 @@ macOS MacOS = True
 macOS _ = False
 
 spec :: Spec
-spec = onlyIf (macOS <$> drvOS) $ installerSpec_ brew $ do
+spec = onlyIfOS macOS $ installerSpec_ brew $ do
   it "returns cask version" $
     iLatestVersion brew "alacritty" >>= (`shouldSatisfy` alacrittyVersion)
   it "fails for non-tapped cask" $

@@ -1,6 +1,4 @@
-module Mybox.Package.Clone (
-  ClonePackage (..),
-) where
+module Mybox.Package.Clone (ClonePackage (..), mkClonePackage) where
 
 import Data.Text qualified as Text
 
@@ -8,16 +6,21 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.Destination
+import Mybox.Package.Post
 import Mybox.Prelude
 import Mybox.Tracker
 import Mybox.Utils
 
 data ClonePackage = ClonePackage
   { repo :: Text
-  , branch :: Maybe Text
   , destination :: Text
+  , branch :: Maybe Text
+  , post :: [Text]
   }
   deriving (Eq, Show)
+
+mkClonePackage :: Text -> Text -> ClonePackage
+mkClonePackage repo destination = ClonePackage{repo, destination, branch = Nothing, post = []}
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
@@ -27,6 +30,7 @@ instance FromJSON ClonePackage where
     repo <- o .: "clone"
     branch <- o .:? "branch"
     destination <- o .: "destination"
+    post <- parsePost o
     pure ClonePackage{..}
 
 instance ToJSON ClonePackage where
@@ -105,4 +109,4 @@ cpInstall p = do
 instance Package ClonePackage where
   localVersion = cpLocalVersion
   remoteVersion = cpRemoteVersion
-  install = cpInstall
+  install = installWithPost cpInstall

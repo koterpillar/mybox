@@ -1,6 +1,4 @@
-module Mybox.Package.NPM (
-  NPMPackage (..),
-) where
+module Mybox.Package.NPM (NPMPackage (..), mkNPMPackage) where
 
 import Data.Text qualified as Text
 
@@ -8,6 +6,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
@@ -17,8 +16,12 @@ import Mybox.Tracker
 data NPMPackage = NPMPackage
   { package :: Text
   , binaries :: [Text]
+  , post :: [Text]
   }
   deriving (Eq, Show)
+
+mkNPMPackage :: Text -> NPMPackage
+mkNPMPackage package = NPMPackage{package, binaries = [], post = []}
 
 instance HasField "name" NPMPackage Text where
   getField p = p.package
@@ -27,6 +30,7 @@ instance FromJSON NPMPackage where
   parseJSON = withObject "NPMPackage" $ \o -> do
     package <- o .: "npm"
     binaries <- parseCollapsedList o "binary"
+    post <- parsePost o
     pure NPMPackage{..}
 
 instance ToJSON NPMPackage where
@@ -42,7 +46,7 @@ prerequisites = do
             Fedora -> ["nodejs-npm"]
         MacOS -> ["node"]
   for_ packages $ \package ->
-    queueInstall $ SystemPackage{name = package, url = Nothing, autoUpdates = False}
+    queueInstall $ mkSystemPackage package
 
 viewVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => NPMPackage -> Eff es Text
 viewVersion p = do
@@ -84,4 +88,4 @@ npmInstall p = do
 instance Package NPMPackage where
   localVersion = manualVersion
   remoteVersion = viewVersion
-  install = manualVersionInstall npmInstall
+  install = installWithPost $ manualVersionInstall npmInstall

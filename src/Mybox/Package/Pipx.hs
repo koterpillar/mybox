@@ -1,6 +1,4 @@
-module Mybox.Package.Pipx (
-  PipxPackage (..),
-) where
+module Mybox.Package.Pipx (PipxPackage (..), mkPipxPackage) where
 
 import Data.Map (Map)
 import Data.Text qualified as Text
@@ -9,6 +7,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
@@ -16,10 +15,14 @@ import Mybox.Stores
 import Mybox.Tracker
 import Mybox.Utils
 
-newtype PipxPackage = PipxPackage
+data PipxPackage = PipxPackage
   { package :: Text
+  , post :: [Text]
   }
   deriving (Eq, Show)
+
+mkPipxPackage :: Text -> PipxPackage
+mkPipxPackage package = PipxPackage{package, post = []}
 
 instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package
@@ -27,6 +30,7 @@ instance HasField "name" PipxPackage Text where
 instance FromJSON PipxPackage where
   parseJSON = withObject "PipxPackage" $ \o -> do
     package <- o .: "pipx"
+    post <- parsePost o
     pure PipxPackage{..}
 
 instance ToJSON PipxPackage where
@@ -52,7 +56,7 @@ prerequisites = do
         Linux _ -> ["python3-pip"]
         MacOS -> []
   for_ packages $ \package ->
-    queueInstall $ SystemPackage{name = package, url = Nothing, autoUpdates = False}
+    queueInstall $ mkSystemPackage package
 
 data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
   deriving (Show)
@@ -111,4 +115,4 @@ pipxInstall p = do
 instance Package PipxPackage where
   localVersion = localVersionPipx
   remoteVersion = remoteVersionPipx
-  install = manualVersionInstall pipxInstall
+  install = installWithPost $ manualVersionInstall pipxInstall

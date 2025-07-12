@@ -3,7 +3,9 @@ module Mybox.SpecBase (
   withIOEnv,
   withTestEnv,
   EffSpec,
+  beforeAll_,
   onlyIf,
+  onlyIfOS,
   skipIf,
   it,
   xit,
@@ -13,11 +15,10 @@ module Mybox.SpecBase (
 ) where
 
 import Control.Exception.Safe (Exception)
-import Test.Hspec hiding (it, shouldBe, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (beforeAll_, it, shouldBe, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
-import Mybox.Driver.Class
-import Mybox.Driver.IO
+import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -33,12 +34,18 @@ withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
 withTestEnv ioa =
   runEff $ runStores $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 
+beforeAll_ :: Eff ef () -> EffSpec ef -> EffSpec ef
+beforeAll_ act = Hspec.beforeAllWith $ \r@(RunEff unlift) -> unlift act >> pure r
+
 onlyIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
 onlyIf cond spec =
   runIO (runEff $ testDriver cond)
     >>= \case
       True -> spec
       False -> xdescribe "(skipped)" spec
+
+onlyIfOS :: (OS -> Bool) -> SpecWith a -> SpecWith a
+onlyIfOS cond = onlyIf $ cond <$> drvOS
 
 skipIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
 skipIf cond = onlyIf $ fmap not cond

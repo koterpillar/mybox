@@ -10,4 +10,4 @@ debianLike (Linux (Debian _)) = True
 debianLike _ = False
 
 spec :: Spec
-spec = onlyIf (debianLike <$> drvOS) $ installerSpec apt
+spec = onlyIfOS debianLike $ installerSpec apt

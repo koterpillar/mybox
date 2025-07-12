@@ -6,9 +6,6 @@ import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
 
-mkPackage :: Text -> SystemPackage
-mkPackage name = SystemPackage{name, url = Nothing, autoUpdates = False}
-
 spec :: Spec
 spec = do
   jsonSpec
@@ -18,34 +15,34 @@ spec = do
     , (Just "auto update", "{\"system\": \"test\", \"auto_updates\": true}")
     ]
   packageSpec $ \psa ->
-    ps (mkPackage "ripgrep")
+    ps (mkSystemPackage "ripgrep")
       & checkInstalledCommandOutput
         ("rg" :| ["--help"])
         "ripgrep"
       & psPendingIf (not psa.virtualSystem)
   packageSpec $ \psa ->
-    ps (mkPackage "alacritty")
+    ps (mkSystemPackage "alacritty")
       & checkInstalledCommandOutput
         ("alacritty" :| ["--version"])
         "alacritty 0"
       & psPendingIf (not psa.virtualSystem)
-  onlyIf (drvOS >>= \case Linux Fedora -> pure True; _ -> pure False) $
+  onlyIfOS (\case Linux Fedora -> True; _ -> False) $
     packageSpec $ \psa ->
-      ps ((mkPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm"})
+      ps ((mkSystemPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm"})
         & checkInstalledCommandOutput
           ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
           "RPM Fusion for Fedora"
         & psPendingIf (not psa.virtualSystem)
-  onlyIf (drvOS >>= \case Linux (Debian _) -> pure True; _ -> pure False) $
+  onlyIfOS (\case Linux (Debian _) -> True; _ -> False) $
     packageSpec $ \psa ->
-      ps (mkPackage "tzdata")
+      ps (mkSystemPackage "tzdata")
         & checkInstalledCommandOutput
           ("cat" :| ["/usr/share/doc/tzdata/copyright"])
           "Internet Assigned Numbers Authority"
         & psPendingIf (not psa.virtualSystem)
-  onlyIf (drvOS >>= \case Linux _ -> pure True; _ -> pure False) $
+  onlyIfOS (\case Linux _ -> True; _ -> False) $
     packageSpec $ \psa ->
-      ps (mkPackage "g++")
+      ps (mkSystemPackage "g++")
         & checkInstalledCommandOutput
           ("g++" :| ["--version"])
           "Free Software Foundation, Inc."
