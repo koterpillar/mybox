@@ -25,6 +25,7 @@ library
       Mybox.Installer.Brew
       Mybox.Installer.Class
       Mybox.Installer.DNF
+      Mybox.Installer.Flatpak
       Mybox.Main
       Mybox.Package.Class
       Mybox.Package.Clone
@@ -125,6 +126,7 @@ test-suite tests
       Mybox.Installer.AptSpec
       Mybox.Installer.BrewSpec
       Mybox.Installer.DNFSpec
+      Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
       Mybox.Package.CloneSpec
       Mybox.Package.ManualVersionSpec
