@@ -27,16 +27,29 @@ jobs:
       - name: Lint
         run: ./lint
   test:
-    name: "Test${{ matrix.part && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
+    name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
       matrix:
         include:
           - docker: debian
+            part: Haskell
+          - docker: debian
+            part: Python
           - docker: ubuntu
+            part: Haskell
+          - docker: ubuntu
+            part: Python
           - docker: ubuntu
             arch: arm
+            part: Haskell
+          - docker: ubuntu
+            arch: arm
+            part: Python
           - docker: fedora
+            part: Haskell
+          - docker: fedora
+            part: Python
           - host: ubuntu
             part: Python
           - host: ubuntu
