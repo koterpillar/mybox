@@ -3,6 +3,7 @@ module Mybox.SpecBase (
   withIOEnv,
   withTestEnv,
   EffSpec,
+  beforeAll_,
   onlyIf,
   skipIf,
   it,
@@ -13,7 +14,7 @@ module Mybox.SpecBase (
 ) where
 
 import Control.Exception.Safe (Exception)
-import Test.Hspec hiding (it, shouldBe, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (beforeAll_, it, shouldBe, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver.Class
@@ -32,6 +33,9 @@ withIOEnv ioa = runEff $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
 withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
 withTestEnv ioa =
   runEff $ runStores $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+
+beforeAll_ :: Eff ef () -> EffSpec ef -> EffSpec ef
+beforeAll_ act = Hspec.beforeAllWith $ \r@(RunEff unlift) -> unlift act >> pure r
 
 onlyIf :: (forall es. Driver :> es => Eff es Bool) -> SpecWith a -> SpecWith a
 onlyIf cond spec =

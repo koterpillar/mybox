@@ -6,8 +6,11 @@ import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Installer.Flatpak
 import Mybox.Installer.SpecBase
+import Mybox.Package.Class
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Tracker
 
 linux :: OS -> Bool
 linux (Linux _) = True
@@ -32,9 +35,10 @@ expectedFlatpakVersion version = case Text.splitOn ":" version of
 spec :: Spec
 spec = onlyIf prerequisites $
   around withTestEnv $ do
-    describe "flatpak" $ do
-      describe "iLatestVersion" $ do
-        it "returns valid version for an existing package" $ do
-          iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
-        it "fails for non-existent package" $ do
-          iLatestVersion flatpak "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException
+    describe "flatpak" $
+      beforeAll_ (nullTrackerSession $ runInstallQueue $ install flatpakPackage) $ do
+        describe "iLatestVersion" $ do
+          it "returns valid version for an existing package" $ do
+            iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
+          it "fails for non-existent package" $ do
+            iLatestVersion flatpak "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException

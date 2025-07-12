@@ -12,9 +12,18 @@ import Mybox.Stores
 repoName :: Text
 repoName = "flathub"
 
--- FIXME: add postinstall when implemented
+repoUrl :: Text
+repoUrl = "https://dl.flathub.org/repo/flathub.flatpakrepo"
+
 flatpakPackage :: SystemPackage
-flatpakPackage = SystemPackage{name = "flatpak", url = Nothing, autoUpdates = False}
+flatpakPackage =
+  (mkSystemPackage "flatpak")
+    { post =
+        [ shellJoin ["sudo", "systemctl", "daemon-reload"]
+        , shellJoin ["sudo", "systemctl", "enable", "--now", "dbus"]
+        , shellJoin ["sudo", "flatpak", "remote-add", "--if-not-exists", repoName, repoUrl]
+        ]
+    }
 
 flatpakInstall :: Driver :> es => Text -> Eff es ()
 flatpakInstall package = drvRun $ "flatpak" :| ["install", "-y", repoName, package]

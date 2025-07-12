@@ -22,7 +22,7 @@ spec = around withIOEnv $ do
           show some' `shouldBe` ("SomePackage " <> show pkg)
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson
-    roundtrip $ ClonePackage{repo = "ghc/ghc", branch = Nothing, destination = "ghc"}
-    roundtrip $ NPMPackage{package = "express", binaries = ["express"]}
-    roundtrip $ PipxPackage{package = "pipx"}
-    roundtrip $ SystemPackage{name = "ghc", url = Nothing, autoUpdates = False}
+    roundtrip $ mkClonePackage "ghc/ghc" "ghc"
+    roundtrip $ (mkNPMPackage "express"){binaries = ["express"]}
+    roundtrip $ mkPipxPackage "pipx"
+    roundtrip $ mkSystemPackage "ghc"
