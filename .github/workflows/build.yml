@@ -27,24 +27,37 @@ jobs:
       - name: Lint
         run: ./lint
   test:
-    name: "Test${{ matrix.part && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
+    name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
       matrix:
         include:
           - docker: debian
+            part: Haskell
+          - docker: debian
+            part: Python
           - docker: ubuntu
+            part: Haskell
+          - docker: ubuntu
+            part: Python
           - docker: ubuntu
             arch: arm
+            part: Haskell
+          - docker: ubuntu
+            arch: arm
+            part: Python
           - docker: fedora
-          - host: ubuntu
+            part: Haskell
+          - docker: fedora
             part: Python
           - host: ubuntu
             part: Haskell
-          - host: macos
+          - host: ubuntu
             part: Python
           - host: macos
             part: Haskell
+          - host: macos
+            part: Python
     runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
     steps:
       - name: Checkout
@@ -70,8 +83,8 @@ jobs:
             });
           EOF
           command -v apt >/dev/null && sudo apt update || true
-      - name: Test (Haskell)
-        if: ${{ !matrix.part || matrix.part == 'Haskell' }}
+      - name: Test
+        if: ${{ matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5
         with:
           stack-build-arguments: --fast --lock-file error-on-write
@@ -79,13 +92,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Test (Python)
-        if: ${{ !matrix.part || matrix.part == 'Python' }}
+        if: ${{ matrix.part == 'Python' }}
         run: ./test-script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Upload coverage
-        if: ${{ !matrix.part || matrix.part == 'Python' }}
+        if: ${{ matrix.part == 'Python' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-data-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}-${{ matrix.arch || 'default' }}
