@@ -38,6 +38,7 @@ instance ToJSON YumRepo where
       [ "yum_name" .= p.name_
       , "yum_url" .= p.url
       , "gpg_key" .= p.gpgKey
+      , "post" .= p.post
       ]
 
 yumRepoRemoteVersion :: YumRepo -> Text

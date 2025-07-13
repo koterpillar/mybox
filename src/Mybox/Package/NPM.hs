@@ -34,7 +34,7 @@ instance FromJSON NPMPackage where
     pure NPMPackage{..}
 
 instance ToJSON NPMPackage where
-  toJSON p = object ["npm" .= p.package, "binary" .= p.binaries]
+  toJSON p = object ["npm" .= p.package, "binary" .= p.binaries, "post" .= p.post]
 
 prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
 prerequisites = do

@@ -30,6 +30,7 @@ instance ToJSON BrewRepo where
   toJSON p =
     object
       [ "brew_tap" .= p.name_
+      , "post" .= p.post
       ]
 
 brewRepoLocalVersion :: Driver :> es => BrewRepo -> Eff es (Maybe Text)
