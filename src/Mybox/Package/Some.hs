@@ -8,6 +8,7 @@ import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
+import Mybox.Package.Shell
 import Mybox.Package.System
 import Mybox.Package.YumRepo
 import Mybox.Prelude
@@ -32,6 +33,7 @@ instance FromJSON SomePackage where
       <|> mkSomePackageF (parseJSON @ClonePackage v)
       <|> mkSomePackageF (parseJSON @NPMPackage v)
       <|> mkSomePackageF (parseJSON @PipxPackage v)
+      <|> mkSomePackageF (parseJSON @ShellPackage v)
       <|> mkSomePackageF (parseJSON @SystemPackage v)
       <|> mkSomePackageF (parseJSON @YumRepo v)
 

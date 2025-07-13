@@ -13,8 +13,8 @@ spec = do
     [ (Nothing, "{\"brew_tap\": \"denji/nginx\"}")
     ]
   onlyIfOS (\case MacOS -> True; _ -> False) $
-    packageSpec $ \psa ->
-      ps
-        (mkBrewRepo "denji/nginx")
-        & checkInstalledCommandOutput ("brew" :| ["info", "nginx-full"]) "HTTP(S) server"
-        & psPendingIf (not psa.virtualSystem)
+    onlyIf virtualSystem $
+      packageSpec $ \_ ->
+        ps
+          (mkBrewRepo "denji/nginx")
+          & checkInstalledCommandOutput ("brew" :| ["info", "nginx-full"]) "HTTP(S) server"

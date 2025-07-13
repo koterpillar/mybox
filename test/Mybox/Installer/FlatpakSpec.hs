@@ -12,11 +12,6 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-inDocker :: Driver :> es => Eff es Bool
-inDocker = do
-  r <- drvRunOutputExit (shellRaw "echo $DOCKER")
-  pure $ r.output /= ""
-
 expectedFlatpakVersion :: Text -> Bool
 expectedFlatpakVersion version = case Text.splitOn ":" version of
   [origin, commit] -> origin `elem` ["fedora", "flathub"] && Text.length commit == 12

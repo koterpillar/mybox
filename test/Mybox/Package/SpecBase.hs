@@ -8,15 +8,12 @@ module Mybox.Package.SpecBase (
   preinstall,
   preinstallPackage,
   ignorePath,
-  psPending,
-  psPendingIf,
   packageSpec,
   jsonSpec,
 ) where
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
-import System.Environment
 import System.Random
 
 import Mybox.Aeson
@@ -31,23 +28,15 @@ import Mybox.Tracker
 data PackageSpecArgs = PackageSpecArgs
   { random :: StdGen
   , directory :: Text
-  , docker :: Bool
-  , ci :: Bool
+  , username :: Text
   }
-
-instance HasField "virtualSystem" PackageSpecArgs Bool where
-  getField psa = psa.docker || psa.ci
-
-hasEnv :: String -> IO Bool
-hasEnv name = not . null <$> lookupEnv name
 
 mkPSA :: IO PackageSpecArgs
 mkPSA = do
   random_ <- newStdGen
-  directory <- ("dest-" <>) . Text.pack . show <$> liftIO (randomIO @Int)
-  docker <- hasEnv "DOCKER_IMAGE"
-  ci <- hasEnv "CI"
-  pure $ PackageSpecArgs{random = random_, directory = directory, docker = docker, ci = ci}
+  directory <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
+  username <- runEff $ testDriver drvUsername
+  pure $ PackageSpecArgs{random = random_, directory, username}
 
 psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
 psaSpec f = runIO mkPSA >>= f
@@ -58,7 +47,6 @@ data PackageSpec a = PackageSpec
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
   , preinstall_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
   , ignoredPaths_ :: Set Text
-  , pending_ :: Bool
   }
 
 ps :: a -> PackageSpec a
@@ -69,7 +57,6 @@ ps p =
     , checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
     , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache/libdnf5"]
-    , pending_ = False
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
@@ -95,12 +82,6 @@ preinstall f s = s{preinstall_ = preinstall_ s >> f}
 preinstallPackage :: Package a => a -> MPS a
 preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
 
-psPendingIf :: Bool -> MPS a
-psPendingIf cond s = s{pending_ = cond || s.pending_}
-
-psPending :: MPS a
-psPending = psPendingIf True
-
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
   around withTestEnv $
@@ -110,7 +91,7 @@ packageSpec makePS =
         let p = s.package
         describe (Text.unpack $ fromMaybe p.name s.name_) $ do
           it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
-          (if s.pending_ then xit else it) "installs" $ do
+          it "installs" $ do
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
