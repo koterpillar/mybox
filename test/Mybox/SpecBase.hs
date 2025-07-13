@@ -1,5 +1,6 @@
 module Mybox.SpecBase (
   module Test.Hspec,
+  withEff,
   withIOEnv,
   withTestEnv,
   EffSpec,
@@ -27,12 +28,17 @@ newtype RunEff es
 
 type EffSpec ef = SpecWith (RunEff ef)
 
+withEff :: IOE :> es => (forall a. Eff es a -> Eff '[IOE] a) -> (RunEff es -> IO ()) -> IO ()
+withEff dispatch ioa = runEff $
+  dispatch $
+    withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
+      ioa $ RunEff unlift
+
 withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
-withIOEnv ioa = runEff $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+withIOEnv = withEff id
 
 withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
-withTestEnv ioa =
-  runEff $ runStores $ testDriver $ withSeqEffToIO $ \unlift -> ioa $ RunEff unlift
+withTestEnv = withEff $ runStores . testDriver
 
 beforeAll_ :: Eff ef () -> EffSpec ef -> EffSpec ef
 beforeAll_ act = Hspec.beforeAllWith $ \r@(RunEff unlift) -> unlift act >> pure r
