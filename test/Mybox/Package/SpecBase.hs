@@ -28,13 +28,15 @@ import Mybox.Tracker
 data PackageSpecArgs = PackageSpecArgs
   { random :: StdGen
   , directory :: Text
+  , username :: Text
   }
 
 mkPSA :: IO PackageSpecArgs
 mkPSA = do
   random_ <- newStdGen
   directory <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
-  pure $ PackageSpecArgs{random = random_, directory = directory}
+  username <- runEff $ testDriver drvUsername
+  pure $ PackageSpecArgs{random = random_, directory, username}
 
 psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
 psaSpec f = runIO mkPSA >>= f
