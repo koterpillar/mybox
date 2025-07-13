@@ -11,14 +11,9 @@ import Mybox.Stores
 aptInstall :: Driver :> es => Text -> Eff es ()
 aptInstall package =
   drvRun $
-    "sudo"
-      :| [ "env"
-         , "DEBIAN_FRONTEND=noninteractive"
-         , "apt"
-         , "install"
-         , "-y"
-         , package
-         ]
+    sudo $
+      env [("DEBIAN_FRONTEND", "noninteractive")] $
+        "apt" :| ["install", "-y", package]
 
 parseAptCacheOutput :: Text -> Maybe Text
 parseAptCacheOutput output = listToMaybe $ do

@@ -39,6 +39,7 @@ instance ToJSON ClonePackage where
       [ "clone" .= p.repo
       , "branch" .= p.branch
       , "destination" .= p.destination
+      , "post" .= p.post
       ]
 
 cpRemote :: ClonePackage -> Text

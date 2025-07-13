@@ -1,12 +1,14 @@
 module Mybox.Package.SomeSpec where
 
 import Mybox.Aeson
+import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Some
 import Mybox.Package.System
+import Mybox.Package.YumRepo
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -22,7 +24,9 @@ spec = around withIOEnv $ do
           show some' `shouldBe` ("SomePackage " <> show pkg)
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson
+    roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" "ghc"
     roundtrip $ (mkNPMPackage "express"){binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkSystemPackage "ghc"
+    roundtrip $ mkYumRepo "test" "https://example.com/repo"

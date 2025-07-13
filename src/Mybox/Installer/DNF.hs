@@ -11,12 +11,12 @@ import Mybox.Stores
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
 dnfInstall action package =
   drvRun $
-    "sudo"
-      :| [ "dnf"
-         , action
-         , "-y"
-         , package
-         ]
+    sudo $
+      "dnf"
+        :| [ action
+           , "-y"
+           , package
+           ]
 
 rpmQuery :: Driver :> es => Maybe Text -> Eff es (Map Text Text)
 rpmQuery package_ = do

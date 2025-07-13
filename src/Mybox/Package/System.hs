@@ -36,6 +36,7 @@ instance ToJSON SystemPackage where
       [ "system" .= p.name
       , "url" .= p.url
       , "auto_updates" .= p.autoUpdates
+      , "post" .= p.post
       ]
 
 autoUpdateVersion :: SystemPackage -> Text -> Text

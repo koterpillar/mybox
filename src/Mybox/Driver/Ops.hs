@@ -153,3 +153,11 @@ shellQuote t
  where
   q = "'"
   safe c = isAlphaNum c || c == '_'
+
+sudo :: Args -> Args
+sudo args = "sudo" :| toList args
+
+env :: [(Text, Text)] -> Args -> Args
+env vars args = "env" :| map mkVar vars ++ toList args
+ where
+  mkVar (k, v) = k <> "=" <> v
