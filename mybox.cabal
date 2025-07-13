@@ -39,6 +39,7 @@ library
       Mybox.Package.Queue.Effect
       Mybox.Package.Some
       Mybox.Package.System
+      Mybox.Package.YumRepo
       Mybox.Path
       Mybox.Prelude
       Mybox.Stores
@@ -136,6 +137,7 @@ test-suite tests
       Mybox.Package.SomeSpec
       Mybox.Package.SpecBase
       Mybox.Package.SystemSpec
+      Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.SpecBase
       Mybox.StoresSpec
