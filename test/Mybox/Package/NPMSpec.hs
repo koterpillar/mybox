@@ -21,14 +21,14 @@ spec = do
     describe "remote version" $ do
       around withTestEnv $ do
         it "gets version for existing package" $ nullTrackerSession $ runInstallQueue $ do
-          let package = NPMPackage "express" []
+          let package = mkNPMPackage "express"
           version <- remoteVersion package
           version `shouldSatisfy` (>= "4.18.2")
         it "fails for non-existent package" $ nullTrackerSession $ runInstallQueue $ do
-          let package = NPMPackage "xxxxxxxxxxxx" []
+          let package = mkNPMPackage "xxxxxxxxxxxx"
           remoteVersion package `shouldThrow` anyException
   let expressGenerator _ =
-        ps (NPMPackage "express-generator" ["express"])
+        ps ((mkNPMPackage "express-generator"){binaries = ["express"]})
           & checkInstalledCommandOutput
             ("express" :| ["--help"])
             "engine support"

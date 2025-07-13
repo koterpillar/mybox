@@ -10,12 +10,8 @@ import Mybox.SpecBase
 alacrittyVersion :: Text -> Bool
 alacrittyVersion v = v >= "0.13.2" && v < "99"
 
-macOS :: OS -> Bool
-macOS MacOS = True
-macOS _ = False
-
 spec :: Spec
-spec = onlyIf (macOS <$> drvOS) $ installerSpec_ brew $ do
+spec = onlyIfOS (\case MacOS -> True; _ -> False) $ installerSpec_ brew $ do
   it "returns cask version" $
     iLatestVersion brew "alacritty" >>= (`shouldSatisfy` alacrittyVersion)
   it "fails for non-tapped cask" $

@@ -18,18 +18,18 @@ spec = do
     describe "remote version" $ do
       around withTestEnv $ do
         it "gets version for existing package" $ nullTrackerSession $ runInstallQueue $ do
-          let package = PipxPackage "black"
+          let package = mkPipxPackage "black"
           version <- remoteVersion package
           version `shouldSatisfy` (>= "25.0.0")
           version `shouldSatisfy` (<= "999.0.0")
         it "fails for non-existent package" $ nullTrackerSession $ runInstallQueue $ do
-          let package = PipxPackage "xxxxxxxxxxxx"
+          let package = mkPipxPackage "xxxxxxxxxxxx"
           remoteVersion package `shouldThrow` anyException
         it "returns a Git commit hash for a git package" $ nullTrackerSession $ runInstallQueue $ do
-          let package = PipxPackage "git+https://github.com/django/django.git"
+          let package = mkPipxPackage "git+https://github.com/django/django.git"
           remoteVersion package >>= (`shouldSatisfy` (\v -> Text.length v == 40))
   let tqdmPackage name _ =
-        ps (PipxPackage name)
+        ps (mkPipxPackage name)
           & checkInstalledCommandOutput
             ("tqdm" :| ["--help"])
             "Usage:\n  tqdm"

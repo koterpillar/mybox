@@ -1,10 +1,11 @@
-module Mybox.Package.System (SystemPackage (..)) where
+module Mybox.Package.System (SystemPackage (..), mkSystemPackage) where
 
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Installer
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
+import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.Stores
@@ -14,14 +15,19 @@ data SystemPackage = SystemPackage
   { name :: Text
   , url :: Maybe Text
   , autoUpdates :: Bool
+  , post :: [Text]
   }
   deriving (Eq, Show)
+
+mkSystemPackage :: Text -> SystemPackage
+mkSystemPackage name = SystemPackage{name, url = Nothing, autoUpdates = True, post = []}
 
 instance FromJSON SystemPackage where
   parseJSON = withObject "SystemPackage" $ \o -> do
     name <- o .: "system"
     url <- o .:? "url"
     autoUpdates <- o .:? "auto_updates" .!= True
+    post <- parsePost o
     pure SystemPackage{..}
 
 instance ToJSON SystemPackage where
@@ -61,4 +67,4 @@ systemInstall p = do
 instance Package SystemPackage where
   localVersion = systemLocalVersion
   remoteVersion = systemRemoteVersion
-  install = systemInstall
+  install = installWithPost systemInstall
