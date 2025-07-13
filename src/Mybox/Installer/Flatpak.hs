@@ -19,10 +19,12 @@ flatpakPackage :: SystemPackage
 flatpakPackage =
   (mkSystemPackage "flatpak")
     { post =
-        [ shellJoin ["sudo", "systemctl", "daemon-reload"]
-        , shellJoin ["sudo", "systemctl", "enable", "--now", "dbus"]
-        , shellJoin ["sudo", "flatpak", "remote-add", "--if-not-exists", repoName, repoUrl]
-        ]
+        map
+          (shellJoin . sudo)
+          [ "systemctl" :| ["daemon-reload"]
+          , "systemctl" :| ["enable", "--now", "dbus"]
+          , "flatpak" :| ["remote-add", "--if-not-exists", repoName, repoUrl]
+          ]
     }
 
 flatpakInstall :: Driver :> es => Text -> Eff es ()
