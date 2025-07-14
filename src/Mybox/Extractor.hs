@@ -27,13 +27,12 @@ findContents sourceDir maxDepth = do
         [element] -> do
           isDir <- drvIsDir element
           if isDir
-            then findContents (sourceDir </> element) (pred maxDepth)
+            then findContents element (pred maxDepth)
             else pure contents
         _ -> pure contents
 
 extract :: Driver :> es => Extractor -> Text -> Text -> Eff es ()
-extract extractor archive targetDirectory = do
-  tmpdir <- drvTempDir
+extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   contents <- findContents tmpdir 10
   for_ contents $ \element -> drvCopy element (targetDirectory </> fromJust (pFilename element))
@@ -59,9 +58,7 @@ withRedirect f fallback url = do
     Just a -> pure a
     Nothing -> do
       redirectUrl <- drvRedirectLocation url
-      case f redirectUrl of
-        Just a -> pure a
-        Nothing -> fallback
+      maybe fallback pure $ f redirectUrl
 
 guessExtractor :: Text -> Maybe Extractor
 guessExtractor url = go

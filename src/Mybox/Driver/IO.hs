@@ -69,7 +69,7 @@ withAddedPath addPath action = do
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
   originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
-  bracket (localDriver drvTempDir) (localDriver . drvRm) $ \home -> do
+  bracket (localDriver $ drvTemp_ True) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $ do
       let linkToOriginalHome path =
             let op = originalHome </> path
@@ -91,7 +91,7 @@ dockerDriver baseImage act =
   mkContainer =
     localDriver $ do
       containerName <- Text.pack . show <$> liftIO (randomIO @Int)
-      bracket drvTempDir drvRm $ \tempDir -> do
+      drvTempDir $ \tempDir -> do
         drvCopy "bootstrap" (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage

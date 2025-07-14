@@ -1,6 +1,7 @@
 module Mybox.Driver.Ops where
 
 import Control.Applicative ((<|>))
+import Effectful.Exception
 import Data.Char (isAlphaNum)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
@@ -81,11 +82,11 @@ drvCopy source target = do
 drvTemp_ :: Driver :> es => Bool -> Eff es Text
 drvTemp_ isDirectory = drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
-drvTempFile :: Driver :> es => Eff es Text
-drvTempFile = drvTemp_ False
+drvTempFile :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempFile = bracket (drvTemp_ False) drvRm
 
-drvTempDir :: Driver :> es => Eff es Text
-drvTempDir = drvTemp_ True
+drvTempDir :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempDir = bracket (drvTemp_ True) drvRm
 
 drvReadFile :: Driver :> es => Text -> Eff es Text
 drvReadFile path = drvRunOutput $ "cat" :| [path]
@@ -118,6 +119,7 @@ drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing = []
       maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
+      isNul = (== '\0')
   let args =
         [path, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
@@ -130,7 +132,8 @@ drvFind path fo = do
             )
           ++ ["-print0"]
   o <- drvRunOutput $ "find" :| args
-  pure $ Set.fromList $ Text.split (== '\0') o
+  let names = Text.split isNul $ Text.dropWhileEnd isNul o
+  pure $ Set.fromList names
 
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
