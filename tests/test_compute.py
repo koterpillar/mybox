@@ -1,4 +1,6 @@
 import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
@@ -7,6 +9,28 @@ import trio
 
 from mybox.compute import URL, Format, HTMLLinks, JSONPath, compute, parse_value
 from mybox.utils import T
+
+
+@asynccontextmanager
+async def http_test_server(page_contents: str) -> AsyncIterator[str]:
+    class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(page_contents.encode())
+
+    server = HTTPServer(("localhost", 0), SimpleHTTPRequestHandler)
+    port = server.server_port
+
+    # Start server in a separate thread
+    trio.lowlevel.start_thread_soon(server.serve_forever, lambda result: None)
+
+    try:
+        yield f"http://localhost:{port}"
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 class TestParse:
@@ -90,29 +114,34 @@ async def test_jsonpath_filter():
 
 @pytest.mark.trio
 async def test_url():
-    class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"Hello World")
+    async with http_test_server("Hello World") as url:
+        value = parse_value({"url": url})
 
-    server = HTTPServer(("localhost", 0), SimpleHTTPRequestHandler)
+        assert await compute(value) == "Hello World"
 
-    trio.lowlevel.start_thread_soon(server.serve_forever, lambda result: None)
 
-    value = parse_value({"url": f"http://localhost:{server.server_port}"})
-
-    assert await compute(value) == "Hello World"
+LINKS_HTML = """
+<html>
+    <a href='https://example.com'>example</a>
+    <a href='/relative'>relative</a>
+</html>
+"""
 
 
 @pytest.mark.trio
 async def test_links():
-    value = parse_value(
-        {"links": "<html><a href='https://example.com'>example</a></html>"}
-    )
+    async with http_test_server(LINKS_HTML) as url:
+        value = parse_value({"links": url, "include": "example"})
 
-    assert (await compute(value)) == "https://example.com"
+        assert (await compute(value)) == "https://example.com"
+
+
+@pytest.mark.trio
+async def test_links_relative():
+    async with http_test_server(LINKS_HTML) as url:
+        value = parse_value({"links": url, "include": "relative"})
+
+        assert (await compute(value)) == f"{url}/relative"
 
 
 @pytest.mark.trio
