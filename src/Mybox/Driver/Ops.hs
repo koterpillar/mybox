@@ -26,6 +26,16 @@ drvExecutableExists exe = do
   code <- drvRunOk $ shell $ "command" :| ["-v", exe]
   pure (code == ExitSuccess)
 
+drvFindExecutable :: Driver :> es => [Text] -> Eff es Text
+drvFindExecutable candidates = go candidates
+ where
+  go [] = terror $ "Neither of " <> Text.intercalate ", " candidates <> " found in PATH."
+  go (exe : executables) = do
+    exists <- drvExecutableExists exe
+    if exists
+      then pure exe
+      else drvFindExecutable executables
+
 -- | Check if a path is a directory.
 drvIsDir :: Driver :> es => Text -> Eff es Bool
 drvIsDir path = do
@@ -123,7 +133,13 @@ drvFind path fo = do
   pure $ Set.fromList $ Text.split (== '\0') o
 
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
-drvUrlEtag url =
+drvUrlEtag = drvUrlProperty "%header{etag}"
+
+drvRedirectLocation :: Driver :> es => Text -> Eff es Text
+drvRedirectLocation = drvUrlProperty "%{url_effective}"
+
+drvUrlProperty :: Driver :> es => Text -> Text -> Eff es Text
+drvUrlProperty property url = do
   drvRunOutput $
     "curl"
       :| [ "--fail"
@@ -133,7 +149,7 @@ drvUrlEtag url =
          , "--output"
          , "/dev/null"
          , "--write-out"
-         , "%header{etag}"
+         , property
          , url
          ]
 
