@@ -20,6 +20,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Extractor
       Mybox.Installer
       Mybox.Installer.Apt
       Mybox.Installer.Brew
