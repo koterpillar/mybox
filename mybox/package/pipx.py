@@ -9,6 +9,7 @@ from pydantic import Field, field_validator
 from ..tracker import Tracker
 from ..utils import GIT_PREFIX, repo_version
 from .base import Package
+from .github import GitHubPackage
 from .manual_version import ManualVersion
 from .system import SystemPackage
 
@@ -99,6 +100,14 @@ class PipxPackage(ManualVersion):
     async def prerequisites(self) -> AsyncIterable[Package]:
         async for package in super().prerequisites():
             yield package  # pragma: no cover
+
+        yield GitHubPackage(
+            repo="pypa/pipx",
+            binary=["pipx"],
+            raw="pipx",
+            db=self.db,
+            driver=self.driver_,
+        )
 
         os = await self.driver.os()
 
