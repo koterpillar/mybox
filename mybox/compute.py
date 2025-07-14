@@ -1,6 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Union
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
@@ -77,9 +78,13 @@ class HTMLLinks(Derived, Filters):
     base: "Value" = Field(..., alias="links")
 
     async def derived_value(self, contents: str) -> str:
-        soup = BeautifulSoup(contents, "html.parser")
+        url = contents
+        page_contents = await http_get(url)
+        soup = BeautifulSoup(page_contents, "html.parser")
         candidates: list[str] = list(
-            filter(None, (link.get("href") for link in soup.find_all("a")))
+            filter(
+                None, (urljoin(url, link.get("href")) for link in soup.find_all("a"))
+            )
         )
         return choose(candidates, self.filters())
 
