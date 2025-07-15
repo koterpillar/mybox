@@ -78,18 +78,9 @@ shellInstall p = do
     Linux Fedora -> queueInstall $ mkSystemPackage "util-linux-user"
     _ -> pure ()
 
-  shellExists <- drvIsFile p.shell
-  unless shellExists $
-    terror $
-      p.shell <> " does not exist."
-
-  shellExecutable <- drvIsExecutable p.shell
-  unless shellExecutable $
-    terror $
-      p.shell <> " is not executable."
-
+  unlessM (drvIsFile p.shell) $ terror $ p.shell <> " does not exist."
+  unlessM (drvIsExecutable p.shell) $ terror $ p.shell <> " is not executable."
   shells <- allShells
-
   unless (p.shell `elem` shells) $ do
     drvRun $ sudo $ shellRaw $ "echo " <> shellQuote p.shell <> " >> " <> shellQuote shellsFile
 

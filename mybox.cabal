@@ -76,6 +76,7 @@ library
     , bytestring
     , containers
     , effectful
+    , extra
     , mtl
     , process
     , random
@@ -114,6 +115,7 @@ executable mybox
     , bytestring
     , containers
     , effectful
+    , extra
     , mtl
     , mybox
     , process
@@ -177,6 +179,7 @@ test-suite tests
     , bytestring
     , containers
     , effectful
+    , extra
     , hspec
     , mtl
     , mybox

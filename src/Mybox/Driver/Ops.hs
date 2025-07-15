@@ -24,8 +24,8 @@ drvIsFile path = do
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
 drvExecutableExists exe = do
-  code <- drvRunOk $ shell $ "command" :| ["-v", exe]
-  pure (code == ExitSuccess)
+  result <- drvRunOutputExit $ shell $ "command" :| ["-v", exe]
+  pure (result.exit == ExitSuccess)
 
 drvFindExecutable :: Driver :> es => [Text] -> Eff es Text
 drvFindExecutable candidates = go candidates

@@ -8,6 +8,8 @@ module Mybox.Prelude (
   (&),
   for,
   on,
+  unlessM,
+  whenM,
   ExitCode (..),
   Generic,
   HasField (..),
@@ -18,6 +20,7 @@ module Mybox.Prelude (
 ) where
 
 import Control.Monad
+import Control.Monad.Extra (unlessM, whenM)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
