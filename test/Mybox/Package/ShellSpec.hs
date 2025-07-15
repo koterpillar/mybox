@@ -7,7 +7,6 @@ import Mybox.Package.Shell
 import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
-import Mybox.Stores
 import Mybox.Tracker
 
 spec :: Spec
@@ -42,7 +41,7 @@ spec = do
 
   describe "validation" $
     onlyIf inDocker $
-      around (withEff $ runStores . testDriver . nullTrackerSession . runInstallQueue) $ do
+      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
         it "fails when shell does not exist" $
           install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
 

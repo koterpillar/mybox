@@ -3,6 +3,7 @@ module Mybox.SpecBase (
   withEff,
   withIOEnv,
   withTestEnv,
+  withTestEnvAnd,
   EffSpec,
   beforeAll_,
   onlyIf,
@@ -41,8 +42,11 @@ withEff dispatch ioa = runEff $
 withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
 withIOEnv = withEff id
 
+withTestEnvAnd :: IOE :> es => (forall a. Eff es a -> Eff '[Driver, Stores, IOE] a) -> (RunEff es -> IO ()) -> IO ()
+withTestEnvAnd eff = withEff $ runStores . testDriver . eff
+
 withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
-withTestEnv = withEff $ runStores . testDriver
+withTestEnv = withTestEnvAnd id
 
 beforeAll_ :: Eff ef () -> EffSpec ef -> EffSpec ef
 beforeAll_ act = Hspec.beforeAllWith $ \r@(RunEff unlift) -> unlift act >> pure r

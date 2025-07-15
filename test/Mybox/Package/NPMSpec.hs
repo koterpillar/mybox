@@ -19,12 +19,12 @@ spec = do
     ]
   onlyIf (fmap (== ExitSuccess) $ drvRunOk $ "npm" :| ["--version"]) $
     describe "remote version" $ do
-      around withTestEnv $ do
-        it "gets version for existing package" $ nullTrackerSession $ runInstallQueue $ do
+      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+        it "gets version for existing package" $ do
           let package = mkNPMPackage "express"
           version <- remoteVersion package
           version `shouldSatisfy` (>= "4.18.2")
-        it "fails for non-existent package" $ nullTrackerSession $ runInstallQueue $ do
+        it "fails for non-existent package" $ do
           let package = mkNPMPackage "xxxxxxxxxxxx"
           remoteVersion package `shouldThrow` anyException
   let expressGenerator _ =

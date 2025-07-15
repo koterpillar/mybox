@@ -19,16 +19,16 @@ spec = do
   jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
   onlyIf pipxExists $
     describe "remote version" $ do
-      around withTestEnv $ do
-        it "gets version for existing package" $ nullTrackerSession $ runInstallQueue $ do
+      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+        it "gets version for existing package" $ do
           let package = mkPipxPackage "black"
           version <- remoteVersion package
           version `shouldSatisfy` (>= "25.0.0")
           version `shouldSatisfy` (<= "999.0.0")
-        it "fails for non-existent package" $ nullTrackerSession $ runInstallQueue $ do
+        it "fails for non-existent package" $ do
           let package = mkPipxPackage "xxxxxxxxxxxx"
           remoteVersion package `shouldThrow` anyException
-        it "returns a Git commit hash for a git package" $ nullTrackerSession $ runInstallQueue $ do
+        it "returns a Git commit hash for a git package" $ do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
           remoteVersion package >>= (`shouldSatisfy` (\v -> Text.length v == 40))
   let tqdmPackage name _ =
