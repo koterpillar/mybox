@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module Mybox.Installer.Class (module Mybox.Installer.Class, Map) where
 
 import Data.Map.Strict (Map)

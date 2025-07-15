@@ -1,10 +1,10 @@
 module Mybox.Driver.Ops where
 
 import Control.Applicative ((<|>))
-import Effectful.Exception
 import Data.Char (isAlphaNum)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Effectful.Exception
 
 import Mybox.Driver.Class
 import Mybox.Prelude

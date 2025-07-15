@@ -1,8 +1,4 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Mybox.Driver.IO (
-  IODriver,
   localDriver,
   testDriver,
 ) where
