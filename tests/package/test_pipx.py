@@ -39,10 +39,6 @@ async def test_remote_version_git():
 
 
 class TestPipx(PackageTestBase):
-    prerequisites = [
-        {"repo": "pypa/pipx", "binary": "pipx", "raw": "pipx"},
-    ]
-
     async def constructor_args(self) -> PackageArgs:
         return {"pipx": "tqdm"}
 

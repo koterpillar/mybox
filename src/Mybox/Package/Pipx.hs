@@ -51,6 +51,7 @@ instance FromJSON PipxList where
 
 prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
 prerequisites = do
+  -- FIXME: Install pipx
   os <- drvOS
   let packages = case os of
         Linux _ -> ["python3-pip"]
