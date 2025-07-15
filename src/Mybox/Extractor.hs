@@ -11,11 +11,12 @@ import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Package.Queue.Effect
 import Mybox.Path
 import Mybox.Prelude
 
 data Extractor = Extractor
-  { extractExact :: forall es. Driver :> es => Text -> Text -> Eff es ()
+  { extractExact :: forall es. (Driver :> es, InstallQueue :> es) => Text -> Text -> Eff es ()
   , description :: Text
   }
 
@@ -36,19 +37,31 @@ findContents sourceDir maxDepth = do
             else pure contents
         _ -> pure contents
 
-extract :: Driver :> es => Extractor -> Text -> Text -> Eff es ()
+extract :: (Driver :> es, InstallQueue :> es) => Extractor -> Text -> Text -> Eff es ()
 extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   contents <- findContents tmpdir 10
   for_ contents $ \element -> drvCopy element (targetDirectory </> fromJust (pFilename element))
 
-tar :: [Text] -> Extractor
-tar options = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : options}
+tar_ :: Maybe Text -> Extractor
+tar_ option = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}
  where
   extractTar :: Driver :> es => Text -> Text -> Eff es ()
   extractTar archive targetDirectory = do
     tarCmd <- drvFindExecutable ["gtar", "tar"]
-    drvRun $ tarCmd :| ("--extract" : "--directory" : targetDirectory : options ++ ["--file", archive])
+    drvRun $ tarCmd :| ["--extract", "--directory", targetDirectory] ++ toList option ++ ["--file", archive]
+
+tar :: Extractor
+tar = tar_ Nothing
+
+tarGz :: Extractor
+tarGz = tar_ (Just "-z")
+
+tarBz2 :: Extractor
+tarBz2 = tar_ (Just "-j")
+
+tarXz :: Extractor
+tarXz = tar_ (Just "-J")
 
 unzipE :: Extractor
 unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
@@ -69,10 +82,10 @@ guessExtractor :: Text -> Maybe Extractor
 guessExtractor url = go
  where
   go
-    | hasSuffix ".tar" = Just $ tar []
-    | hasSuffix ".tar.gz" || hasSuffix ".tgz" = Just $ tar ["-z"]
-    | hasSuffix ".tar.bz2" = Just $ tar ["-j"]
-    | hasSuffix ".tar.xz" || hasSuffix ".txz" = Just $ tar ["-J"]
+    | hasSuffix ".tar" = Just tar
+    | hasSuffix ".tar.gz" || hasSuffix ".tgz" = Just tarGz
+    | hasSuffix ".tar.bz2" = Just tarBz2
+    | hasSuffix ".tar.xz" || hasSuffix ".txz" = Just tarXz
     | hasSuffix ".zip" = Just unzipE
     | otherwise = Nothing
   hasSuffix suffix = Text.isSuffixOf suffix url
@@ -81,11 +94,11 @@ getExtractor :: Driver :> es => Text -> Eff es Extractor
 getExtractor = withRedirect guessExtractor $ terror "Unknown archive format"
 
 data RawExtractor = RawExtractor
-  { extractRaw_ :: forall es. Driver :> es => Text -> Text -> Eff es ()
+  { extractRaw_ :: forall es. (Driver :> es, InstallQueue :> es) => Text -> Text -> Eff es ()
   , description :: Text
   }
 
-extractRaw :: Driver :> es => RawExtractor -> Text -> Text -> Eff es ()
+extractRaw :: (Driver :> es, InstallQueue :> es) => RawExtractor -> Text -> Text -> Eff es ()
 extractRaw e = extractRaw_ e
 
 pipeE :: Text -> RawExtractor
