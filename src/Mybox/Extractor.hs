@@ -1,9 +1,10 @@
 module Mybox.Extractor (
-  Extractor (..),
-  RawExtractor (..),
+  Extractor,
+  RawExtractor,
   getExtractor,
   getRawExtractor,
   extract,
+  extractRaw,
 ) where
 
 import Data.Set qualified as Set
@@ -13,9 +14,13 @@ import Mybox.Driver
 import Mybox.Path
 import Mybox.Prelude
 
-newtype Extractor = Extractor
+data Extractor = Extractor
   { extractExact :: forall es. Driver :> es => Text -> Text -> Eff es ()
+  , description :: Text
   }
+
+instance Show Extractor where
+  show Extractor{description} = Text.unpack description
 
 findContents :: Driver :> es => Text -> Int -> Eff es (Set Text)
 findContents sourceDir maxDepth = do
@@ -38,7 +43,7 @@ extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   for_ contents $ \element -> drvCopy element (targetDirectory </> fromJust (pFilename element))
 
 tar :: [Text] -> Extractor
-tar options = Extractor{extractExact = extractTar}
+tar options = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : options}
  where
   extractTar :: Driver :> es => Text -> Text -> Eff es ()
   extractTar archive targetDirectory = do
@@ -46,7 +51,7 @@ tar options = Extractor{extractExact = extractTar}
     drvRun $ tarCmd :| ("--extract" : "--directory" : targetDirectory : options ++ ["--file", archive])
 
 unzipE :: Extractor
-unzipE = Extractor{extractExact = extractUnzip}
+unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
  where
   extractUnzip :: Driver :> es => Text -> Text -> Eff es ()
   extractUnzip archive targetDirectory = do
@@ -75,19 +80,23 @@ guessExtractor url = go
 getExtractor :: Driver :> es => Text -> Eff es Extractor
 getExtractor = withRedirect guessExtractor $ terror "Unknown archive format"
 
-newtype RawExtractor = RawExtractor
-  { extractRaw :: forall es. Driver :> es => Text -> Text -> Eff es ()
+data RawExtractor = RawExtractor
+  { extractRaw_ :: forall es. Driver :> es => Text -> Text -> Eff es ()
+  , description :: Text
   }
 
+extractRaw :: Driver :> es => RawExtractor -> Text -> Text -> Eff es ()
+extractRaw e = extractRaw_ e
+
 pipeE :: Text -> RawExtractor
-pipeE command = RawExtractor{extractRaw = pipeExtract}
+pipeE command = RawExtractor{extractRaw_ = pipeExtract, description = Text.unwords ["pipe", command]}
  where
   pipeExtract :: Driver :> es => Text -> Text -> Eff es ()
   pipeExtract archive target =
     drvRun $ shellRaw $ command <> " < " <> shellQuote archive <> " > " <> shellQuote target
 
 moveE :: RawExtractor
-moveE = RawExtractor{extractRaw = drvCopy}
+moveE = RawExtractor{extractRaw_ = drvCopy, description = "move"}
 
 guessRawExtractor :: Text -> Maybe RawExtractor
 guessRawExtractor url = go
