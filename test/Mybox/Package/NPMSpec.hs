@@ -17,7 +17,7 @@ spec = do
     , (Just "single binary", "{\"npm\": \"test\", \"binary\": \"test\"}")
     , (Just "multiple binaries", "{\"npm\": \"test\", \"binary\": [\"one\", \"two\"]}")
     ]
-  onlyIf (fmap (== ExitSuccess) $ drvRunOk $ "npm" :| ["--version"]) $
+  onlyIf (drvExecutableExists "npm") $
     describe "remote version" $ do
       around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
         it "gets version for existing package" $ do

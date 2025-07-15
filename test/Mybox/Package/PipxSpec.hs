@@ -11,13 +11,10 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-pipxExists :: Driver :> es => Eff es Bool
-pipxExists = fmap (== ExitSuccess) $ drvRunOk $ "pipx" :| ["--version"]
-
 spec :: Spec
 spec = do
   jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
-  onlyIf pipxExists $
+  onlyIf (drvExecutableExists "pipx") $
     describe "remote version" $ do
       around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
         it "gets version for existing package" $ do
@@ -41,6 +38,6 @@ spec = do
           & ignorePath ".local/share/pipx"
           & ignorePath ".local/state/pipx/log"
   -- FIXME: install pipx
-  onlyIf pipxExists $ do
+  onlyIf (drvExecutableExists "pipx") $ do
     packageSpec $ tqdmPackage "tqdm"
     packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
