@@ -11,12 +11,16 @@ import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Package.Class
 import Mybox.Package.Queue.Effect
+import Mybox.Package.System
 import Mybox.Path
 import Mybox.Prelude
+import Mybox.Stores
+import Mybox.Tracker
 
 data Extractor = Extractor
-  { extractExact :: forall es. (Driver :> es, InstallQueue :> es) => Text -> Text -> Eff es ()
+  { extractExact :: forall es. (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Text -> Eff es ()
   , description :: Text
   }
 
@@ -37,7 +41,7 @@ findContents sourceDir maxDepth = do
             else pure contents
         _ -> pure contents
 
-extract :: (Driver :> es, InstallQueue :> es) => Extractor -> Text -> Text -> Eff es ()
+extract :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Extractor -> Text -> Text -> Eff es ()
 extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   contents <- findContents tmpdir 10
@@ -66,8 +70,9 @@ tarXz = tar_ (Just "-J")
 unzipE :: Extractor
 unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
  where
-  extractUnzip :: Driver :> es => Text -> Text -> Eff es ()
+  extractUnzip :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Text -> Eff es ()
   extractUnzip archive targetDirectory = do
+    unlessExecutableExists "unzip" $ ensureInstalled (mkSystemPackage "unzip")
     drvRun $ "unzip" :| ["-o", "-qq", archive, "-d", targetDirectory]
 
 withRedirect :: Driver :> es => (Text -> Maybe a) -> Eff es a -> Text -> Eff es a
@@ -94,32 +99,57 @@ getExtractor :: Driver :> es => Text -> Eff es Extractor
 getExtractor = withRedirect guessExtractor $ terror "Unknown archive format"
 
 data RawExtractor = RawExtractor
-  { extractRaw_ :: forall es. (Driver :> es, InstallQueue :> es) => Text -> Text -> Eff es ()
+  { extractRaw_ :: forall es. (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Text -> Eff es ()
   , description :: Text
   }
 
-extractRaw :: (Driver :> es, InstallQueue :> es) => RawExtractor -> Text -> Text -> Eff es ()
+mkRawExtractor :: Text -> (forall es. (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Text -> Eff es ()) -> RawExtractor
+mkRawExtractor description extractRaw_ = RawExtractor{extractRaw_ = extractRaw_, description}
+
+extractRaw :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => RawExtractor -> Text -> Text -> Eff es ()
 extractRaw e = extractRaw_ e
 
-pipeE :: Text -> RawExtractor
-pipeE command = RawExtractor{extractRaw_ = pipeExtract, description = Text.unwords ["pipe", command]}
- where
-  pipeExtract :: Driver :> es => Text -> Text -> Eff es ()
-  pipeExtract archive target =
-    drvRun $ shellRaw $ command <> " < " <> shellQuote archive <> " > " <> shellQuote target
+pipeCommand :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Text -> Text -> Eff es ()
+pipeCommand command archive target = do
+  drvRun $ shellRaw $ command <> " < " <> shellQuote archive <> " > " <> shellQuote target
 
-moveE :: RawExtractor
-moveE = RawExtractor{extractRaw_ = drvCopy, description = "move"}
+gunzip :: RawExtractor
+gunzip = mkRawExtractor "gunzip" $ pipeCommand "gunzip"
+
+xz :: RawExtractor
+xz = mkRawExtractor "xz" $ \archive target -> do
+  unlessExecutableExists "xzcat" $ do
+    prerequisite <- flip fmap drvOS $ \case
+      Linux Fedora -> "xz"
+      Linux (Debian _) -> "xz-utils"
+      MacOS -> "xz"
+    ensureInstalled $ mkSystemPackage prerequisite
+  pipeCommand "xzcat" archive target
+
+bunzip2 :: RawExtractor
+bunzip2 = mkRawExtractor "bunzip2" $ \archive target -> do
+  unlessExecutableExists "bunzip2" $ do
+    prerequisite <- flip fmap drvOS $ \case
+      Linux _ -> Just "bzip2"
+      MacOS -> Nothing
+    forM_ prerequisite $ ensureInstalled . mkSystemPackage
+  pipeCommand "bunzip2" archive target
+
+move :: RawExtractor
+move = RawExtractor{extractRaw_ = drvCopy, description = "move"}
 
 guessRawExtractor :: Text -> Maybe RawExtractor
 guessRawExtractor url = go
  where
   go
-    | hasSuffix ".gz" = Just $ pipeE "gunzip"
-    | hasSuffix ".xz" = Just $ pipeE "xzcat"
-    | hasSuffix ".bz2" = Just $ pipeE "bunzip2"
+    | hasSuffix ".gz" = Just gunzip
+    | hasSuffix ".xz" = Just xz
+    | hasSuffix ".bz2" = Just bunzip2
     | otherwise = Nothing
   hasSuffix suffix = Text.isSuffixOf suffix url
 
 getRawExtractor :: Driver :> es => Text -> Eff es RawExtractor
-getRawExtractor = withRedirect guessRawExtractor $ pure moveE
+getRawExtractor = withRedirect guessRawExtractor $ pure move
+
+unlessExecutableExists :: Driver :> es => Text -> Eff es () -> Eff es ()
+unlessExecutableExists command act = drvExecutableExists command >>= (`unless` act)
