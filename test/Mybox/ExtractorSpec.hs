@@ -34,10 +34,21 @@ extractFileNames archive = do
     files <- drvFind dir mempty{onlyFiles = True}
     pure $ Set.map (\f -> fromMaybe f $ Text.stripPrefix (dir <> "/") f) files
 
+prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
+prerequisites = do
+  -- FIXME: Cannot test prerequisites of the actual extractors
+  ensureInstalled $ mkSystemPackage "zip"
+  xz <- flip fmap drvOS $ \case
+    Linux Fedora -> "xz"
+    Linux (Debian _) -> "xz-utils"
+    MacOS -> "xz"
+  ensureInstalled $ mkSystemPackage xz
+  ensureInstalled $ mkSystemPackage "bzip2"
+
 spec :: Spec
 spec =
   around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $
-    beforeAll_ (ensureInstalled $ mkSystemPackage "zip") $ do
+    beforeAll_ prerequisites $ do
       describe "extract" $ do
         it "unzips removing common prefix" $ do
           temporaryZip ["foo/bar", "foo/baz"] $ \archive -> do
