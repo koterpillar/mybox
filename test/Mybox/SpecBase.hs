@@ -3,8 +3,9 @@ module Mybox.SpecBase (
   withEff,
   withIOEnv,
   withTestEnv,
+  withTestEnvAnd,
   EffSpec,
-  beforeAll_,
+  before,
   onlyIf,
   onlyIfOS,
   skipIf,
@@ -20,7 +21,7 @@ module Mybox.SpecBase (
 
 import Control.Exception.Safe (Exception)
 import System.Environment
-import Test.Hspec hiding (beforeAll_, it, shouldBe, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (before, it, shouldBe, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
@@ -41,11 +42,14 @@ withEff dispatch ioa = runEff $
 withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
 withIOEnv = withEff id
 
-withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
-withTestEnv = withEff $ runStores . testDriver
+withTestEnvAnd :: IOE :> es => (forall a. Eff es a -> Eff '[Driver, Stores, IOE] a) -> (RunEff es -> IO ()) -> IO ()
+withTestEnvAnd eff = withEff $ runStores . testDriver . eff
 
-beforeAll_ :: Eff ef () -> EffSpec ef -> EffSpec ef
-beforeAll_ act = Hspec.beforeAllWith $ \r@(RunEff unlift) -> unlift act >> pure r
+withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
+withTestEnv = withTestEnvAnd id
+
+before :: Eff ef () -> EffSpec ef -> EffSpec ef
+before act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ act >> test
 
 onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> SpecWith a -> SpecWith a
 onlyIf cond spec =

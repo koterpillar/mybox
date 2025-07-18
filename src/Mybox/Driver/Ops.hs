@@ -4,6 +4,7 @@ import Control.Applicative ((<|>))
 import Data.Char (isAlphaNum)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Effectful.Exception
 
 import Mybox.Driver.Class
 import Mybox.Prelude
@@ -23,8 +24,18 @@ drvIsFile path = do
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
 drvExecutableExists exe = do
-  code <- drvRunOk $ shell $ "command" :| ["-v", exe]
-  pure (code == ExitSuccess)
+  result <- drvRunOutputExit $ shell $ "command" :| ["-v", exe]
+  pure (result.exit == ExitSuccess)
+
+drvFindExecutable :: Driver :> es => [Text] -> Eff es Text
+drvFindExecutable candidates = go candidates
+ where
+  go [] = terror $ "Neither of " <> Text.intercalate ", " candidates <> " found in PATH."
+  go (exe : executables) = do
+    exists <- drvExecutableExists exe
+    if exists
+      then pure exe
+      else drvFindExecutable executables
 
 -- | Check if a path is a directory.
 drvIsDir :: Driver :> es => Text -> Eff es Bool
@@ -71,11 +82,11 @@ drvCopy source target = do
 drvTemp_ :: Driver :> es => Bool -> Eff es Text
 drvTemp_ isDirectory = drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
-drvTempFile :: Driver :> es => Eff es Text
-drvTempFile = drvTemp_ False
+drvTempFile :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempFile = bracket (drvTemp_ False) drvRm
 
-drvTempDir :: Driver :> es => Eff es Text
-drvTempDir = drvTemp_ True
+drvTempDir :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempDir = bracket (drvTemp_ True) drvRm
 
 drvReadFile :: Driver :> es => Text -> Eff es Text
 drvReadFile path = drvRunOutput $ "cat" :| [path]
@@ -108,6 +119,7 @@ drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing = []
       maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
+      isNul = (== '\0')
   let args =
         [path, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
@@ -120,10 +132,17 @@ drvFind path fo = do
             )
           ++ ["-print0"]
   o <- drvRunOutput $ "find" :| args
-  pure $ Set.fromList $ Text.split (== '\0') o
+  let names = Text.split isNul $ Text.dropWhileEnd isNul o
+  pure $ Set.fromList names
 
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
-drvUrlEtag url =
+drvUrlEtag = drvUrlProperty "%header{etag}"
+
+drvRedirectLocation :: Driver :> es => Text -> Eff es Text
+drvRedirectLocation = drvUrlProperty "%{url_effective}"
+
+drvUrlProperty :: Driver :> es => Text -> Text -> Eff es Text
+drvUrlProperty property url = do
   drvRunOutput $
     "curl"
       :| [ "--fail"
@@ -133,7 +152,7 @@ drvUrlEtag url =
          , "--output"
          , "/dev/null"
          , "--write-out"
-         , "%header{etag}"
+         , property
          , url
          ]
 

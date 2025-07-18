@@ -20,9 +20,9 @@ expectedFlatpakVersion version = case Text.splitOn ":" version of
 spec :: Spec
 spec = onlyIfOS (\case Linux _ -> True; _ -> False) $
   skipIf inDocker $
-    around withTestEnv $ do
+    around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
       describe "flatpak" $
-        beforeAll_ (nullTrackerSession $ runInstallQueue $ ensureInstalled flatpakPackage) $ do
+        before (ensureInstalled flatpakPackage) $ do
           describe "iLatestVersion" $ do
             it "returns valid version for an existing package" $ do
               iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)

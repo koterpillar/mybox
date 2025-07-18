@@ -20,6 +20,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Extractor
       Mybox.Installer
       Mybox.Installer.Apt
       Mybox.Installer.Brew
@@ -75,6 +76,7 @@ library
     , bytestring
     , containers
     , effectful
+    , extra
     , mtl
     , process
     , random
@@ -113,6 +115,7 @@ executable mybox
     , bytestring
     , containers
     , effectful
+    , extra
     , mtl
     , mybox
     , process
@@ -127,6 +130,7 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.Driver.IOSpec
+      Mybox.ExtractorSpec
       Mybox.Installer.AptSpec
       Mybox.Installer.BrewSpec
       Mybox.Installer.DNFSpec
@@ -175,6 +179,7 @@ test-suite tests
     , bytestring
     , containers
     , effectful
+    , extra
     , hspec
     , mtl
     , mybox

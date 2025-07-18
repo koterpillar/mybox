@@ -11,24 +11,21 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-pipxExists :: Driver :> es => Eff es Bool
-pipxExists = fmap (== ExitSuccess) $ drvRunOk $ "pipx" :| ["--version"]
-
 spec :: Spec
 spec = do
   jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
-  onlyIf pipxExists $
+  onlyIf (drvExecutableExists "pipx") $
     describe "remote version" $ do
-      around withTestEnv $ do
-        it "gets version for existing package" $ nullTrackerSession $ runInstallQueue $ do
+      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+        it "gets version for existing package" $ do
           let package = mkPipxPackage "black"
           version <- remoteVersion package
           version `shouldSatisfy` (>= "25.0.0")
           version `shouldSatisfy` (<= "999.0.0")
-        it "fails for non-existent package" $ nullTrackerSession $ runInstallQueue $ do
+        it "fails for non-existent package" $ do
           let package = mkPipxPackage "xxxxxxxxxxxx"
           remoteVersion package `shouldThrow` anyException
-        it "returns a Git commit hash for a git package" $ nullTrackerSession $ runInstallQueue $ do
+        it "returns a Git commit hash for a git package" $ do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
           remoteVersion package >>= (`shouldSatisfy` (\v -> Text.length v == 40))
   let tqdmPackage name _ =
@@ -41,6 +38,6 @@ spec = do
           & ignorePath ".local/share/pipx"
           & ignorePath ".local/state/pipx/log"
   -- FIXME: install pipx
-  onlyIf pipxExists $ do
+  onlyIf (drvExecutableExists "pipx") $ do
     packageSpec $ tqdmPackage "tqdm"
     packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"

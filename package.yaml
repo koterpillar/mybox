@@ -28,6 +28,7 @@ dependencies:
   - bytestring
   - containers
   - effectful
+  - extra
   - mtl
   - process
   - random
