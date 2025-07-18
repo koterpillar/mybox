@@ -25,6 +25,7 @@ dependencies:
   - aeson
   - aeson-extra
   - base
+  - base64-bytestring
   - bytestring
   - containers
   - effectful

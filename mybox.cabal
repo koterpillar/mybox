@@ -73,6 +73,7 @@ library
       aeson
     , aeson-extra
     , base
+    , base64-bytestring
     , bytestring
     , containers
     , effectful
@@ -112,6 +113,7 @@ executable mybox
       aeson
     , aeson-extra
     , base
+    , base64-bytestring
     , bytestring
     , containers
     , effectful
@@ -176,6 +178,7 @@ test-suite tests
       aeson
     , aeson-extra
     , base
+    , base64-bytestring
     , bytestring
     , containers
     , effectful
