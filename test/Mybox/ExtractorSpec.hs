@@ -48,7 +48,7 @@ prerequisites = do
 spec :: Spec
 spec =
   around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $
-    beforeAll_ prerequisites $ do
+    before prerequisites $ do
       describe "extract" $ do
         it "unzips removing common prefix" $ do
           temporaryZip ["foo/bar", "foo/baz"] $ \archive -> do
