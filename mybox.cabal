@@ -180,10 +180,12 @@ test-suite tests
     , base
     , base64-bytestring
     , bytestring
+    , bzlib
     , containers
     , effectful
     , extra
     , hspec
+    , lzma
     , mtl
     , mybox
     , process
@@ -191,4 +193,6 @@ test-suite tests
     , safe-exceptions
     , text
     , yaml
+    , zip-archive
+    , zlib
   default-language: GHC2021
