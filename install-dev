@@ -59,7 +59,7 @@ then
   pip install poetry
 fi
 
-GH_CURL=(curl -fsSL)
+GH_CURL=(curl -fsSL --retry 5)
 if [ -n "${GITHUB_TOKEN-}" ]
 then
   GH_CURL+=(--header "authorization: Bearer $GITHUB_TOKEN")
