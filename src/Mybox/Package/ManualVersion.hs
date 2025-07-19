@@ -35,4 +35,4 @@ manualVersionInstall ::
 manualVersionInstall installAct p = do
   v <- remoteVersion p
   installAct p
-  drvWriteFile (versionFile p) $ jsonEncode $ InstallRecord{hash = jsonEncode p, version = v}
+  drvWriteBinaryFile (versionFile p) $ encode $ InstallRecord{hash = jsonEncode p, version = v}

@@ -25,6 +25,7 @@ dependencies:
   - aeson
   - aeson-extra
   - base
+  - base64-bytestring
   - bytestring
   - containers
   - effectful
@@ -48,8 +49,12 @@ tests:
     source-dirs:
       - test
     dependencies:
-      - mybox
+      - bzlib
       - hspec
+      - lzma
+      - mybox
+      - zip-archive
+      - zlib
     build-tools:
       - hspec-discover
 executables:

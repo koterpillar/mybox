@@ -1,9 +1,12 @@
 module Mybox.Driver.Ops where
 
 import Control.Applicative ((<|>))
+import Data.ByteString.Base64 qualified as Base64
+import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text
 import Effectful.Exception
 
 import Mybox.Driver.Class
@@ -96,6 +99,13 @@ drvWriteFile path content = do
   drvMkdir $ pDirname path
   drvRm path
   drvRun $ shellRaw $ "echo " <> shellQuote content <> " > " <> shellQuote path
+
+drvWriteBinaryFile :: Driver :> es => Text -> LBS.ByteString -> Eff es ()
+drvWriteBinaryFile path content = do
+  drvMkdir $ pDirname path
+  drvRm path
+  let base64 = Text.decodeUtf8 $ Base64.encode $ LBS.toStrict content
+  drvRun $ shellRaw $ "echo " <> shellQuote base64 <> " | base64 -d > " <> shellQuote path
 
 drvMakeExecutable :: Driver :> es => Text -> Eff es ()
 drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path]

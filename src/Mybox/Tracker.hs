@@ -127,7 +127,7 @@ drvTracker stateFile =
             <$> drvReadFile stateFile
         else pure mempty
     TrkSet tfs ->
-      drvWriteFile stateFile $
-        jsonEncode $
+      drvWriteBinaryFile stateFile $
+        encode $
           TrackedFiles tfs
     TrkRemove file -> drvRm file
