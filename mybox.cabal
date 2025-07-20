@@ -28,6 +28,7 @@ library
       Mybox.Installer.DNF
       Mybox.Installer.Flatpak
       Mybox.Main
+      Mybox.Package.Archive
       Mybox.Package.BrewRepo
       Mybox.Package.Class
       Mybox.Package.Clone
