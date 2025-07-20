@@ -8,6 +8,7 @@ import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Some
 import Mybox.Package.System
+import Mybox.Package.URL
 import Mybox.Package.YumRepo
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -26,7 +27,8 @@ spec = around withIOEnv $ do
           someJson `shouldBe` pkgJson
     roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" "ghc"
-    roundtrip $ (mkNPMPackage "express"){binaries = ["express"]}
+    roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkSystemPackage "ghc"
+    roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
