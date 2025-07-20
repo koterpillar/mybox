@@ -34,10 +34,3 @@ class TestExpress(PackageTestBase):
 
     async def ignored_paths(self) -> set[Path]:
         return await super().ignored_paths() | {await self.check_driver.home() / ".npm"}
-
-    prerequisites = [
-        # Node in Fedora (container?) has a dependency problem and
-        # crashes without sqlite with:
-        # undefined symbol: sqlite3session_attach
-        {"system": "sqlite", "os": "linux", "distribution": "fedora"},
-    ]
