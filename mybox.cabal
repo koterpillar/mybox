@@ -28,6 +28,7 @@ library
       Mybox.Installer.DNF
       Mybox.Installer.Flatpak
       Mybox.Main
+      Mybox.Package.Archive
       Mybox.Package.BrewRepo
       Mybox.Package.Class
       Mybox.Package.Clone
@@ -42,6 +43,7 @@ library
       Mybox.Package.Shell
       Mybox.Package.Some
       Mybox.Package.System
+      Mybox.Package.URL
       Mybox.Package.YumRepo
       Mybox.Path
       Mybox.Prelude
@@ -147,6 +149,7 @@ test-suite tests
       Mybox.Package.SomeSpec
       Mybox.Package.SpecBase
       Mybox.Package.SystemSpec
+      Mybox.Package.URLSpec
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.SpecBase

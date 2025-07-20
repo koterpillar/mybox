@@ -1,6 +1,5 @@
 module Mybox.Driver.Ops where
 
-import Control.Applicative ((<|>))
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)
@@ -113,7 +112,7 @@ drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path]
 data FindOptions = FindOptions
   { maxDepth :: Maybe Int
   , onlyFiles :: Bool
-  , name :: Maybe [Text]
+  , names :: Maybe [Text]
   }
   deriving (Eq, Ord, Show)
 
@@ -133,7 +132,7 @@ drvFind path fo = do
   let args =
         [path, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
-          ++ maybeArg "-name" fo.name
+          ++ maybeArg "-name" fo.names
           ++ maybeArg
             "-type"
             ( if fo.onlyFiles

@@ -1,7 +1,5 @@
 module Mybox.Package.Some where
 
-import Control.Applicative ((<|>))
-
 import Mybox.Aeson
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
@@ -10,6 +8,7 @@ import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Shell
 import Mybox.Package.System
+import Mybox.Package.URL
 import Mybox.Package.YumRepo
 import Mybox.Prelude
 
@@ -35,6 +34,7 @@ instance FromJSON SomePackage where
       <|> mkSomePackageF (parseJSON @PipxPackage v)
       <|> mkSomePackageF (parseJSON @ShellPackage v)
       <|> mkSomePackageF (parseJSON @SystemPackage v)
+      <|> mkSomePackageF (parseJSON @URLPackage v)
       <|> mkSomePackageF (parseJSON @YumRepo v)
 
 instance ToJSON SomePackage where
