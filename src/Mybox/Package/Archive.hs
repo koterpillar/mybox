@@ -83,8 +83,10 @@ aExtract p url archiveFile = case p.raw of
 aExtractRaw :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Text -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
-  extractRaw extractor archiveFile filename
-  when (filename `elem` p.binaries) $ drvMakeExecutable filename
+  target <- aDirectory p
+  let targetPath = target </> filename
+  extractRaw extractor archiveFile targetPath
+  when (filename `elem` p.binaries) $ drvMakeExecutable targetPath
 
 archiveInstall :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Eff es ()
 archiveInstall p = do
@@ -93,7 +95,7 @@ archiveInstall p = do
     drvRun $ "curl" :| ["-fsSL", "-o", archiveFile, url]
     target <- aDirectory p
     let targetParent = pDirname target
-    drvMkdir $ pDirname target
+    drvMkdir targetParent
     trkAdd p targetParent
     trkAdd p target
     aExtract p url archiveFile
