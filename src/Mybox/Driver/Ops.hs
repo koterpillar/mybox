@@ -1,6 +1,5 @@
 module Mybox.Driver.Ops where
 
-import Control.Applicative ((<|>))
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)

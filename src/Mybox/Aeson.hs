@@ -1,5 +1,6 @@
 module Mybox.Aeson (
   module Data.Aeson,
+  Parser,
   parseCollapsedList,
   jsonEncode,
   jsonDecode,
@@ -8,6 +9,7 @@ module Mybox.Aeson (
 import Control.Exception.Safe (MonadThrow, throwString)
 import Data.Aeson
 import Data.Aeson.Extra
+import Data.Aeson.Types (Parser)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text (Text)
 import Data.Text.Encoding qualified as Text

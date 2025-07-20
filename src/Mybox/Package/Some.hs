@@ -1,7 +1,5 @@
 module Mybox.Package.Some where
 
-import Control.Applicative ((<|>))
-
 import Mybox.Aeson
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class

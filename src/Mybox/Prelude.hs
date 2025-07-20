@@ -5,6 +5,7 @@ module Mybox.Prelude (
   module Data.Maybe,
   module Effectful,
   module Mybox.Path,
+  (<|>),
   (&),
   for,
   on,
@@ -19,6 +20,7 @@ module Mybox.Prelude (
   terror,
 ) where
 
+import Control.Applicative ((<|>))
 import Control.Monad
 import Control.Monad.Extra (unlessM, whenM)
 import Data.Either

@@ -1,7 +1,5 @@
 module Mybox.Package.Post where
 
-import Data.Aeson.Types (Parser)
-
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Prelude
