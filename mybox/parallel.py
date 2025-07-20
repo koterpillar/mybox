@@ -5,7 +5,7 @@ from functools import partial
 from typing import Generic, Optional, Protocol
 
 import trio
-from alive_progress import alive_bar  # type: ignore
+from alive_progress import alive_bar
 
 from .utils import T, U, raise_
 
