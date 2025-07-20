@@ -211,10 +211,6 @@ class PackageTestBase(ABC):
     NODE: list[PackageArgs] = [
         {"system": "nodejs", "os": "linux"},
         {"system": "node", "os": "darwin"},
-        # Node in Fedora (container?) has a dependency problem and
-        # crashes without sqlite with:
-        # undefined symbol: sqlite3session_attach
-        {"system": "sqlite", "os": "linux", "distribution": "fedora"},
     ]
 
     async def assert_desktop_file_exists(
