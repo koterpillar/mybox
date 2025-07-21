@@ -21,6 +21,7 @@ library
       Mybox.Driver.Ops
       Mybox.Driver.Platform
       Mybox.Extractor
+      Mybox.Filters
       Mybox.Installer
       Mybox.Installer.Apt
       Mybox.Installer.Brew
@@ -135,6 +136,7 @@ test-suite tests
   other-modules:
       Mybox.Driver.IOSpec
       Mybox.ExtractorSpec
+      Mybox.FiltersSpec
       Mybox.Installer.AptSpec
       Mybox.Installer.BrewSpec
       Mybox.Installer.DNFSpec
