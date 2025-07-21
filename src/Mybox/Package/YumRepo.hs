@@ -61,12 +61,7 @@ writeRepoFile p = do
                )
 
   let repoPath = "/etc" </> "yum.repos.d" </> p.name_ <> ".repo"
-  drvRun $
-    "sudo"
-      :| toList
-        ( shellRaw $
-            "echo " <> shellQuote repoConfig <> " > " <> repoPath
-        )
+  drvRun $ sudo $ shellRaw $ "echo " <> shellQuote repoConfig <> " > " <> repoPath
   drvRun $ sudo $ "chmod" :| ["a+r", repoPath]
   trkAdd p repoPath
 
