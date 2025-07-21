@@ -69,17 +69,9 @@ instance ToJSON GithubPackage where
         <> filterToJSON p
         <> postToJSON p
 
-authToken :: Driver :> es => Eff es Text
-authToken = do
-  envToken <- drvRunOutputExit $ shellRaw "echo $GITHUB_TOKEN"
-  if envToken.exit == ExitSuccess && not (Text.null envToken.output)
-    then pure envToken.output
-    else do
-      drvRunOutput ("gh" :| ["auth", "token"])
-
 api :: Driver :> es => Text -> Eff es (Either Text Text)
 api url = do
-  token <- authToken
+  token <- drvGithubToken
   result <-
     drvRunOutputExit $
       "curl"

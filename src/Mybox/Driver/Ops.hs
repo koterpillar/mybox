@@ -144,6 +144,17 @@ drvFind path fo = do
   let names = Text.split isNul $ Text.dropWhileEnd isNul o
   pure $ Set.fromList names
 
+drvEnv :: Driver :> es => Text -> Eff es (Maybe Text)
+drvEnv name = do
+  result <- drvRunOutputExit $ shellRaw $ "echo $" <> name
+  pure $
+    if result.exit == ExitSuccess && not (Text.null result.output)
+      then Just result.output
+      else Nothing
+
+drvGithubToken :: Driver :> es => Eff es Text
+drvGithubToken = drvEnv "GITHUB_TOKEN" `fromMaybeOrMM` drvRunOutput ("gh" :| ["auth", "token"])
+
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
 
