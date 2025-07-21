@@ -31,11 +31,7 @@ instance FromJSON ShellPackage where
 
 instance ToJSON ShellPackage where
   toJSON p =
-    object
-      [ "shell" .= p.shell
-      , "root" .= p.root
-      , "post" .= p.post
-      ]
+    object $ ["shell" .= p.shell, "root" .= p.root] <> postToJSON p
 
 instance HasField "name" ShellPackage Text where
   getField p = "_shell" <> (if p.root then "_root" else "")

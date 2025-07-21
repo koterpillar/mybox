@@ -32,12 +32,12 @@ instance FromJSON SystemPackage where
 
 instance ToJSON SystemPackage where
   toJSON p =
-    object
+    object $
       [ "system" .= p.name
       , "url" .= p.url
       , "auto_updates" .= p.autoUpdates
-      , "post" .= p.post
       ]
+        <> postToJSON p
 
 autoUpdateVersion :: SystemPackage -> Text -> Text
 autoUpdateVersion p = if p.autoUpdates then const "latest" else id

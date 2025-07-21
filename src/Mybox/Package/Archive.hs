@@ -7,7 +7,6 @@ module Mybox.Package.Archive (
   archiveInstall,
 ) where
 
-import Data.Aeson.Types (Pair)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 

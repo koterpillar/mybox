@@ -35,12 +35,12 @@ instance FromJSON ClonePackage where
 
 instance ToJSON ClonePackage where
   toJSON p =
-    object
+    object $
       [ "clone" .= p.repo
       , "branch" .= p.branch
       , "destination" .= p.destination
-      , "post" .= p.post
       ]
+        <> postToJSON p
 
 cpRemote :: ClonePackage -> Text
 cpRemote p

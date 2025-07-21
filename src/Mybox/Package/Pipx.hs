@@ -34,7 +34,7 @@ instance FromJSON PipxPackage where
     pure PipxPackage{..}
 
 instance ToJSON PipxPackage where
-  toJSON p = object ["pipx" .= p.package, "post" .= p.post]
+  toJSON p = object $ ["pipx" .= p.package] <> postToJSON p
 
 repo :: PipxPackage -> Maybe Text
 repo p = Text.stripPrefix "git+" p.package

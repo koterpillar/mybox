@@ -34,12 +34,12 @@ instance FromJSON YumRepo where
 
 instance ToJSON YumRepo where
   toJSON p =
-    object
+    object $
       [ "yum_name" .= p.name_
       , "yum_url" .= p.url
       , "gpg_key" .= p.gpgKey
-      , "post" .= p.post
       ]
+        <> postToJSON p
 
 yumRepoRemoteVersion :: YumRepo -> Text
 yumRepoRemoteVersion = jsonEncode
