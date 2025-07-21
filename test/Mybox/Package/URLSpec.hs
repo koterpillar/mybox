@@ -30,3 +30,6 @@ spec = do
     ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){binaries = ["yarn"], binaryWrapper = True})
       & preinstall preinstallNode
       & checkInstalledCommandOutput ("yarn" :| ["--help"]) "Usage: yarn"
+  packageSpec $ \_ ->
+    ps ((mkURLPackage "https://ftp.debian.org/debian/README"){raw = Right True})
+      & checkInstalledCommandOutput ("cat" :| [".local/mybox/ftp.debian.org--README/README"]) "Debian GNU/Linux"
