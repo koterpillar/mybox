@@ -1,9 +1,9 @@
 module Mybox.Filters where
 
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
+import Mybox.Aeson
 import Mybox.Prelude
 
 choose_ :: Show a => [a -> Bool] -> [a] -> a
@@ -31,3 +31,42 @@ fromSynonyms synonyms key = do
   (key', variants) <- Map.toList synonyms
   let predicate = if key == key' then includes_ else excludes_
   predicate <$> variants
+
+type FilterReqs a =
+  ( HasField "prefixes" a [Text]
+  , HasField "suffixes" a [Text]
+  , HasField "includes" a [Text]
+  , HasField "excludes" a [Text]
+  )
+
+data FilterFields = FilterFields
+  { prefixes :: [Text]
+  , suffixes :: [Text]
+  , includes :: [Text]
+  , excludes :: [Text]
+  }
+
+parseFilter :: Object -> Parser FilterFields
+parseFilter o = do
+  prefixes <- parseCollapsedList o "prefix"
+  suffixes <- parseCollapsedList o "suffix"
+  includes <- parseCollapsedList o "include"
+  excludes <- parseCollapsedList o "exclude"
+  pure FilterFields{..}
+
+filterToJSON :: FilterReqs a => a -> [Pair]
+filterToJSON a =
+  [ "prefix" .= a.prefixes
+  , "suffix" .= a.suffixes
+  , "include" .= a.includes
+  , "exclude" .= a.excludes
+  ]
+
+filters :: FilterReqs a => a -> [Text -> Bool]
+filters a =
+  join
+    [ Text.isPrefixOf <$> a.prefixes
+    , Text.isSuffixOf <$> a.suffixes
+    , includes_ <$> a.includes
+    , excludes_ <$> a.excludes
+    ]

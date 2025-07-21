@@ -14,6 +14,7 @@ module Mybox.Prelude (
   ExitCode (..),
   Generic,
   HasField (..),
+  Map,
   NonEmpty (..),
   Set,
   Text,
@@ -27,6 +28,7 @@ import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Map.Strict (Map)
 import Data.Maybe
 import Data.Set (Set)
 import Data.Text (Text)

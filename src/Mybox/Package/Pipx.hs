@@ -1,6 +1,5 @@
 module Mybox.Package.Pipx (PipxPackage (..), mkPipxPackage) where
 
-import Data.Map (Map)
 import Data.Text qualified as Text
 
 import Mybox.Aeson

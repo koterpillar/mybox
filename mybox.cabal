@@ -34,6 +34,7 @@ library
       Mybox.Package.Class
       Mybox.Package.Clone
       Mybox.Package.Destination
+      Mybox.Package.Github
       Mybox.Package.ManualVersion
       Mybox.Package.Name
       Mybox.Package.NPM
@@ -47,6 +48,7 @@ library
       Mybox.Package.URL
       Mybox.Package.YumRepo
       Mybox.Path
+      Mybox.Platform
       Mybox.Prelude
       Mybox.Stores
       Mybox.Tracker
@@ -144,6 +146,7 @@ test-suite tests
       Mybox.Installer.SpecBase
       Mybox.Package.BrewRepoSpec
       Mybox.Package.CloneSpec
+      Mybox.Package.GithubSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
       Mybox.Package.PipxSpec

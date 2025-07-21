@@ -1,6 +1,5 @@
 module Mybox.Installer.Class (module Mybox.Installer.Class, Map) where
 
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
 import Mybox.Aeson
