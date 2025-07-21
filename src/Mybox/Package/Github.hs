@@ -133,12 +133,9 @@ wantRelease p r
 
 release :: forall es. Driver :> es => GithubPackage -> Eff es Release
 release p =
-  findRelease (latestRelease p) >>= \case
-    Just r -> pure r
-    Nothing ->
-      findRelease (releases p) >>= \case
-        Just r -> pure r
-        Nothing -> terror $ "No releases found for " <> p.repo
+  findRelease (latestRelease p)
+    `fromMaybeOrMM` findRelease (releases p)
+    `fromMaybeOrMM` terror ("No releases found for " <> p.repo)
  where
   findRelease :: Foldable f => Eff es (f Release) -> Eff es (Maybe Release)
   findRelease = fmap $ find $ wantRelease p

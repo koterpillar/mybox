@@ -19,6 +19,8 @@ module Mybox.Prelude (
   Set,
   Text,
   terror,
+  fromMaybeOrM,
+  fromMaybeOrMM,
 ) where
 
 import Control.Applicative ((<|>))
@@ -44,3 +46,13 @@ import Mybox.Path
 
 terror :: HasCallStack => Text -> a
 terror !msg = error $ Text.unpack msg
+
+fromMaybeOrM :: Applicative m => Maybe a -> m a -> m a
+fromMaybeOrM value nothingAction = maybe nothingAction pure value
+
+infixr 9 `fromMaybeOrM`
+
+fromMaybeOrMM :: Monad m => m (Maybe a) -> m a -> m a
+fromMaybeOrMM action nothingAction = action >>= flip fromMaybeOrM nothingAction
+
+infixr 9 `fromMaybeOrMM`
