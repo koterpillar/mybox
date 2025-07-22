@@ -14,6 +14,7 @@ module Mybox.SpecBase (
   xit,
   shouldBe,
   shouldContain,
+  shouldContainText,
   shouldSatisfy,
   shouldThrow,
   inCI,
@@ -22,6 +23,7 @@ module Mybox.SpecBase (
 ) where
 
 import Control.Exception.Safe (Exception)
+import Data.Text qualified as Text
 import System.Environment
 import Test.Hspec hiding (before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
@@ -81,6 +83,9 @@ shouldSatisfy a f = liftIO $ Hspec.shouldSatisfy a f
 
 shouldContain :: (Eq a, HasCallStack, IOE :> es, Show a) => [a] -> [a] -> Eff es ()
 shouldContain a b = liftIO $ Hspec.shouldContain a b
+
+shouldContainText :: (HasCallStack, IOE :> es) => Text -> Text -> Eff es ()
+a `shouldContainText` b = Text.unpack a `shouldContain` Text.unpack b
 
 shouldThrow :: (Exception e, HasCallStack, IOE :> es) => Eff es a -> Selector e -> Eff es ()
 shouldThrow act ex = withSeqEffToIO $ \unlift -> Hspec.shouldThrow (unlift act) ex

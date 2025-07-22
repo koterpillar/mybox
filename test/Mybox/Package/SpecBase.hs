@@ -5,6 +5,7 @@ module Mybox.Package.SpecBase (
   psName,
   checkInstalled,
   checkInstalledCommandOutput,
+  commandHasOutput,
   preinstall,
   preinstallPackage,
   ignorePath,
@@ -71,11 +72,14 @@ psName n s = s{name_ = Just n}
 checkInstalled :: (forall es. (Driver :> es, IOE :> es) => Eff es ()) -> MPS a
 checkInstalled f s = s{checkInstalled_ = f}
 
+commandHasOutput :: (Driver :> es, IOE :> es) => Args -> Text -> Eff es ()
+commandHasOutput cmd expectedOutput = do
+  actualOutput <- drvRunOutput cmd
+  actualOutput `shouldContainText` expectedOutput
+
 checkInstalledCommandOutput :: Args -> Text -> MPS a
 checkInstalledCommandOutput cmd expectedOutput =
-  checkInstalled $ do
-    actualOutput <- drvRunOutput cmd
-    Text.unpack actualOutput `shouldContain` Text.unpack expectedOutput
+  checkInstalled $ commandHasOutput cmd expectedOutput
 
 ignorePath :: Text -> MPS a
 ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
