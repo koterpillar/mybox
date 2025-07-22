@@ -76,12 +76,8 @@ unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
     drvRun $ "unzip" :| ["-o", "-qq", archive, "-d", targetDirectory]
 
 withRedirect :: Driver :> es => (Text -> Maybe a) -> Eff es a -> Text -> Eff es a
-withRedirect f fallback url = do
-  case f url of
-    Just a -> pure a
-    Nothing -> do
-      redirectUrl <- drvRedirectLocation url
-      maybe fallback pure $ f redirectUrl
+withRedirect f fallback url =
+  f url `fromMaybeOrM` (f <$> drvRedirectLocation url) `fromMaybeOrMM` fallback
 
 guessExtractor :: Text -> Maybe Extractor
 guessExtractor url = go

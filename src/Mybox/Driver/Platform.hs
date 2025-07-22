@@ -1,12 +1,11 @@
-module Mybox.Driver.Platform where
+module Mybox.Driver.Platform (module Mybox.Platform, drvArchitecture, drvOS) where
 
 import Data.Text qualified as Text
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
+import Mybox.Platform
 import Mybox.Prelude
-
-data Architecture = X86_64 | Aarch64 deriving (Eq, Ord, Show)
 
 drvArchitecture :: Driver :> es => Eff es Architecture
 drvArchitecture =
@@ -15,10 +14,6 @@ drvArchitecture =
     "aarch64" -> pure Aarch64
     "arm64" -> pure Aarch64
     arch -> terror $ "Unsupported architecture: " <> arch
-
-data Distribution = Debian {variant :: Text} | Fedora deriving (Eq, Ord, Show)
-
-data OS = Linux {distribution :: Distribution} | MacOS deriving (Eq, Ord, Show)
 
 drvOS :: Driver :> es => Eff es OS
 drvOS = do

@@ -53,31 +53,36 @@ runDriverIO drv =
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 localDriver = runDriverIO $ IODriver{transformArgs = id, cwd = Nothing}
 
-withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
-withAddedPath addPath action = do
-  originalPath <- fmap Text.pack $ liftIO $ getEnv "PATH"
-  let newPath = addPath <> ":" <> originalPath
+withEnv :: IOE :> es => Text -> (Text -> Text) -> Eff es a -> Eff es a
+withEnv key fn action = do
+  originalValue <- fromMaybe "" <$> localDriver (drvEnv key)
+  let newValue = fn originalValue
   bracket_
-    (liftIO $ setEnv "PATH" $ Text.unpack newPath)
-    (liftIO $ setEnv "PATH" $ Text.unpack originalPath)
+    (liftIO $ setEnv (Text.unpack key) $ Text.unpack newValue)
+    (liftIO $ setEnv (Text.unpack key) $ Text.unpack originalValue)
     action
+
+withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
+withAddedPath addPath = withEnv "PATH" $ \originalPath -> addPath <> ":" <> originalPath
 
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
-  originalHome <- fmap Text.pack $ liftIO $ getEnv "HOME"
+  githubToken <- localDriver drvGithubToken
+  originalHome <- localDriver drvHome
   bracket (localDriver $ drvTemp_ True) (localDriver . drvRm) $ \home -> do
-    withAddedPath (home </> ".local" </> "bin") $ do
-      let linkToOriginalHome path =
-            let op = originalHome </> path
-                np = home </> path
-             in localDriver $ drvLink op np
-      linkToOriginalHome ".local/share/fonts"
-      linkToOriginalHome ".local/share/systemd/user"
-      linkToOriginalHome "Library/LaunchAgents"
-      let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
-          transformArgs args = args
-      let cwd = Just home
-      flip runDriverIO act $ IODriver{..}
+    withAddedPath (home </> ".local" </> "bin") $
+      withEnv "GITHUB_TOKEN" (const githubToken) $ do
+        let linkToOriginalHome path =
+              let op = originalHome </> path
+                  np = home </> path
+               in localDriver $ drvLink op np
+        linkToOriginalHome ".local/share/fonts"
+        linkToOriginalHome ".local/share/systemd/user"
+        linkToOriginalHome "Library/LaunchAgents"
+        let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
+            transformArgs args = args
+        let cwd = Just home
+        flip runDriverIO act $ IODriver{..}
 
 dockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
 dockerDriver baseImage act =
@@ -87,6 +92,7 @@ dockerDriver baseImage act =
   mkContainer =
     localDriver $ do
       containerName <- Text.pack . show <$> liftIO (randomIO @Int)
+      githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
         drvCopy "bootstrap" (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
@@ -100,6 +106,8 @@ dockerDriver baseImage act =
                , "--detach"
                , "--name"
                , "mybox-test-" <> containerName
+               , "--env"
+               , "GITHUB_TOKEN=" <> githubToken
                , image
                , "sleep"
                , "86400000"
@@ -154,8 +162,7 @@ dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
 
 testDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
-testDriver act = do
-  image_ <- fmap (fromMaybe "") $ liftIO $ lookupEnv "DOCKER_IMAGE"
-  case image_ of
-    "" -> testHostDriver act
-    image -> dockerDriver (Text.pack image) act
+testDriver act =
+  localDriver (drvEnv "DOCKER_IMAGE") >>= \case
+    Nothing -> testHostDriver act
+    Just image -> dockerDriver image act

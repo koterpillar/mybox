@@ -4,6 +4,7 @@ import Mybox.Aeson
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
+import Mybox.Package.Github
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Some
@@ -27,6 +28,7 @@ spec = around withIOEnv $ do
           someJson `shouldBe` pkgJson
     roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" "ghc"
+    roundtrip $ mkGithubPackage "test/repo"
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkSystemPackage "ghc"

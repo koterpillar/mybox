@@ -27,11 +27,7 @@ instance FromJSON BrewRepo where
     pure BrewRepo{..}
 
 instance ToJSON BrewRepo where
-  toJSON p =
-    object
-      [ "brew_tap" .= p.name_
-      , "post" .= p.post
-      ]
+  toJSON p = object $ ["brew_tap" .= p.name_] <> postToJSON p
 
 brewRepoLocalVersion :: Driver :> es => BrewRepo -> Eff es (Maybe Text)
 brewRepoLocalVersion p = do

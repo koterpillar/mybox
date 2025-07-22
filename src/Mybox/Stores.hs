@@ -2,7 +2,6 @@
 
 module Mybox.Stores (Stores, Store, storeGet, storeSet, storeDelete, runStores, textStore, jsonStore) where
 
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local

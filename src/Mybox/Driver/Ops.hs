@@ -3,6 +3,7 @@ module Mybox.Driver.Ops where
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)
+import Data.List (intercalate)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -127,9 +128,10 @@ drvFind :: Driver :> es => Text -> FindOptions -> Eff es (Set Text)
 drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing = []
-      maybeArg arg (Just vs) = [arg, Text.intercalate "," vs]
+      maybeArg arg (Just [v]) = [arg, v]
+      maybeArg arg (Just vs) = ["("] <> intercalate ["-o"] [[arg, v] | v <- vs] <> [")"]
       isNul = (== '\0')
-  let args =
+      args =
         [path, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
           ++ maybeArg "-name" fo.names
@@ -141,8 +143,22 @@ drvFind path fo = do
             )
           ++ ["-print0"]
   o <- drvRunOutput $ "find" :| args
-  let names = Text.split isNul $ Text.dropWhileEnd isNul o
-  pure $ Set.fromList names
+  if Text.null o
+    then pure Set.empty
+    else do
+      let names = Text.split isNul $ Text.dropWhileEnd isNul o
+      pure $ Set.fromList names
+
+drvEnv :: Driver :> es => Text -> Eff es (Maybe Text)
+drvEnv name = do
+  result <- drvRunOutputExit $ shellRaw $ "echo $" <> name
+  pure $
+    if result.exit == ExitSuccess && not (Text.null result.output)
+      then Just result.output
+      else Nothing
+
+drvGithubToken :: Driver :> es => Eff es Text
+drvGithubToken = drvEnv "GITHUB_TOKEN" `fromMaybeOrMM` drvRunOutput ("gh" :| ["auth", "token"])
 
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"

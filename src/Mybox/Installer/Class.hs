@@ -1,6 +1,5 @@
 module Mybox.Installer.Class (module Mybox.Installer.Class, Map) where
 
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
 import Mybox.Aeson
@@ -41,13 +40,8 @@ iPackageInfo i package = do
     _ <- iGetCachePackageInfo i Nothing
     storeSet i.storeGlobal "" True
   storeGet i.storePackages package
-    >>= \case
-      Just info' -> pure info'
-      Nothing -> do
-        info' <- iGetCachePackageInfo i (Just package)
-        case Map.lookup package info' of
-          Just info'' -> pure info''
-          Nothing -> terror $ "Unknown package: " <> package
+    `fromMaybeOrMM` fmap (Map.lookup package) (iGetCachePackageInfo i $ Just package)
+    `fromMaybeOrMM` terror ("Unknown package: " <> package)
 
 iInvalidate :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iInvalidate = storeDelete . storePackages

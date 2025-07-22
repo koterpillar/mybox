@@ -5,9 +5,11 @@ module Mybox.Package.Archive (
   ArchiveFields (..),
   ArchivePackage (..),
   archiveInstall,
+  parseDesktopFile,
 ) where
 
-import Data.Aeson.Types (Pair)
+import Data.Char (isDigit)
+import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 
@@ -149,7 +151,7 @@ installBinary p binary = do
 freedesktopAppFind :: AFindOptions
 freedesktopAppFind =
   AFindOptions
-    { paths = ["share", "applications"]
+    { paths = ["share" </> "applications"]
     , requireExecutable = False
     , description = "application"
     }
@@ -166,8 +168,52 @@ installApp p app = do
   let desktopTarget = appsTarget </> appDesktop
   drvLink appPath desktopTarget
   trkAdd p desktopTarget
+  appProperties <- parseDesktopFile <$> drvReadFile desktopTarget
+  for_ (Map.lookup "Icon" appProperties) $ installIcon p
 
--- FIXME: icon
+parseDesktopFile :: Text -> Map Text Text
+parseDesktopFile contents = Map.fromList $ do
+  line <- Text.lines contents
+  guard $ not $ Text.null line
+  guard $ line /= "[Desktop Entry]"
+  [key, value] <- pure $ Text.splitOn "=" line
+  pure (key, value)
+
+withExtensions :: [Text] -> Text -> [Text]
+withExtensions exts name = case Text.splitOn "." name of
+  [base, ext] -> [base <> "." <> ext]
+  [base] -> [base <> "." <> ext | ext <- exts]
+  _ -> terror $ "Unexpected file name: " <> name <> " for extensions: " <> Text.intercalate ", " exts
+
+iconExtensions :: [Text]
+iconExtensions = ["png", "svg"]
+
+installIcon :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Eff es ()
+installIcon p icon = do
+  directory <- aDirectory p
+  iconPaths <- drvFind directory $ mempty{names = Just $ withExtensions iconExtensions icon}
+  local <- drvLocal
+  let iconsTarget = local </> "share" </> "icons"
+  for_ iconPaths $ \iconSrcPath -> do
+    let iconTargetPath = iconsTarget </> iconPath iconSrcPath
+    drvLink iconSrcPath iconTargetPath
+    trkAdd p iconTargetPath
+
+iconPath :: Text -> Text
+iconPath icon = "hicolor" </> resolution </> "apps" </> base
+ where
+  parts = Text.splitOn "/" icon
+  base = last parts
+  ext = Text.takeWhileEnd (/= '.') base
+  resolution = case ext of
+    "svg" -> "scalable"
+    "png" -> fromMaybe "16x16" $ find isResolution parts
+    _ -> terror $ "Unexpected icon extension: " <> ext <> " from " <> icon
+  isResolution :: Text -> Bool
+  isResolution p =
+    case Text.splitOn "x" p of
+      ns@[_, _] -> all (Text.all isDigit) ns
+      _ -> False
 
 fontExtensions :: [Text]
 fontExtensions = ["ttf", "otf"]
@@ -179,7 +225,7 @@ installFont p font = do
       Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal
       MacOS -> (\h -> h </> "Library" </> "Fonts") <$> drvHome
   directory <- aDirectory p
-  fontPaths <- drvFind directory $ mempty{names = Just [font <> "." <> ext | ext <- fontExtensions]}
+  fontPaths <- drvFind directory $ mempty{names = Just $ withExtensions fontExtensions font}
   fontPath <- case Set.toList fontPaths of
     [path] -> pure path
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory

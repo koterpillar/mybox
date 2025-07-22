@@ -1,6 +1,5 @@
 module Mybox.Package.Pipx (PipxPackage (..), mkPipxPackage) where
 
-import Data.Map (Map)
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -34,7 +33,7 @@ instance FromJSON PipxPackage where
     pure PipxPackage{..}
 
 instance ToJSON PipxPackage where
-  toJSON p = object ["pipx" .= p.package, "post" .= p.post]
+  toJSON p = object $ ["pipx" .= p.package] <> postToJSON p
 
 repo :: PipxPackage -> Maybe Text
 repo p = Text.stripPrefix "git+" p.package

@@ -30,7 +30,7 @@ instance FromJSON URLPackage where
     pure $ URLPackage{..}
 
 instance ToJSON URLPackage where
-  toJSON p = object $ ["url" .= p.url, "post" .= p.post] <> archiveToJSON p
+  toJSON p = object $ ["url" .= p.url] <> archiveToJSON p <> postToJSON p
 
 mkURLPackage :: Text -> URLPackage
 mkURLPackage url =
