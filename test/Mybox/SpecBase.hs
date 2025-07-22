@@ -9,9 +9,11 @@ module Mybox.SpecBase (
   onlyIf,
   onlyIfOS,
   skipIf,
+  expectationFailure,
   it,
   xit,
   shouldBe,
+  shouldContain,
   shouldSatisfy,
   shouldThrow,
   inCI,
@@ -21,7 +23,7 @@ module Mybox.SpecBase (
 
 import Control.Exception.Safe (Exception)
 import System.Environment
-import Test.Hspec hiding (before, it, shouldBe, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
@@ -77,8 +79,14 @@ shouldSatisfy ::
   (HasCallStack, IOE :> es, Show a) => a -> (a -> Bool) -> Eff es ()
 shouldSatisfy a f = liftIO $ Hspec.shouldSatisfy a f
 
+shouldContain :: (Eq a, HasCallStack, IOE :> es, Show a) => [a] -> [a] -> Eff es ()
+shouldContain a b = liftIO $ Hspec.shouldContain a b
+
 shouldThrow :: (Exception e, HasCallStack, IOE :> es) => Eff es a -> Selector e -> Eff es ()
 shouldThrow act ex = withSeqEffToIO $ \unlift -> Hspec.shouldThrow (unlift act) ex
+
+expectationFailure :: (HasCallStack, IOE :> es) => String -> Eff es ()
+expectationFailure = liftIO . Hspec.expectationFailure
 
 hasEnv :: IOE :> es => String -> Eff es Bool
 hasEnv name = not . null . fromMaybe mempty <$> withSeqEffToIO (\_ -> lookupEnv name)

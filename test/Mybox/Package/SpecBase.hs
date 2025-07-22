@@ -29,14 +29,18 @@ data PackageSpecArgs = PackageSpecArgs
   { random :: StdGen
   , directory :: Text
   , username :: Text
+  , architecture :: Architecture
+  , os :: OS
   }
 
 mkPSA :: IO PackageSpecArgs
-mkPSA = do
-  random_ <- newStdGen
+mkPSA = runEff $ testDriver $ do
+  random_ <- liftIO newStdGen
   directory <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
-  username <- runEff $ testDriver drvUsername
-  pure $ PackageSpecArgs{random = random_, directory, username}
+  username <- drvUsername
+  architecture <- drvArchitecture
+  os <- drvOS
+  pure $ PackageSpecArgs{random = random_, ..}
 
 psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
 psaSpec f = runIO mkPSA >>= f
@@ -54,7 +58,7 @@ ps p =
   PackageSpec
     { package = p
     , name_ = Nothing
-    , checkInstalled_ = liftIO $ expectationFailure "checkInstalled not set"
+    , checkInstalled_ = expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
     , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache/libdnf5"]
     }
@@ -71,7 +75,7 @@ checkInstalledCommandOutput :: Args -> Text -> MPS a
 checkInstalledCommandOutput cmd expectedOutput =
   checkInstalled $ do
     actualOutput <- drvRunOutput cmd
-    liftIO $ Text.unpack actualOutput `shouldContain` Text.unpack expectedOutput
+    Text.unpack actualOutput `shouldContain` Text.unpack expectedOutput
 
 ignorePath :: Text -> MPS a
 ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
