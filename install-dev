@@ -4,10 +4,20 @@
 set -euo pipefail
 
 OPT_LINT="true"
+OPT_PYTHON="true"
+OPT_HASKELL="true"
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-lint)
       OPT_LINT=""
+      shift
+      ;;
+    --no-python)
+      OPT_PYTHON=""
+      shift
+      ;;
+    --no-haskell)
+      OPT_HASKELL=""
       shift
       ;;
     *)
@@ -54,7 +64,7 @@ case "$OSTYPE" in
   ;;
 esac
 
-if ! command_exists poetry
+if [ -n "${OPT_PYTHON-}" ] && ! command_exists poetry
 then
   pip install poetry
 fi
@@ -68,7 +78,7 @@ then
   GH_CURL+=(--header "authorization: Bearer $(gh auth token)")
 fi
 
-if [ -n "${OPT_LINT-}" ] && ! command_exists fourmolu
+if [ -n "${OPT_LINT-}" ] && [ -n "${OPT_HASKELL-}" ] && ! command_exists fourmolu
 then
   OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/osx/;s/linux.+/linux/')
   ARCH=$(uname -m | sed 's/aarch64/arm64/')
@@ -91,4 +101,7 @@ then
   chmod +x ~/.local/bin/fourmolu
 fi
 
-poetry install
+if [ -n "${OPT_PYTHON-}" ]
+then
+  poetry install
+fi

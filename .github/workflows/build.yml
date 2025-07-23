@@ -7,13 +7,16 @@ on:
 
 jobs:
   lint:
-    name: "Lint (Python ${{ matrix.python }})"
+    name: "Lint ${{ matrix.part != 'Haskell' && format('{0}', matrix.part) || '' }}${{ matrix.part == 'Python' && format(' ({0})', matrix.python) || '' }}"
     strategy:
       fail-fast: false
       matrix:
-        python:
-          - "3.11"
-          - "3.13"
+        include:
+          - part: Haskell
+          - part: Python
+            python: "3.11"
+          - part: Python
+            python: "3.13"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,9 +26,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install dependencies
-        run: ./install-dev
+        run: ./install-dev${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
       - name: Lint
-        run: ./lint
+        run: ./lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
   test:
     name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
@@ -67,7 +70,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev --no-lint
+        run: ./install-dev --no-lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
         run: |
@@ -119,7 +122,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev
+        run: ./install-dev --no-lint --no-haskell
       - name: Download coverage
         uses: actions/download-artifact@v4
         with:
@@ -153,7 +156,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev --no-lint
+        run: ./install-dev --no-lint --no-haskell
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
