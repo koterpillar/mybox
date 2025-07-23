@@ -136,8 +136,7 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
-  -- Overriding user's home doesn't work with fonts on macOS
-  onlyIfOS (\case Linux _ -> True; _ -> False) $
+  onlyIf virtualSystem $
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "tonsky/FiraCode")

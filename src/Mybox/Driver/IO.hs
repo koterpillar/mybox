@@ -80,6 +80,7 @@ testHostDriver act = do
         linkToOriginalHome ".local/share/fonts"
         linkToOriginalHome ".local/share/systemd/user"
         linkToOriginalHome "Library/LaunchAgents"
+        linkToOriginalHome "Library/Fonts"
         let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
             transformArgs args = args
         let cwd = Just home
