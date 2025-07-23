@@ -230,7 +230,8 @@ installFont p font = do
     [path] -> pure path
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory
     _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory
-  let targetPath = fontDir </> fontPath
+  let fontFilename = fromMaybe (terror $ "Unexpected font path: " <> fontPath) $ pFilename fontPath
+  let targetPath = fontDir </> fontFilename
   drvCopy fontPath targetPath
   trkAdd p targetPath
   queueInstall $ mkSystemPackage "fontconfig"
