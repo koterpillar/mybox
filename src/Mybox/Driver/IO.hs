@@ -26,9 +26,10 @@ runDriverIO drv =
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
       let process = (proc cmd args){System.Process.cwd = Text.unpack <$> drv.cwd}
-      (exitCode, stdout, stderr) <-
+      (exitCode, stdoutStr, stderrStr) <-
         liftIO $ readCreateProcessWithExitCode process ""
-      let stdoutText = Text.pack stdout
+      let stdout = Text.pack stdoutStr
+      let stderr = Text.pack stderrStr
       exit <-
         case exitBehavior of
           RunExitError ->
@@ -36,18 +37,18 @@ runDriverIO drv =
               ExitSuccess -> pure ()
               ExitFailure code ->
                 terror $
-                  "Process "
-                    <> shellJoin args_
-                    <> " failed with exit code: "
-                    <> Text.pack (show code)
-                    <> " and stderr: "
-                    <> Text.pack stderr
+                  ("Process " <> shellJoin args_ <> " failed with exit code: " <> Text.pack (show code))
+                    & (if Text.null stderr then id else (<> " and stderr: " <> stderr))
+                    & ( case Text.stripPrefix "OCI runtime exec failed: exec failed: " stdout of
+                          Nothing -> id
+                          Just outMsg -> (<> " and stdout: " <> outMsg)
+                      )
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
-          RunOutputShow -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputShow -> void $ liftIO $ Text.putStr stdout
           RunOutputHide -> pure ()
-          RunOutputReturn -> pure $ Text.strip stdoutText
+          RunOutputReturn -> pure $ Text.strip stdout
       pure $ RunResult{..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
