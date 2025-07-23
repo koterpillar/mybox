@@ -13,6 +13,7 @@ import System.Random
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
+import Mybox.Driver.Platform
 import Mybox.Prelude
 
 data IODriver = IODriver
@@ -73,14 +74,17 @@ testHostDriver act = do
   bracket (localDriver $ drvTemp_ True) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $
       withEnv "GITHUB_TOKEN" (const githubToken) $ do
-        let linkToOriginalHome path =
-              let op = originalHome </> path
-                  np = home </> path
-               in localDriver $ drvLink op np
-        linkToOriginalHome ".local/share/fonts"
-        linkToOriginalHome ".local/share/systemd/user"
-        linkToOriginalHome "Library/LaunchAgents"
-        linkToOriginalHome "Library/Fonts"
+        localDriver $ do
+          let linkToOriginalHome path = do
+                let op = originalHome </> path
+                let np = home </> path
+                drvMkdir op
+                drvLink op np
+          linkedDirectories <-
+            drvOS >>= \case
+              Linux _ -> pure [".local/share/fonts", ".local/share/systemd/user"]
+              MacOS -> pure ["Library/Fonts", "Library/LaunchAgents"]
+          for_ linkedDirectories linkToOriginalHome
         let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
             transformArgs args = args
         let cwd = Just home
