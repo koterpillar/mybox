@@ -8,6 +8,7 @@ import Mybox.Driver
 import Mybox.Package.Archive
 import Mybox.Package.Github
 import Mybox.Package.SpecBase
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -79,6 +80,7 @@ assertIconExists iconName = do
 spec :: Spec
 spec = do
   jsonSpec (Nothing @GithubPackage) [(Nothing, "{\"repo\": \"example/example\"}")]
+
   skipIf ((== Aarch64) <$> drvArchitecture) $
     packageSpec $ \psa ->
       ps
@@ -97,3 +99,48 @@ spec = do
                   assertDesktopFileExists "nvim" "Neovim" (Just "nvim")
                 _ -> pure ()
           )
+
+  -- Eza does not provide macOS binaries
+  onlyIfOS (\case Linux _ -> True; _ -> False) $
+    packageSpec $ \_ ->
+      ps
+        ( (mkGithubPackage "eza-community/eza")
+            { Mybox.Package.Github.binaries = ["eza"]
+            , Mybox.Package.Github.excludes = [".zip", "no_libgit"]
+            }
+        )
+        & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
+
+  packageSpec $ \psa ->
+    ps
+      ( (mkGithubPackage "com-lihaoyi/Ammonite")
+          { Mybox.Package.Github.binaries = ["amm"]
+          , Mybox.Package.Github.prefixes = ["3.6-"]
+          , Mybox.Package.Github.suffixes = ["-bootstrap"]
+          , Mybox.Package.Github.raw = Left "amm"
+          }
+      )
+      & ( case psa.os of
+            Linux Fedora -> preinstallPackage $ mkSystemPackage "java-21-openjdk"
+            Linux (Debian _) -> preinstallPackage $ mkSystemPackage "openjdk-17-jre"
+            _ -> id
+        )
+      & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
+
+  packageSpec $ \_ ->
+    ps
+      ( (mkGithubPackage "jqlang/jq")
+          { Mybox.Package.Github.binaries = ["jq"]
+          , Mybox.Package.Github.raw = Left "jq"
+          }
+      )
+      & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
+
+  onlyIf virtualSystem $
+    packageSpec $ \_ ->
+      ps
+        ( (mkGithubPackage "tonsky/FiraCode")
+            { Mybox.Package.Github.fonts = ["FiraCode-Regular"]
+            }
+        )
+        & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"

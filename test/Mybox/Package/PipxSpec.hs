@@ -37,7 +37,5 @@ spec = do
           & ignorePath ".local/bin/pipx"
           & ignorePath ".local/share/pipx"
           & ignorePath ".local/state/pipx/log"
-  -- FIXME: install pipx
-  onlyIf (drvExecutableExists "pipx") $ do
-    packageSpec $ tqdmPackage "tqdm"
-    packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
+  packageSpec $ tqdmPackage "tqdm"
+  packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"

@@ -1,4 +1,3 @@
-import re
 from collections.abc import Callable, Iterator
 
 from pydantic import BaseModel, Field
@@ -24,12 +23,6 @@ class Filters(BaseModel):
     @staticmethod
     def endswith(suffix: str) -> Filter[str]:
         return lambda x: x.endswith(suffix)
-
-    @staticmethod
-    def regex_(regex: str) -> Filter[str]:
-        regex_compiled = re.compile(regex)
-
-        return lambda x: regex_compiled.match(x) is not None
 
     @classmethod
     def from_synonyms(
@@ -57,9 +50,6 @@ class Filters(BaseModel):
     excludes: list[str] = Field(default_factory=list, alias="exclude")
     excludes_val = allow_singular_none("excludes")
 
-    regex: list[str] = Field(default_factory=list)
-    regex_val = allow_singular_none("regex")
-
     def filters(self) -> Iterator[Filter[str]]:
         for prefix in self.prefixes:
             yield self.startswith(prefix)
@@ -69,8 +59,6 @@ class Filters(BaseModel):
             yield self.includes_(include)
         for exclude in self.excludes:
             yield self.excludes_(exclude)
-        for regex in self.regex:
-            yield self.regex_(regex)
 
 
 def choose(candidates: list[T], filters: Iterator[Filter[T]]) -> T:

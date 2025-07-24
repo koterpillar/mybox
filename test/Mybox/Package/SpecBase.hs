@@ -61,7 +61,7 @@ ps p =
     , name_ = Nothing
     , checkInstalled_ = expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
-    , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache/libdnf5"]
+    , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache"]
     }
 
 type MPS a = PackageSpec a -> PackageSpec a
@@ -87,7 +87,7 @@ ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 preinstall :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
-preinstallPackage :: Package a => a -> MPS a
+preinstallPackage :: Package b => b -> MPS a
 preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec

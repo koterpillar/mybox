@@ -12,17 +12,23 @@ import Effectful.Exception
 import Mybox.Driver.Class
 import Mybox.Prelude
 
--- | Check if a path is executable.
-drvIsExecutable :: Driver :> es => Text -> Eff es Bool
-drvIsExecutable path = do
-  code <- drvRunOk $ "test" :| ["-x", path]
+data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
+
+drvTest :: Driver :> es => TestOp -> Text -> Eff es Bool
+drvTest op path = do
+  let opStr = case op of
+        IsExecutable -> "-x"
+        IsDirectory -> "-d"
+        IsSymlink -> "-L"
+        IsFile -> "-f"
+  code <- drvRunOk $ "test" :| [opStr, path]
   pure (code == ExitSuccess)
 
--- | Check if a path is a regular file.
+drvIsExecutable :: Driver :> es => Text -> Eff es Bool
+drvIsExecutable = drvTest IsExecutable
+
 drvIsFile :: Driver :> es => Text -> Eff es Bool
-drvIsFile path = do
-  code <- drvRunOk $ "test" :| ["-f", path]
-  pure (code == ExitSuccess)
+drvIsFile = drvTest IsFile
 
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
@@ -42,9 +48,11 @@ drvFindExecutable candidates = go candidates
 
 -- | Check if a path is a directory.
 drvIsDir :: Driver :> es => Text -> Eff es Bool
-drvIsDir path = do
-  code <- drvRunOk $ "test" :| ["-d", path]
-  pure (code == ExitSuccess)
+drvIsDir = drvTest IsDirectory
+
+-- | Check if a path is a symbolic link.
+drvIsSymlink :: Driver :> es => Text -> Eff es Bool
+drvIsSymlink = drvTest IsSymlink
 
 -- | Get the current username (FIXME: check root)
 drvUsername :: Driver :> es => Eff es Text
@@ -66,7 +74,7 @@ drvRm path = drvRun $ "rm" :| ["-r", "-f", path]
 
 -- | Create directories recursively.
 drvMkdir :: Driver :> es => Text -> Eff es ()
-drvMkdir path = drvRun $ "mkdir" :| ["-p", path]
+drvMkdir path = unlessM (drvIsSymlink path) $ drvRun $ "mkdir" :| ["-p", path]
 
 -- | Create a symbolic link from source to target.
 drvLink :: Driver :> es => Text -> Text -> Eff es ()

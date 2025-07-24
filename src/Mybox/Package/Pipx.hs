@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Github qualified as Github
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Queue
@@ -48,15 +49,25 @@ instance FromJSON PipxList where
     packages <- obj .: "venvs"
     pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
 
-prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Eff es ()
-prerequisites = do
-  -- FIXME: Install pipx
+prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
+prerequisites p = do
   os <- drvOS
   let packages = case os of
-        Linux _ -> ["python3-pip"]
+        Linux distribution ->
+          ["python3-pip"] <> case distribution of
+            Debian _ -> ["python3-venv"]
+            _ -> []
         MacOS -> []
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
+  queueInstall $
+    (Github.mkGithubPackage "pypa/pipx")
+      { Github.binaries = ["pipx"]
+      , Github.raw = Left "pipx"
+      }
+  when (isRepo p) $
+    queueInstall $
+      mkSystemPackage "git"
 
 data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
   deriving (Show)
@@ -89,7 +100,7 @@ remoteVersionPipx p =
   case repo p of
     Just r -> repoBranchVersion r Nothing
     Nothing -> do
-      prerequisites
+      prerequisites p
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]
@@ -97,8 +108,9 @@ remoteVersionPipx p =
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-pipxInstall :: (Driver :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
+pipxInstall :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
 pipxInstall p = do
+  prerequisites p
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
   -- track virtual environment
   local <- drvLocal

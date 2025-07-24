@@ -4,6 +4,7 @@ set -euo pipefail
 
 OPT_FORMAT=""
 OPT_PYTHON="true"
+OPT_HASKELL="true"
 while [ $# -gt 0 ]; do
   case "$1" in
     --format)
@@ -12,6 +13,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-python)
       OPT_PYTHON=""
+      shift
+      ;;
+    --no-haskell)
+      OPT_HASKELL=""
       shift
       ;;
     *)
@@ -40,7 +45,10 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC2046
 shellcheck $(grep -lER --exclude-dir .git --exclude-dir .stack-work '^#!.+(ba)?sh$' "$DIR")
 
-"${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/test"
+if [ -n "$OPT_HASKELL" ]
+then
+  "${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/test"
+fi
 
 if [ -n "$OPT_PYTHON" ]
 then

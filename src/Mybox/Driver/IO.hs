@@ -13,6 +13,7 @@ import System.Random
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
+import Mybox.Driver.Platform
 import Mybox.Prelude
 
 data IODriver = IODriver
@@ -26,9 +27,10 @@ runDriverIO drv =
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
       let process = (proc cmd args){System.Process.cwd = Text.unpack <$> drv.cwd}
-      (exitCode, stdout, stderr) <-
+      (exitCode, stdoutStr, stderrStr) <-
         liftIO $ readCreateProcessWithExitCode process ""
-      let stdoutText = Text.pack stdout
+      let stdout = Text.pack stdoutStr
+      let stderr = Text.pack stderrStr
       exit <-
         case exitBehavior of
           RunExitError ->
@@ -36,18 +38,18 @@ runDriverIO drv =
               ExitSuccess -> pure ()
               ExitFailure code ->
                 terror $
-                  "Process "
-                    <> shellJoin args_
-                    <> " failed with exit code: "
-                    <> Text.pack (show code)
-                    <> " and stderr: "
-                    <> Text.pack stderr
+                  ("Process " <> shellJoin args_ <> " failed with exit code: " <> Text.pack (show code))
+                    & (if Text.null stderr then id else (<> " and stderr: " <> stderr))
+                    & ( case Text.stripPrefix "OCI runtime exec failed: exec failed: " stdout of
+                          Nothing -> id
+                          Just outMsg -> (<> " and stdout: " <> outMsg)
+                      )
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
-          RunOutputShow -> void $ liftIO $ Text.putStr stdoutText
+          RunOutputShow -> void $ liftIO $ Text.putStr stdout
           RunOutputHide -> pure ()
-          RunOutputReturn -> pure $ Text.strip stdoutText
+          RunOutputReturn -> pure $ Text.strip stdout
       pure $ RunResult{..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
@@ -72,13 +74,17 @@ testHostDriver act = do
   bracket (localDriver $ drvTemp_ True) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $
       withEnv "GITHUB_TOKEN" (const githubToken) $ do
-        let linkToOriginalHome path =
-              let op = originalHome </> path
-                  np = home </> path
-               in localDriver $ drvLink op np
-        linkToOriginalHome ".local/share/fonts"
-        linkToOriginalHome ".local/share/systemd/user"
-        linkToOriginalHome "Library/LaunchAgents"
+        localDriver $ do
+          let linkToOriginalHome path = do
+                let op = originalHome </> path
+                let np = home </> path
+                drvMkdir op
+                drvLink op np
+          linkedDirectories <-
+            drvOS >>= \case
+              Linux _ -> pure [".local/share/fonts", ".local/share/systemd/user"]
+              MacOS -> pure ["Library/Fonts", "Library/LaunchAgents"]
+          for_ linkedDirectories linkToOriginalHome
         let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
             transformArgs args = args
         let cwd = Just home
