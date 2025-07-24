@@ -22,6 +22,7 @@ readConfigFile :: Reader :> es => Text -> Eff es ByteString
 readConfigFile = send . ReadConfig
 
 readConfigYAML :: (FromJSON a, Reader :> es) => Text -> Eff es a
-readConfigYAML p = do
-  contents <- readConfigFile p
-  Yaml.decodeThrow contents
+readConfigYAML p =
+  readConfigFile p
+    >>= Yaml.decodeThrow
+    >>= parseThrow (parseJSONWithContext p)
