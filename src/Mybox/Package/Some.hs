@@ -29,15 +29,18 @@ instance Show SomePackage where
 
 instance FromJSON SomePackage where
   parseJSON v =
-    mkSomePackageF (parseJSON @BrewRepo v)
-      <|> mkSomePackageF (parseJSON @ClonePackage v)
-      <|> mkSomePackageF (parseJSON @GithubPackage v)
-      <|> mkSomePackageF (parseJSON @NPMPackage v)
-      <|> mkSomePackageF (parseJSON @PipxPackage v)
-      <|> mkSomePackageF (parseJSON @ShellPackage v)
-      <|> mkSomePackageF (parseJSON @SystemPackage v)
-      <|> mkSomePackageF (parseJSON @URLPackage v)
-      <|> mkSomePackageF (parseJSON @YumRepo v)
+    foldr1
+      jsonAlternative
+      [ mkSomePackageF (parseJSON @BrewRepo v)
+      , mkSomePackageF (parseJSON @ClonePackage v)
+      , mkSomePackageF (parseJSON @GithubPackage v)
+      , mkSomePackageF (parseJSON @NPMPackage v)
+      , mkSomePackageF (parseJSON @PipxPackage v)
+      , mkSomePackageF (parseJSON @ShellPackage v)
+      , mkSomePackageF (parseJSON @SystemPackage v)
+      , mkSomePackageF (parseJSON @URLPackage v)
+      , mkSomePackageF (parseJSON @YumRepo v)
+      ]
 
 instance ToJSON SomePackage where
   toJSON (SomePackage f) = f toJSON
