@@ -1,21 +1,9 @@
 module Mybox.Utils where
 
 import Data.Text qualified as Text
+import System.FilePath.Glob (compile, match)
 
-import Mybox.Driver
 import Mybox.Prelude
 
-repoBranchVersion ::
-  Driver :> es =>
-  -- | Repository
-  Text ->
-  -- | Branch
-  Maybe Text ->
-  Eff es Text
-repoBranchVersion repo_ branch_ = do
-  let repo = fromMaybe repo_ $ Text.stripPrefix "git+" repo_
-  let branch = fromMaybe "HEAD" branch_
-  output <- drvRunOutput $ "git" :| ["ls-remote", repo, branch]
-  case Text.words output of
-    [ref, _] -> pure ref
-    _ -> terror $ "Failed to parse git ls-remote output: " <> output
+glob :: Text -> Text -> Bool
+glob pattern text = match (compile $ Text.unpack pattern) (Text.unpack text)

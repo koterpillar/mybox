@@ -2,19 +2,20 @@ module Mybox.Main (
   main,
 ) where
 
-import System.Exit
-
+import Mybox.Config
 import Mybox.Driver
+import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.Stores
 import Mybox.Tracker
 
 main :: IO ()
 main =
-  runEff $
+  runEff $ do
     runStores $
-      localDriver $
+      localDriver $ do
+        config <- runReaderIO readConfig
         drvTracker (pMyboxState </> "files.json") $
-          do
-            drvRun $ "echo" :| ["Not implemented yet."]
-            liftIO exitFailure
+          trkSession $
+            runInstallQueue $
+              for_ config.packages queueInstall

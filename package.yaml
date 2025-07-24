@@ -30,6 +30,7 @@ dependencies:
   - containers
   - effectful
   - extra
+  - Glob
   - mtl
   - process
   - random

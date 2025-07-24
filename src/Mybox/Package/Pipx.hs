@@ -13,7 +13,6 @@ import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Stores
 import Mybox.Tracker
-import Mybox.Utils
 
 data PipxPackage = PipxPackage
   { package :: Text
@@ -98,7 +97,7 @@ localVersionPipx p = do
 remoteVersionPipx :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es Text
 remoteVersionPipx p =
   case repo p of
-    Just r -> repoBranchVersion r Nothing
+    Just r -> drvRepoBranchVersion r Nothing
     Nothing -> do
       prerequisites p
       result <-
