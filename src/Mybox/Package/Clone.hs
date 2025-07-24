@@ -9,7 +9,6 @@ import Mybox.Package.Destination
 import Mybox.Package.Post
 import Mybox.Prelude
 import Mybox.Tracker
-import Mybox.Utils
 
 data ClonePackage = ClonePackage
   { repo :: Text
@@ -78,7 +77,7 @@ cpLocalVersion p = do
     else pure Nothing
 
 cpRemoteVersion :: Driver :> es => ClonePackage -> Eff es Text
-cpRemoteVersion p = repoBranchVersion (cpRemote p) p.branch
+cpRemoteVersion p = drvRepoBranchVersion (cpRemote p) p.branch
 
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"

@@ -15,6 +15,10 @@ build-type:     Simple
 library
   exposed-modules:
       Mybox.Aeson
+      Mybox.Config
+      Mybox.Config.IO
+      Mybox.Config.Match
+      Mybox.Config.Reader
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO
@@ -75,7 +79,8 @@ library
       RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
-      aeson
+      Glob
+    , aeson
     , aeson-extra
     , base
     , base64-bytestring
@@ -115,7 +120,8 @@ executable mybox
       RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      Glob
+    , aeson
     , aeson-extra
     , base
     , base64-bytestring
@@ -183,7 +189,8 @@ test-suite tests
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      aeson
+      Glob
+    , aeson
     , aeson-extra
     , base
     , base64-bytestring
