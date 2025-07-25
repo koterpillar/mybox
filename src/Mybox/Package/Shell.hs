@@ -5,12 +5,12 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Effects
 import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Stores
-import Mybox.Tracker
 
 data ShellPackage = ShellPackage
   { shell :: Text
@@ -68,7 +68,7 @@ shellLocalVersion p =
 shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es Text
 shellRemoteVersion p = pure p.shell
 
-shellInstall :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => ShellPackage -> Eff es ()
+shellInstall :: DIST es => ShellPackage -> Eff es ()
 shellInstall p = do
   drvOS >>= \case
     Linux Fedora -> queueInstall $ mkSystemPackage "util-linux-user"

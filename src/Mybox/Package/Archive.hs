@@ -16,11 +16,11 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Extractor
+import Mybox.Package.Effects
 import Mybox.Package.Name
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
-import Mybox.Stores
 import Mybox.Tracker
 
 type ArchiveReqs p =
@@ -63,7 +63,7 @@ archiveToJSON p =
   ]
 
 class ArchiveReqs p => ArchivePackage p where
-  archiveUrl :: forall es. (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Eff es Text
+  archiveUrl :: forall es. DIST es => p -> Eff es Text
 
 pathname :: ArchivePackage p => p -> Text
 pathname p = Text.replace "/" "--" p.name
@@ -73,7 +73,7 @@ aDirectory p = do
   local <- drvLocal
   return $ local </> "mybox" </> pathname p
 
-aExtract :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Text -> Eff es ()
+aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Text -> Eff es ()
 aExtract p url archiveFile = case p.raw of
   Right True -> aExtractRaw p url archiveFile $ Text.takeWhileEnd (/= '/') url
   Left filename -> aExtractRaw p url archiveFile filename
@@ -82,7 +82,7 @@ aExtract p url archiveFile = case p.raw of
     target <- aDirectory p
     extract extractor archiveFile target
 
-aExtractRaw :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Text -> Text -> Eff es ()
+aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Text -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
@@ -90,7 +90,7 @@ aExtractRaw p url archiveFile filename = do
   extractRaw extractor archiveFile targetPath
   when (filename `elem` p.binaries) $ drvMakeExecutable targetPath
 
-archiveInstall :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Eff es ()
+archiveInstall :: (ArchivePackage p, DIST es) => p -> Eff es ()
 archiveInstall p = do
   url <- archiveUrl p
   drvTempFile $ \archiveFile -> do
@@ -135,7 +135,7 @@ binaryFind =
 aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es Text
 aBinaryPath p = aFind p binaryFind{paths = p.binaryPaths <> binaryFind.paths}
 
-installBinary :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Eff es ()
+installBinary :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installBinary p binary = do
   binaryPath <- aBinaryPath p binary
   local <- drvLocal
@@ -156,7 +156,7 @@ freedesktopAppFind =
     , description = "application"
     }
 
-installApp :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Eff es ()
+installApp :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installApp p app = do
   drvOS >>= \case
     Linux _ -> pure ()
@@ -188,7 +188,7 @@ withExtensions exts name = case Text.splitOn "." name of
 iconExtensions :: [Text]
 iconExtensions = ["png", "svg"]
 
-installIcon :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Eff es ()
+installIcon :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installIcon p icon = do
   directory <- aDirectory p
   iconPaths <- drvFind directory $ mempty{names = Just $ withExtensions iconExtensions icon}
@@ -218,7 +218,7 @@ iconPath icon = "hicolor" </> resolution </> "apps" </> base
 fontExtensions :: [Text]
 fontExtensions = ["ttf", "otf"]
 
-installFont :: (ArchivePackage p, Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => p -> Text -> Eff es ()
+installFont :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installFont p font = do
   fontDir <-
     drvOS >>= \case

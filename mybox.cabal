@@ -38,6 +38,7 @@ library
       Mybox.Package.Class
       Mybox.Package.Clone
       Mybox.Package.Destination
+      Mybox.Package.Effects
       Mybox.Package.Github
       Mybox.Package.ManualVersion
       Mybox.Package.Name

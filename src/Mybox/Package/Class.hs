@@ -6,22 +6,20 @@ module Mybox.Package.Class (
 ) where
 
 import Mybox.Aeson
-import Mybox.Driver
+import Mybox.Package.Effects
 import Mybox.Package.Name
-import Mybox.Package.Queue.Effect
 import Mybox.Prelude
-import Mybox.Stores
 import Mybox.Tracker
 
 class
   (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es Text
-  localVersion :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es (Maybe Text)
-  install :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => a -> Eff es ()
+  remoteVersion :: DIST es => a -> Eff es Text
+  localVersion :: DIST es => a -> Eff es (Maybe Text)
+  install :: DIST es => a -> Eff es ()
 
-isInstalled :: (Driver :> es, InstallQueue :> es, Package a, Stores :> es, TrackerSession :> es) => a -> Eff es Bool
+isInstalled :: (DIST es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
   lv <- localVersion pkg
   case lv of
@@ -30,7 +28,7 @@ isInstalled pkg = do
       rv <- remoteVersion pkg
       pure $ lv' == rv
 
-ensureInstalled :: (Driver :> es, InstallQueue :> es, Package a, Stores :> es, TrackerSession :> es) => a -> Eff es ()
+ensureInstalled :: (DIST es, Package a) => a -> Eff es ()
 ensureInstalled pkg = do
   installed <- isInstalled pkg
   if installed then trkSkip pkg else install pkg

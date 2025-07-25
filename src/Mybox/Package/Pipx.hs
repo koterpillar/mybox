@@ -5,13 +5,13 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Effects
 import Mybox.Package.Github qualified as Github
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
-import Mybox.Stores
 import Mybox.Tracker
 
 data PipxPackage = PipxPackage
@@ -48,7 +48,7 @@ instance FromJSON PipxList where
     packages <- obj .: "venvs"
     pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
 
-prerequisites :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
+prerequisites :: DIST es => PipxPackage -> Eff es ()
 prerequisites p = do
   os <- drvOS
   let packages = case os of
@@ -94,7 +94,7 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es Text
+remoteVersionPipx :: DIST es => PipxPackage -> Eff es Text
 remoteVersionPipx p =
   case repo p of
     Just r -> drvRepoBranchVersion r Nothing
@@ -107,7 +107,7 @@ remoteVersionPipx p =
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-pipxInstall :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => PipxPackage -> Eff es ()
+pipxInstall :: DIST es => PipxPackage -> Eff es ()
 pipxInstall p = do
   prerequisites p
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
