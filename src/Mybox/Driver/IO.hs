@@ -97,7 +97,7 @@ dockerDriver baseImage act =
   mkContainer :: IOE :> es => Eff es Text
   mkContainer =
     localDriver $ do
-      containerName <- Text.pack . show <$> liftIO (randomIO @Int)
+      containerName <- Text.pack . show <$> liftIO (randomIO @Word)
       githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
         drvCopy "bootstrap" (tempDir </> "bootstrap")
