@@ -11,10 +11,10 @@ import Data.Text.Encoding qualified as Text
 
 import Mybox.Driver
 import Mybox.Extractor
+import Mybox.Package.Effects
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
-import Mybox.Stores
 import Mybox.Tracker
 
 temporaryZip :: Driver :> es => [Text] -> (Text -> Eff es a) -> Eff es a
@@ -27,7 +27,7 @@ temporaryZip paths act = drvTempDir $ \archiveDir -> do
 
   act archiveFile
 
-extractFileNames :: (Driver :> es, InstallQueue :> es, Stores :> es, TrackerSession :> es) => Text -> Eff es (Set Text)
+extractFileNames :: DIST es => Text -> Eff es (Set Text)
 extractFileNames archive = do
   extractor <- getExtractor archive
   drvTempDir $ \dir -> do
