@@ -77,8 +77,8 @@ parseVersions info = Map.fromList $ map parseCask info.casks ++ map parseFormula
 brew :: Installer
 brew =
   Installer
-    { storePackages = jsonStore "brew"
-    , storeGlobal = jsonStore "brew-global"
+    { storePackages = mkStore "brew" textIso jsonIso
+    , storeGlobal = mkStore "brew-global" jsonIso jsonIso
     , install_ = brewInstall "install"
     , upgrade_ = brewInstall "upgrade"
     , getPackageInfo = brewPackageInfo

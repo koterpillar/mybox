@@ -85,8 +85,8 @@ dnfPackageInfo package = iCombineLatestInstalled <$> dnfRepoQuery package <*> rp
 dnf :: Installer
 dnf =
   Installer
-    { storePackages = jsonStore "dnf"
-    , storeGlobal = jsonStore "dnf-global"
+    { storePackages = mkStore "dnf" textIso jsonIso
+    , storeGlobal = mkStore "dnf-global" jsonIso jsonIso
     , install_ = dnfInstall "install"
     , upgrade_ = dnfInstall "upgrade"
     , getPackageInfo = dnfPackageInfo
