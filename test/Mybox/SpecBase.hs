@@ -38,12 +38,9 @@ type EffSpec es = Hspec.SpecWith (RunEff es)
 
 type Spec = EffSpec '[Driver, Stores, IOE]
 
-effSpec' :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
-effSpec' dispatch = around $ \ioa -> runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
+effSpec :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
+effSpec dispatch = around $ \ioa -> runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
   ioa $ RunEff unlift
-
-effSpec :: Spec -> Hspec.Spec
-effSpec = effSpec' $ runStores . testDriver
 
 withEff :: (forall a. Eff es' a -> Eff es a) -> EffSpec es' -> EffSpec es
 withEff dispatch = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ dispatch test
