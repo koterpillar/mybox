@@ -23,12 +23,16 @@ module Mybox.SpecBase (
 ) where
 
 import Control.Exception.Safe (Exception)
+import Data.List (sortOn)
+import Data.Map qualified as Map
+import Data.Ord (Down (..))
 import Data.Text qualified as Text
 import System.Environment
 import Test.Hspec hiding (before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
+import Mybox.Driver.Stats
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -47,7 +51,18 @@ withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
 withIOEnv = withEff id
 
 withTestEnvAnd :: IOE :> es => (forall a. Eff es a -> Eff '[Driver, Stores, IOE] a) -> (RunEff es -> IO ()) -> IO ()
-withTestEnvAnd eff = withEff $ runStores . testDriver . eff
+withTestEnvAnd eff = withEff $ \act ->
+  runStores $ do
+    (stats, r) <- testDriver $ driverStats $ eff act
+    printStats 20 stats
+    pure r
+
+printStats :: IOE :> es => Int -> Map Args Int -> Eff es ()
+printStats n stats = do
+  let top = take n $ sortOn (Down . snd) $ Map.toList stats
+  liftIO $ putStrLn $ "Top " <> show n <> " commands:"
+  forM_ top $ \(arg, count) ->
+    liftIO $ putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
 
 withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
 withTestEnv = withTestEnvAnd id

@@ -24,6 +24,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Driver.Stats
       Mybox.Extractor
       Mybox.Filters
       Mybox.Installer
