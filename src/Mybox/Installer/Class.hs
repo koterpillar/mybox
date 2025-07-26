@@ -19,8 +19,8 @@ instance ToJSON PackageVersion where
   toEncoding = genericToEncoding defaultOptions
 
 data Installer = Installer
-  { storePackages :: Store PackageVersion
-  , storeGlobal :: Store Bool
+  { storePackages :: Store Text PackageVersion
+  , storeGlobal :: Store () Bool
   , install_ :: forall es. Driver :> es => Text -> Eff es ()
   , upgrade_ :: forall es. Driver :> es => Text -> Eff es ()
   , getPackageInfo :: forall es. Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
@@ -35,10 +35,10 @@ iGetCachePackageInfo i package = do
 
 iPackageInfo :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do
-  cacheInitialized <- fromMaybe False <$> storeGet i.storeGlobal ""
+  cacheInitialized <- fromMaybe False <$> storeGet i.storeGlobal ()
   unless cacheInitialized $ do
     _ <- iGetCachePackageInfo i Nothing
-    storeSet i.storeGlobal "" True
+    storeSet i.storeGlobal () True
   storeGet i.storePackages package
     `fromMaybeOrMM` fmap (Map.lookup package) (iGetCachePackageInfo i $ Just package)
     `fromMaybeOrMM` terror ("Unknown package: " <> package)

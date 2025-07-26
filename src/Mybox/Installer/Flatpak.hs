@@ -57,8 +57,8 @@ flatpakPackageInfo _ = iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakG
 flatpak :: Installer
 flatpak =
   Installer
-    { storePackages = jsonStore "flatpak"
-    , storeGlobal = jsonStore "flatpak-global"
+    { storePackages = mkStore "flatpak" textIso jsonIso
+    , storeGlobal = mkStore "flatpak-global" jsonIso jsonIso
     , install_ = flatpakInstall
     , upgrade_ = flatpakUpgrade
     , getPackageInfo = flatpakPackageInfo

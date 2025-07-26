@@ -51,8 +51,8 @@ aptPackageInfo (Just package) = fmap (Map.singleton package) $ PackageVersion <$
 apt :: Installer
 apt =
   Installer
-    { storePackages = jsonStore "apt"
-    , storeGlobal = jsonStore "apt-global"
+    { storePackages = mkStore "apt" textIso jsonIso
+    , storeGlobal = mkStore "apt-global" jsonIso jsonIso
     , install_ = aptInstall
     , upgrade_ = aptInstall
     , getPackageInfo = aptPackageInfo
