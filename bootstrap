@@ -115,7 +115,7 @@ then
 
   PIPX_TEMP=$(mktemp)
   trap 'rm -f "$PIPX_TEMP"' EXIT
-  curl -sSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
+  curl -fsSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
   if [ -s "$PIPX_TEMP" ]
   then
     mv "$PIPX_TEMP" "$PIPX"
