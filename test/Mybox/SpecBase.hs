@@ -2,10 +2,8 @@ module Mybox.SpecBase (
   module Test.Hspec,
   EffSpec,
   Spec,
-  TestSpec,
   effSpec,
   withEff,
-  withTestEff,
   before,
   onlyIf,
   onlyIfOS,
@@ -38,35 +36,20 @@ newtype RunEff es
 
 type EffSpec es = Hspec.SpecWith (RunEff es)
 
-type Spec = EffSpec '[IOE]
+type Spec = EffSpec '[Driver, Stores, IOE]
 
-type TestSpec = EffSpec '[Driver, Stores, IOE]
+effSpec' :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
+effSpec' dispatch = around $ \ioa -> runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
+  ioa $ RunEff unlift
 
 effSpec :: Spec -> Hspec.Spec
-effSpec = around $ \ioa -> runEff $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
-  ioa $ RunEff unlift
+effSpec = effSpec' $ runStores . testDriver
 
 withEff :: (forall a. Eff es' a -> Eff es a) -> EffSpec es' -> EffSpec es
 withEff dispatch = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ dispatch test
 
-withTestEff :: IOE :> es => EffSpec (Driver : Stores : es) -> EffSpec es
-withTestEff = withEff $ runStores . testDriver
-
 before :: Eff es () -> EffSpec es -> EffSpec es
 before act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ act >> test
-
-onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
-onlyIf cond spec =
-  runIO (runEff $ testDriver cond)
-    >>= \case
-      True -> spec
-      False -> xdescribe "(skipped)" spec
-
-onlyIfOS :: (OS -> Bool) -> EffSpec es -> EffSpec es
-onlyIfOS cond = onlyIf $ cond <$> drvOS
-
-skipIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
-skipIf cond = onlyIf $ fmap not cond
 
 it :: String -> Eff es () -> EffSpec es
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
@@ -92,6 +75,19 @@ shouldThrow act ex = withSeqEffToIO $ \unlift -> Hspec.shouldThrow (unlift act) 
 
 expectationFailure :: (HasCallStack, IOE :> es) => String -> Eff es ()
 expectationFailure = liftIO . Hspec.expectationFailure
+
+onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
+onlyIf cond spec =
+  runIO (runEff $ testDriver cond)
+    >>= \case
+      True -> spec
+      False -> xdescribe "(skipped)" spec
+
+onlyIfOS :: (OS -> Bool) -> EffSpec es -> EffSpec es
+onlyIfOS cond = onlyIf $ cond <$> drvOS
+
+skipIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
+skipIf cond = onlyIf $ fmap not cond
 
 hasEnv :: IOE :> es => String -> Eff es Bool
 hasEnv name = not . null . fromMaybe mempty <$> withSeqEffToIO (\_ -> lookupEnv name)

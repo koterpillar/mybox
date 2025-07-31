@@ -27,7 +27,7 @@ spec = do
     for_ [False, True] $ \root ->
       describe (if root then "root" else "normal user") $ do
         -- cannot test normal user's shell without Docker on GitHub Actions
-        skipIf (if root then pure False else inCI) $ do
+        (if root then id else skipIf inCI) $ do
           packageSpec $ \psa ->
             let sh = "/bin/sh"
                 username = if root then "root" else psa.username
@@ -41,10 +41,9 @@ spec = do
 
   describe "validation" $
     onlyIf inDocker $
-      withTestEff $
-        withEff (nullTrackerSession . runInstallQueue) $ do
-          it "fails when shell does not exist" $
-            install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
+      withEff (nullTrackerSession . runInstallQueue) $ do
+        it "fails when shell does not exist" $
+          install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
 
-          it "fails when shell is not executable" $
-            install (mkShellPackage "/etc/shells") `shouldThrow` anyException
+        it "fails when shell is not executable" $
+          install (mkShellPackage "/etc/shells") `shouldThrow` anyException

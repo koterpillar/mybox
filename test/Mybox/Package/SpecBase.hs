@@ -92,20 +92,19 @@ preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensure
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
-  withTestEff $
-    psaSpec $
-      \psa -> do
-        let s = makePS psa
-        let p = s.package
-        describe (Text.unpack $ fromMaybe p.name s.name_) $ do
-          it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
-          it "installs" $ do
-            preinstall_ s
-            preexistingFiles <- trackableFiles s
-            ((), ts) <-
-              stateTracker mempty $ trkSession $ runInstallQueue $ install p
-            checkAllTracked s preexistingFiles ts
-            checkInstalled_ s
+  psaSpec $
+    \psa -> do
+      let s = makePS psa
+      let p = s.package
+      describe (Text.unpack $ fromMaybe p.name s.name_) $ do
+        it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
+        it "installs" $ do
+          preinstall_ s
+          preexistingFiles <- trackableFiles s
+          ((), ts) <-
+            stateTracker mempty $ trkSession $ runInstallQueue $ install p
+          checkAllTracked s preexistingFiles ts
+          checkInstalled_ s
 
 trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set Text)
 trackableFiles s = do

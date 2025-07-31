@@ -19,12 +19,11 @@ expectedFlatpakVersion version = case Text.splitOn ":" version of
 spec :: Spec
 spec = onlyIfOS (\case Linux _ -> True; _ -> False) $
   skipIf inDocker $
-    withTestEff $
-      withEff (nullTrackerSession . runInstallQueue) $ do
-        describe "flatpak" $
-          before (ensureInstalled flatpakPackage) $ do
-            describe "iLatestVersion" $ do
-              it "returns valid version for an existing package" $ do
-                iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
-              it "fails for non-existent package" $ do
-                iLatestVersion flatpak "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException
+    withEff (nullTrackerSession . runInstallQueue) $ do
+      describe "flatpak" $
+        before (ensureInstalled flatpakPackage) $ do
+          describe "iLatestVersion" $ do
+            it "returns valid version for an existing package" $ do
+              iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
+            it "fails for non-existent package" $ do
+              iLatestVersion flatpak "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException
