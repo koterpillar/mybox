@@ -43,7 +43,7 @@ mkPSA = runEff $ testDriver $ do
   os <- drvOS
   pure $ PackageSpecArgs{random = random_, ..}
 
-psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
+psaSpec :: (PackageSpecArgs -> EffSpec es) -> EffSpec es
 psaSpec f = runIO mkPSA >>= f
 
 data PackageSpec a = PackageSpec
@@ -92,20 +92,19 @@ preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensure
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
-  around withTestEnv $
-    psaSpec $
-      \psa -> do
-        let s = makePS psa
-        let p = s.package
-        describe (Text.unpack $ fromMaybe p.name s.name_) $ do
-          it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
-          it "installs" $ do
-            preinstall_ s
-            preexistingFiles <- trackableFiles s
-            ((), ts) <-
-              stateTracker mempty $ trkSession $ runInstallQueue $ install p
-            checkAllTracked s preexistingFiles ts
-            checkInstalled_ s
+  psaSpec $
+    \psa -> do
+      let s = makePS psa
+      let p = s.package
+      describe (Text.unpack $ fromMaybe p.name s.name_) $ do
+        it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
+        it "installs" $ do
+          preinstall_ s
+          preexistingFiles <- trackableFiles s
+          ((), ts) <-
+            stateTracker mempty $ trkSession $ runInstallQueue $ install p
+          checkAllTracked s preexistingFiles ts
+          checkInstalled_ s
 
 trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set Text)
 trackableFiles s = do
@@ -128,7 +127,7 @@ checkAllTracked s preexisting ts = do
   missing `shouldBe` Set.empty
 
 jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
-jsonSpec _ examples = around withIOEnv $ describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
   it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
     let pkgE = jsonDecode @a "example" json
     pkgE `shouldSatisfy` isRight

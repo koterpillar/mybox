@@ -15,9 +15,9 @@ import Mybox.Prelude
 import Mybox.SpecBase
 
 spec :: Spec
-spec = around withIOEnv $ do
+spec =
   describe "FromJSON" $ do
-    let roundtrip :: Package a => a -> EffSpec '[IOE]
+    let roundtrip :: Package a => a -> Spec
         roundtrip pkg = it ("parses " <> show pkg <> " from JSON") $ do
           let pkgJson = jsonEncode pkg
           let some = jsonDecode @SomePackage "SomePackage" pkgJson

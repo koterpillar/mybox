@@ -1,11 +1,10 @@
 module Mybox.Package.CloneSpec where
 
-import Test.Hspec
-
 import Mybox.Driver
 import Mybox.Package.Clone
 import Mybox.Package.SpecBase
 import Mybox.Prelude
+import Mybox.SpecBase
 
 spec :: Spec
 spec = do

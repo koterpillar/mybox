@@ -6,7 +6,7 @@ import Mybox.Filters
 import Mybox.SpecBase
 
 spec :: Spec
-spec = around withIOEnv $ do
+spec = do
   describe "choose" $ do
     let chooseInt = choose @Int
     it "errors with no candidates" $

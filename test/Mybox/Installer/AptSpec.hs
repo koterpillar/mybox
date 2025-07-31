@@ -6,4 +6,6 @@ import Mybox.Installer.SpecBase
 import Mybox.SpecBase
 
 spec :: Spec
-spec = onlyIfOS (\case Linux (Debian _) -> True; _ -> False) $ installerSpec apt
+spec =
+  onlyIfOS (\case Linux (Debian _) -> True; _ -> False) $
+    installerSpec apt

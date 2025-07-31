@@ -24,6 +24,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Driver.Stats
       Mybox.Extractor
       Mybox.Filters
       Mybox.Installer
@@ -166,6 +167,7 @@ test-suite tests
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.SpecBase
+      Mybox.SpecHook
       Mybox.StoresSpec
       Mybox.TrackerSpec
       Paths_mybox
