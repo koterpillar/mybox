@@ -22,10 +22,9 @@ spec :: Spec
 spec = do
   jsonSpec (Nothing @URLPackage) [(Nothing, "{\"url\": \"https://example.com/package.tar.gz\"}")]
   describe "name" $ do
-    around withIOEnv $ do
-      it "uses URL to derive name" $ do
-        let package = mkURLPackage "https://example.com/package.tar.gz"
-        package.name `shouldBe` "example.com/package"
+    it "uses URL to derive name" $ do
+      let package = mkURLPackage "https://example.com/package.tar.gz"
+      package.name `shouldBe` "example.com/package"
   packageSpec $ \_ ->
     ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){binaries = ["yarn"], binaryWrapper = True})
       & preinstall preinstallNode

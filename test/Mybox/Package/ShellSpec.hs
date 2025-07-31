@@ -41,9 +41,10 @@ spec = do
 
   describe "validation" $
     onlyIf inDocker $
-      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
-        it "fails when shell does not exist" $
-          install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
+      withTestEff $
+        withEff (nullTrackerSession . runInstallQueue) $ do
+          it "fails when shell does not exist" $
+            install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
 
-        it "fails when shell is not executable" $
-          install (mkShellPackage "/etc/shells") `shouldThrow` anyException
+          it "fails when shell is not executable" $
+            install (mkShellPackage "/etc/shells") `shouldThrow` anyException

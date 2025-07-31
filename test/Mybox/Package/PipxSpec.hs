@@ -16,7 +16,7 @@ spec = do
   jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
   onlyIf (drvExecutableExists "pipx") $
     describe "remote version" $ do
-      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+      withTestEff $ withEff (nullTrackerSession . runInstallQueue) $ do
         it "gets version for existing package" $ do
           let package = mkPipxPackage "black"
           version <- remoteVersion package

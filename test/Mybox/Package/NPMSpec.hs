@@ -19,7 +19,7 @@ spec = do
     ]
   onlyIf (drvExecutableExists "npm") $
     describe "remote version" $ do
-      around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+      withTestEff $ withEff (nullTrackerSession . runInstallQueue) $ do
         it "gets version for existing package" $ do
           let package = mkNPMPackage "express"
           version <- remoteVersion package

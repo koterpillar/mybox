@@ -43,7 +43,7 @@ mkPSA = runEff $ testDriver $ do
   os <- drvOS
   pure $ PackageSpecArgs{random = random_, ..}
 
-psaSpec :: (PackageSpecArgs -> SpecWith d) -> SpecWith d
+psaSpec :: (PackageSpecArgs -> EffSpec es) -> EffSpec es
 psaSpec f = runIO mkPSA >>= f
 
 data PackageSpec a = PackageSpec
@@ -92,7 +92,7 @@ preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensure
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
-  around withTestEnv $
+  withTestEff $
     psaSpec $
       \psa -> do
         let s = makePS psa
@@ -128,7 +128,7 @@ checkAllTracked s preexisting ts = do
   missing `shouldBe` Set.empty
 
 jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
-jsonSpec _ examples = around withIOEnv $ describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
   it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
     let pkgE = jsonDecode @a "example" json
     pkgE `shouldSatisfy` isRight

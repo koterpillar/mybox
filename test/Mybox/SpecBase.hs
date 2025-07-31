@@ -1,10 +1,11 @@
 module Mybox.SpecBase (
   module Test.Hspec,
-  withEff,
-  withIOEnv,
-  withTestEnv,
-  withTestEnvAnd,
   EffSpec,
+  Spec,
+  TestSpec,
+  effSpec,
+  withEff,
+  withTestEff,
   before,
   onlyIf,
   onlyIfOS,
@@ -25,7 +26,7 @@ module Mybox.SpecBase (
 import Control.Exception.Safe (Exception)
 import Data.Text qualified as Text
 import System.Environment
-import Test.Hspec hiding (before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
@@ -35,43 +36,42 @@ import Mybox.Stores
 newtype RunEff es
   = RunEff (forall r. Eff es r -> IO r)
 
-type EffSpec ef = SpecWith (RunEff ef)
+type EffSpec es = Hspec.SpecWith (RunEff es)
 
-withEff :: IOE :> es => (forall a. Eff es a -> Eff '[IOE] a) -> (RunEff es -> IO ()) -> IO ()
-withEff dispatch ioa = runEff $
-  dispatch $
-    withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
-      ioa $ RunEff unlift
+type Spec = EffSpec '[IOE]
 
-withIOEnv :: (RunEff '[IOE] -> IO ()) -> IO ()
-withIOEnv = withEff id
+type TestSpec = EffSpec '[Driver, Stores, IOE]
 
-withTestEnvAnd :: IOE :> es => (forall a. Eff es a -> Eff '[Driver, Stores, IOE] a) -> (RunEff es -> IO ()) -> IO ()
-withTestEnvAnd eff = withEff $ runStores . testDriver . eff
+effSpec :: Spec -> Hspec.Spec
+effSpec = around $ \ioa -> runEff $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
+  ioa $ RunEff unlift
 
-withTestEnv :: (RunEff '[Driver, Stores, IOE] -> IO ()) -> IO ()
-withTestEnv = withTestEnvAnd id
+withEff :: (forall a. Eff es' a -> Eff es a) -> EffSpec es' -> EffSpec es
+withEff dispatch = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ dispatch test
 
-before :: Eff ef () -> EffSpec ef -> EffSpec ef
+withTestEff :: IOE :> es => EffSpec (Driver : Stores : es) -> EffSpec es
+withTestEff = withEff $ runStores . testDriver
+
+before :: Eff es () -> EffSpec es -> EffSpec es
 before act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ act >> test
 
-onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> SpecWith a -> SpecWith a
+onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
 onlyIf cond spec =
   runIO (runEff $ testDriver cond)
     >>= \case
       True -> spec
       False -> xdescribe "(skipped)" spec
 
-onlyIfOS :: (OS -> Bool) -> SpecWith a -> SpecWith a
+onlyIfOS :: (OS -> Bool) -> EffSpec es -> EffSpec es
 onlyIfOS cond = onlyIf $ cond <$> drvOS
 
-skipIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> SpecWith a -> SpecWith a
+skipIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
 skipIf cond = onlyIf $ fmap not cond
 
-it :: String -> Eff ef () -> EffSpec ef
+it :: String -> Eff es () -> EffSpec es
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
 
-xit :: String -> Eff ef () -> EffSpec ef
+xit :: String -> Eff es () -> EffSpec es
 xit name act = Hspec.xit name $ \(RunEff unlift) -> unlift act
 
 shouldBe :: (Eq a, HasCallStack, IOE :> es, Show a) => a -> a -> Eff es ()

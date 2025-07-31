@@ -166,6 +166,7 @@ test-suite tests
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.SpecBase
+      Mybox.SpecHook
       Mybox.StoresSpec
       Mybox.TrackerSpec
       Paths_mybox

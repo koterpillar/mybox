@@ -35,7 +35,7 @@ hasInstallLog :: Driver :> es => Eff es Bool
 hasInstallLog = drvIsFile installLogFile
 
 spec :: Spec
-spec = around (withTestEnvAnd $ nullTrackerSession . runInstallQueue) $ do
+spec = withTestEff $ withEff (nullTrackerSession . runInstallQueue) $ do
   let pkg = DummyPackage "dummy" "one"
   it "is not reported installed initially" $ do
     setRemoteVersion "version1"

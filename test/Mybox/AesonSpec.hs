@@ -14,13 +14,12 @@ instance FromJSON Test where
         (withObject "Test 2" (\o -> o .: "bar") v)
 
 spec :: Spec
-spec =
-  around withIOEnv $ do
-    describe "jsonAlternative" $ do
-      it "works if first parser succeeds" $
-        eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (Test "test")
-      it "works if second parser succeeds" $
-        eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (Test "test")
-      it "combines errors if both parsers fail" $
-        eitherDecode @Test "{}"
-          `shouldBe` Left "Error in $: key \"foo\" not found; key \"bar\" not found"
+spec = do
+  describe "jsonAlternative" $ do
+    it "works if first parser succeeds" $
+      eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (Test "test")
+    it "works if second parser succeeds" $
+      eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (Test "test")
+    it "combines errors if both parsers fail" $
+      eitherDecode @Test "{}"
+        `shouldBe` Left "Error in $: key \"foo\" not found; key \"bar\" not found"
