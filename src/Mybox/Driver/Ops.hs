@@ -14,21 +14,29 @@ import Mybox.Prelude
 
 data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
 
-drvTest :: Driver :> es => TestOp -> Text -> Eff es Bool
+drvTest :: Driver :> es => TestOp -> Path -> Eff es Bool
 drvTest op path = do
   let opStr = case op of
         IsExecutable -> "-x"
         IsDirectory -> "-d"
         IsSymlink -> "-L"
         IsFile -> "-f"
-  code <- drvRunOk $ "test" :| [opStr, path]
+  code <- drvRunOk $ "test" :| [opStr, path.text]
   pure (code == ExitSuccess)
 
-drvIsExecutable :: Driver :> es => Text -> Eff es Bool
+drvIsExecutable :: Driver :> es => Path -> Eff es Bool
 drvIsExecutable = drvTest IsExecutable
 
-drvIsFile :: Driver :> es => Text -> Eff es Bool
+drvIsFile :: Driver :> es => Path -> Eff es Bool
 drvIsFile = drvTest IsFile
+
+-- | Check if a path is a directory.
+drvIsDir :: Driver :> es => Path -> Eff es Bool
+drvIsDir = drvTest IsDirectory
+
+-- | Check if a path is a symbolic link.
+drvIsSymlink :: Driver :> es => Path -> Eff es Bool
+drvIsSymlink = drvTest IsSymlink
 
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
@@ -46,77 +54,69 @@ drvFindExecutable candidates = go candidates
       then pure exe
       else drvFindExecutable executables
 
--- | Check if a path is a directory.
-drvIsDir :: Driver :> es => Text -> Eff es Bool
-drvIsDir = drvTest IsDirectory
-
--- | Check if a path is a symbolic link.
-drvIsSymlink :: Driver :> es => Text -> Eff es Bool
-drvIsSymlink = drvTest IsSymlink
-
--- | Get the current username (FIXME: check root)
+-- | Get the current username.
 drvUsername :: Driver :> es => Eff es Text
 drvUsername = drvRunOutput $ "whoami" :| []
 
--- | Get the home directory for the user (FIXME: check root)
-drvHome :: Driver :> es => Eff es Text
-drvHome = drvRunOutput $ shell $ "eval" :| ["echo", "~"]
+-- | Get the home directory for the user.
+drvHome :: Driver :> es => Eff es Path
+drvHome = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~"]
 
--- | Get the local directory for the user (FIXME: check root)
-drvLocal :: Driver :> es => Eff es Text
+-- | Get the local directory for the user.
+drvLocal :: Driver :> es => Eff es Path
 drvLocal = do
   home <- drvHome
   pure (home </> ".local")
 
 -- | Remove a file or directory.
-drvRm :: Driver :> es => Text -> Eff es ()
-drvRm path = drvRun $ "rm" :| ["-r", "-f", path]
+drvRm :: Driver :> es => Path -> Eff es ()
+drvRm path = drvRun $ "rm" :| ["-r", "-f", path.text]
 
 -- | Create directories recursively.
-drvMkdir :: Driver :> es => Text -> Eff es ()
-drvMkdir path = unlessM (drvIsSymlink path) $ drvRun $ "mkdir" :| ["-p", path]
+drvMkdir :: Driver :> es => Path -> Eff es ()
+drvMkdir path = unlessM (drvIsSymlink path) $ drvRun $ "mkdir" :| ["-p", path.text]
 
 -- | Create a symbolic link from source to target.
-drvLink :: Driver :> es => Text -> Text -> Eff es ()
+drvLink :: Driver :> es => Path -> Path -> Eff es ()
 drvLink source target = do
-  drvMkdir $ pDirname target
+  drvMkdir target.dirname
   drvRm target
-  drvRun $ "ln" :| ["-s", "-f", source, target]
+  drvRun $ "ln" :| ["-s", "-f", source.text, target.text]
 
 -- | Copy a file or directory recursively
-drvCopy :: Driver :> es => Text -> Text -> Eff es ()
+drvCopy :: Driver :> es => Path -> Path -> Eff es ()
 drvCopy source target = do
-  drvMkdir $ pDirname target
+  drvMkdir target.dirname
   drvRm target
-  drvRun $ "cp" :| ["-R", "-f", source, target]
+  drvRun $ "cp" :| ["-R", "-f", source.text, target.text]
 
-drvTemp_ :: Driver :> es => Bool -> Eff es Text
-drvTemp_ isDirectory = drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
+drvTemp_ :: Driver :> es => Bool -> Eff es Path
+drvTemp_ isDirectory = fmap mkPath $ drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
-drvTempFile :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempFile :: Driver :> es => (Path -> Eff es a) -> Eff es a
 drvTempFile = bracket (drvTemp_ False) drvRm
 
-drvTempDir :: Driver :> es => (Text -> Eff es a) -> Eff es a
+drvTempDir :: Driver :> es => (Path -> Eff es a) -> Eff es a
 drvTempDir = bracket (drvTemp_ True) drvRm
 
-drvReadFile :: Driver :> es => Text -> Eff es Text
-drvReadFile path = drvRunOutput $ "cat" :| [path]
+drvReadFile :: Driver :> es => Path -> Eff es Text
+drvReadFile path = drvRunOutput $ "cat" :| [path.text]
 
-drvWriteFile :: Driver :> es => Text -> Text -> Eff es ()
+drvWriteFile :: Driver :> es => Path -> Text -> Eff es ()
 drvWriteFile path content = do
-  drvMkdir $ pDirname path
+  drvMkdir path.dirname
   drvRm path
-  drvRun $ shellRaw $ "echo " <> shellQuote content <> " > " <> shellQuote path
+  drvRun $ shellRaw $ "echo " <> shellQuote content <> " > " <> shellQuote path.text
 
-drvWriteBinaryFile :: Driver :> es => Text -> LBS.ByteString -> Eff es ()
+drvWriteBinaryFile :: Driver :> es => Path -> LBS.ByteString -> Eff es ()
 drvWriteBinaryFile path content = do
-  drvMkdir $ pDirname path
+  drvMkdir path.dirname
   drvRm path
   let base64 = Text.decodeUtf8 $ Base64.encode $ LBS.toStrict content
-  drvRun $ shellRaw $ "echo " <> shellQuote base64 <> " | base64 -d > " <> shellQuote path
+  drvRun $ shellRaw $ "echo " <> shellQuote base64 <> " | base64 -d > " <> shellQuote path.text
 
-drvMakeExecutable :: Driver :> es => Text -> Eff es ()
-drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path]
+drvMakeExecutable :: Driver :> es => Path -> Eff es ()
+drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path.text]
 
 data FindOptions = FindOptions
   { maxDepth :: Maybe Int
@@ -132,7 +132,7 @@ instance Semigroup FindOptions where
 instance Monoid FindOptions where
   mempty = FindOptions Nothing False Nothing
 
-drvFind :: Driver :> es => Text -> FindOptions -> Eff es (Set Text)
+drvFind :: Driver :> es => Path -> FindOptions -> Eff es (Set Path)
 drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing = []
@@ -140,7 +140,7 @@ drvFind path fo = do
       maybeArg arg (Just vs) = ["("] <> intercalate ["-o"] [[arg, v] | v <- vs] <> [")"]
       isNul = (== '\0')
       args =
-        [path, "-mindepth", "1"]
+        [path.text, "-mindepth", "1"]
           ++ maybeArg "-maxdepth" (pure . Text.pack . show <$> fo.maxDepth)
           ++ maybeArg "-name" fo.names
           ++ maybeArg
@@ -155,7 +155,7 @@ drvFind path fo = do
     then pure Set.empty
     else do
       let names = Text.split isNul $ Text.dropWhileEnd isNul o
-      pure $ Set.fromList names
+      pure $ Set.fromList $ map mkPath names
 
 drvEnv :: Driver :> es => Text -> Eff es (Maybe Text)
 drvEnv name = do

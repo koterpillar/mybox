@@ -68,7 +68,7 @@ prerequisites p = do
     queueInstall $
       mkSystemPackage "git"
 
-data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
+data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Path]}
   deriving (Show)
 
 instance FromJSON PipxInstalledPackage where
@@ -113,15 +113,14 @@ pipxInstall p = do
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
   -- track virtual environment
   local <- drvLocal
-  let envPath = local </> "pipx" </> "venvs" </> p.package
+  let envPath = local </> "pipx" </> "venvs" </> pSegment p.package
   trkAdd p envPath
   -- Track binaries
   metadata_ <- getInstalled p
   for_ metadata_ $ \metadata ->
     for_ metadata.binaries $ \binary ->
-      for_ (pFilename binary) $ \binName ->
-        let binPath = local </> "bin" </> binName
-         in trkAdd p binPath
+      let binPath = local </> "bin" </> binary.dirname
+       in trkAdd p binPath
 
 instance Package PipxPackage where
   localVersion = localVersionPipx

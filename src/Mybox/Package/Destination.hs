@@ -6,9 +6,9 @@ module Mybox.Package.Destination (
 import Mybox.Driver
 import Mybox.Prelude
 
-type PackageDestination a = HasField "destination" a Text
+type PackageDestination a = HasField "destination" a Path
 
-destinationPath :: (Driver :> es, PackageDestination p) => p -> Eff es Text
+destinationPath :: (Driver :> es, PackageDestination p) => p -> Eff es Path
 destinationPath p = do
   home <- drvHome
   pure $ home </> p.destination

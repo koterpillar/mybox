@@ -74,7 +74,7 @@ npmInstall p = do
       drvMkdir binDir
 
       forM_ p.binaries $ \name -> do
-        let target = binDir </> name
+        let target = binDir </> pSegment name
         let script =
               Text.unlines
                 [ "#!/bin/sh"

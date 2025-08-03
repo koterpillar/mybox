@@ -29,5 +29,5 @@ readConfig = do
   packages <- fmap (join . join) $
     for matches $ \match ->
       for match.component $ \component ->
-        readConfigYAML ("packages" </> component <> ".yaml")
+        readConfigYAML ("packages" </> pSegment (component <> ".yaml"))
   pure $ Config{..}
