@@ -19,7 +19,13 @@ data ClonePackage = ClonePackage
   deriving (Eq, Show)
 
 mkClonePackage :: Text -> Path AnyAnchor -> ClonePackage
-mkClonePackage repo destination = ClonePackage{repo, destination, branch = Nothing, post = []}
+mkClonePackage repo destination =
+  ClonePackage
+    { repo
+    , destination = pWiden destination
+    , branch = Nothing
+    , post = []
+    }
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch

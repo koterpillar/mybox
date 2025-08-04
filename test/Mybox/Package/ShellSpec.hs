@@ -9,7 +9,7 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-passwd :: Path
+passwd :: Path Abs
 passwd = pRoot </> "etc" </> "passwd"
 
 spec :: Spec
@@ -32,13 +32,13 @@ spec = do
         -- cannot test normal user's shell without Docker on GitHub Actions
         (if root then id else skipIf inCI) $ do
           packageSpec $ \psa ->
-            let sh = "/bin/sh"
+            let sh = pRoot </> "bin" </> "sh"
                 username = if root then "root" else psa.username
              in ps ((mkShellPackage sh){root})
                   & checkInstalledCommandOutput ("grep" :| [username, passwd.text]) sh.text
           onlyIf inDocker $ do
             packageSpec $ \_ ->
-              ps ((mkShellPackage "/bin/whoami"){root})
+              ps ((mkShellPackage $ pRoot </> "bin" </> "whoami"){root})
                 & psName "whoami"
                 & checkInstalled (checkWhoamiShell root)
 
@@ -46,7 +46,7 @@ spec = do
     onlyIf inDocker $
       withEff (nullTrackerSession . runInstallQueue) $ do
         it "fails when shell does not exist" $
-          install (mkShellPackage "/bin/xxxxxxxx") `shouldThrow` anyException
+          install (mkShellPackage $ pRoot </> "bin" </> "xxxxxxxx") `shouldThrow` anyException
 
         it "fails when shell is not executable" $
-          install (mkShellPackage "/etc/shells") `shouldThrow` anyException
+          install (mkShellPackage $ pRoot </> "etc" </> "shells") `shouldThrow` anyException

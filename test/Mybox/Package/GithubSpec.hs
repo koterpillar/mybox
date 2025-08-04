@@ -21,7 +21,7 @@ assertDesktopFileExists fileName expectedName expectedExecutable = do
   case os of
     Linux _ -> do
       local <- drvLocal
-      let desktopFilePath = local </> "share" </> "applications" </> pSegment (fileName <> ".desktop")
+      let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
       desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
 
       Map.lookup "Name" desktopContent `shouldBe` Just expectedName
@@ -41,7 +41,7 @@ pngResolutions = do
   let resStr = Text.pack $ show res
   pure $ resStr <> "x" <> resStr
 
-iconPaths :: Text -> [Path]
+iconPaths :: Text -> [Path Rel]
 iconPaths name = do
   (base, ext) <- case Text.splitOn "." name of
     [base_, ext_] -> pure (base_, ext_)
@@ -51,7 +51,7 @@ iconPaths name = do
     "png" -> pngResolutions
     "svg" -> ["scalable"]
     _ -> terror $ "Unexpected icon extension: " <> ext
-  pure $ "hicolor" </> pSegment size </> "apps" </> pSegment (base <> "." <> ext)
+  pure $ "hicolor" </> size </> "apps" </> (base <> "." <> ext)
 
 assertIconExists ::
   forall es.
@@ -67,7 +67,7 @@ assertIconExists iconName = do
 
       drvIsDir iconsDir >>= (`shouldBe` True)
 
-      iconExists <- anyM (\p -> drvIsFile (iconsDir </> p)) (iconPaths iconName)
+      iconExists <- anyM (\p -> drvIsFile (iconsDir <//> p)) (iconPaths iconName)
       unless iconExists $ do
         allFiles <- drvFind iconsDir (mempty{onlyFiles = True})
         expectationFailure $

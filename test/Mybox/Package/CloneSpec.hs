@@ -14,7 +14,7 @@ spec = do
     , (Just "branch", "{\"clone\": \"test/test\", \"branch\": \"test\", \"destination\": \"test\"}")
     ]
   let baseClone psa =
-        ps (mkClonePackage "ohmyzsh/ohmyzsh" psa.directory)
+        ps (mkClonePackage "ohmyzsh/ohmyzsh" $ pWiden psa.directory)
           & checkInstalledCommandOutput
             ("cat" :| [(psa.directory </> "templates" </> "zshrc.zsh-template").text])
             "alias ohmyzsh"
@@ -28,7 +28,7 @@ spec = do
       & psName "empty directory"
       & preinstall (createEmptyDirectory psa)
   packageSpec $ \psa ->
-    ps ((mkClonePackage "node-fetch/node-fetch" psa.directory){branch = Just "2.x"})
+    ps ((mkClonePackage "node-fetch/node-fetch" $ pWiden psa.directory){branch = Just "2.x"})
       & checkInstalledCommandOutput
         ("cat" :| [(psa.directory </> "package.json").text])
         "\"version\": \"2"

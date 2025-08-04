@@ -27,13 +27,14 @@ spec = do
     result <- drvRunOutput $ "echo" :| ["  trimmed  "]
     result `shouldBe` "trimmed"
   it "writes and reads files" $ do
-    drvWriteFile "test.txt" "Hello World"
-    drvReadFile "test.txt" >>= (`shouldBe` "Hello World")
+    let testFile = pRoot </> "tmp" </> "test.txt"
+    drvWriteFile testFile "Hello World"
+    drvReadFile testFile >>= (`shouldBe` "Hello World")
   describe "drvFind" $
     it "finds files" $
       drvTempDir $ \dir -> do
         let touch p = let p' = dir </> p in drvMkdir p'.dirname >> drvWriteFile p' ""
-        let go = fmap (Set.map $ pRelativeTo dir) . drvFind dir
+        let go = fmap (Set.map $ pRelativeTo_ dir) . drvFind dir
         touch "one"
         touch "subdir/one"
         touch "two"

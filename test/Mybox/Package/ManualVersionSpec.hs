@@ -17,10 +17,10 @@ instance FromJSON DummyPackage
 
 instance ToJSON DummyPackage
 
-versionFile :: Path
+versionFile :: Path Rel
 versionFile = "dummy-package-version.txt"
 
-installLogFile :: Path
+installLogFile :: Path Rel
 installLogFile = "dummy-package-install-log.txt"
 
 instance Package DummyPackage where

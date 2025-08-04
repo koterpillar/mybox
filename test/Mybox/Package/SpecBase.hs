@@ -28,7 +28,7 @@ import Mybox.Tracker
 
 data PackageSpecArgs = PackageSpecArgs
   { random :: StdGen
-  , directory :: Path
+  , directory :: Path Abs
   , username :: Text
   , architecture :: Architecture
   , os :: OS
@@ -39,7 +39,7 @@ mkPSA = runEff $ testDriver $ do
   random_ <- liftIO newStdGen
   home <- drvHome
   directoryName <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
-  let directory = home </> pSegment directoryName
+  let directory = home </> directoryName
   username <- drvUsername
   architecture <- drvArchitecture
   os <- drvOS
@@ -53,7 +53,7 @@ data PackageSpec a = PackageSpec
   , name_ :: Maybe Text
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
   , preinstall_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
-  , ignoredPaths_ :: Set Path
+  , ignoredPaths_ :: Set (Path Rel)
   }
 
 ps :: a -> PackageSpec a
@@ -83,7 +83,7 @@ checkInstalledCommandOutput :: Args -> Text -> MPS a
 checkInstalledCommandOutput cmd expectedOutput =
   checkInstalled $ commandHasOutput cmd expectedOutput
 
-ignorePath :: Path -> MPS a
+ignorePath :: Path Rel -> MPS a
 ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 
 preinstall :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
@@ -108,17 +108,17 @@ packageSpec makePS =
           checkAllTracked s preexistingFiles ts
           checkInstalled_ s
 
-trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set Path)
+trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set (Path Abs))
 trackableFiles s = do
   home <- drvHome
-  let ignored = Set.map (home </>) s.ignoredPaths_
+  let ignored = Set.map (home <//>) s.ignoredPaths_
   existing <- drvFind home (mempty{onlyFiles = True})
   pure $ Set.filter (\p -> not $ any (`pUnder` p) ignored) existing
 
 checkAllTracked ::
   (Driver :> es, IOE :> es) =>
   PackageSpec a ->
-  Set Path ->
+  Set (Path Abs) ->
   TrackerState ->
   Eff es ()
 checkAllTracked s preexisting ts = do
