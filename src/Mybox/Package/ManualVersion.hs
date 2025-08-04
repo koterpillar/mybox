@@ -16,7 +16,7 @@ instance FromJSON InstallRecord
 versionFile :: (Driver :> es, PackageName p) => p -> Eff es (Path Abs)
 versionFile p = do
   home <- drvHome
-  pure $ home <//> pMyboxState </> "versions" </> (p.name <> ".json")
+  pure $ home <//> pMyboxState </> "versions" </> (pathname p <> ".json")
 
 manualVersion :: (Driver :> es, PackageName p, ToJSON p) => p -> Eff es (Maybe Text)
 manualVersion p = do

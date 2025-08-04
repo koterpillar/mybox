@@ -19,13 +19,13 @@ module Mybox.Path (
 ) where
 
 import Data.Aeson (FromJSON (..), ToJSON (..))
-import Data.Function ((&))
 import Data.List (isPrefixOf, unsnoc)
 import Data.Maybe (isJust)
 import Data.String (IsString (..))
 import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Records (HasField (..))
+import GHC.Stack (HasCallStack)
 
 data Abs = Abs_ deriving (Eq, Ord, Show)
 
@@ -59,7 +59,7 @@ instance Anchor AnyAnchor where
     Just r -> Path Abs $ Text.splitOn "/" r
     Nothing -> Path Rel $ Text.splitOn "/" t
 
-mkPath :: Anchor a => Text -> Path a
+mkPath :: (Anchor a, HasCallStack) => Text -> Path a
 mkPath = either error id . mkPath_
 
 data Path a = Path {anchor_ :: a, segments :: [Text]}
@@ -69,7 +69,10 @@ instance Anchor a => HasField "anchor" (Path a) AnyAnchor where
   getField = toAnchor . (.anchor_)
 
 instance Anchor a => HasField "text" (Path a) Text where
-  getField p = Text.intercalate "/" p.segments & (case p.anchor of Abs -> ("/" <>); Rel -> id)
+  getField p = case (p.anchor, p.segments) of
+    (Abs, s) -> "/" <> Text.intercalate "/" s
+    (Rel, []) -> "."
+    (Rel, s) -> Text.intercalate "/" s
 
 instance Anchor a => ToJSON (Path a) where
   toJSON = toJSON . (.text)
@@ -91,7 +94,7 @@ pAbs p
 pWiden :: Anchor a => Path a -> Path AnyAnchor
 pWiden (Path a s) = Path (toAnchor a) s
 
-pSegment :: Text -> Path Rel
+pSegment :: HasCallStack => Text -> Path Rel
 pSegment s
   | Text.null s = error "Cannot create a path segment from an empty string"
   | Text.isInfixOf "/" s = error $ "Path segments cannot contain slashes: " <> Text.unpack s
@@ -120,7 +123,7 @@ instance AnchorAppend AnyAnchor AnyAnchor AnyAnchor where
   anchorAppend _ Abs = Abs
   anchorAppend Rel Rel = Rel
 
-(</>) :: AnchorAppend a Rel a => Path a -> Text -> Path a
+(</>) :: HasCallStack => AnchorAppend a Rel a => Path a -> Text -> Path a
 p </> s = p <//> pSegment s
 
 (<//>) :: (Anchor a2, AnchorAppend a1 a2 a3) => Path a1 -> Path a2 -> Path a3
@@ -145,7 +148,7 @@ pRelativeTo (Path Abs_ a) (Path Abs_ b)
   | a `isPrefixOf` b = Just $ Path Rel_ $ drop (length b) a
   | otherwise = Nothing
 
-pRelativeTo_ :: Path Abs -> Path Abs -> Path Rel
+pRelativeTo_ :: HasCallStack => Path Abs -> Path Abs -> Path Rel
 pRelativeTo_ a b =
   case pRelativeTo a b of
     Just rel -> rel

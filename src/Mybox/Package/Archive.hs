@@ -65,9 +65,6 @@ archiveToJSON p =
 class ArchiveReqs p => ArchivePackage p where
   archiveUrl :: forall es. DIST es => p -> Eff es Text
 
-pathname :: ArchivePackage p => p -> Text
-pathname p = Text.replace "/" "--" p.name
-
 aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
   local <- drvLocal
