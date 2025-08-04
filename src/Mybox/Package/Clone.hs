@@ -12,13 +12,13 @@ import Mybox.Tracker
 
 data ClonePackage = ClonePackage
   { repo :: Text
-  , destination :: Path
+  , destination :: Path AnyAnchor
   , branch :: Maybe Text
   , post :: [Text]
   }
   deriving (Eq, Show)
 
-mkClonePackage :: Text -> Path -> ClonePackage
+mkClonePackage :: Text -> Path AnyAnchor -> ClonePackage
 mkClonePackage repo destination = ClonePackage{repo, destination, branch = Nothing, post = []}
 
 instance HasField "name" ClonePackage Text where

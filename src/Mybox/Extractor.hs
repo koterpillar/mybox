@@ -18,14 +18,14 @@ import Mybox.Path
 import Mybox.Prelude
 
 data Extractor = Extractor
-  { extractExact :: forall es. DIST es => Path -> Path -> Eff es ()
+  { extractExact :: forall es a. (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
   , description :: Text
   }
 
 instance Show Extractor where
   show Extractor{description} = Text.unpack description
 
-findContents :: Driver :> es => Path -> Int -> Eff es (Set Path)
+findContents :: (Anchor a, Driver :> es) => Path a -> Int -> Eff es (Set (Path a))
 findContents sourceDir maxDepth = do
   if maxDepth < 0
     then terror $ "maxDepth must be positive, got " <> Text.pack (show maxDepth)
@@ -39,17 +39,18 @@ findContents sourceDir maxDepth = do
             else pure contents
         _ -> pure contents
 
-extract :: DIST es => Extractor -> Path -> Path -> Eff es ()
+extract :: (Anchor a1, Anchor a2, DIST es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
 extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   contents <- findContents tmpdir 10
-  -- FIXME: use relative paths
-  for_ contents $ \element -> drvCopy element (targetDirectory </> element)
+  for_ contents $ \element -> do
+    let target = pWiden targetDirectory <//> pRelativeTo_ tmpdir element
+    drvCopy element target
 
 tar_ :: Maybe Text -> Extractor
 tar_ option = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}
  where
-  extractTar :: Driver :> es => Path -> Path -> Eff es ()
+  extractTar :: (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
   extractTar archive targetDirectory = do
     tarCmd <- drvFindExecutable ["gtar", "tar"]
     drvRun $ tarCmd :| ["--extract", "--directory", targetDirectory.text] ++ toList option ++ ["--file", archive.text]
@@ -69,7 +70,7 @@ tarXz = tar_ (Just "-J")
 unzipE :: Extractor
 unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
  where
-  extractUnzip :: DIST es => Path -> Path -> Eff es ()
+  extractUnzip :: (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
   extractUnzip archive targetDirectory = do
     unlessExecutableExists "unzip" $ ensureInstalled (mkSystemPackage "unzip")
     drvRun $ "unzip" :| ["-o", "-qq", archive.text, "-d", targetDirectory.text]
@@ -94,17 +95,17 @@ getExtractor :: Driver :> es => Text -> Eff es Extractor
 getExtractor = withRedirect guessExtractor $ terror "Unknown archive format"
 
 data RawExtractor = RawExtractor
-  { extractRaw_ :: forall es. DIST es => Path -> Path -> Eff es ()
+  { extractRaw_ :: forall es a1 a2. (Anchor a1, Anchor a2, DIST es) => Path a1 -> Path a2 -> Eff es ()
   , description :: Text
   }
 
-mkRawExtractor :: Text -> (forall es. DIST es => Path -> Path -> Eff es ()) -> RawExtractor
+mkRawExtractor :: Text -> (forall es a1 a2. (Anchor a1, Anchor a2, DIST es) => Path a1 -> Path a2 -> Eff es ()) -> RawExtractor
 mkRawExtractor description extractRaw_ = RawExtractor{extractRaw_ = extractRaw_, description}
 
-extractRaw :: DIST es => RawExtractor -> Path -> Path -> Eff es ()
+extractRaw :: (Anchor a1, Anchor a2, DIST es) => RawExtractor -> Path a1 -> Path a2 -> Eff es ()
 extractRaw e = extractRaw_ e
 
-pipeCommand :: DIST es => Text -> Path -> Path -> Eff es ()
+pipeCommand :: (Anchor a1, Anchor a2, DIST es) => Text -> Path a1 -> Path a2 -> Eff es ()
 pipeCommand command archive target = do
   drvRun $ shellRaw $ command <> " < " <> shellQuote archive.text <> " > " <> shellQuote target.text
 

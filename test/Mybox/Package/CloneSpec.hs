@@ -16,7 +16,7 @@ spec = do
   let baseClone psa =
         ps (mkClonePackage "ohmyzsh/ohmyzsh" psa.directory)
           & checkInstalledCommandOutput
-            ("cat" :| [psa.directory </> "templates" </> "zshrc.zsh-template"])
+            ("cat" :| [(psa.directory </> "templates" </> "zshrc.zsh-template").text])
             "alias ohmyzsh"
   packageSpec baseClone
   packageSpec $ \psa ->
@@ -30,7 +30,7 @@ spec = do
   packageSpec $ \psa ->
     ps ((mkClonePackage "node-fetch/node-fetch" psa.directory){branch = Just "2.x"})
       & checkInstalledCommandOutput
-        ("cat" :| [psa.directory </> "package.json"])
+        ("cat" :| [(psa.directory </> "package.json").text])
         "\"version\": \"2"
 
 createEmptyDirectory :: Driver :> es => PackageSpecArgs -> Eff es ()
@@ -39,5 +39,5 @@ createEmptyDirectory psa = drvMkdir psa.directory
 checkoutEarlierCommit :: Driver :> es => PackageSpecArgs -> Eff es ()
 checkoutEarlierCommit psa = do
   drvRun $
-    "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psa.directory]
-  drvRun $ "git" :| ["-C", psa.directory, "checkout", "HEAD~"]
+    "git" :| ["clone", "https://github.com/ohmyzsh/ohmyzsh.git", psa.directory.text]
+  drvRun $ "git" :| ["-C", psa.directory.text, "checkout", "HEAD~"]

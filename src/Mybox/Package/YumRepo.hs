@@ -60,7 +60,7 @@ writeRepoFile p = do
                      ]
                )
 
-  let repoPath = pRoot </> "etc" </> "yum.repos.d" </> pSegment (p.name_ <> ".repo")
+  let repoPath = pRoot </> "etc" </> "yum.repos.d" </> (p.name_ <> ".repo")
   drvRun $ sudo $ shellRaw $ "echo " <> shellQuote repoConfig <> " > " <> repoPath.text
   drvRun $ sudo $ "chmod" :| ["a+r", repoPath.text]
   trkAdd p repoPath

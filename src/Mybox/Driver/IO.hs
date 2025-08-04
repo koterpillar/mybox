@@ -18,7 +18,7 @@ import Mybox.Prelude
 
 data IODriver = IODriver
   { transformArgs :: Args -> Args
-  , cwd :: Maybe Path
+  , cwd :: Maybe (Path Abs)
   }
 
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
@@ -64,7 +64,7 @@ withEnv key fn action = do
     (liftIO $ setEnv (Text.unpack key) $ Text.unpack originalValue)
     action
 
-withAddedPath :: IOE :> es => Path -> Eff es a -> Eff es a
+withAddedPath :: IOE :> es => Path Abs -> Eff es a -> Eff es a
 withAddedPath addPath = withEnv "PATH" $ \originalPath -> addPath.text <> ":" <> originalPath
 
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
@@ -75,9 +75,10 @@ testHostDriver act = do
     withAddedPath (home </> ".local" </> "bin") $
       withEnv "GITHUB_TOKEN" (const githubToken) $ do
         localDriver $ do
-          let linkToOriginalHome path = do
-                let op = originalHome </> path
-                let np = home </> path
+          let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
+              linkToOriginalHome path = do
+                let op = originalHome <//> path
+                let np = home <//> path
                 drvMkdir op
                 drvLink op np
           linkedDirectories <-
@@ -100,7 +101,7 @@ dockerDriver baseImage act =
       containerName <- Text.pack . show <$> liftIO (randomIO @Word)
       githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
-        drvCopy "bootstrap" (tempDir </> "bootstrap")
+        drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage
         drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
@@ -160,9 +161,9 @@ dockerfile baseImage =
 dockerUser :: Text
 dockerUser = "regular_user"
 
-homeOf :: Text -> Path
+homeOf :: Text -> Path Abs
 homeOf "root" = pRoot </> "root"
-homeOf user = pRoot </> "home" </> pSegment user
+homeOf user = pRoot </> "home" </> user
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"

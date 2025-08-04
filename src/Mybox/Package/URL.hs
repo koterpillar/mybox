@@ -15,7 +15,7 @@ data URLPackage = URLPackage
   , raw :: Either Text Bool
   , binaries :: [Text]
   , binaryWrapper :: Bool
-  , binaryPaths :: [Path]
+  , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
   , post :: [Text]

@@ -9,6 +9,9 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
+passwd :: Path
+passwd = pRoot </> "etc" </> "passwd"
+
 spec :: Spec
 spec = do
   jsonSpec
@@ -32,7 +35,7 @@ spec = do
             let sh = "/bin/sh"
                 username = if root then "root" else psa.username
              in ps ((mkShellPackage sh){root})
-                  & checkInstalledCommandOutput ("grep" :| [username, "/etc/passwd"]) sh
+                  & checkInstalledCommandOutput ("grep" :| [username, passwd.text]) sh.text
           onlyIf inDocker $ do
             packageSpec $ \_ ->
               ps ((mkShellPackage "/bin/whoami"){root})

@@ -15,7 +15,7 @@ drvArchitecture =
     "arm64" -> pure Aarch64
     arch -> terror $ "Unsupported architecture: " <> arch
 
-pOSRelease :: Path
+pOSRelease :: Path Abs
 pOSRelease = pRoot </> "etc" </> "os-release"
 
 drvOS :: Driver :> es => Eff es OS

@@ -1,17 +1,20 @@
 module Mybox.Path (
-  AnchorC,
   Anchor,
+  AnyAnchor,
   Abs,
   Rel,
   Path,
+  segments,
   (</>),
+  (<//>),
   mkPath,
   pAbs,
-  pRoot,
+  pWiden,
   pSegment,
   pRelativeTo,
   pRelativeTo_,
   pUnder,
+  pRoot,
   pMyboxState,
 ) where
 
@@ -28,57 +31,65 @@ data Abs = Abs_ deriving (Eq, Ord, Show)
 
 data Rel = Rel_ deriving (Eq, Ord, Show)
 
-data Anchor = Abs | Rel deriving (Eq, Ord, Show)
+data AnyAnchor = Abs | Rel deriving (Eq, Ord, Show)
 
-class (Eq a, Ord a) => AnchorC a where
-  toAnchor :: a -> Anchor
-  mkPath :: Text -> Path a
+class (Eq a, Ord a) => Anchor a where
+  toAnchor :: a -> AnyAnchor
+  mkPath_ :: Text -> Either String (Path a)
 
-instance AnchorC Abs where
+instance Anchor Abs where
   toAnchor _ = Abs
-  mkPath t =
-    let p = mkPath t
-     in case p.anchor_ of
-          Abs -> Path Abs_ p.segments
-          Rel -> error $ "Path is not absolute: " <> Text.unpack t
+  mkPath_ t = do
+    p <- mkPath_ t
+    case p.anchor_ of
+      Abs -> Right $ Path Abs_ p.segments
+      Rel -> Left $ "Path is not absolute: " <> Text.unpack t
 
-instance AnchorC Rel where
+instance Anchor Rel where
   toAnchor _ = Rel
-  mkPath t =
-    let p = mkPath t
-     in case p.anchor_ of
-          Rel -> Path Rel_ p.segments
-          Abs -> error $ "Path is not relative: " <> Text.unpack t
+  mkPath_ t = do
+    p <- mkPath_ t
+    case p.anchor_ of
+      Rel -> Right $ Path Rel_ p.segments
+      Abs -> Left $ "Path is not relative: " <> Text.unpack t
 
-instance AnchorC Anchor where
+instance Anchor AnyAnchor where
   toAnchor = id
-  mkPath t = case Text.stripPrefix "/" t of
+  mkPath_ t = Right $ case Text.stripPrefix "/" t of
     Just r -> Path Abs $ Text.splitOn "/" r
     Nothing -> Path Rel $ Text.splitOn "/" t
+
+mkPath :: Anchor a => Text -> Path a
+mkPath = either error id . mkPath_
 
 data Path a = Path {anchor_ :: a, segments :: [Text]}
   deriving (Eq, Ord, Show)
 
-instance AnchorC a => HasField "anchor" (Path a) Anchor where
+instance Anchor a => HasField "anchor" (Path a) AnyAnchor where
   getField = toAnchor . (.anchor_)
 
-instance AnchorC a => HasField "text" (Path a) Text where
+instance Anchor a => HasField "text" (Path a) Text where
   getField p = Text.intercalate "/" p.segments & (case p.anchor of Abs -> ("/" <>); Rel -> id)
 
-instance AnchorC a => ToJSON (Path a) where
+instance Anchor a => ToJSON (Path a) where
   toJSON = toJSON . (.text)
   toEncoding = toEncoding . (.text)
 
-instance FromJSON (Path Anchor) where
-  parseJSON = fmap mkPath <$> parseJSON
+instance Anchor a => FromJSON (Path a) where
+  parseJSON v = do
+    t <- parseJSON v
+    either fail pure $ mkPath_ t
 
 pRoot :: Path Abs
 pRoot = Path Abs_ []
 
-pAbs :: AnchorC a => Path a -> Maybe (Path Abs)
+pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p
   | p.anchor == Abs = Just $ Path Abs_ p.segments
   | otherwise = Nothing
+
+pWiden :: Anchor a => Path a -> Path AnyAnchor
+pWiden (Path a s) = Path (toAnchor a) s
 
 pSegment :: Text -> Path Rel
 pSegment s
@@ -92,25 +103,28 @@ instance IsString (Path Rel) where
 class AnchorAppend a1 a2 a3 | a1 a2 -> a3 where
   anchorAppend :: a1 -> a2 -> a3
 
-instance AnchorC a => AnchorAppend Abs a Abs where
+instance Anchor a => AnchorAppend Abs a Abs where
   anchorAppend _ _ = Abs_
 
-instance AnchorC a => AnchorAppend Rel a a where
+instance Anchor a => AnchorAppend Rel a a where
   anchorAppend _ a = a
 
-instance AnchorAppend Anchor Abs Abs where
+instance AnchorAppend AnyAnchor Abs Abs where
   anchorAppend _ _ = Abs_
 
-instance AnchorAppend Anchor Rel Anchor where
+instance AnchorAppend AnyAnchor Rel AnyAnchor where
   anchorAppend a _ = a
 
-instance AnchorAppend Anchor Anchor Anchor where
+instance AnchorAppend AnyAnchor AnyAnchor AnyAnchor where
   anchorAppend Abs _ = Abs
   anchorAppend _ Abs = Abs
   anchorAppend Rel Rel = Rel
 
-(</>) :: (AnchorAppend a1 a2 a3, AnchorC a2) => Path a1 -> Path a2 -> Path a3
-p1 </> p2 =
+(</>) :: AnchorAppend a Rel a => Path a -> Text -> Path a
+p </> s = p <//> pSegment s
+
+(<//>) :: (Anchor a2, AnchorAppend a1 a2 a3) => Path a1 -> Path a2 -> Path a3
+p1 <//> p2 =
   Path (anchorAppend p1.anchor_ p2.anchor_) $
     case p2.anchor of
       Abs -> p2.segments
@@ -141,4 +155,4 @@ pUnder :: Path Abs -> Path Abs -> Bool
 pUnder a b = isJust $ pRelativeTo a b
 
 pMyboxState :: Path Rel
-pMyboxState = Path Rel_ [".local", "share", "mybox"]
+pMyboxState = pSegment ".local" </> "share" </> "mybox"

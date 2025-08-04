@@ -28,7 +28,7 @@ type ArchiveReqs p =
   , HasField "raw" p (Either Text Bool)
   , HasField "binaries" p [Text]
   , HasField "binaryWrapper" p Bool
-  , HasField "binaryPaths" p [Path]
+  , HasField "binaryPaths" p [Path Rel]
   , HasField "apps" p [Text]
   , HasField "fonts" p [Text]
   )
@@ -37,7 +37,7 @@ data ArchiveFields = ArchiveFields
   { raw :: Either Text Bool
   , binaries :: [Text]
   , binaryWrapper :: Bool
-  , binaryPaths :: [Path]
+  , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
   }
@@ -68,12 +68,12 @@ class ArchiveReqs p => ArchivePackage p where
 pathname :: ArchivePackage p => p -> Text
 pathname p = Text.replace "/" "--" p.name
 
-aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es Path
+aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
   local <- drvLocal
-  return $ local </> "mybox" </> pSegment (pathname p)
+  return $ local </> "mybox" </> pathname p
 
-aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Path -> Eff es ()
+aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Eff es ()
 aExtract p url archiveFile = case p.raw of
   Right True -> aExtractRaw p url archiveFile $ Text.takeWhileEnd (/= '/') url
   Left filename -> aExtractRaw p url archiveFile filename
@@ -82,11 +82,11 @@ aExtract p url archiveFile = case p.raw of
     target <- aDirectory p
     extract extractor archiveFile target
 
-aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Path -> Text -> Eff es ()
+aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
-  let targetPath = target </> pSegment filename
+  let targetPath = target </> filename
   extractRaw extractor archiveFile targetPath
   when (filename `elem` p.binaries) $ drvMakeExecutable targetPath
 
@@ -105,18 +105,18 @@ archiveInstall p = do
   for_ p.fonts $ installFont p
 
 data AFindOptions = AFindOptions
-  { paths :: [Maybe Path]
+  { paths :: [Maybe (Path Rel)]
   , requireExecutable :: Bool
   , description :: Text
   }
 
-aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es Path
+aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es (Path Abs)
 aFind p opt name = do
   directory <- aDirectory p
   paths <-
     filterM
       (if opt.requireExecutable then drvIsExecutable else drvIsFile)
-      [ (case path of Nothing -> directory; Just path' -> directory </> path') </> pSegment name
+      [ (case path of Nothing -> directory; Just path' -> directory <//> path') </> name
       | path <- opt.paths
       ]
   case paths of
@@ -131,14 +131,14 @@ binaryFind =
     , description = "binary"
     }
 
-aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es Path
+aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es (Path Abs)
 aBinaryPath p = aFind p binaryFind{paths = map Just p.binaryPaths <> binaryFind.paths}
 
 installBinary :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installBinary p binary = do
   binaryPath <- aBinaryPath p binary
   local <- drvLocal
-  let target = local </> "bin" </> pSegment binary
+  let target = local </> "bin" </> binary
   if p.binaryWrapper
     then do
       drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
@@ -164,7 +164,7 @@ installApp p app = do
   appPath <- aFind p freedesktopAppFind appDesktop
   local <- drvLocal
   let appsTarget = local </> "share" </> "applications"
-  let desktopTarget = appsTarget </> pSegment appDesktop
+  let desktopTarget = appsTarget </> appDesktop
   drvLink appPath desktopTarget
   trkAdd p desktopTarget
   appProperties <- parseDesktopFile <$> drvReadFile desktopTarget
@@ -194,15 +194,15 @@ installIcon p icon = do
   local <- drvLocal
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
-    let iconTargetPath = iconsTarget </> iconPath iconSrcPath
+    let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
     drvLink iconSrcPath iconTargetPath
     trkAdd p iconTargetPath
 
-iconPath :: Path -> Path
-iconPath icon = "hicolor" </> pSegment resolution </> "apps" </> pSegment base
+iconPath :: Anchor a => Path a -> Path Rel
+iconPath icon = "hicolor" </> resolution </> "apps" </> base
  where
   parts = icon.segments
-  base = last parts
+  base = icon.basename
   ext = Text.takeWhileEnd (/= '.') base
   resolution = case ext of
     "svg" -> "scalable"
@@ -229,7 +229,7 @@ installFont p font = do
     [path] -> pure path
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory.text
     _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory.text
-  let targetPath = fontDir </> pSegment fontPath.basename
+  let targetPath = fontDir </> fontPath.basename
   drvCopy fontPath targetPath
   trkAdd p targetPath
   queueInstall $ mkSystemPackage "fontconfig"

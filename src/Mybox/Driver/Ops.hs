@@ -14,7 +14,7 @@ import Mybox.Prelude
 
 data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
 
-drvTest :: Driver :> es => TestOp -> Path -> Eff es Bool
+drvTest :: (Anchor a, Driver :> es) => TestOp -> Path a -> Eff es Bool
 drvTest op path = do
   let opStr = case op of
         IsExecutable -> "-x"
@@ -24,18 +24,18 @@ drvTest op path = do
   code <- drvRunOk $ "test" :| [opStr, path.text]
   pure (code == ExitSuccess)
 
-drvIsExecutable :: Driver :> es => Path -> Eff es Bool
+drvIsExecutable :: (Anchor a, Driver :> es) => Path a -> Eff es Bool
 drvIsExecutable = drvTest IsExecutable
 
-drvIsFile :: Driver :> es => Path -> Eff es Bool
+drvIsFile :: (Anchor a, Driver :> es) => Path a -> Eff es Bool
 drvIsFile = drvTest IsFile
 
 -- | Check if a path is a directory.
-drvIsDir :: Driver :> es => Path -> Eff es Bool
+drvIsDir :: (Anchor a, Driver :> es) => Path a -> Eff es Bool
 drvIsDir = drvTest IsDirectory
 
 -- | Check if a path is a symbolic link.
-drvIsSymlink :: Driver :> es => Path -> Eff es Bool
+drvIsSymlink :: (Anchor a, Driver :> es) => Path a -> Eff es Bool
 drvIsSymlink = drvTest IsSymlink
 
 -- | Check if an executable exists in PATH.
@@ -59,63 +59,63 @@ drvUsername :: Driver :> es => Eff es Text
 drvUsername = drvRunOutput $ "whoami" :| []
 
 -- | Get the home directory for the user.
-drvHome :: Driver :> es => Eff es Path
+drvHome :: Driver :> es => Eff es (Path Abs)
 drvHome = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~"]
 
 -- | Get the local directory for the user.
-drvLocal :: Driver :> es => Eff es Path
+drvLocal :: Driver :> es => Eff es (Path Abs)
 drvLocal = do
   home <- drvHome
   pure (home </> ".local")
 
 -- | Remove a file or directory.
-drvRm :: Driver :> es => Path -> Eff es ()
+drvRm :: (Anchor a, Driver :> es) => Path a -> Eff es ()
 drvRm path = drvRun $ "rm" :| ["-r", "-f", path.text]
 
 -- | Create directories recursively.
-drvMkdir :: Driver :> es => Path -> Eff es ()
+drvMkdir :: (Anchor a, Driver :> es) => Path a -> Eff es ()
 drvMkdir path = unlessM (drvIsSymlink path) $ drvRun $ "mkdir" :| ["-p", path.text]
 
 -- | Create a symbolic link from source to target.
-drvLink :: Driver :> es => Path -> Path -> Eff es ()
+drvLink :: (Anchor a1, Anchor a2, Driver :> es) => Path a1 -> Path a2 -> Eff es ()
 drvLink source target = do
   drvMkdir target.dirname
   drvRm target
   drvRun $ "ln" :| ["-s", "-f", source.text, target.text]
 
 -- | Copy a file or directory recursively
-drvCopy :: Driver :> es => Path -> Path -> Eff es ()
+drvCopy :: (Anchor a1, Anchor a2, Driver :> es) => Path a1 -> Path a2 -> Eff es ()
 drvCopy source target = do
   drvMkdir target.dirname
   drvRm target
   drvRun $ "cp" :| ["-R", "-f", source.text, target.text]
 
-drvTemp_ :: Driver :> es => Bool -> Eff es Path
+drvTemp_ :: Driver :> es => Bool -> Eff es (Path Abs)
 drvTemp_ isDirectory = fmap mkPath $ drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
-drvTempFile :: Driver :> es => (Path -> Eff es a) -> Eff es a
+drvTempFile :: Driver :> es => (Path Abs -> Eff es a) -> Eff es a
 drvTempFile = bracket (drvTemp_ False) drvRm
 
-drvTempDir :: Driver :> es => (Path -> Eff es a) -> Eff es a
+drvTempDir :: Driver :> es => (Path Abs -> Eff es a) -> Eff es a
 drvTempDir = bracket (drvTemp_ True) drvRm
 
-drvReadFile :: Driver :> es => Path -> Eff es Text
+drvReadFile :: (Anchor a, Driver :> es) => Path a -> Eff es Text
 drvReadFile path = drvRunOutput $ "cat" :| [path.text]
 
-drvWriteFile :: Driver :> es => Path -> Text -> Eff es ()
+drvWriteFile :: (Anchor a, Driver :> es) => Path a -> Text -> Eff es ()
 drvWriteFile path content = do
   drvMkdir path.dirname
   drvRm path
   drvRun $ shellRaw $ "echo " <> shellQuote content <> " > " <> shellQuote path.text
 
-drvWriteBinaryFile :: Driver :> es => Path -> LBS.ByteString -> Eff es ()
+drvWriteBinaryFile :: (Anchor a, Driver :> es) => Path a -> LBS.ByteString -> Eff es ()
 drvWriteBinaryFile path content = do
   drvMkdir path.dirname
   drvRm path
   let base64 = Text.decodeUtf8 $ Base64.encode $ LBS.toStrict content
   drvRun $ shellRaw $ "echo " <> shellQuote base64 <> " | base64 -d > " <> shellQuote path.text
 
-drvMakeExecutable :: Driver :> es => Path -> Eff es ()
+drvMakeExecutable :: (Anchor a, Driver :> es) => Path a -> Eff es ()
 drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path.text]
 
 data FindOptions = FindOptions
@@ -132,7 +132,7 @@ instance Semigroup FindOptions where
 instance Monoid FindOptions where
   mempty = FindOptions Nothing False Nothing
 
-drvFind :: Driver :> es => Path -> FindOptions -> Eff es (Set Path)
+drvFind :: (Anchor a, Driver :> es) => Path a -> FindOptions -> Eff es (Set (Path a))
 drvFind path fo = do
   let maybeArg :: Text -> Maybe [Text] -> [Text]
       maybeArg _ Nothing = []

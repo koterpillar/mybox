@@ -13,13 +13,13 @@ import Mybox.Prelude
 import Mybox.Stores
 
 data ShellPackage = ShellPackage
-  { shell :: Path
+  { shell :: Path Abs
   , root :: Bool
   , post :: [Text]
   }
   deriving (Eq, Show)
 
-mkShellPackage :: Path -> ShellPackage
+mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
 
 instance FromJSON ShellPackage where
@@ -36,10 +36,10 @@ instance ToJSON ShellPackage where
 instance HasField "name" ShellPackage Text where
   getField p = "_shell" <> (if p.root then "_root" else "")
 
-shellsFile :: Path
+shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"
 
-allShells :: Driver :> es => Eff es [Path]
+allShells :: Driver :> es => Eff es [Path Abs]
 allShells = map mkPath . Text.lines <$> drvReadFile shellsFile
 
 getShellLinux :: Driver :> es => ShellPackage -> Eff es Text
@@ -53,7 +53,7 @@ getShellLinux p = do
 
 getShellMacOS :: Driver :> es => ShellPackage -> Eff es Text
 getShellMacOS p = do
-  home <- if p.root then pure "/root" else drvHome
+  home <- if p.root then pure (pRoot </> "root") else drvHome
   result <- drvRunOutput $ "dscl" :| [".", "-read", home.text, "UserShell"]
   case Text.splitOn ": " result of
     [_, shellPath] -> pure $ Text.strip shellPath

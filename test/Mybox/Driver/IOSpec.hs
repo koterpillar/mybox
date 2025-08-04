@@ -1,7 +1,6 @@
 module Mybox.Driver.IOSpec where
 
 import Data.Set qualified as Set
-import Data.Text qualified as Text
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
@@ -33,9 +32,8 @@ spec = do
   describe "drvFind" $
     it "finds files" $
       drvTempDir $ \dir -> do
-        let touch p = let p' = dir </> p in drvMkdir (pDirname p') >> drvWriteFile p' ""
-        let strip p = fromMaybe ("NOT IN DIR: " <> p) $ Text.stripPrefix (dir </> "") p
-        let go = fmap (Set.map strip) . drvFind dir
+        let touch p = let p' = dir </> p in drvMkdir p'.dirname >> drvWriteFile p' ""
+        let go = fmap (Set.map $ pRelativeTo dir) . drvFind dir
         touch "one"
         touch "subdir/one"
         touch "two"

@@ -21,7 +21,7 @@ assertDesktopFileExists fileName expectedName expectedExecutable = do
   case os of
     Linux _ -> do
       local <- drvLocal
-      let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
+      let desktopFilePath = local </> "share" </> "applications" </> pSegment (fileName <> ".desktop")
       desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
 
       Map.lookup "Name" desktopContent `shouldBe` Just expectedName
@@ -41,7 +41,7 @@ pngResolutions = do
   let resStr = Text.pack $ show res
   pure $ resStr <> "x" <> resStr
 
-iconPaths :: Text -> [Text]
+iconPaths :: Text -> [Path]
 iconPaths name = do
   (base, ext) <- case Text.splitOn "." name of
     [base_, ext_] -> pure (base_, ext_)
@@ -51,7 +51,7 @@ iconPaths name = do
     "png" -> pngResolutions
     "svg" -> ["scalable"]
     _ -> terror $ "Unexpected icon extension: " <> ext
-  pure $ "hicolor" </> size </> "apps" </> base <> "." <> ext
+  pure $ "hicolor" </> pSegment size </> "apps" </> pSegment (base <> "." <> ext)
 
 assertIconExists ::
   forall es.
