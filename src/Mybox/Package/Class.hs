@@ -1,6 +1,7 @@
 module Mybox.Package.Class (
   Package (..),
   PackageName,
+  pathname,
   isInstalled,
   ensureInstalled,
 ) where

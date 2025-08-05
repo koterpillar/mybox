@@ -17,7 +17,7 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-temporaryZip :: Driver :> es => [Text] -> (Text -> Eff es a) -> Eff es a
+temporaryZip :: Driver :> es => [Text] -> (Path Abs -> Eff es a) -> Eff es a
 temporaryZip paths act = drvTempDir $ \archiveDir -> do
   let addEntry path = Zip.addEntryToArchive $ Zip.toEntry (Text.unpack path) 0 mempty
   let archive = foldr addEntry Zip.emptyArchive paths
@@ -27,18 +27,24 @@ temporaryZip paths act = drvTempDir $ \archiveDir -> do
 
   act archiveFile
 
-extractFileNames :: DIST es => Text -> Eff es (Set Text)
+extractFileNames :: (Anchor a, DIST es) => Path a -> Eff es (Set (Path Rel))
 extractFileNames archive = do
-  extractor <- getExtractor archive
+  extractor <- getExtractor archive.text
   drvTempDir $ \dir -> do
     extract extractor archive dir
     files <- drvFind dir mempty{onlyFiles = True}
-    pure $ Set.map (\f -> fromMaybe f $ Text.stripPrefix (dir <> "/") f) files
+    pure $ Set.map (pRelativeTo_ dir) files
 
-compress :: Driver :> es => (LBS.ByteString -> LBS.ByteString) -> Text -> Text -> (Text -> Eff es a) -> Eff es a
+compress ::
+  Driver :> es =>
+  (LBS.ByteString -> LBS.ByteString) ->
+  Text ->
+  Text ->
+  (Path Abs -> Eff es a) ->
+  Eff es a
 compress fn extension contents act = do
   drvTempDir $ \tempDir -> do
-    let archive = tempDir </> "myfile." <> extension
+    let archive = tempDir </> ("myfile." <> extension)
     let compressed = fn $ LBS.fromStrict $ Text.encodeUtf8 contents
     drvWriteBinaryFile archive compressed
     act archive
@@ -73,7 +79,7 @@ spec =
         \(compressAction, extension) ->
           it ("decompresses " <> Text.unpack extension) $
             compressAction extension "contents" $ \archive -> do
-              extractor <- getRawExtractor archive
+              extractor <- getRawExtractor archive.text
               drvTempFile $ \dest -> do
                 extractRaw extractor archive dest
                 extracted <- drvReadFile dest

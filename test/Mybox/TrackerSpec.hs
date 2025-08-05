@@ -13,12 +13,15 @@ newtype DummyPackage
 spec :: Spec
 spec = do
   it "adds new files, removes stale files, skips packages" $ do
+    let mkAbs :: Text -> Path Abs
+        mkAbs t = pRoot </> t
+    let mkTrk p = TrackedFile p . mkAbs
     let filesBefore =
           Set.fromList $
-            map (TrackedFile "pkg1") ["common-file", "pkg1-file"]
-              <> map (TrackedFile "pkg2") ["common-file", "pkg2-file"]
-              <> map (TrackedFile "pkg3") ["common-file", "pkg3-file"]
-              <> map (TrackedFile "pkg4") ["common-file", "pkg4-file"]
+            map (mkTrk "pkg1") ["common-file", "pkg1-file"]
+              <> map (mkTrk "pkg2") ["common-file", "pkg2-file"]
+              <> map (mkTrk "pkg3") ["common-file", "pkg3-file"]
+              <> map (mkTrk "pkg4") ["common-file", "pkg4-file"]
     ((), TrackerState filesAfter deleted) <-
       stateTracker filesBefore $
         trkSession $
@@ -26,17 +29,17 @@ spec = do
             let pkg1 = DummyPackage "pkg1"
             let pkg2 = DummyPackage "pkg2"
             let pkg3 = DummyPackage "pkg3"
-            trkAdd pkg1 "common-file"
-            trkAdd pkg1 "pkg1-file"
+            trkAdd pkg1 $ mkAbs "common-file"
+            trkAdd pkg1 $ mkAbs "pkg1-file"
             trkSkip pkg2
-            trkAdd pkg3 "common-file"
-            trkAdd pkg3 "pkg3-file-new"
+            trkAdd pkg3 $ mkAbs "common-file"
+            trkAdd pkg3 $ mkAbs "pkg3-file-new"
     filesAfter
       `shouldBe` Set.fromList
-        ( map (TrackedFile "pkg1") ["common-file", "pkg1-file"]
-            <> map (TrackedFile "pkg2") ["common-file", "pkg2-file"]
+        ( map (mkTrk "pkg1") ["common-file", "pkg1-file"]
+            <> map (mkTrk "pkg2") ["common-file", "pkg2-file"]
             <> map
-              (TrackedFile "pkg3")
+              (mkTrk "pkg3")
               ["common-file", "pkg3-file-new"]
         )
-    deleted `shouldBe` Set.fromList ["pkg3-file", "pkg4-file"]
+    deleted `shouldBe` Set.fromList (map mkAbs ["pkg3-file", "pkg4-file"])

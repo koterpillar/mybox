@@ -18,7 +18,7 @@ data GithubPackage = GithubPackage
   , raw :: Either Text Bool
   , binaries :: [Text]
   , binaryWrapper :: Bool
-  , binaryPaths :: [Text]
+  , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
   , prefixes :: [Text]

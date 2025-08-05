@@ -11,18 +11,18 @@ import Mybox.Prelude
 
 data Reader :: Effect where
   Host :: Reader m Text
-  ReadConfig :: Text -> Reader m ByteString
+  ReadConfig :: Path AnyAnchor -> Reader m ByteString
 
 type instance DispatchOf Reader = Dynamic
 
 readHost :: Reader :> es => Eff es Text
 readHost = send Host
 
-readConfigFile :: Reader :> es => Text -> Eff es ByteString
-readConfigFile = send . ReadConfig
+readConfigFile :: (Anchor a, Reader :> es) => Path a -> Eff es ByteString
+readConfigFile = send . ReadConfig . pWiden
 
-readConfigYAML :: (FromJSON a, Reader :> es) => Text -> Eff es a
+readConfigYAML :: (Anchor a, FromJSON r, Reader :> es) => Path a -> Eff es r
 readConfigYAML p =
   readConfigFile p
     >>= Yaml.decodeThrow
-    >>= parseThrow (parseJSONWithContext p)
+    >>= parseThrow (parseJSONWithContext p.text)

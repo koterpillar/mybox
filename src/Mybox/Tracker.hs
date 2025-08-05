@@ -25,19 +25,19 @@ import Mybox.Prelude
 
 data TrackerSession :: Effect where
   TrkSkip :: PackageName p => p -> TrackerSession m ()
-  TrkAdd :: PackageName p => p -> Text -> TrackerSession m ()
+  TrkAdd :: PackageName p => p -> Path Abs -> TrackerSession m ()
 
 type instance DispatchOf TrackerSession = Dynamic
 
 trkSkip :: (PackageName p, TrackerSession :> es) => p -> Eff es ()
 trkSkip = send . TrkSkip
 
-trkAdd :: (PackageName p, TrackerSession :> es) => p -> Text -> Eff es ()
+trkAdd :: (PackageName p, TrackerSession :> es) => p -> Path Abs -> Eff es ()
 trkAdd pkg file = send $ TrkAdd pkg file
 
 data TrackedFile = TrackedFile
   { name :: !Text
-  , path :: !Text
+  , path :: !(Path Abs)
   }
   deriving (Eq, Generic, Ord, Show)
 
@@ -46,7 +46,7 @@ instance FromJSON TrackedFile
 instance ToJSON TrackedFile where
   toEncoding = genericToEncoding defaultOptions
 
-tfMake :: PackageName p => p -> Text -> TrackedFile
+tfMake :: PackageName p => p -> Path Abs -> TrackedFile
 tfMake = TrackedFile . (.name)
 
 tfBelongsTo :: PackageName p => p -> TrackedFile -> Bool
@@ -61,7 +61,7 @@ data Tracker :: Effect where
     -- | Set all tracked files
     Tracker m ()
   TrkRemove ::
-    Text ->
+    Path Abs ->
     -- | Remove file from disk
     Tracker m ()
 
@@ -93,7 +93,7 @@ nullTrackerSession = nullTracker . trkSession . inject
 
 data TrackerState = TrackerState
   { tracked :: !(Set TrackedFile)
-  , deleted :: !(Set Text)
+  , deleted :: !(Set (Path Abs))
   }
   deriving (Eq, Ord, Show)
 
@@ -116,7 +116,7 @@ instance FromJSON TrackedFiles
 instance ToJSON TrackedFiles where
   toEncoding = genericToEncoding defaultOptions
 
-drvTracker :: Driver :> es => Text -> Eff (Tracker : es) a -> Eff es a
+drvTracker :: (Anchor a, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
 drvTracker stateFile =
   interpret_ $ \case
     TrkGet -> do

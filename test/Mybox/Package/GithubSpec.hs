@@ -41,7 +41,7 @@ pngResolutions = do
   let resStr = Text.pack $ show res
   pure $ resStr <> "x" <> resStr
 
-iconPaths :: Text -> [Text]
+iconPaths :: Text -> [Path Rel]
 iconPaths name = do
   (base, ext) <- case Text.splitOn "." name of
     [base_, ext_] -> pure (base_, ext_)
@@ -51,7 +51,7 @@ iconPaths name = do
     "png" -> pngResolutions
     "svg" -> ["scalable"]
     _ -> terror $ "Unexpected icon extension: " <> ext
-  pure $ "hicolor" </> size </> "apps" </> base <> "." <> ext
+  pure $ "hicolor" </> size </> "apps" </> (base <> "." <> ext)
 
 assertIconExists ::
   forall es.
@@ -67,7 +67,7 @@ assertIconExists iconName = do
 
       drvIsDir iconsDir >>= (`shouldBe` True)
 
-      iconExists <- anyM (\p -> drvIsFile (iconsDir </> p)) (iconPaths iconName)
+      iconExists <- anyM (\p -> drvIsFile (iconsDir <//> p)) (iconPaths iconName)
       unless iconExists $ do
         allFiles <- drvFind iconsDir (mempty{onlyFiles = True})
         expectationFailure $

@@ -15,12 +15,15 @@ drvArchitecture =
     "arm64" -> pure Aarch64
     arch -> terror $ "Unsupported architecture: " <> arch
 
+pOSRelease :: Path Abs
+pOSRelease = pRoot </> "etc" </> "os-release"
+
 drvOS :: Driver :> es => Eff es OS
 drvOS = do
   osStr <- drvRunOutput ("uname" :| [])
   case osStr of
     "Linux" -> do
-      distributionStr <- parseOsRelease <$> drvReadFile "/etc/os-release"
+      distributionStr <- parseOsRelease <$> drvReadFile pOSRelease
       distribution <- case distributionStr of
         "debian" -> pure $ Debian "debian"
         "ubuntu" -> pure $ Debian "ubuntu"

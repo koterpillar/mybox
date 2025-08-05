@@ -24,10 +24,10 @@ componentMatches m = do
 
 readConfig :: Reader :> es => Eff es Config
 readConfig = do
-  rootConfig <- readConfigYAML "mybox.yaml"
+  rootConfig <- readConfigYAML $ pSegment "mybox.yaml"
   matches <- filterM componentMatches rootConfig
   packages <- fmap (join . join) $
     for matches $ \match ->
       for match.component $ \component ->
-        readConfigYAML ("packages" </> component <> ".yaml")
+        readConfigYAML (pSegment "packages" </> (component <> ".yaml"))
   pure $ Config{..}

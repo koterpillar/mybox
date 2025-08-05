@@ -6,12 +6,12 @@ module Mybox.Package.Destination (
 import Mybox.Driver
 import Mybox.Prelude
 
-type PackageDestination a = HasField "destination" a Text
+type PackageDestination a = HasField "destination" a (Path AnyAnchor)
 
-destinationPath :: (Driver :> es, PackageDestination p) => p -> Eff es Text
+destinationPath :: (Driver :> es, PackageDestination p) => p -> Eff es (Path Abs)
 destinationPath p = do
   home <- drvHome
-  pure $ home </> p.destination
+  pure $ home <//> p.destination
 
 destinationExists :: (Driver :> es, PackageDestination p) => p -> Eff es Bool
 destinationExists p = destinationPath p >>= drvIsDir

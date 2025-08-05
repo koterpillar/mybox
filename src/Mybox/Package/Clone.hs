@@ -12,14 +12,20 @@ import Mybox.Tracker
 
 data ClonePackage = ClonePackage
   { repo :: Text
-  , destination :: Text
+  , destination :: Path AnyAnchor
   , branch :: Maybe Text
   , post :: [Text]
   }
   deriving (Eq, Show)
 
-mkClonePackage :: Text -> Text -> ClonePackage
-mkClonePackage repo destination = ClonePackage{repo, destination, branch = Nothing, post = []}
+mkClonePackage :: Text -> Path AnyAnchor -> ClonePackage
+mkClonePackage repo destination =
+  ClonePackage
+    { repo
+    , destination = pWiden destination
+    , branch = Nothing
+    , post = []
+    }
 
 instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
@@ -52,7 +58,7 @@ cpRemote p
 cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do
   dest <- destinationPath p
-  pure $ "git" :| (["-C", dest] <> args)
+  pure $ "git" :| (["-C", dest.text] <> args)
 
 cpRunGit :: Driver :> es => [Text] -> ClonePackage -> Eff es ()
 cpRunGit args p = cpGitArgs args p >>= drvRun
@@ -92,9 +98,9 @@ cpInstall p = do
   if exists
     then cpRunGit ["remote", "set-url", cpDefaultRemote, cpRemote p] p
     else do
-      drvMkdir $ pDirname destination
+      drvMkdir destination.dirname
       drvRm destination
-      drvRun $ "git" :| ["clone", cpRemote p, destination]
+      drvRun $ "git" :| ["clone", cpRemote p, destination.text]
   remoteBranch <-
     case p.branch of
       Just branch -> pure $ cpRemoteBranch branch

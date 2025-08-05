@@ -13,13 +13,13 @@ import Mybox.Prelude
 import Mybox.Stores
 
 data ShellPackage = ShellPackage
-  { shell :: Text
+  { shell :: Path Abs
   , root :: Bool
   , post :: [Text]
   }
   deriving (Eq, Show)
 
-mkShellPackage :: Text -> ShellPackage
+mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
 
 instance FromJSON ShellPackage where
@@ -36,11 +36,16 @@ instance ToJSON ShellPackage where
 instance HasField "name" ShellPackage Text where
   getField p = "_shell" <> (if p.root then "_root" else "")
 
-shellsFile :: Text
-shellsFile = "/etc/shells"
+shellsFile :: Path Abs
+shellsFile = pRoot </> "etc" </> "shells"
 
-allShells :: Driver :> es => Eff es [Text]
-allShells = Text.lines <$> drvReadFile shellsFile
+allShells :: Driver :> es => Eff es [Path Abs]
+allShells = map mkPath . filter content . Text.lines <$> drvReadFile shellsFile
+ where
+  content line
+    | Text.null line = False
+    | Text.isPrefixOf "#" line = False
+    | otherwise = True
 
 getShellLinux :: Driver :> es => ShellPackage -> Eff es Text
 getShellLinux p = do
@@ -53,8 +58,8 @@ getShellLinux p = do
 
 getShellMacOS :: Driver :> es => ShellPackage -> Eff es Text
 getShellMacOS p = do
-  home <- if p.root then pure "/root" else drvHome
-  result <- drvRunOutput $ "dscl" :| [".", "-read", home, "UserShell"]
+  home <- if p.root then pure (pRoot </> "root") else drvHome
+  result <- drvRunOutput $ "dscl" :| [".", "-read", home.text, "UserShell"]
   case Text.splitOn ": " result of
     [_, shellPath] -> pure $ Text.strip shellPath
     _ -> terror "Failed to parse dscl output"
@@ -66,7 +71,7 @@ shellLocalVersion p =
     MacOS -> Just <$> getShellMacOS p
 
 shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es Text
-shellRemoteVersion p = pure p.shell
+shellRemoteVersion p = pure p.shell.text
 
 shellInstall :: DIST es => ShellPackage -> Eff es ()
 shellInstall p = do
@@ -74,13 +79,13 @@ shellInstall p = do
     Linux Fedora -> queueInstall $ mkSystemPackage "util-linux-user"
     _ -> pure ()
 
-  unlessM (drvIsFile p.shell) $ terror $ p.shell <> " does not exist."
-  unlessM (drvIsExecutable p.shell) $ terror $ p.shell <> " is not executable."
+  unlessM (drvIsFile p.shell) $ terror $ p.shell.text <> " does not exist."
+  unlessM (drvIsExecutable p.shell) $ terror $ p.shell.text <> " is not executable."
   shells <- allShells
   unless (p.shell `elem` shells) $ do
-    drvRun $ sudo $ shellRaw $ "echo " <> shellQuote p.shell <> " >> " <> shellQuote shellsFile
+    drvRun $ sudo $ shellRaw $ "echo " <> shellQuote p.shell.text <> " >> " <> shellQuote shellsFile.text
 
-  drvRun $ (if p.root then sudo else id) $ "chsh" :| ["-s", p.shell]
+  drvRun $ (if p.root then sudo else id) $ "chsh" :| ["-s", p.shell.text]
 
 instance Package ShellPackage where
   localVersion = shellLocalVersion

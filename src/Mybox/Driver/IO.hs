@@ -18,7 +18,7 @@ import Mybox.Prelude
 
 data IODriver = IODriver
   { transformArgs :: Args -> Args
-  , cwd :: Maybe Text
+  , cwd :: Maybe (Path Abs)
   }
 
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
@@ -26,7 +26,7 @@ runDriverIO drv =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
-      let process = (proc cmd args){System.Process.cwd = Text.unpack <$> drv.cwd}
+      let process = (proc cmd args){System.Process.cwd = Text.unpack . (.text) <$> drv.cwd}
       (exitCode, stdoutStr, stderrStr) <-
         liftIO $ readCreateProcessWithExitCode process ""
       let stdout = Text.pack stdoutStr
@@ -64,8 +64,8 @@ withEnv key fn action = do
     (liftIO $ setEnv (Text.unpack key) $ Text.unpack originalValue)
     action
 
-withAddedPath :: IOE :> es => Text -> Eff es a -> Eff es a
-withAddedPath addPath = withEnv "PATH" $ \originalPath -> addPath <> ":" <> originalPath
+withAddedPath :: IOE :> es => Path Abs -> Eff es a -> Eff es a
+withAddedPath addPath = withEnv "PATH" $ \originalPath -> addPath.text <> ":" <> originalPath
 
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = do
@@ -75,17 +75,18 @@ testHostDriver act = do
     withAddedPath (home </> ".local" </> "bin") $
       withEnv "GITHUB_TOKEN" (const githubToken) $ do
         localDriver $ do
-          let linkToOriginalHome path = do
-                let op = originalHome </> path
-                let np = home </> path
+          let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
+              linkToOriginalHome path = do
+                let op = originalHome <//> path
+                let np = home <//> path
                 drvMkdir op
                 drvLink op np
           linkedDirectories <-
             drvOS >>= \case
-              Linux _ -> pure [".local/share/fonts", ".local/share/systemd/user"]
-              MacOS -> pure ["Library/Fonts", "Library/LaunchAgents"]
+              Linux _ -> pure [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
+              MacOS -> pure [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
           for_ linkedDirectories linkToOriginalHome
-        let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home]
+        let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home.text]
             transformArgs args = args
         let cwd = Just home
         flip runDriverIO act $ IODriver{..}
@@ -100,10 +101,10 @@ dockerDriver baseImage act =
       containerName <- Text.pack . show <$> liftIO (randomIO @Word)
       githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
-        drvCopy "bootstrap" (tempDir </> "bootstrap")
+        drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage
-        drvRun $ "docker" :| ["build", "--tag", image, tempDir]
+        drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
         -- FIXME: --volume for package root
         drvRunOutput $
           "docker"
@@ -135,7 +136,7 @@ dockerDriver baseImage act =
            , "--user"
            , user
            , "--workdir"
-           , homeOf user
+           , (homeOf user).text
            , "--interactive"
            , container
            ]
@@ -151,7 +152,7 @@ dockerfile baseImage =
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"
-    , "ENV PATH=" <> homeOf dockerUser <> "/.local/bin:$PATH"
+    , "ENV PATH=" <> (homeOf dockerUser).text <> "/.local/bin:$PATH"
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
       "RUN command -v dnf >/dev/null && dnf check-update || true"
@@ -160,9 +161,9 @@ dockerfile baseImage =
 dockerUser :: Text
 dockerUser = "regular_user"
 
-homeOf :: Text -> Text
-homeOf "root" = "/root"
-homeOf user = "/home" </> user
+homeOf :: Text -> Path Abs
+homeOf "root" = pRoot </> "root"
+homeOf user = pRoot </> "home" </> user
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"

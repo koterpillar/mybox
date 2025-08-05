@@ -27,7 +27,7 @@ spec =
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson
     roundtrip $ mkBrewRepo "test/test"
-    roundtrip $ mkClonePackage "ghc/ghc" "ghc"
+    roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkGithubPackage "test/repo"
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"

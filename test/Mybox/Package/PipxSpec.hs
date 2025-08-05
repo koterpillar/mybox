@@ -32,8 +32,8 @@ spec = do
             ("tqdm" :| ["--help"])
             "Usage:\n  tqdm"
           & ignorePath ".shiv"
-          & ignorePath ".local/bin/pipx"
-          & ignorePath ".local/share/pipx"
-          & ignorePath ".local/state/pipx/log"
+          & ignorePath (".local" </> "bin" </> "pipx")
+          & ignorePath (".local" </> "share" </> "pipx")
+          & ignorePath (".local" </> "state" </> "pipx" </> "log")
   packageSpec $ tqdmPackage "tqdm"
   packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"

@@ -28,7 +28,7 @@ type ArchiveReqs p =
   , HasField "raw" p (Either Text Bool)
   , HasField "binaries" p [Text]
   , HasField "binaryWrapper" p Bool
-  , HasField "binaryPaths" p [Text]
+  , HasField "binaryPaths" p [Path Rel]
   , HasField "apps" p [Text]
   , HasField "fonts" p [Text]
   )
@@ -37,7 +37,7 @@ data ArchiveFields = ArchiveFields
   { raw :: Either Text Bool
   , binaries :: [Text]
   , binaryWrapper :: Bool
-  , binaryPaths :: [Text]
+  , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
   }
@@ -65,15 +65,12 @@ archiveToJSON p =
 class ArchiveReqs p => ArchivePackage p where
   archiveUrl :: forall es. DIST es => p -> Eff es Text
 
-pathname :: ArchivePackage p => p -> Text
-pathname p = Text.replace "/" "--" p.name
-
-aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es Text
+aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
   local <- drvLocal
   return $ local </> "mybox" </> pathname p
 
-aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Text -> Eff es ()
+aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Eff es ()
 aExtract p url archiveFile = case p.raw of
   Right True -> aExtractRaw p url archiveFile $ Text.takeWhileEnd (/= '/') url
   Left filename -> aExtractRaw p url archiveFile filename
@@ -82,7 +79,7 @@ aExtract p url archiveFile = case p.raw of
     target <- aDirectory p
     extract extractor archiveFile target
 
-aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Text -> Text -> Eff es ()
+aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
@@ -94,11 +91,10 @@ archiveInstall :: (ArchivePackage p, DIST es) => p -> Eff es ()
 archiveInstall p = do
   url <- archiveUrl p
   drvTempFile $ \archiveFile -> do
-    drvRun $ "curl" :| ["-fsSL", "-o", archiveFile, url]
+    drvRun $ "curl" :| ["-fsSL", "-o", archiveFile.text, url]
     target <- aDirectory p
-    let targetParent = pDirname target
-    drvMkdir targetParent
-    trkAdd p targetParent
+    drvMkdir target.dirname
+    trkAdd p target.dirname
     trkAdd p target
     aExtract p url archiveFile
   for_ p.binaries $ installBinary p
@@ -106,33 +102,31 @@ archiveInstall p = do
   for_ p.fonts $ installFont p
 
 data AFindOptions = AFindOptions
-  { paths :: [Text]
+  { paths :: [Path Rel]
   , requireExecutable :: Bool
   , description :: Text
   }
 
-aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es Text
+aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es (Path Abs)
 aFind p opt name = do
   directory <- aDirectory p
   paths <-
     filterM
       (if opt.requireExecutable then drvIsExecutable else drvIsFile)
-      [ (if Text.null path then directory else directory </> path) </> name
-      | path <- opt.paths
-      ]
+      [directory <//> path </> name | path <- opt.paths]
   case paths of
     (path : _) -> pure path
-    [] -> terror $ "Cannot find " <> opt.description <> " '" <> name <> "' in " <> directory
+    [] -> terror $ "Cannot find " <> opt.description <> " '" <> name <> "' in " <> directory.text
 
 binaryFind :: AFindOptions
 binaryFind =
   AFindOptions
-    { paths = ["", "bin"]
+    { paths = [mkPath "", mkPath "bin"]
     , requireExecutable = True
     , description = "binary"
     }
 
-aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es Text
+aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es (Path Abs)
 aBinaryPath p = aFind p binaryFind{paths = p.binaryPaths <> binaryFind.paths}
 
 installBinary :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
@@ -142,7 +136,7 @@ installBinary p binary = do
   let target = local </> "bin" </> binary
   if p.binaryWrapper
     then do
-      drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath <> " \"$@\""]
+      drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
       drvMakeExecutable target
     else
       drvLink binaryPath target
@@ -195,20 +189,20 @@ installIcon p icon = do
   local <- drvLocal
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
-    let iconTargetPath = iconsTarget </> iconPath iconSrcPath
+    let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
     drvLink iconSrcPath iconTargetPath
     trkAdd p iconTargetPath
 
-iconPath :: Text -> Text
+iconPath :: Anchor a => Path a -> Path Rel
 iconPath icon = "hicolor" </> resolution </> "apps" </> base
  where
-  parts = Text.splitOn "/" icon
-  base = last parts
+  parts = icon.segments
+  base = icon.basename
   ext = Text.takeWhileEnd (/= '.') base
   resolution = case ext of
     "svg" -> "scalable"
     "png" -> fromMaybe "16x16" $ find isResolution parts
-    _ -> terror $ "Unexpected icon extension: " <> ext <> " from " <> icon
+    _ -> terror $ "Unexpected icon extension: " <> ext <> " from " <> icon.text
   isResolution :: Text -> Bool
   isResolution p =
     case Text.splitOn "x" p of
@@ -228,11 +222,10 @@ installFont p font = do
   fontPaths <- drvFind directory $ mempty{names = Just $ withExtensions fontExtensions font}
   fontPath <- case Set.toList fontPaths of
     [path] -> pure path
-    [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory
-    _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory
-  let fontFilename = fromMaybe (terror $ "Unexpected font path: " <> fontPath) $ pFilename fontPath
-  let targetPath = fontDir </> fontFilename
+    [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory.text
+    _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory.text
+  let targetPath = fontDir </> fontPath.basename
   drvCopy fontPath targetPath
   trkAdd p targetPath
   queueInstall $ mkSystemPackage "fontconfig"
-  drvRun $ "fc-cache" :| ["-f", fontDir]
+  drvRun $ "fc-cache" :| ["-f", fontDir.text]

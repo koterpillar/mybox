@@ -68,7 +68,11 @@ prerequisites p = do
     queueInstall $
       mkSystemPackage "git"
 
-data PipxInstalledPackage = PipxInstalledPackage {name :: Text, version :: Maybe Text, binaries :: [Text]}
+data PipxInstalledPackage = PipxInstalledPackage
+  { name :: Text
+  , version :: Maybe Text
+  , binaries :: [Path Abs]
+  }
   deriving (Show)
 
 instance FromJSON PipxInstalledPackage where
@@ -119,9 +123,8 @@ pipxInstall p = do
   metadata_ <- getInstalled p
   for_ metadata_ $ \metadata ->
     for_ metadata.binaries $ \binary ->
-      for_ (pFilename binary) $ \binName ->
-        let binPath = local </> "bin" </> binName
-         in trkAdd p binPath
+      let binPath = local </> "bin" </> binary.basename
+       in trkAdd p binPath
 
 instance Package PipxPackage where
   localVersion = localVersionPipx

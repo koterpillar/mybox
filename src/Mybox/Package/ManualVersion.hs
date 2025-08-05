@@ -13,17 +13,19 @@ instance ToJSON InstallRecord where
 
 instance FromJSON InstallRecord
 
-versionFile :: PackageName p => p -> Text
-versionFile p = pMyboxState </> "versions" </> (p.name <> ".json")
+versionFile :: (Driver :> es, PackageName p) => p -> Eff es (Path Abs)
+versionFile p = do
+  home <- drvHome
+  pure $ home <//> pMyboxState </> "versions" </> (pathname p <> ".json")
 
 manualVersion :: (Driver :> es, PackageName p, ToJSON p) => p -> Eff es (Maybe Text)
 manualVersion p = do
-  let vf = versionFile p
+  vf <- versionFile p
   exists <- drvIsFile vf
   if not exists
     then pure Nothing
     else do
-      v' <- jsonDecode @InstallRecord "install record" <$> drvReadFile (versionFile p)
+      v' <- jsonDecode @InstallRecord "install record" <$> drvReadFile vf
       pure $ case v' of
         Nothing -> Nothing
         Just v -> if jsonEncode p == v.hash then Just v.version else Nothing
@@ -32,4 +34,5 @@ manualVersionInstall :: (DIST es, Package p) => (p -> Eff es ()) -> p -> Eff es 
 manualVersionInstall installAct p = do
   v <- remoteVersion p
   installAct p
-  drvWriteBinaryFile (versionFile p) $ encode $ InstallRecord{hash = jsonEncode p, version = v}
+  vf <- versionFile p
+  drvWriteBinaryFile vf $ encode $ InstallRecord{hash = jsonEncode p, version = v}
