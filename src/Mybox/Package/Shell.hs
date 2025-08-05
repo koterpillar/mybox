@@ -40,7 +40,12 @@ shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"
 
 allShells :: Driver :> es => Eff es [Path Abs]
-allShells = map mkPath . Text.lines <$> drvReadFile shellsFile
+allShells = map mkPath . filter content . Text.lines <$> drvReadFile shellsFile
+ where
+  content line
+    | Text.null line = False
+    | Text.isPrefixOf "#" line = False
+    | otherwise = True
 
 getShellLinux :: Driver :> es => ShellPackage -> Eff es Text
 getShellLinux p = do
