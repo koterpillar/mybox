@@ -1,6 +1,6 @@
 module Mybox.Path (
   Anchor,
-  AnyAnchor,
+  AnyAnchor (..),
   Abs,
   Rel,
   Path,
@@ -56,7 +56,7 @@ instance Anchor Rel where
 instance Anchor AnyAnchor where
   toAnchor = id
   mkPath_ t = Right $ case Text.stripPrefix "/" t of
-    Just r -> Path Abs $ Text.splitOn "/" r
+    Just r -> Path Abs $ if Text.null r then [] else Text.splitOn "/" r
     Nothing -> Path Rel $ Text.splitOn "/" t
 
 mkPath :: (Anchor a, HasCallStack) => Text -> Path a
@@ -145,7 +145,7 @@ instance HasField "basename" (Path a) Text where
 
 pRelativeTo :: Path Abs -> Path Abs -> Maybe (Path Rel)
 pRelativeTo (Path Abs_ a) (Path Abs_ b)
-  | a `isPrefixOf` b = Just $ Path Rel_ $ drop (length b) a
+  | a `isPrefixOf` b = Just $ Path Rel_ $ drop (length a) b
   | otherwise = Nothing
 
 pRelativeTo_ :: HasCallStack => Path Abs -> Path Abs -> Path Rel
