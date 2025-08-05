@@ -16,17 +16,19 @@ import Mybox.Driver.Ops
 import Mybox.Driver.Platform
 import Mybox.Prelude
 
-data IODriver = IODriver
+newtype IODriver = IODriver
   { transformArgs :: Args -> Args
-  , cwd :: Maybe (Path Abs)
   }
+
+localIODriver :: IODriver
+localIODriver = IODriver{transformArgs = id}
 
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
 runDriverIO drv =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
-      let process = (proc cmd args){System.Process.cwd = Text.unpack . (.text) <$> drv.cwd}
+      let process = proc cmd args
       (exitCode, stdoutStr, stderrStr) <-
         liftIO $ readCreateProcessWithExitCode process ""
       let stdout = Text.pack stdoutStr
@@ -53,7 +55,7 @@ runDriverIO drv =
       pure $ RunResult{..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
-localDriver = runDriverIO $ IODriver{transformArgs = id, cwd = Nothing}
+localDriver = runDriverIO localIODriver
 
 withEnv :: IOE :> es => Text -> (Text -> Text) -> Eff es a -> Eff es a
 withEnv key fn action = do
@@ -73,23 +75,21 @@ testHostDriver act = do
   originalHome <- localDriver drvHome
   bracket (localDriver $ drvTemp_ True) (localDriver . drvRm) $ \home -> do
     withAddedPath (home </> ".local" </> "bin") $
-      withEnv "GITHUB_TOKEN" (const githubToken) $ do
-        localDriver $ do
-          let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
-              linkToOriginalHome path = do
-                let op = originalHome <//> path
-                let np = home <//> path
-                drvMkdir op
-                drvLink op np
-          linkedDirectories <-
-            drvOS >>= \case
-              Linux _ -> pure [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
-              MacOS -> pure [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
-          for_ linkedDirectories linkToOriginalHome
-        let transformArgs ("sh" :| ["-c", "eval echo '~'"]) = "echo" :| [home.text]
-            transformArgs args = args
-        let cwd = Just home
-        flip runDriverIO act $ IODriver{..}
+      withEnv "HOME" (const home.text) $
+        withEnv "GITHUB_TOKEN" (const githubToken) $ do
+          localDriver $ do
+            let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
+                linkToOriginalHome path = do
+                  let op = originalHome <//> path
+                  let np = home <//> path
+                  drvMkdir op
+                  drvLink op np
+            linkedDirectories <-
+              drvOS >>= \case
+                Linux _ -> pure [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
+                MacOS -> pure [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
+            for_ linkedDirectories linkToOriginalHome
+          runDriverIO localIODriver act
 
 dockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
 dockerDriver baseImage act =
@@ -125,7 +125,6 @@ dockerDriver baseImage act =
   mkDriver :: Text -> IODriver
   mkDriver container = IODriver{..}
    where
-    cwd = Nothing
     transformArgs :: Args -> Args
     transformArgs ("sudo" :| args') = dockerExec "root" args'
     transformArgs args = dockerExec dockerUser $ toList args
@@ -135,8 +134,6 @@ dockerDriver baseImage act =
         :| [ "exec"
            , "--user"
            , user
-           , "--workdir"
-           , (homeOf user).text
            , "--interactive"
            , container
            ]
@@ -150,6 +147,8 @@ dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage
     , "RUN useradd --create-home --password '' " <> dockerUser
+    , "RUN mkdir /mybox"
+    , "WORKDIR /mybox"
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"
     , "ENV PATH=" <> (homeOf dockerUser).text <> "/.local/bin:$PATH"
