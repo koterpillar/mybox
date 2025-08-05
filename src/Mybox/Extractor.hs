@@ -25,7 +25,7 @@ data Extractor = Extractor
 instance Show Extractor where
   show Extractor{description} = Text.unpack description
 
-findContents :: (Anchor a, Driver :> es) => Path a -> Int -> Eff es (Set (Path a))
+findContents :: Driver :> es => Path Abs -> Int -> Eff es (Path Abs, Set (Path Rel))
 findContents sourceDir maxDepth = do
   if maxDepth < 0
     then terror $ "maxDepth must be positive, got " <> Text.pack (show maxDepth)
@@ -36,16 +36,16 @@ findContents sourceDir maxDepth = do
           isDir <- drvIsDir element
           if isDir
             then findContents element (pred maxDepth)
-            else pure contents
-        _ -> pure contents
+            else pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
+        _ -> pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
 
 extract :: (Anchor a1, Anchor a2, DIST es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
 extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
-  contents <- findContents tmpdir 10
+  (contentsDir, contents) <- findContents tmpdir 10
   for_ contents $ \element -> do
-    let target = pWiden targetDirectory <//> pRelativeTo_ tmpdir element
-    drvCopy element target
+    let target = pWiden targetDirectory <//> element
+    drvCopy (contentsDir <//> element) target
 
 tar_ :: Maybe Text -> Extractor
 tar_ option = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}

@@ -33,10 +33,10 @@ spec = do
   describe "drvFind" $
     it "finds files" $
       drvTempDir $ \dir -> do
-        let touch p = let p' = dir </> p in drvMkdir p'.dirname >> drvWriteFile p' ""
+        let touch p = let p' = dir <//> p in drvMkdir p'.dirname >> drvWriteFile p' ""
         let go = fmap (Set.map $ pRelativeTo_ dir) . drvFind dir
         touch "one"
-        touch "subdir/one"
+        touch $ pSegment "subdir" </> "one"
         touch "two"
         touch "three"
         go (mempty{names = Just ["one"]}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one"])
