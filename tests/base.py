@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Optional
 
 from mybox.driver import Driver, RunResult, RunResultOutput
@@ -9,6 +10,9 @@ CI: bool = "CI" in os.environ
 DOCKER_IMAGE: Optional[str] = os.environ.get("DOCKER_IMAGE") or None
 
 DOCKER: bool = DOCKER_IMAGE is not None
+
+
+PACKAGE_ROOT: Path = Path(__file__).parent.parent.absolute()
 
 
 class DummyDriver(Driver):

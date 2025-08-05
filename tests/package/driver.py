@@ -8,6 +8,8 @@ from pathlib import Path
 from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
 from mybox.utils import RunArg, run, run_output
 
+from ..base import PACKAGE_ROOT
+
 
 class TestDriver(Driver):
     __test__ = False
@@ -44,12 +46,8 @@ class TestDriver(Driver):
         pass
 
 
-def package_root() -> Path:
-    return Path(__file__).parent.parent.parent.absolute()
-
-
 def bootstrap_script() -> Path:
-    bootstrap = package_root() / "bootstrap"
+    bootstrap = PACKAGE_ROOT / "bootstrap"
     assert bootstrap.is_file()
 
     return bootstrap
@@ -144,7 +142,7 @@ class DockerDriver(TestDriver, SubprocessDriver):
             "--rm",
             "--detach",
             "--volume",
-            f"{package_root()}:{package_root()}",
+            f"{PACKAGE_ROOT}:{PACKAGE_ROOT}",
             "--name",
             f"mybox-test-{getpid()}-{cls.container_number}",
             target_image,
