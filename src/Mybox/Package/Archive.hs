@@ -102,7 +102,7 @@ archiveInstall p = do
   for_ p.fonts $ installFont p
 
 data AFindOptions = AFindOptions
-  { paths :: [Maybe (Path Rel)]
+  { paths :: [Path Rel]
   , requireExecutable :: Bool
   , description :: Text
   }
@@ -113,9 +113,7 @@ aFind p opt name = do
   paths <-
     filterM
       (if opt.requireExecutable then drvIsExecutable else drvIsFile)
-      [ (case path of Nothing -> directory; Just path' -> directory <//> path') </> name
-      | path <- opt.paths
-      ]
+      [directory <//> path </> name | path <- opt.paths]
   case paths of
     (path : _) -> pure path
     [] -> terror $ "Cannot find " <> opt.description <> " '" <> name <> "' in " <> directory.text
@@ -123,13 +121,13 @@ aFind p opt name = do
 binaryFind :: AFindOptions
 binaryFind =
   AFindOptions
-    { paths = [Nothing, Just $ mkPath "bin"]
+    { paths = [mkPath "", mkPath "bin"]
     , requireExecutable = True
     , description = "binary"
     }
 
 aBinaryPath :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es (Path Abs)
-aBinaryPath p = aFind p binaryFind{paths = map Just p.binaryPaths <> binaryFind.paths}
+aBinaryPath p = aFind p binaryFind{paths = p.binaryPaths <> binaryFind.paths}
 
 installBinary :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
 installBinary p binary = do
@@ -147,7 +145,7 @@ installBinary p binary = do
 freedesktopAppFind :: AFindOptions
 freedesktopAppFind =
   AFindOptions
-    { paths = [Just ("share" </> "applications")]
+    { paths = ["share" </> "applications"]
     , requireExecutable = False
     , description = "application"
     }
