@@ -35,5 +35,6 @@ spec = do
           & ignorePath (".local" </> "bin" </> "pipx")
           & ignorePath (".local" </> "share" </> "pipx")
           & ignorePath (".local" </> "state" </> "pipx" </> "log")
+          & ignorePath (".rustup" </> "settings.toml") -- something on GitHub runners creates this
   packageSpec $ tqdmPackage "tqdm"
   packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
