@@ -56,14 +56,19 @@ instance Anchor Rel where
 instance Anchor AnyAnchor where
   toAnchor = id
   mkPath_ t = Right $ case Text.stripPrefix "/" t of
-    Just r -> Path Abs $ if Text.null r then [] else Text.splitOn "/" r
-    Nothing -> Path Rel $ Text.splitOn "/" t
+    Just r -> Path Abs $ split r
+    Nothing -> Path Rel $ split t
+   where
+    split = filter (\s -> not (Text.null s) && s /= ".") . Text.splitOn "/"
 
 mkPath :: (Anchor a, HasCallStack) => Text -> Path a
 mkPath = either error id . mkPath_
 
 data Path a = Path {anchor_ :: a, segments :: [Text]}
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord)
+
+instance (Anchor a, Show a) => Show (Path a) where
+  show p = "mkPath " <> show p.text
 
 instance Anchor a => HasField "anchor" (Path a) AnyAnchor where
   getField = toAnchor . (.anchor_)

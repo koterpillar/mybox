@@ -1,5 +1,6 @@
 module Mybox.PathSpec where
 
+import Data.Foldable (for_)
 import Effectful.Exception (evaluate)
 
 import Mybox.Path
@@ -35,6 +36,11 @@ spec = do
         (mkPath "local/bin" :: Path Rel) `shouldBe` (pSegment "local" </> "bin")
       it "creates relative path from single segment" $
         (mkPath "usr" :: Path Rel) `shouldBe` pSegment "usr"
+      for_ [".", "", "./."] $ \current -> do
+        it ("creates current directory path from " <> show current) $ do
+          let result = mkPath current :: Path AnyAnchor
+          pAbs result `shouldBe` Nothing
+          result.segments `shouldBe` []
 
     describe "for AnyAnchor paths" $ do
       it "creates absolute path from absolute string" $ do
@@ -45,6 +51,10 @@ spec = do
         let result = mkPath "usr/local" :: Path AnyAnchor
         pAbs result `shouldBe` Nothing
         result.segments `shouldBe` ["usr", "local"]
+      it "creates current directory path from ." $ do
+        let result = mkPath "." :: Path AnyAnchor
+        pAbs result `shouldBe` Nothing
+        result.segments `shouldBe` []
 
   describe "dirname" $ do
     it "returns parent directory for absolute paths" $
@@ -69,3 +79,15 @@ spec = do
       (pRoot </> "usr").basename `shouldBe` "usr"
     it "throws error for empty paths" $
       evaluate pRoot.basename `shouldThrow` anyErrorCall
+
+  describe "show" $ do
+    it "shows absolute paths with mkPath and quoted string" $
+      show (pRoot </> "usr" </> "local") `shouldBe` "mkPath \"/usr/local\""
+    it "shows relative paths with mkPath and quoted string" $
+      show (pSegment "usr" </> "local") `shouldBe` "mkPath \"usr/local\""
+    it "shows root as mkPath with slash" $
+      show pRoot `shouldBe` "mkPath \"/\""
+    it "shows single relative segment" $
+      show (pSegment "usr") `shouldBe` "mkPath \"usr\""
+    it "shows current directory for empty relative path" $
+      show (pSegment "usr").dirname `shouldBe` "mkPath \".\""
