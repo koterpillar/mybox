@@ -31,4 +31,6 @@ spec = do
       & checkInstalledCommandOutput ("yarn" :| ["--help"]) "Usage: yarn"
   packageSpec $ \_ ->
     ps ((mkURLPackage "https://ftp.debian.org/debian/README"){raw = Right True})
-      & checkInstalledCommandOutput ("cat" :| [".local/mybox/ftp.debian.org--README/README"]) "Debian GNU/Linux"
+      & checkInstalledCommandOutput
+        (shellRaw "cat ~/.local/mybox/ftp.debian.org--README/README")
+        "Debian GNU/Linux"

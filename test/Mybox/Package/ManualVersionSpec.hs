@@ -24,15 +24,23 @@ installLogFile :: Path Rel
 installLogFile = "dummy-package-install-log.txt"
 
 instance Package DummyPackage where
-  remoteVersion _ = drvReadFile versionFile
+  remoteVersion _ = do
+    home <- drvHome
+    drvReadFile $ home <//> versionFile
   localVersion = manualVersion
-  install = manualVersionInstall $ \_ -> drvWriteFile installLogFile ""
+  install = manualVersionInstall $ \_ -> do
+    home <- drvHome
+    drvWriteFile (home <//> installLogFile) ""
 
 setRemoteVersion :: Driver :> es => Text -> Eff es ()
-setRemoteVersion = drvWriteFile versionFile
+setRemoteVersion v = do
+  home <- drvHome
+  drvWriteFile (home <//> versionFile) v
 
 hasInstallLog :: Driver :> es => Eff es Bool
-hasInstallLog = drvIsFile installLogFile
+hasInstallLog = do
+  home <- drvHome
+  drvIsFile (home <//> installLogFile)
 
 spec :: Spec
 spec = withEff (nullTrackerSession . runInstallQueue) $ do
