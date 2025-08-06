@@ -46,26 +46,26 @@ class TestParse:
         assert value == "example"
 
     def test_url(self):
-        value = self.parse_as(URL, {"url": "https://example.com"})
+        value = self.parse_as(URL, {"$url": "https://example.com"})
 
         assert value.base == "https://example.com"
 
     def test_format(self):
-        value = self.parse_as(Format, {"base": "foo", "format": r"bar {}"})
+        value = self.parse_as(Format, {"base": "foo", "$format": r"bar {}"})
 
         assert value.format == r"bar {}"
 
     def test_jsonpath(self):
         value = self.parse_as(
             JSONPath,
-            {"base": r"{'json': true}", "jsonpath": "foo[*].bar", "include": "nice"},
+            {"base": r"{'json': true}", "$jsonpath": "foo[*].bar", "include": "nice"},
         )
 
         assert value.base == r"{'json': true}"
         assert str(value.jsonpath) == "foo.[*].bar"
 
     def test_links(self):
-        value = self.parse_as(HTMLLinks, {"links": r"<html></html>"})
+        value = self.parse_as(HTMLLinks, {"$links": r"<html></html>"})
 
         assert value.base == r"<html></html>"
 
@@ -85,7 +85,7 @@ async def test_jsonpath():
     value = parse_value(
         {
             "base": json.dumps({"foo": [{"bar": "aaaa"}, {"bar": "bbbb"}]}),
-            "jsonpath": "foo[*].bar",
+            "$jsonpath": "foo[*].bar",
             "exclude": "bbbb",
         }
     )
@@ -105,7 +105,7 @@ async def test_jsonpath_filter():
                     ]
                 }
             ),
-            "jsonpath": "$.foo[?(@.bar=='aaaa')].result",
+            "$jsonpath": "$.foo[?(@.bar=='aaaa')].result",
         }
     )
 
@@ -115,7 +115,7 @@ async def test_jsonpath_filter():
 @pytest.mark.trio
 async def test_url():
     async with http_test_server("Hello World") as url:
-        value = parse_value({"url": url})
+        value = parse_value({"$url": url})
 
         assert await compute(value) == "Hello World"
 
@@ -131,7 +131,7 @@ LINKS_HTML = """
 @pytest.mark.trio
 async def test_links():
     async with http_test_server(LINKS_HTML) as url:
-        value = parse_value({"links": url, "include": "example"})
+        value = parse_value({"$links": url, "include": "example"})
 
         assert (await compute(value)) == "https://example.com"
 
@@ -139,13 +139,13 @@ async def test_links():
 @pytest.mark.trio
 async def test_links_relative():
     async with http_test_server(LINKS_HTML) as url:
-        value = parse_value({"links": url, "include": "relative"})
+        value = parse_value({"$links": url, "include": "relative"})
 
         assert (await compute(value)) == f"{url}/relative"
 
 
 @pytest.mark.trio
 async def test_format():
-    value = parse_value({"base": "foo", "format": "bar {}"})
+    value = parse_value({"base": "foo", "$format": "bar {}"})
 
     assert (await compute(value)) == "bar foo"

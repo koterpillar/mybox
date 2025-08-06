@@ -6,7 +6,14 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from jsonpath_ng import JSONPath as JSONPathT  # type: ignore
 from jsonpath_ng.ext import parse as jsonpath_parse  # type: ignore
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    field_validator,
+)
 
 from .filters import Filters, choose
 from .utils import http_get
@@ -41,7 +48,7 @@ class Derived(ValueC, ABC):
 
 
 class URL(Derived):
-    base: "Value" = Field(..., alias="url")
+    base: "Value" = Field(..., validation_alias=AliasChoices("$url", "url"))
 
     async def derived_value(self, contents: str) -> str:
         return await http_get(contents)
@@ -51,7 +58,9 @@ class JSONPath(Derived, Filters):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     base: "Value"
-    jsonpath: JSONPathT
+    jsonpath: JSONPathT = Field(
+        ..., validation_alias=AliasChoices("$jsonpath", "jsonpath")
+    )
 
     @field_validator("jsonpath", mode="before")
     @classmethod
@@ -68,14 +77,16 @@ class JSONPath(Derived, Filters):
 
 class Format(Derived):
     base: "Value"
-    format: str  # pylint:disable=redefined-builtin
+    format: str = Field(  # pylint:disable=redefined-builtin
+        ..., validation_alias=AliasChoices("$format", "format")
+    )
 
     async def derived_value(self, contents: str) -> str:
         return self.format.format(contents)
 
 
 class HTMLLinks(Derived, Filters):
-    base: "Value" = Field(..., alias="links")
+    base: "Value" = Field(..., validation_alias=AliasChoices("$links", "links"))
 
     async def derived_value(self, contents: str) -> str:
         url = contents
