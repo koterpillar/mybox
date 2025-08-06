@@ -41,6 +41,7 @@ library
       Mybox.Package.Destination
       Mybox.Package.Effects
       Mybox.Package.Github
+      Mybox.Package.Links
       Mybox.Package.ManualVersion
       Mybox.Package.Name
       Mybox.Package.NPM
@@ -156,6 +157,7 @@ test-suite tests
       Mybox.Package.BrewRepoSpec
       Mybox.Package.CloneSpec
       Mybox.Package.GithubSpec
+      Mybox.Package.LinksSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
       Mybox.Package.PipxSpec

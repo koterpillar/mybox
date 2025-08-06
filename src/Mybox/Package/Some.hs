@@ -5,6 +5,7 @@ import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.Github
+import Mybox.Package.Links
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Shell
@@ -34,6 +35,7 @@ instance FromJSON SomePackage where
       [ mkSomePackageF (parseJSON @BrewRepo v)
       , mkSomePackageF (parseJSON @ClonePackage v)
       , mkSomePackageF (parseJSON @GithubPackage v)
+      , mkSomePackageF (parseJSON @LinksPackage v)
       , mkSomePackageF (parseJSON @NPMPackage v)
       , mkSomePackageF (parseJSON @PipxPackage v)
       , mkSomePackageF (parseJSON @ShellPackage v)
