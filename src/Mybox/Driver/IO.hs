@@ -105,7 +105,6 @@ dockerDriver baseImage act =
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage
         drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
-        -- FIXME: --volume for package root
         drvRunOutput $
           "docker"
             :| [ "run"
@@ -115,6 +114,8 @@ dockerDriver baseImage act =
                , "mybox-test-" <> containerName
                , "--env"
                , "GITHUB_TOKEN=" <> githubToken
+               , "--volume"
+               , ".:/mybox"
                , image
                , "sleep"
                , "86400000"

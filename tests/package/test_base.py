@@ -1,6 +1,6 @@
-import os
 from pathlib import Path
 
+from ..base import PACKAGE_ROOT
 from .base import DestinationPackageTestBase, PackageArgs
 
 
@@ -10,7 +10,7 @@ class PostTestBase(DestinationPackageTestBase):
 
     async def constructor_args(self) -> PackageArgs:
         return {
-            "links": f"{os.path.dirname(__file__)}/test_links_content",
+            "links": f"{PACKAGE_ROOT}/test/fixtures/links",
             "destination": await self.destination(),
             "root": self.root,
             "post": f"echo postinstall > {await self.post_file()}",

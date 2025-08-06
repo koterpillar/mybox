@@ -22,7 +22,7 @@ mkClonePackage :: Text -> Path AnyAnchor -> ClonePackage
 mkClonePackage repo destination =
   ClonePackage
     { repo
-    , destination = pWiden destination
+    , destination
     , branch = Nothing
     , post = []
     }

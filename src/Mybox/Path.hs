@@ -1,5 +1,5 @@
 module Mybox.Path (
-  Anchor,
+  Anchor (..),
   AnyAnchor (..),
   Abs,
   Rel,

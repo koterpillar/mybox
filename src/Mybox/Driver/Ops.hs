@@ -58,6 +58,10 @@ drvFindExecutable candidates = go candidates
 drvUsername :: Driver :> es => Eff es Text
 drvUsername = drvRunOutput $ "whoami" :| []
 
+-- | Get the current working directory.
+drvCurrentDir :: Driver :> es => Eff es (Path Abs)
+drvCurrentDir = mkPath <$> drvRunOutput ("pwd" :| [])
+
 -- | Get the home directory for the user.
 drvHome :: Driver :> es => Eff es (Path Abs)
 drvHome = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~"]

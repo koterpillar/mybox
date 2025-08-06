@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -6,6 +5,7 @@ import pytest
 from mybox.manager import Manager
 from mybox.package import Links
 
+from ..base import PACKAGE_ROOT
 from .base import DestinationPackageTestBase, PackageArgs, requires_driver
 from .driver import TestDriver
 
@@ -13,7 +13,7 @@ from .driver import TestDriver
 class LinksTestBase(DestinationPackageTestBase):
     async def constructor_args(self) -> PackageArgs:
         return {
-            "links": f"{os.path.dirname(__file__)}/test_links_content",
+            "links": f"{PACKAGE_ROOT}/test/fixtures/links",
             "destination": await self.destination(),
             "root": self.root,
         }
