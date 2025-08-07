@@ -91,7 +91,7 @@ archiveInstall :: (ArchivePackage p, DIST es) => p -> Eff es ()
 archiveInstall p = do
   url <- archiveUrl p
   drvTempFile $ \archiveFile -> do
-    drvRun $ "curl" :| ["-fsSL", "-o", archiveFile.text, url]
+    drvRun $ curl ["-o", archiveFile.text] url
     target <- aDirectory p
     drvMkdir target.dirname
     trkAdd p target.dirname

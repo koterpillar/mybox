@@ -175,23 +175,14 @@ drvGithubToken = drvEnv "GITHUB_TOKEN" `fromMaybeOrMM` drvRunOutput ("gh" :| ["a
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
 
+drvHttpGet :: Driver :> es => Text -> Eff es Text
+drvHttpGet url = drvRunOutput $ curl [] url
+
 drvRedirectLocation :: Driver :> es => Text -> Eff es Text
 drvRedirectLocation = drvUrlProperty "%{url_effective}"
 
 drvUrlProperty :: Driver :> es => Text -> Text -> Eff es Text
-drvUrlProperty property url = do
-  drvRunOutput $
-    "curl"
-      :| [ "--fail"
-         , "--silent"
-         , "--show-error"
-         , "--location"
-         , "--output"
-         , "/dev/null"
-         , "--write-out"
-         , property
-         , url
-         ]
+drvUrlProperty property = drvRunOutput . curl ["-o", "/dev/null", "--write-out", property]
 
 drvRepoBranchVersion ::
   Driver :> es =>
@@ -227,6 +218,9 @@ shellQuote t
 
 sudo :: Args -> Args
 sudo args = "sudo" :| toList args
+
+curl :: [Text] -> Text -> Args
+curl args url = "curl" :| ["-fsSL"] <> args <> [url]
 
 env :: [(Text, Text)] -> Args -> Args
 env vars args = "env" :| map mkVar vars ++ toList args
