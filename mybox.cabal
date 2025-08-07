@@ -17,6 +17,9 @@ library
       Mybox.Aeson
       Mybox.Compute
       Mybox.Compute.Base
+      Mybox.Compute.Format
+      Mybox.Compute.Links
+      Mybox.Compute.URL
       Mybox.Config
       Mybox.Config.IO
       Mybox.Config.Match
@@ -26,6 +29,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Driver.Pure
       Mybox.Driver.Stats
       Mybox.Extractor
       Mybox.Filters
@@ -94,9 +98,11 @@ library
     , effectful
     , extra
     , mtl
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
   default-language: GHC2021
@@ -136,9 +142,11 @@ executable mybox
     , extra
     , mtl
     , mybox
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
   default-language: GHC2021
@@ -149,6 +157,9 @@ test-suite tests
   other-modules:
       Mybox.AesonSpec
       Mybox.Compute.BaseSpec
+      Mybox.Compute.FormatSpec
+      Mybox.Compute.LinksSpec
+      Mybox.Compute.URLSpec
       Mybox.Driver.IOSpec
       Mybox.ExtractorSpec
       Mybox.FiltersSpec
@@ -212,9 +223,11 @@ test-suite tests
     , lzma
     , mtl
     , mybox
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
     , zip-archive

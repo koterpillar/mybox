@@ -6,7 +6,6 @@ module Mybox.Driver.IO (
 import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
 import Effectful.Dispatch.Dynamic
-import Effectful.Exception
 import System.Environment
 import System.Process
 import System.Random
@@ -140,10 +139,7 @@ dockerDriver baseImage act =
            ]
         <> args
 
-dockerfile ::
-  -- | base image
-  Text ->
-  Text
+dockerfile :: Text -> Text
 dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage

@@ -7,7 +7,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Prelude
 
-type Processor m = Value -> m Value
+type Processor m = Value -> Object -> m Value
 
 findSigil :: KM.KeyMap a -> Maybe (Text, a, KM.KeyMap a)
 findSigil obj =
@@ -18,13 +18,13 @@ findSigil obj =
         [] -> Nothing
         _ -> error $ "Multiple sigils found: " ++ show (map fst sigils)
 
-processSigils :: Monad m => Map Text (Value -> Processor m) -> Processor m
+processSigils :: Monad m => Map Text (Processor m) -> Value -> m Value
 processSigils sigils (Object obj) =
   case findSigil obj of
     Nothing -> Object <$> traverse (processSigils sigils) obj
     Just (sigil, value, rest) -> case Map.lookup sigil sigils of
       Nothing -> error $ "Unknown sigil: " ++ Text.unpack sigil
-      Just processor -> processSigils sigils (Object rest) >>= processor value
+      Just processor -> traverse (processSigils sigils) rest >>= processor value
 processSigils sigils (Array arr) = Array <$> traverse (processSigils sigils) arr
 processSigils _ (String s) = pure $ String s
 processSigils _ (Number n) = pure $ Number n

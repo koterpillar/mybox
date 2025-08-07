@@ -22,11 +22,10 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import GHC.Stack (HasCallStack)
 
+import Mybox.Utils (throwLeft)
+
 jsonEncode :: ToJSON a => a -> Text
 jsonEncode = Text.decodeUtf8 . LBS.toStrict . encode
-
-throwLeft :: MonadThrow m => Either String a -> m a
-throwLeft = either throwString pure
 
 jsonDecode :: (FromJSON a, HasCallStack, MonadThrow m) => String -> Text -> m a
 jsonDecode desc v = case eitherDecodeStrictText v of

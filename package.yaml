@@ -32,9 +32,11 @@ dependencies:
   - extra
   - Glob
   - mtl
+  - network-uri
   - process
   - random
   - safe-exceptions
+  - scalpel
   - text
   - yaml
 ghc-options:

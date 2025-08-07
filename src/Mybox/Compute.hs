@@ -2,13 +2,23 @@ module Mybox.Compute (
   preprocess,
 ) where
 
+import Data.Map qualified as Map
+
 import Mybox.Aeson
 import Mybox.Compute.Base
+import Mybox.Compute.Format
+import Mybox.Compute.Links
+import Mybox.Compute.URL
 import Mybox.Driver
 import Mybox.Prelude
 
-sigils :: Map Text (Value -> Processor (Eff '[Driver]))
-sigils = mempty
+sigils :: Map Text (Processor (Eff '[Driver]))
+sigils =
+  Map.fromList
+    [ ("url", urlProcessor)
+    , ("format", formatProcessor)
+    , ("links", linksProcessor)
+    ]
 
-preprocess :: forall es. (Driver :> es, IOE :> es) => Processor (Eff es)
+preprocess :: (Driver :> es, IOE :> es) => Value -> Eff es Value
 preprocess = inject . processSigils sigils

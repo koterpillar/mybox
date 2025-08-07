@@ -2,7 +2,6 @@ module Mybox.Compute.BaseSpec where
 
 import Data.Functor.Identity (Identity, runIdentity)
 import Data.Map qualified as Map
-import Effectful.Exception (evaluate)
 
 import Mybox.Aeson
 import Mybox.Compute.Base
@@ -32,7 +31,7 @@ spec = do
       evaluate (findSigil obj) `shouldThrow` anyErrorCall
 
   describe "processSigils" $ do
-    let testProcessor :: Value -> Value -> Identity Value
+    let testProcessor :: Value -> Object -> Identity Value
         testProcessor value _ =
           pure $
             String $
