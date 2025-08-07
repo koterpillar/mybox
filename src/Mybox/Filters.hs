@@ -6,11 +6,11 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Prelude
 
-choose_ :: Show a => [a -> Bool] -> [a] -> a
+choose_ :: Show a => [a -> Bool] -> [a] -> Either String a
 choose_ fs vs = case choose fs vs of
-  Left [] -> error "No candidates to choose from."
-  Left cs -> error $ "Cannot choose between: " <> show cs <> "."
-  Right v -> v
+  Left [] -> Left "No candidates to choose from."
+  Left cs -> Left $ "Cannot choose between: " <> show cs <> "."
+  Right v -> Right v
 
 choose :: Show a => [a -> Bool] -> [a] -> Either [a] a
 choose _ [] = Left []
@@ -45,6 +45,7 @@ data FilterFields = FilterFields
   , includes :: [Text]
   , excludes :: [Text]
   }
+  deriving (Eq, Ord, Show)
 
 parseFilter :: Object -> Parser FilterFields
 parseFilter o = do

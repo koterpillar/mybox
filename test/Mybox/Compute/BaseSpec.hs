@@ -11,23 +11,20 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   describe "findSigil" $ do
-    let mkObject p = case object p of
-          Object obj -> obj
-          _ -> error "Expected Object"
     it "returns Nothing for object without sigils" $ do
-      let obj = mkObject ["key" .= String "value", "other" .= Number 42]
+      let obj = mconcat ["key" .= String "value", "other" .= Number 42]
       findSigil obj `shouldBe` Nothing
 
     it "returns Just for object with one sigil" $ do
       let obj =
-            mkObject
+            mconcat
               [ "$test" .= String "sigil_value"
               , "key" .= String "normal_value"
               ]
-      findSigil obj `shouldBe` Just ("test", String "sigil_value", mkObject ["key" .= String "normal_value"])
+      findSigil obj `shouldBe` Just ("test", String "sigil_value", "key" .= String "normal_value")
 
     it "throws error for object with multiple sigils" $ do
-      let obj = mkObject ["$first" .= String "value1", "$second" .= String "value2"]
+      let obj = mconcat ["$first" .= String "value1", "$second" .= String "value2"]
       evaluate (findSigil obj) `shouldThrow` anyErrorCall
 
   describe "processSigils" $ do

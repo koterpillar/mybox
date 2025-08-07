@@ -150,7 +150,7 @@ artifact :: Driver :> es => GithubPackage -> Eff es ReleaseArtifact
 artifact p = do
   r <- release p
   fs <- ghFilters p
-  pure $ choose_ (map (. (.name)) fs) r.assets
+  throwLeft $ choose_ (map (. (.name)) fs) r.assets
 
 instance ArchivePackage GithubPackage where
   archiveUrl p = (.browser_download_url) <$> artifact p

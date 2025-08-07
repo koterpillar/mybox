@@ -11,18 +11,15 @@ module Mybox.Aeson (
   parseJSONWithContext,
 ) where
 
-import Control.Exception.Safe (MonadThrow, throwString)
 import Data.Aeson
 import Data.Aeson.Extra
 import Data.Aeson.Types
 import Data.ByteString.Lazy qualified as LBS
 import Data.String (IsString (..))
-import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
-import GHC.Stack (HasCallStack)
 
-import Mybox.Utils (throwLeft)
+import Mybox.Prelude
 
 jsonEncode :: ToJSON a => a -> Text
 jsonEncode = Text.decodeUtf8 . LBS.toStrict . encode

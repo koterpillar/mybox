@@ -24,6 +24,7 @@ default-extensions:
 dependencies:
   - aeson
   - aeson-extra
+  - aeson-jsonpath
   - base
   - base64-bytestring
   - bytestring

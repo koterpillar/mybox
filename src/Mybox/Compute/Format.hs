@@ -5,7 +5,6 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Compute.Base
 import Mybox.Prelude
-import Mybox.Utils (throwLeft)
 
 parseBase :: Object -> Parser [Text]
 parseBase o = parseCollapsedList o "base"

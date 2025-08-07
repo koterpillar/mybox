@@ -18,6 +18,7 @@ library
       Mybox.Compute
       Mybox.Compute.Base
       Mybox.Compute.Format
+      Mybox.Compute.JSONPath
       Mybox.Compute.Links
       Mybox.Compute.URL
       Mybox.Config
@@ -91,6 +92,7 @@ library
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring
@@ -134,6 +136,7 @@ executable mybox
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring
@@ -158,6 +161,7 @@ test-suite tests
       Mybox.AesonSpec
       Mybox.Compute.BaseSpec
       Mybox.Compute.FormatSpec
+      Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
       Mybox.Driver.IOSpec
@@ -212,6 +216,7 @@ test-suite tests
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring

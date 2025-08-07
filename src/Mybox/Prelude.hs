@@ -17,6 +17,7 @@ module Mybox.Prelude (
   whenM,
   ExitCode (..),
   Generic,
+  HasCallStack,
   HasField (..),
   Map,
   NonEmpty (..),
@@ -25,6 +26,7 @@ module Mybox.Prelude (
   terror,
   fromMaybeOrM,
   fromMaybeOrMM,
+  throwLeft,
 ) where
 
 import Control.Applicative ((<|>))
@@ -63,3 +65,6 @@ fromMaybeOrMM :: Monad m => m (Maybe a) -> m a -> m a
 fromMaybeOrMM action nothingAction = action >>= flip fromMaybeOrM nothingAction
 
 infixr 9 `fromMaybeOrMM`
+
+throwLeft :: MonadThrow m => Either String a -> m a
+throwLeft = either throwString pure
