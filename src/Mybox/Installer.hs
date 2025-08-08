@@ -1,4 +1,10 @@
-module Mybox.Installer (mkInstaller, iLatestVersion, iInstalledVersion, iInstall, iUpgrade) where
+module Mybox.Installer (
+  mkInstaller,
+  iLatestVersion,
+  iInstalledVersion,
+  iInstall,
+  iUpgrade,
+) where
 
 import Mybox.Driver
 import Mybox.Installer.Apt
