@@ -45,6 +45,7 @@ library
       Mybox.Package.Clone
       Mybox.Package.Destination
       Mybox.Package.Effects
+      Mybox.Package.Flatpak
       Mybox.Package.Github
       Mybox.Package.Links
       Mybox.Package.ManualVersion
@@ -172,6 +173,7 @@ test-suite tests
       Mybox.Installer.SpecBase
       Mybox.Package.BrewRepoSpec
       Mybox.Package.CloneSpec
+      Mybox.Package.FlatpakSpec
       Mybox.Package.GithubSpec
       Mybox.Package.LinksSpec
       Mybox.Package.ManualVersionSpec

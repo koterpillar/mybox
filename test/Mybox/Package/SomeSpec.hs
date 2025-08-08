@@ -4,6 +4,7 @@ import Mybox.Aeson
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
+import Mybox.Package.Flatpak
 import Mybox.Package.Github
 import Mybox.Package.Links
 import Mybox.Package.NPM
@@ -30,6 +31,7 @@ spec =
     roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkGithubPackage "test/repo"
+    roundtrip $ mkFlatpakPackage "com.example.Test"
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
