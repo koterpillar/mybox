@@ -1,18 +1,23 @@
 module Mybox.Prelude (
+  module Control.Exception.Safe,
   module Control.Monad,
   module Data.Either,
   module Data.Foldable,
   module Data.Maybe,
   module Effectful,
+  module Effectful.Exception,
   module Mybox.Path,
   (<|>),
   (&),
   for,
   on,
+  uncons,
   unlessM,
+  unsnoc,
   whenM,
   ExitCode (..),
   Generic,
+  HasCallStack,
   HasField (..),
   Map,
   NonEmpty (..),
@@ -21,14 +26,17 @@ module Mybox.Prelude (
   terror,
   fromMaybeOrM,
   fromMaybeOrMM,
+  throwLeft,
 ) where
 
 import Control.Applicative ((<|>))
+import Control.Exception.Safe (MonadThrow, throwString)
 import Control.Monad
 import Control.Monad.Extra (unlessM, whenM)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
+import Data.List (uncons, unsnoc)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Maybe
@@ -37,6 +45,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
+import Effectful.Exception (Exception, bracket, bracket_)
 import GHC.Generics (Generic)
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
@@ -56,3 +65,6 @@ fromMaybeOrMM :: Monad m => m (Maybe a) -> m a -> m a
 fromMaybeOrMM action nothingAction = action >>= flip fromMaybeOrM nothingAction
 
 infixr 9 `fromMaybeOrMM`
+
+throwLeft :: MonadThrow m => Either String a -> m a
+throwLeft = either throwString pure

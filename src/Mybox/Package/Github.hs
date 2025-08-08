@@ -72,14 +72,7 @@ instance ToJSON GithubPackage where
 api :: Driver :> es => Text -> Eff es (Either Text Text)
 api url = do
   token <- drvGithubToken
-  result <-
-    drvRunOutputExit $
-      "curl"
-        :| [ "-H"
-           , "Authorization: token " <> token
-           , "-fsSL"
-           , "https://api.github.com/" <> url
-           ]
+  result <- drvRunOutputExit $ curl ["-H", "Authorization: token " <> token] ("https://api.github.com/" <> url)
   pure $
     if result.exit == ExitSuccess
       then Right result.output
@@ -157,7 +150,7 @@ artifact :: Driver :> es => GithubPackage -> Eff es ReleaseArtifact
 artifact p = do
   r <- release p
   fs <- ghFilters p
-  pure $ choose_ (map (. (.name)) fs) r.assets
+  throwLeft $ choose_ (map (. (.name)) fs) r.assets
 
 instance ArchivePackage GithubPackage where
   archiveUrl p = (.browser_download_url) <$> artifact p

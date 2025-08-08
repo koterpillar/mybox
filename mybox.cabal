@@ -15,15 +15,20 @@ build-type:     Simple
 library
   exposed-modules:
       Mybox.Aeson
+      Mybox.Compute
+      Mybox.Compute.Base
+      Mybox.Compute.Format
+      Mybox.Compute.JSONPath
+      Mybox.Compute.Links
+      Mybox.Compute.URL
       Mybox.Config
-      Mybox.Config.IO
       Mybox.Config.Match
-      Mybox.Config.Reader
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Platform
+      Mybox.Driver.Pure
       Mybox.Driver.Stats
       Mybox.Extractor
       Mybox.Filters
@@ -85,6 +90,7 @@ library
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring
@@ -92,9 +98,11 @@ library
     , effectful
     , extra
     , mtl
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
   default-language: GHC2021
@@ -126,6 +134,7 @@ executable mybox
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring
@@ -134,9 +143,11 @@ executable mybox
     , extra
     , mtl
     , mybox
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
   default-language: GHC2021
@@ -146,6 +157,11 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Mybox.AesonSpec
+      Mybox.Compute.BaseSpec
+      Mybox.Compute.FormatSpec
+      Mybox.Compute.JSONPathSpec
+      Mybox.Compute.LinksSpec
+      Mybox.Compute.URLSpec
       Mybox.Driver.IOSpec
       Mybox.ExtractorSpec
       Mybox.FiltersSpec
@@ -198,6 +214,7 @@ test-suite tests
       Glob
     , aeson
     , aeson-extra
+    , aeson-jsonpath
     , base
     , base64-bytestring
     , bytestring
@@ -209,9 +226,11 @@ test-suite tests
     , lzma
     , mtl
     , mybox
+    , network-uri
     , process
     , random
     , safe-exceptions
+    , scalpel
     , text
     , yaml
     , zip-archive

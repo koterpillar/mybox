@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/topics/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: aeson-jsonpath-0.3.0.2@sha256:765111f324a33a61ae95d0fd91ae7f6bbf01893d1717781e160ec87986f438a3,4203
+    pantry-tree:
+      sha256: 5160a186418fc364273398aa43dfbf37d76c40f933e4041446d17360aa3ef2d9
+      size: 2009
+  original:
+    hackage: aeson-jsonpath-0.3.0.2
 snapshots:
 - completed:
     sha256: 069c8189232279d04bd107557d3a62132c04ae5ce3c710649e6b40f67f10b9d5

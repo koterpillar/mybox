@@ -1,33 +1,40 @@
 module Mybox.Config (
-  module Mybox.Config.Reader,
   Config (..),
   readConfig,
-  runReaderIO,
 ) where
 
-import Mybox.Config.IO (runReaderIO)
+import Mybox.Aeson
+import Mybox.Compute
 import Mybox.Config.Match
-import Mybox.Config.Reader
+import Mybox.Driver
 import Mybox.Package.Some
 import Mybox.Prelude
 import Mybox.Utils
 
 newtype Config = Config {packages :: [SomePackage]}
 
-componentMatches :: Reader :> es => Match -> Eff es Bool
+componentMatches :: Driver :> es => Match -> Eff es Bool
 componentMatches m = do
   case m.host of
     Nothing -> pure True
     Just hosts -> do
-      host <- readHost
+      host <- drvHostname
       pure $ any (`glob` host) hosts
 
-readConfig :: Reader :> es => Eff es Config
+readYAML :: (Anchor a, Driver :> es, FromJSON r) => Path a -> Eff es r
+readYAML p =
+  drvReadFile p
+    >>= yamlDecode
+    >>= parseThrow (parseJSONWithContext p.text)
+
+readConfig :: Driver :> es => Eff es Config
 readConfig = do
-  rootConfig <- readConfigYAML $ pSegment "mybox.yaml"
+  rootConfig <- readYAML $ pSegment "mybox.yaml"
   matches <- filterM componentMatches rootConfig
   packages <- fmap (join . join) $
     for matches $ \match ->
-      for match.component $ \component ->
-        readConfigYAML (pSegment "packages" </> (component <> ".yaml"))
+      for match.component $ \component -> do
+        raw <- readYAML (pSegment "packages" </> (component <> ".yaml"))
+        componentPackages <- preprocess raw
+        parseThrow parseJSON componentPackages
   pure $ Config{..}

@@ -1,7 +1,6 @@
 module Mybox.PathSpec where
 
 import Data.Foldable (for_)
-import Effectful.Exception (evaluate)
 
 import Mybox.Path
 import Mybox.SpecBase

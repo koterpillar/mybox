@@ -24,6 +24,7 @@ default-extensions:
 dependencies:
   - aeson
   - aeson-extra
+  - aeson-jsonpath
   - base
   - base64-bytestring
   - bytestring
@@ -32,9 +33,11 @@ dependencies:
   - extra
   - Glob
   - mtl
+  - network-uri
   - process
   - random
   - safe-exceptions
+  - scalpel
   - text
   - yaml
 ghc-options:
