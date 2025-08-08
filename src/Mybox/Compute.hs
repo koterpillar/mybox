@@ -22,5 +22,5 @@ sigils =
     , ("url", urlProcessor)
     ]
 
-preprocess :: (Driver :> es, IOE :> es) => Value -> Eff es Value
+preprocess :: Driver :> es => Value -> Eff es Value
 preprocess = inject . processSigils sigils
