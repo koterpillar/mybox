@@ -4,6 +4,7 @@ module Mybox.Config (
 ) where
 
 import Mybox.Aeson
+import Mybox.Compute
 import Mybox.Config.Match
 import Mybox.Driver
 import Mybox.Package.Some
@@ -32,6 +33,8 @@ readConfig = do
   matches <- filterM componentMatches rootConfig
   packages <- fmap (join . join) $
     for matches $ \match ->
-      for match.component $ \component ->
-        readYAML (pSegment "packages" </> (component <> ".yaml"))
+      for match.component $ \component -> do
+        raw <- readYAML (pSegment "packages" </> (component <> ".yaml"))
+        componentPackages <- preprocess raw
+        parseThrow parseJSON componentPackages
   pure $ Config{..}
