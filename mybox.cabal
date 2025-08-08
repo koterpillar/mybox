@@ -22,9 +22,7 @@ library
       Mybox.Compute.Links
       Mybox.Compute.URL
       Mybox.Config
-      Mybox.Config.IO
       Mybox.Config.Match
-      Mybox.Config.Reader
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO

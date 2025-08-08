@@ -5,6 +5,7 @@ module Mybox.Aeson (
   parseCollapsedList,
   jsonEncode,
   jsonDecode,
+  yamlDecode,
   jsonAlternative,
   parseThrow,
   parseWithContext,
@@ -14,10 +15,12 @@ module Mybox.Aeson (
 import Data.Aeson
 import Data.Aeson.Extra
 import Data.Aeson.Types
+import Data.Bifunctor (first)
 import Data.ByteString.Lazy qualified as LBS
 import Data.String (IsString (..))
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Data.Yaml qualified as Yaml
 
 import Mybox.Prelude
 
@@ -25,9 +28,12 @@ jsonEncode :: ToJSON a => a -> Text
 jsonEncode = Text.decodeUtf8 . LBS.toStrict . encode
 
 jsonDecode :: (FromJSON a, HasCallStack, MonadThrow m) => String -> Text -> m a
-jsonDecode desc v = case eitherDecodeStrictText v of
-  Left err -> throwString $ "Failed to decode " <> desc <> ": " <> err
-  Right a -> pure a
+jsonDecode desc = throwLeft . first augmentError . eitherDecodeStrictText
+ where
+  augmentError err = "Failed to decode " <> desc <> ": " <> err
+
+yamlDecode :: (FromJSON a, HasCallStack, MonadThrow m) => Text -> m a
+yamlDecode = Yaml.decodeThrow . Text.encodeUtf8
 
 jsonAlternative :: Parser a -> Parser a -> Parser a
 jsonAlternative p1 p2 = parserCatchError p1 $ \_ err ->

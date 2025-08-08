@@ -14,7 +14,7 @@ main =
   runEff $ do
     runStores $
       localDriver $ do
-        config <- runReaderIO readConfig
+        config <- readConfig
         drvTracker (pMyboxState </> "files.json") $
           trkSession $
             runInstallQueue $

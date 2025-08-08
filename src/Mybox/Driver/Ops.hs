@@ -198,6 +198,9 @@ drvRepoBranchVersion repo_ branch_ = do
     [ref, _] -> pure ref
     _ -> terror $ "Failed to parse git ls-remote output: " <> output
 
+drvHostname :: Driver :> es => Eff es Text
+drvHostname = drvRunOutput $ "hostname" :| []
+
 shellRaw :: Text -> Args
 shellRaw args = "sh" :| ["-c", args]
 
