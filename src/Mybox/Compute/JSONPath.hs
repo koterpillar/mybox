@@ -9,10 +9,15 @@ import Mybox.Compute.Base
 import Mybox.Filters
 import Mybox.Prelude
 
+fixJSONPath :: Text -> Text
+fixJSONPath p
+  | Text.isPrefixOf "$" p = p
+  | Text.isPrefixOf "[" p = "$" <> p
+  | otherwise = "$." <> p
+
 jsonpathProcessor :: Processor (Eff es)
 jsonpathProcessor pathValue rest = do
-  jsonpath_ <- parseThrow parseJSON pathValue
-  let jsonpath = if Text.isPrefixOf "$" jsonpath_ then jsonpath_ else "$." <> jsonpath_
+  jsonpath <- fixJSONPath <$> parseThrow parseJSON pathValue
   baseString <- parseThrow (.: "base") rest
   base <- jsonDecode "base" baseString
   args <- parseThrow parseFilter rest
