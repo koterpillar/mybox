@@ -202,7 +202,7 @@ drvHostname :: Driver :> es => Eff es Text
 drvHostname = drvRunOutput $ "hostname" :| []
 
 shellRaw :: Text -> Args
-shellRaw args = "sh" :| ["-c", args]
+shellRaw args = "/bin/sh" :| ["-c", args]
 
 shell :: Args -> Args
 shell = shellRaw . shellJoin
@@ -216,7 +216,7 @@ shellQuote t
   | otherwise = q <> Text.intercalate "'\"'\"'" (Text.splitOn q t) <> q
  where
   q = "'"
-  safe c = isAlphaNum c || c == '_'
+  safe c = isAlphaNum c || c == '_' || c == '/'
 
 sudo :: Args -> Args
 sudo args = "sudo" :| toList args
