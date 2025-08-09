@@ -12,7 +12,7 @@ import System.Random
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
-import Mybox.Driver.Platform
+import Mybox.Platform
 import Mybox.Prelude
 
 newtype IODriver = IODriver

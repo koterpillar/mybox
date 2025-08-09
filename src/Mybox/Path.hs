@@ -15,6 +15,7 @@ module Mybox.Path (
   pRelativeTo_,
   pUnder,
   pRoot,
+  pLocal,
   pMyboxState,
 ) where
 
@@ -162,5 +163,8 @@ pRelativeTo_ a b =
 pUnder :: Path Abs -> Path Abs -> Bool
 pUnder a b = isJust $ pRelativeTo a b
 
+pLocal :: Path Rel
+pLocal = pSegment ".local"
+
 pMyboxState :: Path Rel
-pMyboxState = pSegment ".local" </> "share" </> "mybox"
+pMyboxState = pLocal </> "share" </> "mybox"
