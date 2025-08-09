@@ -7,6 +7,7 @@ module Mybox.Package.SpecBase (
   checkInstalledCommandOutput,
   commandHasOutput,
   preinstall,
+  cleanup,
   preinstallPackage,
   ignorePath,
   packageSpec,
@@ -53,6 +54,7 @@ data PackageSpec a = PackageSpec
   , name_ :: Maybe Text
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
   , preinstall_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
+  , cleanup_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
   , ignoredPaths_ :: Set (Path Rel)
   }
 
@@ -63,6 +65,7 @@ ps p =
     , name_ = Nothing
     , checkInstalled_ = expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
+    , cleanup_ = pure ()
     , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache", mkPath "Library/Caches"]
     }
 
@@ -89,6 +92,9 @@ ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 preinstall :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
+cleanup :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
+cleanup f s = s{cleanup_ = cleanup_ s >> f}
+
 preinstallPackage :: Package b => b -> MPS a
 preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
 
@@ -100,13 +106,14 @@ packageSpec makePS =
       let p = s.package
       describe (Text.unpack $ fromMaybe p.name s.name_) $ do
         it "has a name" $ p.name `shouldSatisfy` (not . Text.null)
-        it "installs" $ do
-          preinstall_ s
-          preexistingFiles <- trackableFiles s
-          ((), ts) <-
-            stateTracker mempty $ trkSession $ runInstallQueue $ install p
-          checkAllTracked s preexistingFiles ts
-          checkInstalled_ s
+        it "installs" $
+          finally (cleanup_ s) $ do
+            preinstall_ s
+            preexistingFiles <- trackableFiles s
+            ((), ts) <-
+              stateTracker mempty $ trkSession $ runInstallQueue $ install p
+            checkAllTracked s preexistingFiles ts
+            checkInstalled_ s
 
 trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set (Path Abs))
 trackableFiles s = do

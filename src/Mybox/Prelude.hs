@@ -45,7 +45,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
-import Effectful.Exception (Exception, bracket, bracket_)
+import Effectful.Exception (Exception, bracket, bracket_, finally)
 import GHC.Generics (Generic)
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
