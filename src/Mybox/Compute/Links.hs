@@ -34,6 +34,6 @@ linksProcessor value rest = do
     maybe (throwString "Cannot find links") pure $
       scrapeStringLike contents $
         attrs "href" "a"
-  link <- throwLeft $ choose_ (filters args) links
+  link <- throwLeft $ choose_ (toFilters args) links
   linkAbsolute <- uriRelativeTo link url
   pure $ String linkAbsolute

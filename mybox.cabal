@@ -73,6 +73,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      DerivingVia
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards
@@ -117,6 +118,7 @@ executable mybox
   hs-source-dirs:
       app
   default-extensions:
+      DerivingVia
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards
@@ -197,6 +199,7 @@ test-suite tests
   hs-source-dirs:
       test
   default-extensions:
+      DerivingVia
       FunctionalDependencies
       OverloadedStrings
       RecordWildCards

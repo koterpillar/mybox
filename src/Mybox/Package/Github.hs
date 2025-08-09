@@ -21,10 +21,7 @@ data GithubPackage = GithubPackage
   , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
-  , prefixes :: [Text]
-  , suffixes :: [Text]
-  , includes :: [Text]
-  , excludes :: [Text]
+  , filters :: FilterFields
   , post :: [Text]
   }
   deriving (Eq, Show)
@@ -40,10 +37,7 @@ mkGithubPackage repo =
     , binaryPaths = []
     , apps = []
     , fonts = []
-    , prefixes = []
-    , suffixes = []
-    , includes = []
-    , excludes = []
+    , filters = mempty
     , post = []
     }
 
@@ -55,7 +49,7 @@ instance FromJSON GithubPackage where
     repo <- o .: "repo"
     skipReleases <- parseCollapsedList o "skip_release"
     ArchiveFields{..} <- parseArchive o
-    FilterFields{..} <- parseFilter o
+    filters <- parseFilter o
     post <- parsePost o
     pure GithubPackage{..}
 
@@ -66,7 +60,7 @@ instance ToJSON GithubPackage where
       , "skip_release" .= p.skipReleases
       ]
         <> archiveToJSON p
-        <> filterToJSON p
+        <> filterToJSON p.filters
         <> postToJSON p
 
 api :: Driver :> es => Text -> Eff es (Either Text Text)
@@ -144,7 +138,7 @@ ghFilters :: Driver :> es => GithubPackage -> Eff es [Text -> Bool]
 ghFilters p = do
   arch <- drvArchitecture
   os <- drvOS
-  pure $ filters p <> environmentFilters arch os
+  pure $ toFilters p.filters <> environmentFilters arch os
 
 artifact :: Driver :> es => GithubPackage -> Eff es ReleaseArtifact
 artifact p = do

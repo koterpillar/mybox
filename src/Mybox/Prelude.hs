@@ -6,6 +6,7 @@ module Mybox.Prelude (
   module Data.Maybe,
   module Effectful,
   module Effectful.Exception,
+  module GHC.Generics,
   module Mybox.Path,
   (<|>),
   (&),
@@ -16,7 +17,6 @@ module Mybox.Prelude (
   unsnoc,
   whenM,
   ExitCode (..),
-  Generic,
   HasCallStack,
   HasField (..),
   Map,
@@ -46,7 +46,7 @@ import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
 import Effectful.Exception (Exception, bracket, bracket_, finally)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generically (..))
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
 import System.Exit (ExitCode (..))

@@ -6,6 +6,7 @@ maintainer: Alexey Kotlyarov <a@koterpillar.com>
 license: GPL-3.0-or-later
 language: GHC2021
 default-extensions:
+  - DerivingVia
   - FunctionalDependencies
   - OverloadedStrings
   - RecordWildCards
