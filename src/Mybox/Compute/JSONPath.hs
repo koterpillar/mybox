@@ -23,5 +23,5 @@ jsonpathProcessor pathValue rest = do
   args <- parseThrow parseFilter rest
   resultValues <- throwLeft $ first show $ query (Text.unpack jsonpath) base
   results <- traverse (parseThrow parseJSON) $ toList resultValues
-  result <- throwLeft $ choose_ (filters args) results
+  result <- throwLeft $ choose_ (toFilters args) results
   pure $ String result

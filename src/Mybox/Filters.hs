@@ -32,20 +32,14 @@ fromSynonyms synonyms key = do
   let predicate = if key == key' then includes_ else excludes_
   predicate <$> variants
 
-type FilterReqs a =
-  ( HasField "prefixes" a [Text]
-  , HasField "suffixes" a [Text]
-  , HasField "includes" a [Text]
-  , HasField "excludes" a [Text]
-  )
-
 data FilterFields = FilterFields
   { prefixes :: [Text]
   , suffixes :: [Text]
   , includes :: [Text]
   , excludes :: [Text]
   }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
+  deriving (Monoid, Semigroup) via Generically FilterFields
 
 parseFilter :: Object -> Parser FilterFields
 parseFilter o = do
@@ -55,7 +49,7 @@ parseFilter o = do
   excludes <- parseCollapsedList o "exclude"
   pure FilterFields{..}
 
-filterToJSON :: FilterReqs a => a -> [Pair]
+filterToJSON :: FilterFields -> [Pair]
 filterToJSON a =
   [ "prefix" .= a.prefixes
   , "suffix" .= a.suffixes
@@ -63,8 +57,8 @@ filterToJSON a =
   , "exclude" .= a.excludes
   ]
 
-filters :: FilterReqs a => a -> [Text -> Bool]
-filters a =
+toFilters :: FilterFields -> [Text -> Bool]
+toFilters a =
   join
     [ Text.isPrefixOf <$> a.prefixes
     , Text.isSuffixOf <$> a.suffixes

@@ -5,6 +5,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Filters
 import Mybox.Package.Archive
 import Mybox.Package.Github
 import Mybox.Package.SpecBase
@@ -105,8 +106,11 @@ spec = do
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "eza-community/eza")
-            { Mybox.Package.Github.binaries = ["eza"]
-            , Mybox.Package.Github.excludes = [".zip", "no_libgit"]
+            { binaries = ["eza"]
+            , filters =
+                mempty
+                  { excludes = [".zip", "no_libgit"]
+                  }
             }
         )
         & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
@@ -114,10 +118,13 @@ spec = do
   packageSpec $ \psa ->
     ps
       ( (mkGithubPackage "com-lihaoyi/Ammonite")
-          { Mybox.Package.Github.binaries = ["amm"]
-          , Mybox.Package.Github.prefixes = ["3.6-"]
-          , Mybox.Package.Github.suffixes = ["-bootstrap"]
-          , Mybox.Package.Github.raw = Left "amm"
+          { binaries = ["amm"]
+          , raw = Left "amm"
+          , filters =
+              mempty
+                { prefixes = ["3.6-"]
+                , suffixes = ["-bootstrap"]
+                }
           }
       )
       & ( case psa.os of
