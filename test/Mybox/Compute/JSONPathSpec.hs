@@ -22,4 +22,4 @@ spec = do
               [ "base" .= jsonEncode jsonData
               , "exclude" .= ("bbbb" :: Text)
               ]
-      runPureEff (jsonpathProcessor jsonpath rest) `shouldBe` "aaaa"
+      runPureEff (jsonpathProcessor jsonpath rest) `shouldBe` Just "aaaa"

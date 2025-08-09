@@ -23,4 +23,4 @@ formatProcessor formatValue baseValue = do
   format <- parseThrow parseJSON formatValue
   bases <- parseThrow parseBase baseValue
   result <- throwLeft $ doFormat format bases
-  pure $ String result
+  pure $ Just $ String result

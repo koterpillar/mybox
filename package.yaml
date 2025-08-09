@@ -40,6 +40,8 @@ dependencies:
   - safe-exceptions
   - scalpel
   - text
+  - vector
+  - witherable
   - yaml
 ghc-options:
   - -Wall

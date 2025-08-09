@@ -10,4 +10,4 @@ import Mybox.Prelude
 urlProcessor :: Driver :> es => Processor (Eff es)
 urlProcessor value _ = do
   url <- parseThrow parseJSON value
-  String <$> drvHttpGet url
+  Just . String <$> drvHttpGet url

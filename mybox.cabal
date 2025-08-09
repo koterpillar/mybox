@@ -106,6 +106,8 @@ library
     , safe-exceptions
     , scalpel
     , text
+    , vector
+    , witherable
     , yaml
   default-language: GHC2021
 
@@ -152,6 +154,8 @@ executable mybox
     , safe-exceptions
     , scalpel
     , text
+    , vector
+    , witherable
     , yaml
   default-language: GHC2021
 
@@ -238,6 +242,8 @@ test-suite tests
     , safe-exceptions
     , scalpel
     , text
+    , vector
+    , witherable
     , yaml
     , zip-archive
     , zlib

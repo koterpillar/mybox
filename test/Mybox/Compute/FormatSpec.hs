@@ -32,8 +32,8 @@ spec = do
     it "formats values from JSON" $ do
       let format = String "Hello {} {}"
       let base = "base" .= ["Nice" :: Text, "World"]
-      runPureEff (formatProcessor format base) `shouldBe` "Hello Nice World"
+      runPureEff (formatProcessor format base) `shouldBe` Just "Hello Nice World"
     it "formats a single value from JSON" $ do
       let format = String "Hello {}"
       let base = "base" .= ("World" :: Text)
-      runPureEff (formatProcessor format base) `shouldBe` "Hello World"
+      runPureEff (formatProcessor format base) `shouldBe` Just "Hello World"
