@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OPT_TARGET=""
+OPT_IMAGE="debian"
+OPT_USER="regular_user"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --target)
+      OPT_TARGET="$2"
+      shift 2
+      ;;
+    --image)
+      OPT_IMAGE="$2"
+      shift 2
+      ;;
+    --user)
+      OPT_USER="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "$OPT_TARGET" ]
+then
+  echo "No target specified." >&2
+  exit 2
+fi
+
+CONTAINER=$(docker run \
+  --rm \
+  -d \
+  -e GITHUB_TOKEN="$(gh auth token)" \
+  -v "$(stack path --local-install-root)"/bin:/opt/bin \
+  -v "$OPT_TARGET":/opt/target \
+  "$OPT_IMAGE" \
+  /bin/sh -c 'until [ -f /stop ]; do sleep 1; done'
+)
+trap 'docker rm -f "$CONTAINER"' EXIT
+
+docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y sudo'
+docker exec "$CONTAINER" useradd "$OPT_USER"
+docker exec "$CONTAINER" sh -c 'echo "'"$OPT_USER"' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'
+
+docker exec -it -u "$OPT_USER" --workdir /opt/target "$CONTAINER" /bin/bash

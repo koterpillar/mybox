@@ -9,6 +9,7 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 
 import Mybox.Driver.Class
+import Mybox.Platform
 import Mybox.Prelude
 
 data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
@@ -67,9 +68,10 @@ drvHome = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~"]
 
 -- | Get the local directory for the user.
 drvLocal :: Driver :> es => Eff es (Path Abs)
-drvLocal = do
-  home <- drvHome
-  pure (home </> ".local")
+drvLocal = fmap (<//> pLocal) drvHome
+
+drvMyboxState :: Driver :> es => Eff es (Path Abs)
+drvMyboxState = fmap (<//> pMyboxState) drvHome
 
 -- | Remove a file or directory.
 drvRm :: (Anchor a, Driver :> es) => Path a -> Eff es ()
@@ -198,8 +200,43 @@ drvRepoBranchVersion repo_ branch_ = do
     [ref, _] -> pure ref
     _ -> terror $ "Failed to parse git ls-remote output: " <> output
 
+drvArchitecture :: Driver :> es => Eff es Architecture
+drvArchitecture =
+  drvRunOutput ("uname" :| ["-m"]) >>= \case
+    "x86_64" -> pure X86_64
+    "aarch64" -> pure Aarch64
+    "arm64" -> pure Aarch64
+    arch -> terror $ "Unsupported architecture: " <> arch
+
+pOSRelease :: Path Abs
+pOSRelease = pRoot </> "etc" </> "os-release"
+
+drvOS :: Driver :> es => Eff es OS
+drvOS = do
+  osStr <- drvRunOutput ("uname" :| [])
+  case osStr of
+    "Linux" -> do
+      distributionStr <- parseOsRelease <$> drvReadFile pOSRelease
+      distribution <- case distributionStr of
+        "debian" -> pure $ Debian "debian"
+        "ubuntu" -> pure $ Debian "ubuntu"
+        "fedora" -> pure Fedora
+        _ -> terror $ "Unsupported Linux distribution: " <> distributionStr
+      pure $ Linux distribution
+     where
+      parseOsRelease :: Text -> Text
+      parseOsRelease contents = fromMaybe (terror "Failed to parse /etc/os-release") $ listToMaybe $ do
+        line <- Text.lines contents
+        [k, v] <- pure $ Text.splitOn "=" line
+        guard (k == "ID")
+        if Text.isPrefixOf "\"" v && Text.isSuffixOf "\"" v
+          then pure $ Text.drop 1 $ Text.dropEnd 1 v
+          else pure v
+    "Darwin" -> pure MacOS
+    _ -> terror $ "Unsupported OS: " <> osStr
+
 drvHostname :: Driver :> es => Eff es Text
-drvHostname = drvRunOutput $ "hostname" :| []
+drvHostname = drvRunOutput $ "uname" :| ["-n"]
 
 shellRaw :: Text -> Args
 shellRaw args = "/bin/sh" :| ["-c", args]

@@ -66,7 +66,12 @@ ps p =
     , checkInstalled_ = expectationFailure "checkInstalled not set"
     , preinstall_ = pure ()
     , cleanup_ = pure ()
-    , ignoredPaths_ = Set.fromList [pMyboxState </> "versions", ".cache", mkPath "Library/Caches"]
+    , ignoredPaths_ =
+        Set.fromList
+          [ pMyboxState </> "versions"
+          , ".cache"
+          , mkPath "Library/Caches"
+          ]
     }
 
 type MPS a = PackageSpec a -> PackageSpec a

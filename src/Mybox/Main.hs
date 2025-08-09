@@ -15,7 +15,8 @@ main =
     runStores $
       localDriver $ do
         config <- readConfig
-        drvTracker (pMyboxState </> "files.json") $
+        state <- drvMyboxState
+        drvTracker (state </> "files.json") $
           trkSession $
             runInstallQueue $
               for_ config.packages queueInstall
