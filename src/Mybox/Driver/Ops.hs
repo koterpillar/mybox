@@ -181,7 +181,7 @@ drvRedirectLocation :: Driver :> es => Text -> Eff es Text
 drvRedirectLocation = drvUrlProperty "%{url_effective}"
 
 drvUrlProperty :: Driver :> es => Text -> Text -> Eff es Text
-drvUrlProperty property = drvRunOutput . curl ["-o", "/dev/null", "--write-out", property]
+drvUrlProperty property = drvRunOutput . curl ["--head", "-o", "/dev/null", "--write-out", property]
 
 drvRepoBranchVersion ::
   Driver :> es =>
