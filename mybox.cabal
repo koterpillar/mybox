@@ -43,6 +43,7 @@ library
       Mybox.Package.BrewRepo
       Mybox.Package.Class
       Mybox.Package.Clone
+      Mybox.Package.Daemon
       Mybox.Package.Destination
       Mybox.Package.Effects
       Mybox.Package.Flatpak
@@ -173,6 +174,7 @@ test-suite tests
       Mybox.Installer.SpecBase
       Mybox.Package.BrewRepoSpec
       Mybox.Package.CloneSpec
+      Mybox.Package.DaemonSpec
       Mybox.Package.FlatpakSpec
       Mybox.Package.GithubSpec
       Mybox.Package.LinksSpec
