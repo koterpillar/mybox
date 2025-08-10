@@ -3,6 +3,7 @@ module Mybox.Aeson (
   Parser,
   Pair,
   parseCollapsedList,
+  parseCollapsedListMaybe,
   jsonEncode,
   jsonDecode,
   yamlDecode,
@@ -47,3 +48,9 @@ parseWithContext c p v = p v <?> Key (fromString $ Text.unpack c)
 
 parseJSONWithContext :: FromJSON b => Text -> Value -> Parser b
 parseJSONWithContext c = parseWithContext c parseJSON
+
+parseCollapsedListMaybe :: FromJSON a => Object -> String -> Parser (Maybe [a])
+parseCollapsedListMaybe obj key =
+  obj .:? fromString key >>= \case
+    Nothing -> pure Nothing
+    Just (_ :: Value) -> Just <$> parseCollapsedList obj (fromString key)
