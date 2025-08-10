@@ -201,12 +201,7 @@ drvRepoBranchVersion repo_ branch_ = do
     _ -> terror $ "Failed to parse git ls-remote output: " <> output
 
 drvArchitecture :: Driver :> es => Eff es Architecture
-drvArchitecture =
-  drvRunOutput ("uname" :| ["-m"]) >>= \case
-    "x86_64" -> pure X86_64
-    "aarch64" -> pure Aarch64
-    "arm64" -> pure Aarch64
-    arch -> terror $ "Unsupported architecture: " <> arch
+drvArchitecture = drvRunOutput ("uname" :| ["-m"]) >>= either throwString pure . parseArchitecture
 
 pOSRelease :: Path Abs
 pOSRelease = pRoot </> "etc" </> "os-release"

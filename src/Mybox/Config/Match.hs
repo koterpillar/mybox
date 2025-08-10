@@ -13,9 +13,6 @@ data Match = Match
 
 instance FromJSON Match where
   parseJSON = withObject "Match" $ \obj -> do
-    host <-
-      obj .:? "host" >>= \case
-        Nothing -> pure Nothing
-        Just (_ :: Value) -> Just <$> parseCollapsedList obj "host"
+    host <- parseCollapsedListMaybe obj "host"
     component <- parseCollapsedList obj "component"
     pure $ Match{..}

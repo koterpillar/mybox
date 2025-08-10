@@ -4,7 +4,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
 from ..driver import Driver
 from ..parallel import gather_
@@ -17,7 +17,9 @@ from ..utils import (
     matches_if_specified,
 )
 
-PackageArgs = dict[str, str | bool | int | Path | list[str]]
+PackageArgs = dict[
+    str, str | bool | int | Path | list[str] | dict[str, str | list[str]]
+]
 
 
 class Package(BaseModel, ABC):
@@ -34,7 +36,9 @@ class Package(BaseModel, ABC):
 
     name_: Optional[str] = Field(default=None, alias="name")
 
-    os: Optional[list[str]] = None
+    os: Optional[list[str]] = Field(
+        default=None, validation_alias=AliasChoices(AliasPath("$if", "os"), "os")
+    )
     os_val = allow_singular("os")
 
     distribution: Optional[list[str]] = None
@@ -83,7 +87,10 @@ class Package(BaseModel, ABC):
     async def applicable(self) -> bool:
         os = await self.driver.os()
         return os.switch_(
-            linux=lambda linux: matches_if_specified(self.os, "linux")
+            linux=lambda linux: (
+                matches_if_specified(self.os, "linux")
+                or matches_if_specified(self.os, linux.distribution)
+            )
             and matches_if_specified(self.distribution, linux.distribution),
             macos=lambda: matches_if_specified(self.os, "darwin"),
         )

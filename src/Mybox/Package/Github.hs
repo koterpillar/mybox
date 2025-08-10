@@ -121,17 +121,14 @@ release p =
 
 environmentFilters :: Architecture -> OS -> [Text -> Bool]
 environmentFilters arch os = execWriter $ do
-  let tell1 = tell . pure
-  for_ [".asc", ".sig", "sha256", "sha512", ".yml"] $ \hint -> do
-    tell1 $ excludes_ hint
-  for_ [".deb", ".rpm", ".dmg", ".exe", ".appimage"] $ \hint -> do
-    tell1 $ excludes_ hint
+  tell $ map excludes_ [".asc", ".sig", "sha256", "sha512", ".yml"]
+  tell $ map excludes_ [".deb", ".rpm", ".dmg", ".exe", ".appimage"]
   tell $ osFilters os
   tell $ architectureFilters arch
   case os of
     Linux _ -> do
-      tell1 $ includes_ "gnu"
-      tell1 $ excludes_ "musl"
+      tell [includes_ "gnu"]
+      tell [excludes_ "musl"]
     _ -> pure ()
 
 ghFilters :: Driver :> es => GithubPackage -> Eff es [Text -> Bool]

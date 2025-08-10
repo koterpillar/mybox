@@ -27,7 +27,7 @@ testCurl cmd = do
   (_, url) <- unsnoc args
   testFetch url
 
-run :: Value -> Object -> Value
+run :: Value -> Object -> Maybe Value
 run value base = runPureEff $ pureDriver testCurl $ linksProcessor value base
 
 spec :: Spec
@@ -36,11 +36,11 @@ spec = do
     it "fetches HTML and extracts links" $ do
       let value = String "http://example.com/test"
       let filters = "include" .= String "example"
-      run value filters `shouldBe` String "http://example.com/absolute"
+      run value filters `shouldBe` Just (String "http://example.com/absolute")
     it "fetches a relative link" $ do
       let value = String "http://example.com/test"
       let filters = "include" .= String "relative"
-      run value filters `shouldBe` String "http://example.com/relative"
+      run value filters `shouldBe` Just (String "http://example.com/relative")
     it "errors when links can't be disambiguated" $ do
       let value = String "http://example.com/test"
       evaluate (run value mempty) `shouldThrow` anyException

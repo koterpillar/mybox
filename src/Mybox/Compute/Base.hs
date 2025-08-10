@@ -3,11 +3,12 @@ module Mybox.Compute.Base where
 import Data.Aeson.KeyMap qualified as KM
 import Data.Map qualified as Map
 import Data.Text qualified as Text
+import Witherable (wither)
 
 import Mybox.Aeson
 import Mybox.Prelude
 
-type Processor m = Value -> Object -> m Value
+type Processor m = Value -> Object -> m (Maybe Value)
 
 findSigil :: KM.KeyMap a -> Maybe (Text, a, KM.KeyMap a)
 findSigil obj =
@@ -19,14 +20,20 @@ findSigil obj =
         _ -> error $ "Multiple sigils found: " ++ show (map fst sigils)
 
 processSigils :: Monad m => Map Text (Processor m) -> Value -> m Value
-processSigils sigils (Object obj) =
+processSigils sigils = fmap (fromMaybe Null) . processSigils_ sigils
+
+processSigils_ :: Monad m => Map Text (Processor m) -> Value -> m (Maybe Value)
+processSigils_ sigils (Object obj) =
   case findSigil obj of
-    Nothing -> Object <$> traverse (processSigils sigils) obj
-    Just (sigil, value, rest) -> case Map.lookup sigil sigils of
-      Nothing -> error $ "Unknown sigil: " ++ Text.unpack sigil
-      Just processor -> traverse (processSigils sigils) rest >>= processor value
-processSigils sigils (Array arr) = Array <$> traverse (processSigils sigils) arr
-processSigils _ (String s) = pure $ String s
-processSigils _ (Number n) = pure $ Number n
-processSigils _ (Bool b) = pure $ Bool b
-processSigils _ Null = pure Null
+    Nothing -> Just . Object <$> wither (processSigils_ sigils) obj
+    Just (sigil, value, rest) ->
+      case Map.lookup sigil sigils of
+        Nothing -> error $ "Unknown sigil: " ++ Text.unpack sigil
+        Just processor ->
+          wither (processSigils_ sigils) rest >>= processor value
+processSigils_ sigils (Array arr) =
+  Just . Array <$> wither (processSigils_ sigils) arr
+processSigils_ _ (String s) = pure $ Just $ String s
+processSigils_ _ (Number n) = pure $ Just $ Number n
+processSigils_ _ (Bool b) = pure $ Just $ Bool b
+processSigils_ _ Null = pure $ Just Null

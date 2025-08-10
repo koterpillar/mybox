@@ -1,6 +1,6 @@
 module Mybox.Compute.BaseSpec where
 
-import Data.Functor.Identity (Identity, runIdentity)
+import Data.Functor.Identity (runIdentity)
 import Data.Map qualified as Map
 
 import Mybox.Aeson
@@ -28,13 +28,14 @@ spec = do
       evaluate (findSigil obj) `shouldThrow` anyErrorCall
 
   describe "processSigils" $ do
-    let testProcessor :: Value -> Object -> Identity Value
+    let testProcessor :: Monad m => Processor m
         testProcessor value _ =
           pure $
-            String $
-              "processed:" <> case value of
-                String s -> s
-                _ -> "unknown"
+            Just $
+              String $
+                "processed:" <> case value of
+                  String s -> s
+                  _ -> "unknown"
 
         testSigils = Map.fromList [("test", testProcessor)]
     let run = runIdentity . processSigils testSigils

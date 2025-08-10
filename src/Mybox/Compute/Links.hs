@@ -36,4 +36,4 @@ linksProcessor value rest = do
         attrs "href" "a"
   link <- throwLeft $ choose_ (toFilters args) links
   linkAbsolute <- uriRelativeTo link url
-  pure $ String linkAbsolute
+  pure $ Just $ String linkAbsolute
