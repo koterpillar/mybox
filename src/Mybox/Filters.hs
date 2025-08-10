@@ -27,10 +27,15 @@ excludes_ :: Text -> Text -> Bool
 excludes_ x y = not $ Text.isInfixOf x $ Text.toLower y
 
 fromSynonyms :: Ord k => Map k [Text] -> k -> [Text -> Bool]
-fromSynonyms synonyms key = do
-  (key', variants) <- Map.toList synonyms
-  let predicate = if key == key' then includes_ else excludes_
-  predicate <$> variants
+fromSynonyms synonyms key = positive <> negative
+ where
+  positive = fmap includes_ $ fromMaybe [] $ Map.lookup key synonyms
+  negative =
+    [ excludes_ variant
+    | (key', variants) <- Map.toList synonyms
+    , key /= key'
+    , variant <- variants
+    ]
 
 data FilterFields = FilterFields
   { prefixes :: [Text]
