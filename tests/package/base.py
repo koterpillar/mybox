@@ -200,17 +200,16 @@ class PackageTestBase(ABC):
         assert package.name != ""
 
     JAVA: list[PackageArgs] = [
-        {"system": "java-21-openjdk", "os": "linux", "distribution": "fedora"},
+        {"system": "java-21-openjdk", "$if": {"os": "fedora"}},
         {
             "system": "openjdk-17-jre",
-            "os": "linux",
-            "distribution": ["debian", "ubuntu"],
+            "$if": {"os": ["debian", "ubuntu"]},
         },
     ]
 
     NODE: list[PackageArgs] = [
-        {"system": "nodejs", "os": "linux"},
-        {"system": "node", "os": "darwin"},
+        {"system": "nodejs", "$if": {"os": "linux"}},
+        {"system": "node", "$if": {"os": "darwin"}},
     ]
 
     async def assert_desktop_file_exists(
