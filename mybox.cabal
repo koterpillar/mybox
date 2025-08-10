@@ -17,6 +17,7 @@ library
       Mybox.Aeson
       Mybox.Compute
       Mybox.Compute.Base
+      Mybox.Compute.Condition
       Mybox.Compute.Format
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
@@ -165,6 +166,7 @@ test-suite tests
   other-modules:
       Mybox.AesonSpec
       Mybox.Compute.BaseSpec
+      Mybox.Compute.ConditionSpec
       Mybox.Compute.FormatSpec
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
