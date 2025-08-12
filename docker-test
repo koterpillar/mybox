@@ -36,7 +36,7 @@ CONTAINER=$(docker run \
   --rm \
   -d \
   -e GITHUB_TOKEN="$(gh auth token)" \
-  -v "$(stack path --local-install-root)"/bin:/opt/bin \
+  -v "$(stack path --local-install-root)"/bin:/usr/local/bin \
   -v "$OPT_TARGET":/opt/target \
   "$OPT_IMAGE" \
   /bin/sh -c 'until [ -f /stop ]; do sleep 1; done'
