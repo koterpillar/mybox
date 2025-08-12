@@ -7,4 +7,10 @@
   ],
   rangeStrategy: "bump",
   ignoreDeps: ["python"],
+  packageRules: [
+    {
+      matchPackageNames: ["node"],
+      versioning: "docker"
+    }
+  ]
 }
