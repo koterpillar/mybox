@@ -43,7 +43,7 @@ CONTAINER=$(docker run \
 )
 trap 'docker rm -f "$CONTAINER"' EXIT
 
-docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y sudo'
+docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo'
 docker exec "$CONTAINER" useradd "$OPT_USER"
 docker exec "$CONTAINER" sh -c 'mkdir /home/'"$OPT_USER"' && chown '"$OPT_USER"':'"$OPT_USER"' /home/'"$OPT_USER"
 docker exec "$CONTAINER" sh -c 'echo "'"$OPT_USER"' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'
