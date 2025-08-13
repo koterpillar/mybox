@@ -102,7 +102,7 @@ library
     , extra
     , mtl
     , network-uri
-    , process
+    , process-extras
     , random
     , safe-exceptions
     , scalpel
@@ -150,7 +150,7 @@ executable mybox
     , mtl
     , mybox
     , network-uri
-    , process
+    , process-extras
     , random
     , safe-exceptions
     , scalpel
@@ -239,7 +239,7 @@ test-suite tests
     , mtl
     , mybox
     , network-uri
-    , process
+    , process-extras
     , random
     , safe-exceptions
     , scalpel

@@ -3,11 +3,13 @@ module Mybox.Driver.IO (
   testDriver,
 ) where
 
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
 import Data.Text qualified as Text
-import Data.Text.IO qualified as Text
+import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 import System.Environment
-import System.Process
+import System.Process.ByteString
 import System.Random
 
 import Mybox.Driver.Class
@@ -22,35 +24,50 @@ newtype IODriver = IODriver
 localIODriver :: IODriver
 localIODriver = IODriver{transformArgs = id}
 
+errorMessage :: Args -> Int -> ByteString -> ByteString -> String
+errorMessage args code stdout stderr =
+  baseMessage
+    <> extraMessage stderr "stderr"
+    <> extraMessage stdout_ "stdout"
+ where
+  stdout_ = fromMaybe stdout $ BS.stripPrefix "OCI runtime exec failed: exec failed: " stdout
+  baseMessage =
+    "Process "
+      <> Text.unpack (shellJoin args)
+      <> " failed with exit code "
+      <> show code
+  extraMessage str desc
+    | BS.null str = ""
+    | otherwise = "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str)
+
+bsStrip :: ByteString -> ByteString
+bsStrip = BS.dropWhileEnd whitespace . BS.dropWhile whitespace
+ where
+  whitespace 0x20 = True -- space
+  whitespace 0x09 = True -- tab
+  whitespace 0x0A = True -- newline
+  whitespace 0x0D = True -- carriage return
+  whitespace _ = False
+
 runDriverIO :: IOE :> es => IODriver -> Eff (Driver : es) a -> Eff es a
 runDriverIO drv =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> drv.transformArgs args_
-      let process = proc cmd args
-      (exitCode, stdoutStr, stderrStr) <-
-        liftIO $ readCreateProcessWithExitCode process ""
-      let stdout = Text.pack stdoutStr
-      let stderr = Text.pack stderrStr
+      (exitCode, stdout, stderr) <-
+        liftIO $ readProcessWithExitCode cmd args mempty
       exit <-
         case exitBehavior of
           RunExitError ->
             case exitCode of
               ExitSuccess -> pure ()
-              ExitFailure code ->
-                terror $
-                  ("Process " <> shellJoin args_ <> " failed with exit code: " <> Text.pack (show code))
-                    & (if Text.null stderr then id else (<> " and stderr: " <> stderr))
-                    & ( case Text.stripPrefix "OCI runtime exec failed: exec failed: " stdout of
-                          Nothing -> id
-                          Just outMsg -> (<> " and stdout: " <> outMsg)
-                      )
+              ExitFailure code -> error $ errorMessage args_ code stdout stderr
           RunExitReturn -> pure exitCode
       output <-
         case outputBehavior of
-          RunOutputShow -> void $ liftIO $ Text.putStr stdout
+          RunOutputShow -> void $ liftIO $ BS.putStr stdout
           RunOutputHide -> pure ()
-          RunOutputReturn -> pure $ Text.strip stdout
+          RunOutputReturn -> pure $ bsStrip stdout
       pure $ RunResult{..}
 
 localDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
