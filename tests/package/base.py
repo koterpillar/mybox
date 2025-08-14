@@ -200,9 +200,9 @@ class PackageTestBase(ABC):
         assert package.name != ""
 
     JAVA: list[PackageArgs] = [
-        {"system": "java-21-openjdk", "$if": {"os": "fedora"}},
+        {"system": "java-latest-openjdk", "$if": {"os": "fedora"}},
         {
-            "system": "openjdk-17-jre",
+            "system": "default-jre",
             "$if": {"os": ["debian", "ubuntu"]},
         },
     ]
