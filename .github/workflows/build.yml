@@ -2,34 +2,40 @@ name: CI
 on:
   push:
     branches:
-      - 'main'
+      - "main"
   pull_request:
 
 jobs:
   lint:
-    name: "Lint ${{ matrix.part != 'Haskell' && format('{0}', matrix.part) || '' }}${{ matrix.part == 'Python' && format(' ({0})', matrix.python) || '' }}"
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install dependencies
+        run: ./install-dev --no-python
+      - name: Lint
+        run: ./lint --no-python
+  lint-python:
+    name: "Lint Python${{ format(' ({0})', matrix.python) || '' }}"
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - part: Haskell
-          - part: Python
-            python: "3.11"
-          - part: Python
-            python: "3.13"
+        python:
+          - "3.11"
+          - "3.13"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Set up Python
-        if: ${{ matrix.part == 'Python' }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Install dependencies
-        run: ./install-dev${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
+        run: ./install-dev --no-haskell
       - name: Lint
-        run: ./lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
+        run: ./lint --no-haskell
   test:
     name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
@@ -92,55 +98,36 @@ jobs:
         if: ${{ matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5
         with:
-          stack-build-arguments: --fast --lock-file error-on-write
+          stack-build-arguments: --fast --lock-file error-on-write --coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Test (Python)
         if: ${{ matrix.part == 'Python' }}
-        run: ./test-script
+        run: |
+          ./test-script
+          ./coverage-report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
+      - name: Prepare coverage
+        if: ${{ matrix.part == 'Haskell' && matrix.arch != 'arm' }}
+        uses: 8c6794b6/hpc-codecov-action@v4
+        with:
+          target: stack:all
+      - name: Prepare coverage (ARM)
+        if: ${{ matrix.part == 'Haskell' && matrix.arch == 'arm' }}
+        run: |
+          stack install hpc-codecov
+          hpc-codecov stack:all --out codecov.json --format codecov --verbose
       - name: Upload coverage
-        if: ${{ matrix.part == 'Python' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-data-${{ matrix.host || 'docker' }}-${{ matrix.docker || 'host' }}-${{ matrix.arch || 'default' }}
-          path: .coverage*
-          include-hidden-files: true
-          if-no-files-found: error
-
-  coverage:
-    needs:
-      - lint
-      - test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: ./install-dev --no-lint --no-haskell
-      - name: Download coverage
-        uses: actions/download-artifact@v5
-        with:
-          pattern: 'coverage-data-*'
-          merge-multiple: true
-      - name: Coverage report
-        run: ./coverage-report
-      - name: Upload coverage report
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     needs:
       - test
-      - coverage
     runs-on: ubuntu-latest
     permissions:
       contents: write
