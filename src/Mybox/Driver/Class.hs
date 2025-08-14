@@ -2,6 +2,8 @@
 
 module Mybox.Driver.Class where
 
+import Data.ByteString (ByteString)
+import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 
 import Mybox.Prelude
@@ -17,7 +19,7 @@ data RunExit e where
 data RunOutput o where
   RunOutputShow :: RunOutput ()
   RunOutputHide :: RunOutput ()
-  RunOutputReturn :: RunOutput Text
+  RunOutputReturn :: RunOutput ByteString
 
 data RunResult e o = RunResult
   { exit :: e
@@ -25,16 +27,19 @@ data RunResult e o = RunResult
   }
   deriving (Eq, Show)
 
+rrMap :: (o -> o') -> RunResult e o -> RunResult e o'
+rrMap f (RunResult e o) = RunResult e (f o)
+
 class RunResultSimplified rr o | rr -> o where
   rrSimplify :: rr -> o
 
-rrLower :: RunExit e -> RunOutput o -> RunResult ExitCode Text -> RunResult e o
+rrLower :: RunExit e -> RunOutput o -> RunResult ExitCode ByteString -> RunResult e o
 rrLower re ro (RunResult e o) = RunResult (lowerE re e) (lowerO ro o)
  where
   lowerE :: RunExit e -> ExitCode -> e
   lowerE RunExitError _ = ()
   lowerE RunExitReturn ec = ec
-  lowerO :: RunOutput o -> Text -> o
+  lowerO :: RunOutput o -> ByteString -> o
   lowerO RunOutputShow _ = ()
   lowerO RunOutputHide _ = ()
   lowerO RunOutputReturn output = output
@@ -45,7 +50,7 @@ instance RunResultSimplified (RunResult () ()) () where
 instance RunResultSimplified (RunResult ExitCode ()) ExitCode where
   rrSimplify (RunResult exitCode ()) = exitCode
 
-instance RunResultSimplified (RunResult () Text) Text where
+instance RunResultSimplified (RunResult () ByteString) ByteString where
   rrSimplify (RunResult () output) = output
 
 type Args = NonEmpty Text
@@ -71,11 +76,17 @@ drvRunOk = fmap rrSimplify . send . DrvRun RunExitReturn RunOutputShow
 drvRunSilent :: Driver :> es => Args -> Eff es ()
 drvRunSilent = fmap rrSimplify . send . DrvRun RunExitError RunOutputHide
 
-drvRunOutput_ :: Driver :> es => RunExit e -> Args -> Eff es (RunResult e Text)
-drvRunOutput_ exit = send . DrvRun exit RunOutputReturn
+drvRunOutputBinary_ :: Driver :> es => RunExit e -> Args -> Eff es (RunResult e ByteString)
+drvRunOutputBinary_ exit = send . DrvRun exit RunOutputReturn
+
+drvRunOutputBinary :: Driver :> es => Args -> Eff es ByteString
+drvRunOutputBinary = fmap rrSimplify <$> drvRunOutputBinary_ RunExitError
+
+drvRunOutputExitBinary :: Driver :> es => Args -> Eff es (RunResult ExitCode ByteString)
+drvRunOutputExitBinary = drvRunOutputBinary_ RunExitReturn
 
 drvRunOutput :: Driver :> es => Args -> Eff es Text
-drvRunOutput = fmap rrSimplify <$> drvRunOutput_ RunExitError
+drvRunOutput = fmap Text.decodeUtf8 . drvRunOutputBinary
 
 drvRunOutputExit :: Driver :> es => Args -> Eff es (RunResult ExitCode Text)
-drvRunOutputExit = drvRunOutput_ RunExitReturn
+drvRunOutputExit = fmap (rrMap Text.decodeUtf8) . drvRunOutputExitBinary

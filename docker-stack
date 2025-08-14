@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+RESOLVER=$(< stack.yaml yq .resolver)
+
+docker run \
+  -it \
+  --rm \
+  -v "$PWD":"$PWD" \
+  -v "$HOME/.stack":/root/.stack \
+  --workdir "$PWD" \
+  --entrypoint /usr/bin/stack \
+  fpco/stack-build:"$RESOLVER" \
+  "$@"

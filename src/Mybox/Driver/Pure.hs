@@ -1,6 +1,7 @@
 module Mybox.Driver.Pure where
 
 import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 
 import Mybox.Driver.Class
@@ -17,7 +18,7 @@ pureDriver run = interpret_ $ \case
         let output = case outputBehavior of
               RunOutputShow -> ()
               RunOutputHide -> ()
-              RunOutputReturn -> result
+              RunOutputReturn -> Text.encodeUtf8 result
         pure $ RunResult{..}
       Nothing -> do
         let exit = case exitBehavior of

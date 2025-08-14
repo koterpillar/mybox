@@ -32,19 +32,41 @@ then
   exit 2
 fi
 
+if [ "$(uname)" == "Linux" ]; then
+  STACK=stack
+else
+  STACK="$(dirname "$0")"/docker-stack
+fi
+
+STACK_BIN="$("$STACK" path --local-install-root | sed -E 's/\r//g')"/bin
+if [ ! -d "$STACK_BIN" ]; then
+  echo "Stack binary directory not found: $STACK_BIN" >&2
+  exit 1
+fi
+if [ ! -x "$STACK_BIN"/mybox ]; then
+  echo "'mybox' binary not found in: $STACK_BIN" >&2
+  exit 1
+fi
+
 CONTAINER=$(docker run \
   --rm \
   -d \
+  --platform linux/amd64 \
   -e GITHUB_TOKEN="$(gh auth token)" \
-  -v "$(stack path --local-install-root)"/bin:/opt/bin \
+  -v "$STACK_BIN":/usr/local/bin \
   -v "$OPT_TARGET":/opt/target \
   "$OPT_IMAGE" \
   /bin/sh -c 'until [ -f /stop ]; do sleep 1; done'
 )
 trap 'docker rm -f "$CONTAINER"' EXIT
 
-docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y sudo'
+docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo'
 docker exec "$CONTAINER" useradd "$OPT_USER"
+USER_HOME="/home/$OPT_USER"
+docker exec "$CONTAINER" sh -c 'mkdir '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
+BASHRC="$USER_HOME/.bashrc"
+docker exec "$CONTAINER" sh -c 'echo "PATH=~/.local/bin:$PATH" > '"$BASHRC"' && chmod +x '"$BASHRC"
 docker exec "$CONTAINER" sh -c 'echo "'"$OPT_USER"' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'
+docker exec "$CONTAINER" sh -c 'passwd -d '"$OPT_USER"
 
 docker exec -it -u "$OPT_USER" --workdir /opt/target "$CONTAINER" /bin/bash

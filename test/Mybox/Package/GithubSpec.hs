@@ -128,8 +128,8 @@ spec = do
           }
       )
       & ( case psa.os of
-            Linux Fedora -> preinstallPackage $ mkSystemPackage "java-21-openjdk"
-            Linux (Debian _) -> preinstallPackage $ mkSystemPackage "openjdk-17-jre"
+            Linux Fedora -> preinstallPackage $ mkSystemPackage "java-latest-openjdk"
+            Linux (Debian _) -> preinstallPackage $ mkSystemPackage "default-jre"
             _ -> id
         )
       & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"

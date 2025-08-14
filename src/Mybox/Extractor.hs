@@ -47,25 +47,26 @@ extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
     let target = pWiden targetDirectory <//> element
     drvCopy (contentsDir <//> element) target
 
-tar_ :: Maybe Text -> Extractor
-tar_ option = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}
+tar_ :: Maybe Text -> (forall es. DIST es => Eff es ()) -> Extractor
+tar_ option ensure = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}
  where
   extractTar :: (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
   extractTar archive targetDirectory = do
+    ensure
     tarCmd <- drvFindExecutable ["gtar", "tar"]
     drvRun $ tarCmd :| ["--extract", "--directory", targetDirectory.text] ++ toList option ++ ["--file", archive.text]
 
 tar :: Extractor
-tar = tar_ Nothing
+tar = tar_ Nothing (pure ())
 
 tarGz :: Extractor
-tarGz = tar_ (Just "-z")
+tarGz = tar_ (Just "-z") (pure ())
 
 tarBz2 :: Extractor
-tarBz2 = tar_ (Just "-j")
+tarBz2 = tar_ (Just "-j") ensureBunzip2
 
 tarXz :: Extractor
-tarXz = tar_ (Just "-J")
+tarXz = tar_ (Just "-J") ensureXz
 
 unzipE :: Extractor
 unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
@@ -112,23 +113,29 @@ pipeCommand command archive target = do
 gunzip :: RawExtractor
 gunzip = mkRawExtractor "gunzip" $ pipeCommand "gunzip"
 
+ensureXz :: DIST es => Eff es ()
+ensureXz = unlessExecutableExists "xzcat" $ do
+  prerequisite <- flip fmap drvOS $ \case
+    Linux Fedora -> "xz"
+    Linux (Debian _) -> "xz-utils"
+    MacOS -> "xz"
+  ensureInstalled $ mkSystemPackage prerequisite
+
 xz :: RawExtractor
 xz = mkRawExtractor "xz" $ \archive target -> do
-  unlessExecutableExists "xzcat" $ do
-    prerequisite <- flip fmap drvOS $ \case
-      Linux Fedora -> "xz"
-      Linux (Debian _) -> "xz-utils"
-      MacOS -> "xz"
-    ensureInstalled $ mkSystemPackage prerequisite
+  ensureXz
   pipeCommand "xzcat" archive target
+
+ensureBunzip2 :: DIST es => Eff es ()
+ensureBunzip2 = unlessExecutableExists "bunzip2" $ do
+  prerequisite <- flip fmap drvOS $ \case
+    Linux _ -> Just "bzip2"
+    MacOS -> Nothing
+  forM_ prerequisite $ ensureInstalled . mkSystemPackage
 
 bunzip2 :: RawExtractor
 bunzip2 = mkRawExtractor "bunzip2" $ \archive target -> do
-  unlessExecutableExists "bunzip2" $ do
-    prerequisite <- flip fmap drvOS $ \case
-      Linux _ -> Just "bzip2"
-      MacOS -> Nothing
-    forM_ prerequisite $ ensureInstalled . mkSystemPackage
+  ensureBunzip2
   pipeCommand "bunzip2" archive target
 
 move :: RawExtractor
