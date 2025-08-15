@@ -111,12 +111,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Prepare coverage
-        if: ${{ matrix.part == 'Haskell' && matrix.arch != 'arm' }}
-        uses: 8c6794b6/hpc-codecov-action@v4
-        with:
-          target: stack:all
-      - name: Prepare coverage (ARM)
-        if: ${{ matrix.part == 'Haskell' && matrix.arch == 'arm' }}
+        if: ${{ matrix.part == 'Haskell' }}
         run: |
           stack install hpc-codecov
           hpc-codecov stack:all --out codecov.json --format codecov --verbose
