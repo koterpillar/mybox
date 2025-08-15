@@ -13,9 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install dependencies
-        run: ./install-dev --no-python
+        run: ./bin/install-dev --no-python
       - name: Lint
-        run: ./lint --no-python
+        run: ./bin/lint --no-python
   lint-python:
     name: "Lint Python${{ format(' ({0})', matrix.python) || '' }}"
     strategy:
@@ -33,9 +33,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install dependencies
-        run: ./install-dev --no-haskell
+        run: ./bin/install-dev --no-haskell
       - name: Lint
-        run: ./lint --no-haskell
+        run: ./bin/lint --no-haskell
   test:
     name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
@@ -78,7 +78,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev --no-lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
+        run: ./bin/install-dev --no-lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
         run: |
@@ -105,18 +105,13 @@ jobs:
       - name: Test (Python)
         if: ${{ matrix.part == 'Python' }}
         run: |
-          ./test-script
-          ./coverage-report
+          ./bin/test
+          ./bin/coverage-report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Prepare coverage
-        if: ${{ matrix.part == 'Haskell' && matrix.arch != 'arm' }}
-        uses: 8c6794b6/hpc-codecov-action@v4
-        with:
-          target: stack:all
-      - name: Prepare coverage (ARM)
-        if: ${{ matrix.part == 'Haskell' && matrix.arch == 'arm' }}
+        if: ${{ matrix.part == 'Haskell' }}
         run: |
           stack install hpc-codecov
           hpc-codecov stack:all --out codecov.json --format codecov --verbose
@@ -145,7 +140,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: ./install-dev --no-lint --no-haskell
+        run: ./bin/install-dev --no-lint --no-haskell
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

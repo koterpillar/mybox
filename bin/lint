@@ -40,7 +40,7 @@ else
   FOURMOLU+=(--mode inplace)
 fi
 
-DIR=$(cd "$(dirname "$0")" && pwd)
+DIR=$(cd "$(dirname "$0")" && cd .. && pwd)
 
 # shellcheck disable=SC2046
 shellcheck $(grep -lER --exclude-dir .git --exclude-dir .stack-work '^#!.+(ba)?sh$' "$DIR")

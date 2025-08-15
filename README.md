@@ -36,15 +36,15 @@ different ones for different roles).
 
 ## Development
 
-Pre-requisites (see [install-dev](install-dev) for ways to install):
+Pre-requisites (see [install-dev](bin/install-dev) for ways to install):
 
 * [Poetry](https://python-poetry.org/)
 * [ShellCheck](https://www.shellcheck.net/)
 
-Run [`./lint`](lint) to check style & types, `./lint --format` to apply
+Run [`./bin/lint`](bin/lint) to check style & types, `./bin/lint --format` to apply
 formatting automatically.
 
-Run [`./test-script`](test-script) to execute the project's tests.
+Run [`./bin/test`](bin/test) to execute the project's tests.
 
 ### Running locally
 
