@@ -71,10 +71,10 @@ CONTAINER=$(docker run \
 )
 trap 'docker rm -f "$CONTAINER"' EXIT
 
-docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo'
+docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo || true'
 docker exec "$CONTAINER" useradd "$OPT_USER"
 USER_HOME="/home/$OPT_USER"
-docker exec "$CONTAINER" sh -c 'mkdir '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
+docker exec "$CONTAINER" sh -c 'mkdir -p '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
 BASHRC="$USER_HOME/.bashrc"
 docker exec "$CONTAINER" sh -c 'echo "PATH=~/.local/bin:$PATH" > '"$BASHRC"' && chmod +x '"$BASHRC"
 docker exec "$CONTAINER" sh -c 'echo "'"$OPT_USER"' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'
