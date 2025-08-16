@@ -58,8 +58,8 @@ getShellLinux p = do
 
 getShellMacOS :: Driver :> es => ShellPackage -> Eff es Text
 getShellMacOS p = do
-  home <- if p.root then pure (pRoot </> "root") else drvHome
-  result <- drvRunOutput $ "dscl" :| [".", "-read", home.text, "UserShell"]
+  username <- if p.root then pure "root" else drvUsername
+  result <- drvRunOutput $ "dscl" :| [".", "-read", "/Users/" <> username, "UserShell"]
   case Text.splitOn ": " result of
     [_, shellPath] -> pure $ Text.strip shellPath
     _ -> terror $ "Failed to parse dscl output: " <> result
