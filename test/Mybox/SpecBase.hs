@@ -29,6 +29,7 @@ import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, should
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.Stores
 

@@ -28,7 +28,6 @@ library
       Mybox.Driver.Class
       Mybox.Driver.IO
       Mybox.Driver.Ops
-      Mybox.Driver.Pure
       Mybox.Driver.Stats
       Mybox.Extractor
       Mybox.Filters
@@ -172,6 +171,7 @@ test-suite tests
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
       Mybox.Driver.IOSpec
+      Mybox.Driver.Test
       Mybox.ExtractorSpec
       Mybox.FiltersSpec
       Mybox.Installer.AptSpec

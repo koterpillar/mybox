@@ -5,6 +5,7 @@ set -euo pipefail
 OPT_TARGET=""
 OPT_IMAGE="debian"
 OPT_USER="regular_user"
+OPT_HOSTNAME=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --target)
@@ -19,6 +20,10 @@ while [ $# -gt 0 ]; do
       OPT_USER="$2"
       shift 2
       ;;
+    --hostname)
+      OPT_HOSTNAME="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 1
@@ -30,6 +35,11 @@ if [ -z "$OPT_TARGET" ]
 then
   echo "No target specified." >&2
   exit 2
+fi
+
+if [ -z "$OPT_HOSTNAME" ]
+then
+  OPT_HOSTNAME="$(mktemp -u mybox-test-XXXXX)"
 fi
 
 if [ "$(uname)" == "Linux" ]; then
@@ -52,6 +62,7 @@ CONTAINER=$(docker run \
   --rm \
   -d \
   --platform linux/amd64 \
+  --hostname "$OPT_HOSTNAME" \
   -e GITHUB_TOKEN="$(gh auth token)" \
   -v "$STACK_BIN":/usr/local/bin \
   -v "$OPT_TARGET":/opt/target \
@@ -60,10 +71,10 @@ CONTAINER=$(docker run \
 )
 trap 'docker rm -f "$CONTAINER"' EXIT
 
-docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo'
+docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo || true'
 docker exec "$CONTAINER" useradd "$OPT_USER"
 USER_HOME="/home/$OPT_USER"
-docker exec "$CONTAINER" sh -c 'mkdir '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
+docker exec "$CONTAINER" sh -c 'mkdir -p '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
 BASHRC="$USER_HOME/.bashrc"
 docker exec "$CONTAINER" sh -c 'echo "PATH=~/.local/bin:$PATH" > '"$BASHRC"' && chmod +x '"$BASHRC"
 docker exec "$CONTAINER" sh -c 'echo "'"$OPT_USER"' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'

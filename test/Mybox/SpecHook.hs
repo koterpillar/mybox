@@ -9,6 +9,7 @@ import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
 import Mybox.Driver.Stats
+import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Stores
