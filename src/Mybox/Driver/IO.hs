@@ -165,7 +165,7 @@ dockerfile baseImage =
     , "WORKDIR /mybox"
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"
-    , "ENV PATH=" <> (homeOf dockerUser).text <> "/.local/bin:$PATH"
+    , "ENV PATH=" <> (pRoot </> "home" </> dockerUser).text <> "/.local/bin:$PATH"
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
       "RUN command -v dnf >/dev/null && dnf check-update || true"
@@ -173,10 +173,6 @@ dockerfile baseImage =
 
 dockerUser :: Text
 dockerUser = "regular_user"
-
-homeOf :: Text -> Path Abs
-homeOf "root" = pRoot </> "root"
-homeOf user = pRoot </> "home" </> user
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
