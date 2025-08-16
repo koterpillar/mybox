@@ -54,7 +54,7 @@ getShellLinux p = do
   let fields = Text.splitOn ":" passwdEntry
   case drop 6 fields of
     (shellPath : _) -> pure shellPath
-    [] -> terror "Failed to parse passwd entry"
+    [] -> terror $ "Failed to parse passwd entry: " <> passwdEntry
 
 getShellMacOS :: Driver :> es => ShellPackage -> Eff es Text
 getShellMacOS p = do
@@ -62,7 +62,7 @@ getShellMacOS p = do
   result <- drvRunOutput $ "dscl" :| [".", "-read", home.text, "UserShell"]
   case Text.splitOn ": " result of
     [_, shellPath] -> pure $ Text.strip shellPath
-    _ -> terror "Failed to parse dscl output"
+    _ -> terror $ "Failed to parse dscl output: " <> result
 
 shellLocalVersion :: Driver :> es => ShellPackage -> Eff es (Maybe Text)
 shellLocalVersion p =
