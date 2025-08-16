@@ -21,6 +21,7 @@ import System.Random
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Effects
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -116,7 +117,9 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ runInstallQueue $ install p
+              stateTracker mempty $ trkSession $ runInstallQueue $ do
+                install p
+                checkVersionMatches p
             checkAllTracked s preexistingFiles ts
             checkInstalled_ s
 
@@ -139,6 +142,12 @@ checkAllTracked s preexisting ts = do
   let tracked = Set.map (.path) ts.tracked
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
+
+checkVersionMatches :: (DIST es, IOE :> es, Package p) => p -> Eff es ()
+checkVersionMatches p = do
+  remote <- remoteVersion p
+  local <- localVersion p
+  local `shouldBe` Just remote
 
 jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
 jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
