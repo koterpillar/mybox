@@ -1,6 +1,7 @@
 module Mybox.Package.ShellSpec where
 
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.Shell
@@ -11,6 +12,15 @@ import Mybox.Tracker
 
 passwd :: Path Abs
 passwd = pRoot </> "etc" </> "passwd"
+
+sh :: Path Abs
+sh = pRoot </> "bin" </> "sh"
+
+shPackage :: ShellPackage
+shPackage = mkShellPackage sh
+
+forRoot :: Applicative m => ((Bool, String) -> m ()) -> m ()
+forRoot = for_ [(False, "normal user"), (True, "root")]
 
 spec :: Spec
 spec = do
@@ -27,20 +37,35 @@ spec = do
         whoamiResult `shouldBe` username
 
   onlyIf virtualSystem $ do
-    for_ [False, True] $ \root ->
-      describe (if root then "root" else "normal user") $ do
+    forRoot $ \(root, desc) ->
+      describe desc $ do
         -- cannot test normal user's shell without Docker on GitHub Actions
         (if root then id else skipIf inCI) $ do
           packageSpec $ \psa ->
-            let sh = pRoot </> "bin" </> "sh"
-                username = if root then "root" else psa.username
-             in ps ((mkShellPackage sh){root})
+            let username = if root then "root" else psa.username
+             in ps (shPackage{root})
                   & checkInstalledCommandOutput ("grep" :| [username, passwd.text]) sh.text
           onlyIf inDocker $ do
             packageSpec $ \_ ->
               ps ((mkShellPackage $ pRoot </> "bin" </> "whoami"){root})
                 & psName "whoami"
                 & checkInstalled (checkWhoamiShell root)
+
+  withEff (nullTrackerSession . runInstallQueue) $
+    describe "local version" $ do
+      forRoot $ \(root, desc) ->
+        it ("gets shell for " <> desc) $ do
+          let package = shPackage{root}
+          version <- localVersion package
+          version `shouldSatisfy` isJust
+          fromJust version `shouldContainText` "sh"
+      it "fails on unexpected output" $ do
+        let brokenGetShell :: Args -> Maybe Text
+            brokenGetShell ("getent" :| _) = Just "unexpected output"
+            brokenGetShell ("dscl" :| _) = Just "unexpected output"
+            brokenGetShell _ = Nothing
+        modifyDriver brokenGetShell $
+          localVersion shPackage `shouldThrow` anyException
 
   describe "validation" $
     onlyIf inDocker $
