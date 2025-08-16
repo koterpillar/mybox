@@ -3,6 +3,7 @@ module Mybox.Compute.ConditionSpec where
 import Mybox.Aeson
 import Mybox.Compute.Condition
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 

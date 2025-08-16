@@ -20,6 +20,7 @@ import System.Random
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Package.Class
 import Mybox.Package.Effects
 import Mybox.Package.Queue

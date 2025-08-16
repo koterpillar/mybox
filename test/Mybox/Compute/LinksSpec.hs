@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Compute.Links
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 

@@ -3,6 +3,7 @@ module Mybox.Compute.URLSpec where
 import Mybox.Aeson
 import Mybox.Compute.URL
 import Mybox.Driver
+import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 
