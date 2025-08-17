@@ -12,5 +12,12 @@
       matchPackageNames: ["node"],
       versioning: "docker"
     }
-  ]
+  ],
+  packageRules: [
+    {
+      matchDepNames: ["python"],
+      matchUpdateTypes: ["patch"],
+      enabled: false,
+    },
+  ],
 }
