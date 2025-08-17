@@ -32,7 +32,7 @@ pureDriver run = interpret_ $ \case
         pure $ RunResult{..}
 
 modifyDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a
-modifyDriver run = interpose $ \_ -> \case
+modifyDriver run = interpose_ $ \case
   DrvRun exitBehaviour outputBehaviour args -> case run args of
     Nothing -> send $ DrvRun exitBehaviour outputBehaviour args
     Just result -> pure $ rrSuccess exitBehaviour outputBehaviour result
@@ -83,7 +83,7 @@ testHostDriver act = do
           localDriver act
 
 containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
-containerDriver container = interpose $ \_ -> \case
+containerDriver container = interpose_ $ \case
   DrvRun e o args -> send $ DrvRun e o $ transformArgs args
  where
   transformArgs :: Args -> Args
