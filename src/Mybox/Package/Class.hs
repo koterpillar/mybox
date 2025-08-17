@@ -7,6 +7,7 @@ module Mybox.Package.Class (
 ) where
 
 import Mybox.Aeson
+import Mybox.Display
 import Mybox.Effects
 import Mybox.Package.Name
 import Mybox.Prelude
@@ -31,5 +32,11 @@ isInstalled pkg = do
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = do
-  installed <- isInstalled pkg
-  if installed then trkSkip pkg else install pkg
+  installed <-
+    displayModifyBannerWhile (addChecking pkg.name) $
+      isInstalled pkg
+  if installed
+    then trkSkip pkg
+    else
+      displayModifyBannerWhile (addInstalling pkg.name) $
+        install pkg

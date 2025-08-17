@@ -24,7 +24,12 @@ library
       Mybox.Compute.URL
       Mybox.Config
       Mybox.Config.Match
+      Mybox.Display
+      Mybox.Display.ANSI
+      Mybox.Display.Class
+      Mybox.Display.Data
       Mybox.Display.Print
+      Mybox.Display.Simple
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO
@@ -96,6 +101,7 @@ library
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring
@@ -144,6 +150,7 @@ executable mybox
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring
@@ -174,9 +181,14 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
+      Mybox.Display.ANSISpec
+      Mybox.Display.None
       Mybox.Display.PrintSpec
+      Mybox.Display.SimpleSpec
+      Mybox.Display.SpecUtils
       Mybox.Display.Tmux
       Mybox.Display.TmuxSpec
+      Mybox.DisplaySpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
       Mybox.ExtractorSpec
@@ -240,6 +252,7 @@ test-suite tests
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring

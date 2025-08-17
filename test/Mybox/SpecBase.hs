@@ -29,6 +29,7 @@ import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
+import Mybox.Display
 import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Stores
@@ -38,7 +39,7 @@ newtype RunEff es
 
 type EffSpec es = Hspec.SpecWith (RunEff es)
 
-type BaseEff = '[Driver, Stores, Concurrent, IOE]
+type BaseEff = '[Driver, Stores, AppDisplay, Concurrent, IOE]
 
 type Spec = EffSpec BaseEff
 
