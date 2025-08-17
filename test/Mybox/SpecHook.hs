@@ -7,6 +7,8 @@ import Data.Ord (Down (..))
 import Data.Text qualified as Text
 import Test.Hspec qualified as Hspec
 
+import Mybox.Display
+import Mybox.Display.None
 import Mybox.Driver
 import Mybox.Driver.Stats
 import Mybox.Driver.Test
@@ -19,12 +21,13 @@ hook spec = do
   globalStats <- runIO $ newMVar Map.empty
   afterAll_ (takeMVar globalStats >>= printStats 20) $ effSpec (dispatch globalStats) spec
 
-dispatch :: MVar (Map Args Int) -> Eff '[Driver, Stores, IOE] r -> Eff '[IOE] r
+dispatch :: MVar (Map Args Int) -> Eff '[Driver, Stores, AppDisplay, IOE] r -> Eff '[IOE] r
 dispatch globalStats act =
-  runStores $ do
-    (stats, r) <- testDriver $ driverStats act
-    liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
-    pure r
+  noDisplay $
+    runStores $ do
+      (stats, r) <- testDriver $ driverStats act
+      liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
+      pure r
 
 printStats :: Int -> Map Args Int -> IO ()
 printStats n stats = do
