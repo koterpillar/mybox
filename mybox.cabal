@@ -24,6 +24,11 @@ library
       Mybox.Compute.URL
       Mybox.Config
       Mybox.Config.Match
+      Mybox.Display
+      Mybox.Display.Class
+      Mybox.Display.Data
+      Mybox.Display.None
+      Mybox.Display.Simple
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO
