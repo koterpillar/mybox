@@ -5,13 +5,6 @@
 
 packages:
 - completed:
-    hackage: aeson-jsonpath-0.3.0.2@sha256:765111f324a33a61ae95d0fd91ae7f6bbf01893d1717781e160ec87986f438a3,4203
-    pantry-tree:
-      sha256: 5160a186418fc364273398aa43dfbf37d76c40f933e4041446d17360aa3ef2d9
-      size: 2009
-  original:
-    hackage: aeson-jsonpath-0.3.0.2
-- completed:
     name: aeson-extra
     pantry-tree:
       sha256: 86e7c2b881904aaa6e5568bc6cb3297d09e8cb40c9b508e98f510b168356f0f8
