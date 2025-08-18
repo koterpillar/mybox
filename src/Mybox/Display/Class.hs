@@ -6,10 +6,13 @@ module Mybox.Display.Class (
   displaySetBanner,
   displayModifyBanner,
   displayModifyBannerWhile,
+  DisplayImpl (..),
+  runDisplayImpl,
 ) where
 
 import Data.Kind
 import Effectful.Dispatch.Dynamic
+import Effectful.State.Static.Local
 import Prelude hiding (log)
 
 import Mybox.Prelude
@@ -42,3 +45,25 @@ displayModifyBannerWhile f act = do
   banner <- displayGetBanner
   displaySetBanner (f banner)
   act `finally` displaySetBanner banner
+
+data DisplayImpl :: Type -> Effect where
+  DrawLog :: Log a -> DisplayImpl a m ()
+  DrawBanner :: Banner a -> DisplayImpl a m ()
+
+type instance DispatchOf (DisplayImpl _) = Dynamic
+
+runDisplayImpl ::
+  forall a es r.
+  (DisplayImpl a :> es, Monoid (Banner a)) =>
+  Eff (Display a : es) r ->
+  Eff es r
+runDisplayImpl =
+  reinterpret_
+    (evalState @(Banner a) mempty)
+    ( \case
+        Log log -> send $ DrawLog log
+        SetBanner banner -> do
+          put banner
+          send $ DrawBanner banner
+        GetBanner -> get
+    )
