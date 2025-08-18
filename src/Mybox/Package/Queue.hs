@@ -1,4 +1,9 @@
-module Mybox.Package.Queue (InstallQueue, queueInstall, runInstallQueue) where
+module Mybox.Package.Queue (
+  InstallQueue,
+  queueInstall,
+  runInstallQueue,
+  runInstallQueue_,
+) where
 
 import Data.Set qualified as Set
 import Effectful.Dispatch.Dynamic
@@ -23,11 +28,17 @@ type PackageSet = Set Text
 runInstallQueue ::
   (Driver :> es, TrackerSession :> es) =>
   Eff (InstallQueue : es) a ->
-  Eff es a
+  Eff es (a, Set Text)
 runInstallQueue act =
   reinterpretWith_
-    (evalState $ mempty @PackageSet)
+    (runState $ mempty @PackageSet)
     (inject act)
     $ \case
       IsInstalled pkgName -> gets $ Set.member pkgName
       MarkInstalled pkgName -> modify $ Set.insert pkgName
+
+runInstallQueue_ ::
+  (Driver :> es, TrackerSession :> es) =>
+  Eff (InstallQueue : es) a ->
+  Eff es a
+runInstallQueue_ = fmap fst . runInstallQueue

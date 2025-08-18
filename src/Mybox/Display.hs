@@ -7,6 +7,7 @@ module Mybox.Display (
   AppDisplay,
   addInstalling,
   MDisplay,
+  displayLogText,
 ) where
 
 import Mybox.Display.Class
@@ -19,3 +20,6 @@ type AppDisplay = Display MDisplay
 
 runDisplay :: IOE :> es => Eff (AppDisplay : es) r -> Eff es r
 runDisplay = runSimpleDisplay
+
+displayLogText :: AppDisplay :> es => Text -> Eff es ()
+displayLogText = displayLog . MLog

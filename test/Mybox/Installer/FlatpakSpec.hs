@@ -19,7 +19,7 @@ expectedFlatpakVersion version = case Text.splitOn ":" version of
 spec :: Spec
 spec = onlyIfOS (\case Linux _ -> True; _ -> False) $
   skipIf inDocker $
-    withEff (nullTrackerSession . runInstallQueue) $ do
+    withEff (nullTrackerSession . runInstallQueue_) $ do
       describe "flatpak" $
         before (ensureInstalled flatpakPackage) $ do
           describe "iLatestVersion" $ do

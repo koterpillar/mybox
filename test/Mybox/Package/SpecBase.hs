@@ -105,7 +105,7 @@ cleanup :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
 cleanup f s = s{cleanup_ = cleanup_ s >> f}
 
 preinstallPackage :: Package b => b -> MPS a
-preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
+preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue_ $ ensureInstalled p
 
 packageSpec :: Package a => (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpec makePS =
@@ -120,7 +120,7 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ runInstallQueue $ do
+              stateTracker mempty $ trkSession $ runInstallQueue_ $ do
                 install p
                 checkVersionMatches p
             checkAllTracked s preexistingFiles ts

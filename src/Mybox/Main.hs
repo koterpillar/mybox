@@ -2,6 +2,8 @@ module Mybox.Main (
   main,
 ) where
 
+import Data.Text qualified as Text
+
 import Mybox.Config
 import Mybox.Display
 import Mybox.Driver
@@ -18,7 +20,9 @@ main =
         localDriver $ do
           config <- readConfig
           state <- drvMyboxState
-          drvTracker (state </> "files.json") $
-            trkSession $
-              runInstallQueue $
-                for_ config.packages queueInstall
+          ((), installed) <-
+            drvTracker (state </> "files.json") $
+              trkSession $
+                runInstallQueue $
+                  for_ config.packages queueInstall
+          displayLogText $ "installed: " <> Text.intercalate ", " (toList installed)
