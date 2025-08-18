@@ -11,9 +11,20 @@ packages:
       size: 2009
   original:
     hackage: aeson-jsonpath-0.3.0.2
+- completed:
+    name: aeson-extra
+    pantry-tree:
+      sha256: 86e7c2b881904aaa6e5568bc6cb3297d09e8cb40c9b508e98f510b168356f0f8
+      size: 1355
+    sha256: 190995a589a2146192f428f20d61d69018b62bcd77de7fd8422bd3c196c62ba8
+    size: 12970
+    url: https://github.com/koterpillar/aeson-extra/archive/faf9147e2dc1acd4f79e1086dd12ac969c366159.tar.gz
+    version: 0.5.1.3
+  original:
+    url: https://github.com/koterpillar/aeson-extra/archive/faf9147e2dc1acd4f79e1086dd12ac969c366159.tar.gz
 snapshots:
 - completed:
-    sha256: 7e724f347d5969cb5e8dde9f9aae30996e3231c29d1dafd45f21f1700d4c4fcb
-    size: 684460
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/23/28.yaml
-  original: lts-23.28
+    sha256: 473840099b95facf73ec72dcafe53a2487bfadeceb03a981a19e16469503a342
+    size: 726266
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/6.yaml
+  original: lts-24.6

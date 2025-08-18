@@ -3,3 +3,4 @@ packages:
 - '.'
 extra-deps:
 - aeson-jsonpath-0.3.0.2
+- url: https://github.com/koterpillar/aeson-extra/archive/faf9147e2dc1acd4f79e1086dd12ac969c366159.tar.gz
