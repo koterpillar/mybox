@@ -1,5 +1,7 @@
 module Mybox.Display.ANSI where
 
+import Data.Text qualified as Text
+import Data.Text.IO qualified as Text
 import Effectful.Dispatch.Dynamic
 import System.Console.ANSI
 import System.IO (stdout)
@@ -40,10 +42,12 @@ handle = interpret_ $ \case
 drawBanner :: (IOE :> es, Show (Banner a)) => Banner a -> Eff es ()
 drawBanner banner = liftIO $ do
   pos <- getCursorPosition
+  let txt = Text.pack $ show banner
   case pos of
-    Nothing -> print banner -- fallback
+    Nothing -> Text.putStrLn txt -- fallback
     Just (x, _) -> do
-      putStr "\n"
-      print banner
-      cursorUp 1
+      let nl = "\n"
+      Text.putStr nl
+      Text.putStr txt
+      cursorUp $ succ $ Text.count nl txt
       setCursorColumn x
