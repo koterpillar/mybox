@@ -10,6 +10,7 @@ module Mybox.Display (
   displayLogText,
 ) where
 
+import Mybox.Display.ANSI
 import Mybox.Display.Class
 import Mybox.Display.Data
 import Mybox.Display.None
@@ -19,7 +20,11 @@ import Mybox.Prelude
 type AppDisplay = Display MDisplay
 
 runDisplay :: IOE :> es => Eff (AppDisplay : es) r -> Eff es r
-runDisplay = runSimpleDisplay
+runDisplay act = do
+  isANSI <- supportsANSI
+  if isANSI
+    then runANSIDisplay act
+    else runSimpleDisplay act
 
 displayLogText :: AppDisplay :> es => Text -> Eff es ()
 displayLogText = displayLog . MLog

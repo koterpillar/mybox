@@ -25,6 +25,7 @@ library
       Mybox.Config
       Mybox.Config.Match
       Mybox.Display
+      Mybox.Display.ANSI
       Mybox.Display.Class
       Mybox.Display.Data
       Mybox.Display.None
@@ -100,6 +101,7 @@ library
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring
@@ -148,6 +150,7 @@ executable mybox
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring
@@ -239,6 +242,7 @@ test-suite tests
     , aeson
     , aeson-extra
     , aeson-jsonpath
+    , ansi-terminal
     , base
     , base64-bytestring
     , bytestring
