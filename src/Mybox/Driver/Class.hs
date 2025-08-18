@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
-
 module Mybox.Driver.Class where
 
 import Data.ByteString (ByteString)

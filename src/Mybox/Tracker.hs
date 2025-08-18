@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
-
 module Mybox.Tracker (
   Tracker,
   TrackerSession,

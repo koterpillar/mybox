@@ -80,6 +80,7 @@ library
       RecordWildCards
       DuplicateRecordFields
       OverloadedRecordDot
+      TypeFamilies
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields
@@ -127,6 +128,7 @@ executable mybox
       RecordWildCards
       DuplicateRecordFields
       OverloadedRecordDot
+      TypeFamilies
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields
@@ -215,6 +217,7 @@ test-suite tests
       RecordWildCards
       DuplicateRecordFields
       OverloadedRecordDot
+      TypeFamilies
       DataKinds
       DerivingStrategies
       DisambiguateRecordFields

@@ -13,6 +13,7 @@ default-extensions:
   - DuplicateRecordFields
   - OverloadedRecordDot
   # FIXME: all in on record fields? NoFieldSelectors
+  - TypeFamilies
   # GHC2024
   - DataKinds
   - DerivingStrategies
