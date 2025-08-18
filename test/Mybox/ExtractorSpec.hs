@@ -10,8 +10,8 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Extractor
-import Mybox.Package.Effects
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -27,7 +27,7 @@ temporaryZip paths act = drvTempDir $ \archiveDir -> do
 
   act archiveFile
 
-extractFileNames :: (Anchor a, DIST es) => Path a -> Eff es (Set (Path Rel))
+extractFileNames :: (Anchor a, App es) => Path a -> Eff es (Set (Path Rel))
 extractFileNames archive = do
   extractor <- getExtractor archive.text
   drvTempDir $ \dir -> do

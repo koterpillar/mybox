@@ -2,9 +2,9 @@ module Mybox.Package.System (SystemPackage (..), mkSystemPackage) where
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Installer
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
@@ -55,7 +55,7 @@ systemLocalVersion p = case p.url of
     fmap (autoUpdateVersion p) <$> iInstalledVersion installer p.name
   Just _ -> manualVersion p
 
-systemInstall :: DIST es => SystemPackage -> Eff es ()
+systemInstall :: App es => SystemPackage -> Eff es ()
 systemInstall p = do
   installer <- mkInstaller
   case p.url of

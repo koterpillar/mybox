@@ -4,9 +4,9 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Destination
-import Mybox.Package.Effects
 import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
@@ -50,7 +50,7 @@ instance ToJSON ClonePackage where
       ]
         <> postToJSON p
 
-prerequisites :: DIST es => Eff es ()
+prerequisites :: App es => Eff es ()
 prerequisites = queueInstall $ mkSystemPackage "git"
 
 cpRemote :: ClonePackage -> Text
@@ -81,7 +81,7 @@ cpRevParse branch abbrevRef p =
   cpGitArgs (join [["rev-parse"], ["--abbrev-ref" | abbrevRef], [branch]]) p
     >>= drvRunOutput
 
-cpLocalVersion :: DIST es => ClonePackage -> Eff es (Maybe Text)
+cpLocalVersion :: App es => ClonePackage -> Eff es (Maybe Text)
 cpLocalVersion p = do
   exists <- destinationExists p
   if exists
@@ -90,7 +90,7 @@ cpLocalVersion p = do
       Just <$> cpRevParse "HEAD" False p
     else pure Nothing
 
-cpRemoteVersion :: DIST es => ClonePackage -> Eff es Text
+cpRemoteVersion :: App es => ClonePackage -> Eff es Text
 cpRemoteVersion p = do
   prerequisites
   drvRepoBranchVersion (cpRemote p) p.branch
@@ -101,7 +101,7 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: DIST es => ClonePackage -> Eff es ()
+cpInstall :: App es => ClonePackage -> Eff es ()
 cpInstall p = do
   prerequisites
   destination <- destinationPath p

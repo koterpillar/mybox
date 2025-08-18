@@ -4,9 +4,9 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Archive
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.Github hiding (repo)
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
@@ -49,7 +49,7 @@ instance FromJSON PipxList where
     packages <- obj .: "venvs"
     pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
 
-prerequisites :: DIST es => PipxPackage -> Eff es ()
+prerequisites :: App es => PipxPackage -> Eff es ()
 prerequisites p = do
   os <- drvOS
   let packages = case os of
@@ -98,7 +98,7 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: DIST es => PipxPackage -> Eff es Text
+remoteVersionPipx :: App es => PipxPackage -> Eff es Text
 remoteVersionPipx p = do
   prerequisites p
   case repo p of
@@ -111,7 +111,7 @@ remoteVersionPipx p = do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-pipxInstall :: DIST es => PipxPackage -> Eff es ()
+pipxInstall :: App es => PipxPackage -> Eff es ()
 pipxInstall p = do
   prerequisites p
   drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])

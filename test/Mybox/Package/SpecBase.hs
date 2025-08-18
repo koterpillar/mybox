@@ -21,8 +21,8 @@ import System.Random
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Driver.Test
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -145,7 +145,7 @@ checkAllTracked s preexisting ts = do
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
 
-checkVersionMatches :: (DIST es, IOE :> es, Package p) => p -> Eff es ()
+checkVersionMatches :: (App es, IOE :> es, Package p) => p -> Eff es ()
 checkVersionMatches p = do
   remote <- remoteVersion p
   local <- localVersion p

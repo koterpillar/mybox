@@ -4,8 +4,8 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Queue
@@ -36,7 +36,7 @@ instance FromJSON NPMPackage where
 instance ToJSON NPMPackage where
   toJSON p = object $ ["npm" .= p.package, "binary" .= p.binaries] <> postToJSON p
 
-prerequisites :: DIST es => Eff es ()
+prerequisites :: App es => Eff es ()
 prerequisites = do
   os <- drvOS
   let packages = case os of
@@ -48,12 +48,12 @@ prerequisites = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
 
-viewVersion :: DIST es => NPMPackage -> Eff es Text
+viewVersion :: App es => NPMPackage -> Eff es Text
 viewVersion p = do
   prerequisites
   drvRunOutput $ "npm" :| ["view", p.package, "version"]
 
-npmInstall :: DIST es => NPMPackage -> Eff es ()
+npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do
   prerequisites
 

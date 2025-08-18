@@ -5,13 +5,13 @@ import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.Queue.Effect
 import Mybox.Prelude
 import Mybox.Tracker
 
-queueInstall :: (DIST es, Package p) => p -> Eff es ()
+queueInstall :: (App es, Package p) => p -> Eff es ()
 queueInstall pkg = do
   alreadyInstalled <- send $ IsInstalled pkg.name
   unless alreadyInstalled $ do

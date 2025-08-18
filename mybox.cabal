@@ -29,6 +29,7 @@ library
       Mybox.Driver.IO
       Mybox.Driver.Ops
       Mybox.Driver.Stats
+      Mybox.Effects
       Mybox.Extractor
       Mybox.Filters
       Mybox.Installer
@@ -45,7 +46,6 @@ library
       Mybox.Package.Clone
       Mybox.Package.Daemon
       Mybox.Package.Destination
-      Mybox.Package.Effects
       Mybox.Package.Flatpak
       Mybox.Package.Github
       Mybox.Package.Links

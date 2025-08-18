@@ -10,8 +10,8 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.Post
 import Mybox.Prelude
 import Mybox.Tracker
@@ -131,7 +131,7 @@ registerMacOS p = do
   drvRun $ "launchctl" :| ["load", path.text]
 
 -- | Install daemon service
-daemonInstall :: DIST es => DaemonPackage -> Eff es ()
+daemonInstall :: App es => DaemonPackage -> Eff es ()
 daemonInstall p = do
   path <- serviceFilePath p
   content <- serviceFileContent p

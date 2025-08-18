@@ -7,8 +7,8 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Extractor
-import Mybox.Package.Effects
 import Mybox.Package.Name
 import Mybox.Package.Queue
 import Mybox.Package.System
@@ -57,14 +57,14 @@ archiveToJSON p =
   ]
 
 class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p where
-  archiveUrl :: forall es. DIST es => p -> Eff es Text
+  archiveUrl :: forall es. App es => p -> Eff es Text
 
 aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
   local <- drvLocal
   return $ local </> "mybox" </> pathname p
 
-aExtract :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Eff es ()
+aExtract :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Eff es ()
 aExtract p url archiveFile = case p.archive.raw of
   Right True -> aExtractRaw p url archiveFile $ Text.takeWhileEnd (/= '/') url
   Left filename -> aExtractRaw p url archiveFile filename
@@ -73,7 +73,7 @@ aExtract p url archiveFile = case p.archive.raw of
     target <- aDirectory p
     extract extractor archiveFile target
 
-aExtractRaw :: (ArchivePackage p, DIST es) => p -> Text -> Path Abs -> Text -> Eff es ()
+aExtractRaw :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
@@ -81,7 +81,7 @@ aExtractRaw p url archiveFile filename = do
   extractRaw extractor archiveFile targetPath
   when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
 
-archiveInstall :: (ArchivePackage p, DIST es) => p -> Eff es ()
+archiveInstall :: (App es, ArchivePackage p) => p -> Eff es ()
 archiveInstall p = do
   url <- archiveUrl p
   drvTempFile $ \archiveFile -> do
@@ -123,7 +123,7 @@ binaryFind =
 findBinary :: (ArchivePackage p, Driver :> es) => p -> Text -> Eff es (Path Abs)
 findBinary p = aFind p binaryFind{paths = p.archive.binaryPaths <> binaryFind.paths}
 
-installBinary :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
+installBinary :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installBinary p binary = do
   binaryPath <- findBinary p binary
   local <- drvLocal
@@ -144,7 +144,7 @@ freedesktopAppFind =
     , description = "application"
     }
 
-installApp :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
+installApp :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installApp p app = do
   drvOS >>= \case
     Linux _ -> pure ()
@@ -176,7 +176,7 @@ withExtensions exts name = case Text.splitOn "." name of
 iconExtensions :: [Text]
 iconExtensions = ["png", "svg"]
 
-installIcon :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
+installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installIcon p icon = do
   directory <- aDirectory p
   iconPaths <- drvFind directory $ mempty{names = Just $ withExtensions iconExtensions icon}
@@ -206,7 +206,7 @@ iconPath icon = "hicolor" </> resolution </> "apps" </> base
 fontExtensions :: [Text]
 fontExtensions = ["ttf", "otf"]
 
-installFont :: (ArchivePackage p, DIST es) => p -> Text -> Eff es ()
+installFont :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installFont p font = do
   fontDir <-
     drvOS >>= \case
