@@ -18,22 +18,18 @@ assertDesktopFileExists ::
   (Driver :> es, IOE :> es) =>
   Text -> Text -> Maybe Text -> Eff es ()
 assertDesktopFileExists fileName expectedName expectedExecutable = do
-  os <- drvOS
-  case os of
-    Linux _ -> do
-      local <- drvLocal
-      let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
-      desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
+  local <- drvLocal
+  let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
+  desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
 
-      Map.lookup "Name" desktopContent `shouldBe` Just expectedName
+  Map.lookup "Name" desktopContent `shouldBe` Just expectedName
 
-      for_ expectedExecutable $ \exec ->
-        case Map.lookup "Exec" desktopContent of
-          Just command -> command `shouldContainText` exec
-          Nothing -> expectationFailure "Exec field not found in desktop file"
+  for_ expectedExecutable $ \exec ->
+    case Map.lookup "Exec" desktopContent of
+      Just command -> command `shouldContainText` exec
+      Nothing -> expectationFailure "Exec field not found in desktop file"
 
-      for_ (Map.lookup "Icon" desktopContent) assertIconExists
-    _ -> pure ()
+  for_ (Map.lookup "Icon" desktopContent) assertIconExists
 
 pngResolutions :: [Text]
 pngResolutions = do
@@ -60,23 +56,19 @@ assertIconExists ::
   Text ->
   Eff es ()
 assertIconExists iconName = do
-  os <- drvOS
-  case os of
-    Linux _ -> do
-      local <- drvLocal
-      let iconsDir = local </> "share" </> "icons"
+  local <- drvLocal
+  let iconsDir = local </> "share" </> "icons"
 
-      drvIsDir iconsDir >>= (`shouldBe` True)
+  drvIsDir iconsDir >>= (`shouldBe` True)
 
-      iconExists <- anyM (\p -> drvIsFile (iconsDir <//> p)) (iconPaths iconName)
-      unless iconExists $ do
-        allFiles <- drvFind iconsDir (mempty{onlyFiles = True})
-        expectationFailure $
-          "Icon '"
-            <> Text.unpack iconName
-            <> "' not found. Files in icons directory: "
-            <> show allFiles
-    _ -> pure ()
+  iconExists <- anyM (\p -> drvIsFile (iconsDir <//> p)) (iconPaths iconName)
+  unless iconExists $ do
+    allFiles <- drvFind iconsDir (mempty{onlyFiles = True})
+    expectationFailure $
+      "Icon '"
+        <> Text.unpack iconName
+        <> "' not found. Files in icons directory: "
+        <> show allFiles
 
 spec :: Spec
 spec = do
