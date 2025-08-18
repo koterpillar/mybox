@@ -14,7 +14,7 @@ import Mybox.Stores
 import Mybox.Tracker
 
 preinstallNode :: (AppDisplay :> es, Driver :> es, Stores :> es) => Eff es ()
-preinstallNode = nullTrackerSession $ runInstallQueue $ do
+preinstallNode = nullTrackerSession $ runInstallQueue_ $ do
   os <- drvOS
   case os of
     Linux _ -> ensureInstalled $ mkSystemPackage "nodejs"
