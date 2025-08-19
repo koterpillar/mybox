@@ -24,14 +24,13 @@ assertDesktopFileExists fileName expectedName expectedExecutable = do
 
   Map.lookup "Name" desktopContent `shouldBe` Just expectedName
 
-  for_ expectedExecutable $ \exec ->
-    case Map.lookup "Exec" desktopContent of
-      Just command -> command `shouldContainText` exec
-      Nothing -> expectationFailure "Exec field not found in desktop file"
+  for_ expectedExecutable $ \exec -> do
+    command <- assertKeyExists "desktop file" "Exec" desktopContent
+    command `shouldContainText` exec
 
   let iconsDir = local </> "share" </> "icons"
   for_ (Map.lookup "Icon" desktopContent) $ \iconName ->
-    assertAnyExists ("Icon " <> iconName) iconsDir (iconPaths iconName)
+    assertAnyFileExists ("Icon " <> iconName) iconsDir (iconPaths iconName)
 
 pngResolutions :: [Text]
 pngResolutions = do
