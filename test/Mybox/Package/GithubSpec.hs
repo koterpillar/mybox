@@ -1,6 +1,5 @@
 module Mybox.Package.GithubSpec where
 
-import Control.Monad.Extra (anyM)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
@@ -11,6 +10,7 @@ import Mybox.Package.Github
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Spec.Assertions
 import Mybox.SpecBase
 
 -- | Assert that a desktop file exists with the given name and optional executable
@@ -29,7 +29,9 @@ assertDesktopFileExists fileName expectedName expectedExecutable = do
       Just command -> command `shouldContainText` exec
       Nothing -> expectationFailure "Exec field not found in desktop file"
 
-  for_ (Map.lookup "Icon" desktopContent) assertIconExists
+  let iconsDir = local </> "share" </> "icons"
+  for_ (Map.lookup "Icon" desktopContent) $ \iconName ->
+    assertAnyExists ("Icon " <> iconName) iconsDir (iconPaths iconName)
 
 pngResolutions :: [Text]
 pngResolutions = do
@@ -49,26 +51,6 @@ iconPaths name = do
     "svg" -> ["scalable"]
     _ -> terror $ "Unexpected icon extension: " <> ext
   pure $ "hicolor" </> size </> "apps" </> (base <> "." <> ext)
-
-assertIconExists ::
-  forall es.
-  (Driver :> es, IOE :> es) =>
-  Text ->
-  Eff es ()
-assertIconExists iconName = do
-  local <- drvLocal
-  let iconsDir = local </> "share" </> "icons"
-
-  drvIsDir iconsDir >>= (`shouldBe` True)
-
-  iconExists <- anyM (\p -> drvIsFile (iconsDir <//> p)) (iconPaths iconName)
-  unless iconExists $ do
-    allFiles <- drvFind iconsDir (mempty{onlyFiles = True})
-    expectationFailure $
-      "Icon '"
-        <> Text.unpack iconName
-        <> "' not found. Files in icons directory: "
-        <> show allFiles
 
 spec :: Spec
 spec = do

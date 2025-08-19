@@ -195,6 +195,7 @@ test-suite tests
       Mybox.Package.URLSpec
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
+      Mybox.Spec.Assertions
       Mybox.SpecBase
       Mybox.SpecHook
       Mybox.StoresSpec
