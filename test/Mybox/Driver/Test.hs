@@ -15,21 +15,15 @@ import Mybox.Driver.IO
 import Mybox.Driver.Ops
 import Mybox.Platform
 import Mybox.Prelude
+import Mybox.Spec.Utils
 
 pureDriver :: (Args -> Maybe Text) -> Eff (Driver : es) a -> Eff es a
 pureDriver run = interpret_ $ \case
   DrvRun exitBehavior outputBehavior args ->
-    case run args of
-      Just result -> pure $ rrSuccess exitBehavior outputBehavior result
-      Nothing -> do
-        let exit = case exitBehavior of
-              RunExitError -> terror $ "Unexpected command: " <> Text.pack (show args)
-              RunExitReturn -> ExitFailure 1
-        let output = case outputBehavior of
-              RunOutputShow -> ()
-              RunOutputHide -> ()
-              RunOutputReturn -> ""
-        pure $ RunResult{..}
+    pure $
+      rrSuccess exitBehavior outputBehavior $
+        requireJust ("pureDriver: unexpected command " <> show args) $
+          run args
 
 modifyDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a
 modifyDriver run = interpose_ $ \case
