@@ -55,24 +55,23 @@ spec :: Spec
 spec = do
   jsonSpec (Nothing @GithubPackage) [(Nothing, "{\"repo\": \"example/example\"}")]
 
-  skipIf ((== Aarch64) <$> drvArchitecture) $
-    packageSpec $ \psa ->
-      ps
-        ( (mkGithubPackage "neovim/neovim")
-            { Mybox.Package.Github.binaries = ["nvim"]
-            , Mybox.Package.Github.apps = case psa.os of
-                Linux _ -> ["nvim"]
-                _ -> []
-            }
+  packageSpec $ \psa ->
+    ps
+      ( (mkGithubPackage "neovim/neovim")
+          { Mybox.Package.Github.binaries = ["nvim"]
+          , Mybox.Package.Github.apps = case psa.os of
+              Linux _ -> ["nvim"]
+              _ -> []
+          }
+      )
+      & checkInstalled
+        ( do
+            commandHasOutput ("nvim" :| ["--version"]) "NVIM"
+            case psa.os of
+              Linux _ -> do
+                assertDesktopFileExists "nvim" "Neovim" (Just "nvim")
+              _ -> pure ()
         )
-        & checkInstalled
-          ( do
-              commandHasOutput ("nvim" :| ["--version"]) "NVIM"
-              case psa.os of
-                Linux _ -> do
-                  assertDesktopFileExists "nvim" "Neovim" (Just "nvim")
-                _ -> pure ()
-          )
 
   -- Eza does not provide macOS binaries
   onlyIfOS (\case Linux _ -> True; _ -> False) $
