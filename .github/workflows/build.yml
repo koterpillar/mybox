@@ -120,12 +120,44 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  publish:
+  build:
     needs:
       - lint
       - lint-python
       - test
+    if: ${{ github.ref == 'refs/heads/main' }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu
+          - os: ubuntu
+            arch: arm
+          - os: macos
+    runs-on: ${{ matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || format('{0}-latest', matrix.os) }}
+    name: "Build (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install dependencies
+        run: ./bin/install-dev --no-lint --no-python
+      - id: compile
+        name: Compile
+        uses: freckle/stack-action@v5
+        with:
+          test: false
+      - name: Move executable
+        run: cp ${{ steps.compile.outputs.local-install-root }}/bin/mybox ./mybox-$(uname)-$(uname -m)
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.os }}-${{ matrix.arch || 'default' }}
+          path: mybox-*
+
+  publish:
+    needs:
+      - build
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
       contents: write
     steps:
@@ -143,6 +175,12 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: ./bin/install-dev --no-lint --no-haskell
+      - name: Download executables
+        uses: actions/download-artifact@v5
+        with:
+          pattern: 'executable-*'
+          merge-multiple: true
+          path: ./executables
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
