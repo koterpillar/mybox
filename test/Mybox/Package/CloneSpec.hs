@@ -3,6 +3,7 @@ module Mybox.Package.CloneSpec where
 import Mybox.Driver
 import Mybox.Package.Clone
 import Mybox.Package.SpecBase
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -22,6 +23,7 @@ spec = do
   packageSpec $ \psa ->
     baseClone psa
       & psName "branch switch"
+      & preinstallPackage (mkSystemPackage "git")
       & preinstall (checkoutEarlierCommit psa)
   packageSpec $ \psa ->
     baseClone psa

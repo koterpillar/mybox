@@ -18,8 +18,8 @@ ghcVersion v = v > "8." && v < "99"
 installerSpec :: Installer -> Spec
 installerSpec i = do
   describe "iInstalledVersion" $ do
-    it "returns Git version" $
-      iInstalledVersion i "git" >>= (`shouldSatisfy` any gitVersion)
+    it "returns cURL version" $
+      iInstalledVersion i "curl" >>= (`shouldSatisfy` any gitVersion)
     it "returns None for non-installed package" $
       iInstalledVersion i "fish" >>= (`shouldBe` Nothing)
     it "fails for non-existent package" $

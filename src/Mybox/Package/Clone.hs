@@ -6,7 +6,10 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.Destination
+import Mybox.Package.Effects
 import Mybox.Package.Post
+import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
 
@@ -47,6 +50,9 @@ instance ToJSON ClonePackage where
       ]
         <> postToJSON p
 
+prerequisites :: DIST es => Eff es ()
+prerequisites = queueInstall $ mkSystemPackage "git"
+
 cpRemote :: ClonePackage -> Text
 cpRemote p
   | Text.isPrefixOf "https://" r = r
@@ -75,15 +81,19 @@ cpRevParse branch abbrevRef p =
   cpGitArgs (join [["rev-parse"], ["--abbrev-ref" | abbrevRef], [branch]]) p
     >>= drvRunOutput
 
-cpLocalVersion :: Driver :> es => ClonePackage -> Eff es (Maybe Text)
+cpLocalVersion :: DIST es => ClonePackage -> Eff es (Maybe Text)
 cpLocalVersion p = do
   exists <- destinationExists p
   if exists
-    then Just <$> cpRevParse "HEAD" False p
+    then do
+      prerequisites
+      Just <$> cpRevParse "HEAD" False p
     else pure Nothing
 
-cpRemoteVersion :: Driver :> es => ClonePackage -> Eff es Text
-cpRemoteVersion p = drvRepoBranchVersion (cpRemote p) p.branch
+cpRemoteVersion :: DIST es => ClonePackage -> Eff es Text
+cpRemoteVersion p = do
+  prerequisites
+  drvRepoBranchVersion (cpRemote p) p.branch
 
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"
@@ -91,8 +101,9 @@ cpDefaultRemote = "origin"
 cpRemoteBranch :: Text -> Text
 cpRemoteBranch b = cpDefaultRemote <> "/" <> b
 
-cpInstall :: (Driver :> es, TrackerSession :> es) => ClonePackage -> Eff es ()
+cpInstall :: DIST es => ClonePackage -> Eff es ()
 cpInstall p = do
+  prerequisites
   destination <- destinationPath p
   exists <- drvIsDir $ destination </> ".git"
   if exists
