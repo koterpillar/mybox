@@ -49,7 +49,30 @@ sudo_() {
   fi
 }
 
-case "$(uname -s)" in
+download() {
+  URL="$1"
+  DESTINATION="$2"
+
+  if ! [ -f "$DESTINATION" ]
+  then
+    mkdir -p "$(dirname "$DESTINATION")"
+    touch -t 200001010000 "$DESTINATION"
+  fi
+
+  TEMP_FILE=$(mktemp)
+  trap 'rm -f "$TEMP_FILE"' EXIT
+  curl -fsSL "$URL" -z "$DESTINATION" -o "$TEMP_FILE"
+  if [ -s "$TEMP_FILE" ]
+  then
+    mv "$TEMP_FILE" "$DESTINATION"
+    chmod +rx "$DESTINATION"
+  fi
+}
+
+OS_KIND=$(uname -s)
+ARCH=$(uname -m)
+
+case "$OS_KIND" in
   Darwin)
     brew_env() {
       if [ -d /opt/homebrew ]
@@ -104,23 +127,17 @@ case "$(uname -s)" in
     ;;
 esac
 
+if [ -z "$OPT_DEVELOPMENT" ]
+then
+  download \
+    "https://github.com/koterpillar/mybox/releases/latest/download/mybox_${OS_KIND}_${ARCH}" \
+    "$HOME/.local/bin/mybox"
+fi
+
 if [ -n "$OPT_PYTHON" ]
 then
   PIPX="$HOME/.local/mybox/pipx"
-  if ! [ -f "$PIPX" ]
-  then
-    mkdir -p "$(dirname "$PIPX")"
-    touch -t 200001010000 "$PIPX"
-  fi
-
-  PIPX_TEMP=$(mktemp)
-  trap 'rm -f "$PIPX_TEMP"' EXIT
-  curl -fsSL https://github.com/pypa/pipx/releases/latest/download/pipx.pyz -z "$PIPX" -o "$PIPX_TEMP"
-  if [ -s "$PIPX_TEMP" ]
-  then
-    mv "$PIPX_TEMP" "$PIPX"
-    chmod +rx "$PIPX"
-  fi
+  download "https://github.com/pypa/pipx/releases/latest/download/pipx.pyz" "$PIPX"
 
   if [ -z "$OPT_DEVELOPMENT" ]
   then

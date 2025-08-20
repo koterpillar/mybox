@@ -29,7 +29,7 @@ different ones for different roles).
   /bin/bash -c "$(curl -fsSL https://github.com/koterpillar/mybox/releases/latest/download/bootstrap)"
   ```
 
-* Run `mybox` from the directory with package definitions.
+* Run `mybox-python` from the directory with package definitions.
 
   For package definition examples, see
   [koterpillar/desktop](https://github.com/koterpillar/desktop/).
@@ -51,7 +51,7 @@ Run [`./bin/test`](bin/test) to execute the project's tests.
 * Run `poetry install`.
 * Run `poetry shell`.
 * In the launched shell, go to the directory with package definitions.
-* Run `mybox` with the desired arguments.
+* Run `mybox-python` with the desired arguments.
 
 ### Releasing
 
