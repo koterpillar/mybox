@@ -112,9 +112,9 @@ jobs:
           DOCKER_IMAGE: ${{ matrix.docker }}
       - name: Prepare coverage
         if: ${{ matrix.part == 'Haskell' }}
-        run: |
-          stack install hpc-codecov
-          hpc-codecov stack:all --out codecov.json --format codecov --verbose
+        uses: 8c6794b6/hpc-codecov-action@v4
+        with:
+          target: stack:all
       - name: Upload coverage
         uses: codecov/codecov-action@v5
         env:
