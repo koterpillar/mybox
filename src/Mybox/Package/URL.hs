@@ -12,12 +12,7 @@ import Mybox.Prelude
 
 data URLPackage = URLPackage
   { url :: Text
-  , raw :: Either Text Bool
-  , binaries :: [Text]
-  , binaryWrapper :: Bool
-  , binaryPaths :: [Path Rel]
-  , apps :: [Text]
-  , fonts :: [Text]
+  , archive :: ArchiveFields
   , post :: [Text]
   }
   deriving (Eq, Show)
@@ -26,22 +21,17 @@ instance FromJSON URLPackage where
   parseJSON = withObject "URLPackage" $ \o -> do
     url <- o .: "url"
     post <- parsePost o
-    ArchiveFields{..} <- parseArchive o
+    archive <- parseArchive o
     pure $ URLPackage{..}
 
 instance ToJSON URLPackage where
-  toJSON p = object $ ["url" .= p.url] <> archiveToJSON p <> postToJSON p
+  toJSON p = object $ ["url" .= p.url] <> archiveToJSON p.archive <> postToJSON p
 
 mkURLPackage :: Text -> URLPackage
 mkURLPackage url =
   URLPackage
     { url = url
-    , raw = Right False
-    , binaries = []
-    , binaryWrapper = False
-    , binaryPaths = []
-    , apps = []
-    , fonts = []
+    , archive = emptyArchiveFields
     , post = []
     }
 

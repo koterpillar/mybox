@@ -15,12 +15,7 @@ import Mybox.Prelude
 data GithubPackage = GithubPackage
   { repo :: Text
   , skipReleases :: [Text]
-  , raw :: Either Text Bool
-  , binaries :: [Text]
-  , binaryWrapper :: Bool
-  , binaryPaths :: [Path Rel]
-  , apps :: [Text]
-  , fonts :: [Text]
+  , archive :: ArchiveFields
   , filters :: FilterFields
   , post :: [Text]
   }
@@ -31,12 +26,7 @@ mkGithubPackage repo =
   GithubPackage
     { repo = repo
     , skipReleases = []
-    , raw = Right False
-    , binaries = []
-    , binaryWrapper = False
-    , binaryPaths = []
-    , apps = []
-    , fonts = []
+    , archive = emptyArchiveFields
     , filters = mempty
     , post = []
     }
@@ -48,7 +38,7 @@ instance FromJSON GithubPackage where
   parseJSON = withObject "GithubPackage" $ \o -> do
     repo <- o .: "repo"
     skipReleases <- parseCollapsedList o "skip_release"
-    ArchiveFields{..} <- parseArchive o
+    archive <- parseArchive o
     filters <- parseFilter o
     post <- parsePost o
     pure GithubPackage{..}
@@ -59,7 +49,7 @@ instance ToJSON GithubPackage where
       [ "repo" .= p.repo
       , "skip_release" .= p.skipReleases
       ]
-        <> archiveToJSON p
+        <> archiveToJSON p.archive
         <> filterToJSON p.filters
         <> postToJSON p
 

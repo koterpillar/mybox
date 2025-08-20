@@ -39,6 +39,7 @@ library
       Mybox.Installer.Flatpak
       Mybox.Main
       Mybox.Package.Archive
+      Mybox.Package.Archive.Internal
       Mybox.Package.BrewRepo
       Mybox.Package.Class
       Mybox.Package.Clone
@@ -179,6 +180,7 @@ test-suite tests
       Mybox.Installer.DNFSpec
       Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
+      Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec
       Mybox.Package.CloneSpec
       Mybox.Package.DaemonSpec

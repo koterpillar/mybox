@@ -58,10 +58,13 @@ spec = do
   packageSpec $ \psa ->
     ps
       ( (mkGithubPackage "neovim/neovim")
-          { Mybox.Package.Github.binaries = ["nvim"]
-          , Mybox.Package.Github.apps = case psa.os of
-              Linux _ -> ["nvim"]
-              _ -> []
+          { archive =
+              emptyArchiveFields
+                { binaries = ["nvim"]
+                , apps = case psa.os of
+                    Linux _ -> ["nvim"]
+                    _ -> []
+                }
           }
       )
       & checkInstalled
@@ -78,7 +81,10 @@ spec = do
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "eza-community/eza")
-            { binaries = ["eza"]
+            { archive =
+                emptyArchiveFields
+                  { binaries = ["eza"]
+                  }
             , filters =
                 mempty
                   { excludes = [".zip", "no_libgit"]
@@ -90,8 +96,11 @@ spec = do
   packageSpec $ \psa ->
     ps
       ( (mkGithubPackage "com-lihaoyi/Ammonite")
-          { binaries = ["amm"]
-          , raw = Left "amm"
+          { archive =
+              emptyArchiveFields
+                { binaries = ["amm"]
+                , raw = Left "amm"
+                }
           , filters =
               mempty
                 { prefixes = ["3.6-"]
@@ -109,8 +118,11 @@ spec = do
   packageSpec $ \_ ->
     ps
       ( (mkGithubPackage "jqlang/jq")
-          { Mybox.Package.Github.binaries = ["jq"]
-          , Mybox.Package.Github.raw = Left "jq"
+          { archive =
+              emptyArchiveFields
+                { binaries = ["jq"]
+                , raw = Left "jq"
+                }
           }
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
@@ -119,7 +131,8 @@ spec = do
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "tonsky/FiraCode")
-            { Mybox.Package.Github.fonts = ["FiraCode-Regular"]
+            { archive =
+                emptyArchiveFields{fonts = ["FiraCode-Regular"]}
             }
         )
         & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
