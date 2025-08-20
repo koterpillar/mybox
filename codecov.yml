@@ -1,0 +1,2 @@
+ignore:
+  - test/Mybox/Spec  # Extra functionality when tests fail, unused when they pass

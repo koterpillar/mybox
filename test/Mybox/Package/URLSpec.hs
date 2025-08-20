@@ -1,6 +1,7 @@
 module Mybox.Package.URLSpec where
 
 import Mybox.Driver
+import Mybox.Package.Archive
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.SpecBase
@@ -26,11 +27,11 @@ spec = do
       let package = mkURLPackage "https://example.com/package.tar.gz"
       package.name `shouldBe` "example.com/package"
   packageSpec $ \_ ->
-    ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){binaries = ["yarn"], binaryWrapper = True})
+    ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){archive = emptyArchiveFields{binaries = ["yarn"], binaryWrapper = True}})
       & preinstall preinstallNode
       & checkInstalledCommandOutput ("yarn" :| ["--help"]) "Usage: yarn"
   packageSpec $ \_ ->
-    ps ((mkURLPackage "https://ftp.debian.org/debian/README"){raw = Right True})
+    ps ((mkURLPackage "https://ftp.debian.org/debian/README"){archive = emptyArchiveFields{raw = Right True}})
       & checkInstalledCommandOutput
         (shellRaw "cat ~/.local/mybox/ftp.debian.org--README/README")
         "Debian GNU/Linux"

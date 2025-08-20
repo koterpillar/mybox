@@ -4,9 +4,10 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Package.Archive
 import Mybox.Package.Class
 import Mybox.Package.Effects
-import Mybox.Package.Github qualified as Github
+import Mybox.Package.Github hiding (repo)
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Queue
@@ -60,9 +61,8 @@ prerequisites p = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
   queueInstall $
-    (Github.mkGithubPackage "pypa/pipx")
-      { Github.binaries = ["pipx"]
-      , Github.raw = Left "pipx"
+    (mkGithubPackage "pypa/pipx")
+      { archive = emptyArchiveFields{binaries = ["pipx"], raw = Left "pipx"}
       }
   when (isRepo p) $
     queueInstall $

@@ -48,7 +48,7 @@ else
   STACK="$(dirname "$0")"/docker-stack
 fi
 
-STACK_BIN="$("$STACK" path --local-install-root | sed -E 's/\r//g')"/bin
+STACK_BIN="$("$STACK" path --local-install-root | grep -v 'Interrupted system call' | sed -E 's/\r//g')"/bin
 if [ ! -d "$STACK_BIN" ]; then
   echo "Stack binary directory not found: $STACK_BIN" >&2
   exit 1
