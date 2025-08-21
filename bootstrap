@@ -130,7 +130,7 @@ esac
 if [ -z "$OPT_DEVELOPMENT" ]
 then
   download \
-    "https://github.com/koterpillar/mybox/releases/latest/download/mybox_${OS_KIND}_${ARCH}" \
+    "https://github.com/koterpillar/mybox/releases/latest/download/mybox-${OS_KIND}-${ARCH}" \
     "$HOME/.local/bin/mybox"
 fi
 
