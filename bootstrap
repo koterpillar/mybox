@@ -53,6 +53,10 @@ download() {
   URL="$1"
   DESTINATION="$2"
 
+  if [ -L "$DESTINATION" ]
+  then
+    rm "$DESTINATION"
+  fi
   if ! [ -f "$DESTINATION" ]
   then
     mkdir -p "$(dirname "$DESTINATION")"
