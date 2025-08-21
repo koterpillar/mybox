@@ -53,6 +53,10 @@ download() {
   URL="$1"
   DESTINATION="$2"
 
+  if [ -L "$DESTINATION" ]
+  then
+    rm "$DESTINATION"
+  fi
   if ! [ -f "$DESTINATION" ]
   then
     mkdir -p "$(dirname "$DESTINATION")"
@@ -130,7 +134,7 @@ esac
 if [ -z "$OPT_DEVELOPMENT" ]
 then
   download \
-    "https://github.com/koterpillar/mybox/releases/latest/download/mybox_${OS_KIND}_${ARCH}" \
+    "https://github.com/koterpillar/mybox/releases/latest/download/mybox-${OS_KIND}-${ARCH}" \
     "$HOME/.local/bin/mybox"
 fi
 
