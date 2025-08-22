@@ -36,6 +36,7 @@ dependencies:
   - Glob
   - mtl
   - network-uri
+  - optparse-applicative
   - process-extras
   - random
   - safe-exceptions
