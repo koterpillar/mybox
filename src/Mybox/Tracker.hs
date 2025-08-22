@@ -65,19 +65,46 @@ data Tracker :: Effect where
 
 type instance DispatchOf Tracker = Dynamic
 
-trkSession :: Tracker :> es => Eff (TrackerSession : es) a -> Eff es a
-trkSession act = do
-  ts0 <- send TrkGet
-  (r, ts1) <-
+-- | Given sets of tracked files before and after, which files should be deleted?
+toDelete :: Bool -> Set TrackedFile -> Set TrackedFile -> Set (Path Abs)
+toDelete True old new = (Set.difference `on` Set.map (.path)) old new
+toDelete False old new =
+  Set.map (.path) $ Set.filter removedFromExistingPackage old
+ where
+  removedFromExistingPackage tf
+    | not (Set.member tf.name newPackages) = False
+    | Set.member tf.path newPaths = False
+    | otherwise = True
+  newPackages = Set.map (.name) new
+  newPaths = Set.map (.path) new
+
+-- | Given sets of tracked files before and after, what to record as the action result?
+trackResult :: Bool -> Set TrackedFile -> Set TrackedFile -> Set TrackedFile
+trackResult True _ new = new
+trackResult False old new = Set.union new $ Set.filter fromUnrelatedPackage old
+ where
+  fromUnrelatedPackage tf = Set.notMember tf.name $ Set.map (.name) new
+
+-- | Record the files from packages installed by the action and remove the
+-- orphaned ones.
+trkSession ::
+  Tracker :> es =>
+  -- | Whether to remove files from packages not installed/skipped during the action
+  Bool ->
+  -- | Action to run
+  Eff (TrackerSession : es) a ->
+  Eff es a
+trkSession total act = do
+  tsOld <- send TrkGet
+  (r, tsNew) <-
     reinterpretWith_
       (runState mempty)
       (inject act)
       $ \case
         TrkAdd pkg file -> modify $ Set.insert $ tfMake pkg file
-        TrkSkip pkg -> modify $ Set.union $ Set.filter (tfBelongsTo pkg) ts0
-  let deletedFiles = (Set.difference `on` Set.map (.path)) ts0 ts1
-  for_ deletedFiles $ send . TrkRemove
-  send $ TrkSet ts1
+        TrkSkip pkg -> modify $ Set.union $ Set.filter (tfBelongsTo pkg) tsOld
+  for_ (toDelete total tsOld tsNew) $ send . TrkRemove
+  send $ TrkSet $ trackResult total tsOld tsNew
   pure r
 
 nullTracker :: Eff (Tracker : es) a -> Eff es a
@@ -87,7 +114,7 @@ nullTracker = interpret_ $ \case
   TrkRemove _ -> pure ()
 
 nullTrackerSession :: Eff (TrackerSession : es) a -> Eff es a
-nullTrackerSession = nullTracker . trkSession . inject
+nullTrackerSession = nullTracker . trkSession True . inject
 
 data TrackerState = TrackerState
   { tracked :: !(Set TrackedFile)

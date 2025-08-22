@@ -17,6 +17,6 @@ main =
         config <- getConfig
         state <- drvMyboxState
         drvTracker (state </> "files.json") $
-          trkSession $
+          trkSession True $
             runInstallQueue $
               for_ config.packages queueInstall

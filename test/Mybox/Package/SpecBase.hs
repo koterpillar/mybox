@@ -119,7 +119,7 @@ packageSpec makePS =
             preinstall_ s
             preexistingFiles <- trackableFiles s
             ((), ts) <-
-              stateTracker mempty $ trkSession $ runInstallQueue $ do
+              stateTracker mempty $ trkSession True $ runInstallQueue $ do
                 install p
                 checkVersionMatches p
             checkAllTracked s preexistingFiles ts
