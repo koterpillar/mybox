@@ -14,7 +14,7 @@ main =
   runEff $ do
     runStores $
       localDriver $ do
-        config <- readConfig
+        config <- getConfig
         state <- drvMyboxState
         drvTracker (state </> "files.json") $
           trkSession $
