@@ -117,8 +117,12 @@ case "$OS_KIND" in
     esac
 
     ensure curl
-    ensure git
     ensure sudo
+
+    if [ -n "$OPT_PYTHON" ]
+    then
+      ensure git
+    fi
 
     case $DISTRO in
       debian|ubuntu)

@@ -73,6 +73,7 @@ ps p =
           [ pMyboxState </> "versions"
           , ".cache"
           , mkPath "Library/Caches"
+          , mkPath ".local/state/dnf5.log"
           ]
     }
 

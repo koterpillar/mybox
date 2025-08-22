@@ -99,11 +99,11 @@ localVersionPipx p = do
       pure $ metadata >>= (.version)
 
 remoteVersionPipx :: DIST es => PipxPackage -> Eff es Text
-remoteVersionPipx p =
+remoteVersionPipx p = do
+  prerequisites p
   case repo p of
     Just r -> drvRepoBranchVersion r Nothing
     Nothing -> do
-      prerequisites p
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]
