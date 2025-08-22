@@ -6,9 +6,16 @@ import Mybox.Package.Some
 import Mybox.Prelude
 import Mybox.Utils
 
-newtype Config = Config
-  { packages :: [SomePackage]
+data Config = Config
+  { installSet :: Text
+  , packages :: [SomePackage]
   }
+
+defaultInstallSet :: Text
+defaultInstallSet = "default"
+
+inlineInstallSet :: Text
+inlineInstallSet = "inline"
 
 componentMatches :: Driver :> es => Match -> Eff es Bool
 componentMatches m = do
@@ -17,3 +24,6 @@ componentMatches m = do
     Just hosts -> do
       host <- drvHostname
       pure $ any (`glob` host) hosts
+
+instance HasField "stateFilename" Config (Path Rel) where
+  getField c = pSegment $ c.installSet <> ".yaml"

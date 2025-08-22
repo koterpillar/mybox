@@ -177,6 +177,7 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
+      Mybox.Config.CommandLineSpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
       Mybox.ExtractorSpec

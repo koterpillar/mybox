@@ -16,7 +16,7 @@ main =
       localDriver $ do
         config <- getConfig
         state <- drvMyboxState
-        drvTracker (state </> "files.json") $
+        drvTracker (state <//> config.stateFilename) $
           trkSession $
             runInstallQueue $
               for_ config.packages queueInstall

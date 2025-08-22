@@ -18,8 +18,12 @@ readYAML p =
     >>= parseThrow (parseJSONWithContext p.text)
 
 readConfig :: Driver :> es => CommandLine -> Eff es Config
-readConfig _ = do
-  let configDirectory = pWiden pCurrent
+readConfig c@CmdInline{} = do
+  let packages = c.inline
+  let installSet = fromMaybe inlineInstallSet c.installSet
+  pure $ Config{..}
+readConfig c@CmdDirectory{} = do
+  let configDirectory = fromMaybe (pWiden pCurrent) c.directory
   rootConfig <- readYAML $ configDirectory </> "mybox.yaml"
   matches <- filterM componentMatches rootConfig
   packages <- fmap (join . join) $
@@ -28,6 +32,7 @@ readConfig _ = do
         raw <- readYAML (configDirectory </> "packages" </> (component <> ".yaml"))
         componentPackages <- preprocess raw
         parseThrow parseJSON componentPackages
+  let installSet = fromMaybe defaultInstallSet c.installSet
   pure $ Config{..}
 
 getConfig :: (Driver :> es, IOE :> es) => Eff es Config
