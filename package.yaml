@@ -27,6 +27,7 @@ dependencies:
   - Glob
   - mtl
   - network-uri
+  - optparse-applicative
   - random
   - safe-exceptions
   - scalpel

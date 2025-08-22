@@ -4,6 +4,7 @@ import Data.List (intersperse)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Data.Version
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -12,10 +13,19 @@ import Mybox.Prelude
 
 data MDisplay
 
-newtype instance Log MDisplay = MLog {log :: Text}
+data instance Log MDisplay
+  = MLog Text
+  | MVersion Version
 
 instance TerminalShow (Log MDisplay) where
   terminalShow _ (MLog log) = [[tiMk log]]
+  terminalShow _ (MVersion version) =
+    [
+      [ tiMk "mybox"
+      , tiSpace
+      , tiMk $ Text.pack $ showVersion version
+      ]
+    ]
 
 data instance Banner MDisplay = MBanner
   { all :: Set Text

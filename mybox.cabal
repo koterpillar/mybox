@@ -24,6 +24,8 @@ library
       Mybox.Compute.URL
       Mybox.Concurrent
       Mybox.Config
+      Mybox.Config.Base
+      Mybox.Config.CommandLine
       Mybox.Config.Match
       Mybox.Display
       Mybox.Display.ANSI
@@ -108,6 +110,7 @@ library
     , extra
     , mtl
     , network-uri
+    , optparse-applicative
     , random
     , safe-exceptions
     , scalpel
@@ -150,6 +153,7 @@ executable mybox
     , mtl
     , mybox
     , network-uri
+    , optparse-applicative
     , random
     , safe-exceptions
     , scalpel
@@ -172,6 +176,7 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
+      Mybox.Config.CommandLineSpec
       Mybox.Display.ANSISpec
       Mybox.Display.None
       Mybox.Display.OpsSpec
@@ -251,6 +256,7 @@ test-suite tests
     , mtl
     , mybox
     , network-uri
+    , optparse-applicative
     , random
     , safe-exceptions
     , scalpel

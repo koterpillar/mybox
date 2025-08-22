@@ -12,8 +12,10 @@ module Mybox.Display (
   bannerFailed,
   MDisplay,
   displayLogText,
+  displayVersion,
 ) where
 
+import Data.Version
 import System.IO (Handle)
 
 import Mybox.Display.ANSI
@@ -34,3 +36,6 @@ runDisplay h act = do
 
 displayLogText :: AppDisplay :> es => Text -> Eff es ()
 displayLogText = displayLog . MLog
+
+displayVersion :: AppDisplay :> es => Version -> Eff es ()
+displayVersion = displayLog . MVersion
