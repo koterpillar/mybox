@@ -5,6 +5,7 @@ module Mybox.Display (
   displayModifyBanner,
   displayModifyBannerWhile,
   AppDisplay,
+  addChecking,
   addInstalling,
   MDisplay,
   displayLogText,
