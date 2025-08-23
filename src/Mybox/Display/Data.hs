@@ -17,14 +17,19 @@ instance TerminalShow (Log MDisplay) where
 instance Show (Log MDisplay) where
   show = dumbShow
 
-newtype instance Banner MDisplay = MBanner
-  { installing :: Set Text
+data instance Banner MDisplay = MBanner
+  { checking :: Set Text
+  , installing :: Set Text
   }
   deriving (Generic)
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
 instance TerminalShow (Banner MDisplay) where
-  terminalShow banner = catMaybes [bannerPart Green "installing" banner.installing]
+  terminalShow banner =
+    catMaybes
+      [ bannerPart Blue "checking" banner.checking
+      , bannerPart Green "installing" banner.installing
+      ]
 
 bannerPart :: Color -> Text -> Set Text -> Maybe [TerminalItem]
 bannerPart color label set
@@ -37,6 +42,9 @@ bannerPart color label set
 
 instance Show (Banner MDisplay) where
   show = dumbShow
+
+addChecking :: Text -> Banner MDisplay -> Banner MDisplay
+addChecking text banner = banner{checking = Set.insert text banner.checking}
 
 addInstalling :: Text -> Banner MDisplay -> Banner MDisplay
 addInstalling text banner = banner{installing = Set.insert text banner.installing}
