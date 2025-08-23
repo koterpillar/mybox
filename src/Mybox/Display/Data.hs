@@ -1,5 +1,6 @@
 module Mybox.Display.Data where
 
+import Data.List (intersperse)
 import Data.Set qualified as Set
 import Prelude hiding (log)
 
@@ -11,7 +12,7 @@ data MDisplay
 newtype instance Log MDisplay = MLog {log :: Text}
 
 instance TerminalShow (Log MDisplay) where
-  terminalShow (MLog log) = [[mkTerminalItem log]]
+  terminalShow (MLog log) = [[tiMk log]]
 
 instance Show (Log MDisplay) where
   show = dumbShow
@@ -23,12 +24,16 @@ newtype instance Banner MDisplay = MBanner
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
 instance TerminalShow (Banner MDisplay) where
-  terminalShow banner = catMaybes [bannerPart "installing" banner.installing]
+  terminalShow banner = catMaybes [bannerPart Green "installing" banner.installing]
 
-bannerPart :: Text -> Set Text -> Maybe [TerminalItem]
-bannerPart label set
+bannerPart :: Color -> Text -> Set Text -> Maybe [TerminalItem]
+bannerPart color label set
   | Set.null set = Nothing
-  | otherwise = Just $ mkTerminalItem label : map mkTerminalItem (toList set)
+  | otherwise =
+      Just $
+        (tiMk label){foreground = Just color}
+          : tiSpace
+          : intersperse tiComma (map tiMk (toList set))
 
 instance Show (Banner MDisplay) where
   show = dumbShow

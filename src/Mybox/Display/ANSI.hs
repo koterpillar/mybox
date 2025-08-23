@@ -1,4 +1,7 @@
-module Mybox.Display.ANSI where
+module Mybox.Display.ANSI (
+  supportsANSI,
+  runANSIDisplay,
+) where
 
 import Data.Text.IO qualified as Text
 import Effectful.Dispatch.Dynamic
@@ -37,10 +40,17 @@ runANSIDisplay =
         GetBanner -> get
     )
 
+mlist :: (a -> b) -> Maybe a -> [b]
+mlist f = toList . fmap f
+
 draw :: IOE :> es => [[TerminalItem]] -> Eff es ()
 draw items = liftIO $ do
   forM_ items $ \line -> do
     forM_ line $ \item -> do
+      setSGR $
+        [Reset]
+          ++ mlist (SetColor Foreground Dull) item.foreground
+          ++ mlist (SetColor Background Dull) item.background
       Text.putStr item.text
     Text.putStr "\n"
 

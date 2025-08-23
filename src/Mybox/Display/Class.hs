@@ -2,8 +2,11 @@ module Mybox.Display.Class (
   Display (..),
   Log,
   Banner,
+  Color (..),
   TerminalItem (..),
-  mkTerminalItem,
+  tiMk,
+  tiSpace,
+  tiComma,
   TerminalShow (..),
   dumbShow,
   displayLog,
@@ -16,6 +19,7 @@ import Data.Kind
 import Data.String
 import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
+import System.Console.ANSI
 import Prelude hiding (log)
 
 import Mybox.Prelude
@@ -50,16 +54,22 @@ displayModifyBannerWhile f act = do
   act `finally` displaySetBanner banner
 
 data TerminalItem = TerminalItem
-  { foreground :: Maybe ()
-  , background :: Maybe ()
+  { foreground :: Maybe Color
+  , background :: Maybe Color
   , text :: Text
   }
 
 instance IsString TerminalItem where
-  fromString = mkTerminalItem . Text.pack
+  fromString = tiMk . Text.pack
 
-mkTerminalItem :: Text -> TerminalItem
-mkTerminalItem text = TerminalItem{foreground = Nothing, background = Nothing, text}
+tiMk :: Text -> TerminalItem
+tiMk text = TerminalItem{foreground = Nothing, background = Nothing, text}
+
+tiComma :: TerminalItem
+tiComma = tiMk ","
+
+tiSpace :: TerminalItem
+tiSpace = tiMk " "
 
 class TerminalShow a where
   terminalShow :: a -> [[TerminalItem]]
