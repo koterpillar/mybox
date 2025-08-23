@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
-
 module Mybox.Package.Queue.Effect (InstallQueue (..)) where
 
 import Mybox.Prelude

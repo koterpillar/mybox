@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
-
 module Mybox.Stores (
   Iso,
   textIso,
