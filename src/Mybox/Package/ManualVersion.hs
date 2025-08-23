@@ -2,8 +2,8 @@ module Mybox.Package.ManualVersion (manualVersion, manualVersionInstall) where
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Prelude
 
 data InstallRecord = InstallRecord {hash :: Text, version :: Text} deriving (Eq, Generic, Ord, Show)
@@ -31,7 +31,7 @@ manualVersion p = do
         Nothing -> Nothing
         Just v -> if jsonEncode p == v.hash then Just v.version else Nothing
 
-manualVersionInstall :: (DIST es, Package p) => (p -> Eff es ()) -> p -> Eff es ()
+manualVersionInstall :: (App es, Package p) => (p -> Eff es ()) -> p -> Eff es ()
 manualVersionInstall installAct p = do
   v <- remoteVersion p
   installAct p

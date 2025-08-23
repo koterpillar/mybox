@@ -1,10 +1,10 @@
 module Mybox.Package.Flatpak (FlatpakPackage (..), mkFlatpakPackage) where
 
 import Mybox.Aeson
+import Mybox.Effects
 import Mybox.Installer
 import Mybox.Installer.Flatpak
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Prelude
@@ -31,17 +31,17 @@ instance ToJSON FlatpakPackage where
       ]
         <> postToJSON p
 
-flatpakRemoteVersion :: DIST es => FlatpakPackage -> Eff es Text
+flatpakRemoteVersion :: App es => FlatpakPackage -> Eff es Text
 flatpakRemoteVersion p = do
   queueInstall flatpakPackage
   iLatestVersion flatpak p.name
 
-flatpakLocalVersion :: DIST es => FlatpakPackage -> Eff es (Maybe Text)
+flatpakLocalVersion :: App es => FlatpakPackage -> Eff es (Maybe Text)
 flatpakLocalVersion p = do
   queueInstall flatpakPackage
   iInstalledVersion flatpak p.name
 
-flatpakInstall :: DIST es => FlatpakPackage -> Eff es ()
+flatpakInstall :: App es => FlatpakPackage -> Eff es ()
 flatpakInstall p = do
   queueInstall flatpakPackage
   alreadyInstalled <- isJust <$> flatpakLocalVersion p

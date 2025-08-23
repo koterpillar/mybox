@@ -11,14 +11,14 @@ import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Class
-import Mybox.Package.Effects
 import Mybox.Package.System
 import Mybox.Path
 import Mybox.Prelude
 
 data Extractor = Extractor
-  { extractExact :: forall es a. (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
+  { extractExact :: forall es a. (Anchor a, App es) => Path a -> Path Abs -> Eff es ()
   , description :: Text
   }
 
@@ -39,7 +39,7 @@ findContents sourceDir maxDepth = do
             else pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
         _ -> pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
 
-extract :: (Anchor a1, Anchor a2, DIST es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
+extract :: (Anchor a1, Anchor a2, App es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
 extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   (contentsDir, contents) <- findContents tmpdir 10
@@ -47,10 +47,10 @@ extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
     let target = pWiden targetDirectory <//> element
     drvCopy (contentsDir <//> element) target
 
-tar_ :: Maybe Text -> (forall es. DIST es => Eff es ()) -> Extractor
+tar_ :: Maybe Text -> (forall es. App es => Eff es ()) -> Extractor
 tar_ option ensure = Extractor{extractExact = extractTar, description = Text.unwords $ "tar" : toList option}
  where
-  extractTar :: (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
+  extractTar :: (Anchor a, App es) => Path a -> Path Abs -> Eff es ()
   extractTar archive targetDirectory = do
     ensure
     tarCmd <- drvFindExecutable ["gtar", "tar"]
@@ -71,7 +71,7 @@ tarXz = tar_ (Just "-J") ensureXz
 unzipE :: Extractor
 unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
  where
-  extractUnzip :: (Anchor a, DIST es) => Path a -> Path Abs -> Eff es ()
+  extractUnzip :: (Anchor a, App es) => Path a -> Path Abs -> Eff es ()
   extractUnzip archive targetDirectory = do
     unlessExecutableExists "unzip" $ ensureInstalled (mkSystemPackage "unzip")
     drvRun $ "unzip" :| ["-o", "-qq", archive.text, "-d", targetDirectory.text]
@@ -96,24 +96,24 @@ getExtractor :: Driver :> es => Text -> Eff es Extractor
 getExtractor = withRedirect guessExtractor $ terror "Unknown archive format"
 
 data RawExtractor = RawExtractor
-  { extractRaw_ :: forall es a1 a2. (Anchor a1, Anchor a2, DIST es) => Path a1 -> Path a2 -> Eff es ()
+  { extractRaw_ :: forall es a1 a2. (Anchor a1, Anchor a2, App es) => Path a1 -> Path a2 -> Eff es ()
   , description :: Text
   }
 
-mkRawExtractor :: Text -> (forall es a1 a2. (Anchor a1, Anchor a2, DIST es) => Path a1 -> Path a2 -> Eff es ()) -> RawExtractor
+mkRawExtractor :: Text -> (forall es a1 a2. (Anchor a1, Anchor a2, App es) => Path a1 -> Path a2 -> Eff es ()) -> RawExtractor
 mkRawExtractor description extractRaw_ = RawExtractor{extractRaw_ = extractRaw_, description}
 
-extractRaw :: (Anchor a1, Anchor a2, DIST es) => RawExtractor -> Path a1 -> Path a2 -> Eff es ()
+extractRaw :: (Anchor a1, Anchor a2, App es) => RawExtractor -> Path a1 -> Path a2 -> Eff es ()
 extractRaw e = extractRaw_ e
 
-pipeCommand :: (Anchor a1, Anchor a2, DIST es) => Text -> Path a1 -> Path a2 -> Eff es ()
+pipeCommand :: (Anchor a1, Anchor a2, App es) => Text -> Path a1 -> Path a2 -> Eff es ()
 pipeCommand command archive target = do
   drvRun $ shellRaw $ command <> " < " <> shellQuote archive.text <> " > " <> shellQuote target.text
 
 gunzip :: RawExtractor
 gunzip = mkRawExtractor "gunzip" $ pipeCommand "gunzip"
 
-ensureXz :: DIST es => Eff es ()
+ensureXz :: App es => Eff es ()
 ensureXz = unlessExecutableExists "xzcat" $ do
   prerequisite <- flip fmap drvOS $ \case
     Linux Fedora -> "xz"
@@ -126,7 +126,7 @@ xz = mkRawExtractor "xz" $ \archive target -> do
   ensureXz
   pipeCommand "xzcat" archive target
 
-ensureBunzip2 :: DIST es => Eff es ()
+ensureBunzip2 :: App es => Eff es ()
 ensureBunzip2 = unlessExecutableExists "bunzip2" $ do
   prerequisite <- flip fmap drvOS $ \case
     Linux _ -> Just "bzip2"

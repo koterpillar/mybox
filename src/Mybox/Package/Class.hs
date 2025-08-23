@@ -7,7 +7,7 @@ module Mybox.Package.Class (
 ) where
 
 import Mybox.Aeson
-import Mybox.Package.Effects
+import Mybox.Effects
 import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Tracker
@@ -16,11 +16,11 @@ class
   (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: DIST es => a -> Eff es Text
-  localVersion :: DIST es => a -> Eff es (Maybe Text)
-  install :: DIST es => a -> Eff es ()
+  remoteVersion :: App es => a -> Eff es Text
+  localVersion :: App es => a -> Eff es (Maybe Text)
+  install :: App es => a -> Eff es ()
 
-isInstalled :: (DIST es, Package a) => a -> Eff es Bool
+isInstalled :: (App es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
   lv <- localVersion pkg
   case lv of
@@ -29,7 +29,7 @@ isInstalled pkg = do
       rv <- remoteVersion pkg
       pure $ lv' == rv
 
-ensureInstalled :: (DIST es, Package a) => a -> Eff es ()
+ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = do
   installed <- isInstalled pkg
   if installed then trkSkip pkg else install pkg
