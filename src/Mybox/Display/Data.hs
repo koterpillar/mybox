@@ -1,7 +1,6 @@
 module Mybox.Display.Data where
 
 import Data.Set qualified as Set
-import Data.Text qualified as Text
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -11,8 +10,11 @@ data MDisplay
 
 newtype instance Log MDisplay = MLog {log :: Text}
 
+instance TerminalShow (Log MDisplay) where
+  terminalShow (MLog log) = [[mkTerminalItem log]]
+
 instance Show (Log MDisplay) where
-  show log = Text.unpack log.log
+  show = dumbShow
 
 newtype instance Banner MDisplay = MBanner
   { installing :: Set Text
@@ -20,18 +22,16 @@ newtype instance Banner MDisplay = MBanner
   deriving (Generic)
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
-instance Show (Banner MDisplay) where
-  show banner =
-    Text.unpack $
-      Text.intercalate "\n" $
-        catMaybes
-          [ bannerPart "installing" banner.installing
-          ]
+instance TerminalShow (Banner MDisplay) where
+  terminalShow banner = catMaybes [bannerPart "installing" banner.installing]
 
-bannerPart :: Text -> Set Text -> Maybe Text
+bannerPart :: Text -> Set Text -> Maybe [TerminalItem]
 bannerPart label set
   | Set.null set = Nothing
-  | otherwise = Just $ label <> ": " <> Text.intercalate ", " (toList set)
+  | otherwise = Just $ mkTerminalItem label : map mkTerminalItem (toList set)
+
+instance Show (Banner MDisplay) where
+  show = dumbShow
 
 addInstalling :: Text -> Banner MDisplay -> Banner MDisplay
 addInstalling text banner = banner{installing = Set.insert text banner.installing}

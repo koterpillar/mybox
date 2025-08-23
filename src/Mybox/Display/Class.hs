@@ -2,17 +2,20 @@ module Mybox.Display.Class (
   Display (..),
   Log,
   Banner,
+  TerminalItem (..),
+  mkTerminalItem,
+  TerminalShow (..),
+  dumbShow,
   displayLog,
   displaySetBanner,
   displayModifyBanner,
   displayModifyBannerWhile,
-  DisplayImpl (..),
-  runDisplayImpl,
 ) where
 
 import Data.Kind
+import Data.String
+import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
 import Prelude hiding (log)
 
 import Mybox.Prelude
@@ -46,24 +49,20 @@ displayModifyBannerWhile f act = do
   displaySetBanner (f banner)
   act `finally` displaySetBanner banner
 
-data DisplayImpl :: Type -> Effect where
-  DrawLog :: Log a -> DisplayImpl a m ()
-  DrawBanner :: Banner a -> DisplayImpl a m ()
+data TerminalItem = TerminalItem
+  { foreground :: Maybe ()
+  , background :: Maybe ()
+  , text :: Text
+  }
 
-type instance DispatchOf (DisplayImpl _) = Dynamic
+instance IsString TerminalItem where
+  fromString = mkTerminalItem . Text.pack
 
-runDisplayImpl ::
-  forall a es r.
-  (DisplayImpl a :> es, Monoid (Banner a)) =>
-  Eff (Display a : es) r ->
-  Eff es r
-runDisplayImpl =
-  reinterpret_
-    (evalState @(Banner a) mempty)
-    ( \case
-        Log log -> send $ DrawLog log
-        SetBanner banner -> do
-          put banner
-          send $ DrawBanner banner
-        GetBanner -> get
-    )
+mkTerminalItem :: Text -> TerminalItem
+mkTerminalItem text = TerminalItem{foreground = Nothing, background = Nothing, text}
+
+class TerminalShow a where
+  terminalShow :: a -> [[TerminalItem]]
+
+dumbShow :: TerminalShow a => a -> String
+dumbShow = Text.unpack . Text.unlines . map (Text.unwords . map (.text)) . terminalShow
