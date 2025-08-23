@@ -1,6 +1,7 @@
 module Mybox.Display.Simple (runSimpleDisplay) where
 
 import Effectful.Dispatch.Dynamic
+import Effectful.State.Static.Local
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -16,18 +17,12 @@ runSimpleDisplay ::
   Eff (Display a : es) r ->
   Eff es r
 runSimpleDisplay =
-  handle
-    . runDisplayImpl
-    . inject @_ @(Display a : DisplayImpl a : _) @_
-
-handle ::
-  forall a es r.
-  ( IOE :> es
-  , Show (Banner a)
-  , Show (Log a)
-  ) =>
-  Eff (DisplayImpl a : es) r ->
-  Eff es r
-handle = interpret_ $ \case
-  DrawLog log -> liftIO $ print log
-  DrawBanner banner -> liftIO $ print banner
+  reinterpret_
+    (evalState @(Banner a) mempty)
+    ( \case
+        Log log -> liftIO $ print log
+        SetBanner banner -> do
+          put banner
+          liftIO $ print banner
+        GetBanner -> get
+    )

@@ -1,10 +1,10 @@
 module Mybox.Display.ANSI where
 
-import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
 import Effectful.Dispatch.Dynamic
+import Effectful.State.Static.Local
 import System.Console.ANSI
-import System.IO (stdout)
+import System.IO (hFlush, stdout)
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -17,37 +17,41 @@ runANSIDisplay ::
   forall a es r.
   ( IOE :> es
   , Monoid (Banner a)
-  , Show (Banner a)
-  , Show (Log a)
+  , TerminalShow (Banner a)
+  , TerminalShow (Log a)
   ) =>
   Eff (Display a : es) r ->
   Eff es r
 runANSIDisplay =
-  handle
-    . runDisplayImpl
-    . inject @_ @(Display a : DisplayImpl a : _) @_
+  reinterpret_
+    (evalState @(Banner a) mempty)
+    ( \case
+        Log log -> do
+          eraseBanner
+          draw $ terminalShow log
+          get @(Banner a) >>= drawBanner
+        SetBanner banner -> do
+          eraseBanner
+          put banner
+          get @(Banner a) >>= drawBanner
+        GetBanner -> get
+    )
 
-handle ::
-  forall a es r.
-  ( IOE :> es
-  , Show (Banner a)
-  , Show (Log a)
-  ) =>
-  Eff (DisplayImpl a : es) r ->
-  Eff es r
-handle = interpret_ $ \case
-  DrawLog log -> liftIO $ print log
-  DrawBanner banner -> drawBanner banner
+draw :: IOE :> es => [[TerminalItem]] -> Eff es ()
+draw items = liftIO $ do
+  forM_ items $ \line -> do
+    forM_ line $ \item -> do
+      Text.putStr item.text
+    Text.putStr "\n"
 
-drawBanner :: (IOE :> es, Show (Banner a)) => Banner a -> Eff es ()
-drawBanner banner = liftIO $ do
-  pos <- getCursorPosition
-  let txt = Text.pack $ show banner
-  case pos of
-    Nothing -> Text.putStrLn txt -- fallback
-    Just (x, _) -> do
-      let nl = "\n"
-      Text.putStr nl
-      Text.putStr txt
-      cursorUp $ succ $ Text.count nl txt
-      setCursorColumn x
+drawBanner :: (IOE :> es, TerminalShow (Banner a)) => Banner a -> Eff es ()
+drawBanner banner = do
+  let items = terminalShow banner
+  draw items
+  liftIO $ do
+    cursorUp $ length items
+    setCursorColumn 0
+    hFlush stdout
+
+eraseBanner :: IOE :> es => Eff es ()
+eraseBanner = liftIO $ clearFromCursorToLineEnd
