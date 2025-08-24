@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Mybox.Display.ANSI (
   supportsANSI,
   runANSIDisplay,
@@ -29,16 +31,22 @@ runANSIDisplay =
   reinterpret_
     (evalState @(Banner a) mempty)
     ( \case
-        Log log -> do
-          eraseBanner
-          draw $ terminalShow log
-          get @(Banner a) >>= drawBanner
-        SetBanner banner -> do
-          eraseBanner
-          put banner
-          get @(Banner a) >>= drawBanner
+        Log log -> withBanner @(Banner a) $ draw $ terminalShow log
+        SetBanner banner -> withBanner @(Banner a) $ put banner
         GetBanner -> get
     )
+
+withBanner ::
+  forall banner es r.
+  (IOE :> es, State banner :> es, TerminalShow banner) =>
+  Eff es r ->
+  Eff es r
+withBanner act = do
+  oldBanner <- get @banner
+  eraseBanner oldBanner
+  act `finally` do
+    newBanner <- get @banner
+    drawBanner newBanner
 
 mlist :: (a -> b) -> Maybe a -> [b]
 mlist f = toList . fmap f
@@ -54,14 +62,22 @@ draw items = liftIO $ do
       Text.putStr item.text
     Text.putStr "\n"
 
-drawBanner :: (IOE :> es, TerminalShow (Banner a)) => Banner a -> Eff es ()
+drawBanner :: (IOE :> es, TerminalShow banner) => banner -> Eff es ()
 drawBanner banner = do
   let items = terminalShow banner
   draw items
-  liftIO $ do
-    cursorUp $ length items
-    setCursorColumn 0
-    hFlush stdout
+  backLines $ length items
 
-eraseBanner :: IOE :> es => Eff es ()
-eraseBanner = liftIO $ clearFromCursorToLineEnd
+eraseBanner :: (IOE :> es, TerminalShow banner) => banner -> Eff es ()
+eraseBanner banner = do
+  let lineCount = length $ terminalShow banner
+  replicateM_ lineCount $ do
+    liftIO $ clearFromCursorToLineEnd
+    liftIO $ putStrLn ""
+  backLines lineCount
+
+backLines :: IOE :> es => Int -> Eff es ()
+backLines n = liftIO $ do
+  cursorUp n
+  setCursorColumn 0
+  hFlush stdout
