@@ -15,6 +15,7 @@ module Mybox.Path (
   pRelativeTo_,
   pUnder,
   pRoot,
+  pCurrent,
   pLocal,
   pMyboxState,
 ) where
@@ -89,9 +90,6 @@ instance Anchor a => FromJSON (Path a) where
     t <- parseJSON v
     either fail pure $ mkPath_ t
 
-pRoot :: Path Abs
-pRoot = Path Abs_ []
-
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p
   | p.anchor == Abs = Just $ Path Abs_ p.segments
@@ -162,6 +160,12 @@ pRelativeTo_ a b =
 
 pUnder :: Path Abs -> Path Abs -> Bool
 pUnder a b = isJust $ pRelativeTo a b
+
+pRoot :: Path Abs
+pRoot = Path Abs_ []
+
+pCurrent :: Path Rel
+pCurrent = pSegment "."
 
 pLocal :: Path Rel
 pLocal = pSegment ".local"

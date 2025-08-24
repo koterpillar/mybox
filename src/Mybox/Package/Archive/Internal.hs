@@ -115,7 +115,7 @@ aFind p opt name = do
 binaryFind :: AFindOptions
 binaryFind =
   AFindOptions
-    { paths = [mkPath "", mkPath "bin"]
+    { paths = [pCurrent, mkPath "bin"]
     , requireExecutable = True
     , description = "binary"
     }

@@ -13,7 +13,7 @@ module Mybox.Aeson (
   parseJSONWithContext,
 ) where
 
-import Data.Aeson
+import Data.Aeson hiding (Options)
 import Data.Aeson.Extra
 import Data.Aeson.Types
 import Data.Bifunctor (first)

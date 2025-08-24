@@ -52,6 +52,9 @@ instance ToJSON SomePackage where
   toJSON (SomePackage f) = f toJSON
   toEncoding (SomePackage f) = f toEncoding
 
+instance Eq SomePackage where
+  (==) = (==) `on` toJSON
+
 instance Package SomePackage where
   remoteVersion (SomePackage f) = f remoteVersion
   localVersion (SomePackage f) = f localVersion

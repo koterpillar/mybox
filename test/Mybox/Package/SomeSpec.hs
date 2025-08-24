@@ -18,7 +18,7 @@ import Mybox.Prelude
 import Mybox.SpecBase
 
 spec :: Spec
-spec =
+spec = do
   describe "FromJSON" $ do
     let roundtrip :: Package a => a -> Spec
         roundtrip pkg = it ("parses " <> show pkg <> " from JSON") $ do
@@ -40,3 +40,19 @@ spec =
     roundtrip $ mkSystemPackage "ghc"
     roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
+
+  describe "Eq" $ do
+    it "packages with different types are not equal" $ do
+      let pkg1 = mkSomePackage $ mkSystemPackage "test"
+      let pkg2 = mkSomePackage $ mkBrewRepo "test/test"
+      pkg1 `shouldSatisfy` (/= pkg2)
+
+    it "packages of same type with different parameters are not equal" $ do
+      let pkg1 = mkSomePackage $ mkSystemPackage "ghc"
+      let pkg2 = mkSomePackage $ mkSystemPackage "cabal"
+      pkg1 `shouldSatisfy` (/= pkg2)
+
+    it "identical packages are equal" $ do
+      let pkg1 = mkSomePackage $ mkSystemPackage "ghc"
+      let pkg2 = mkSomePackage $ mkSystemPackage "ghc"
+      pkg1 `shouldBe` pkg2
