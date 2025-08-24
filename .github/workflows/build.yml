@@ -98,6 +98,7 @@ jobs:
         if: ${{ matrix.part == 'Haskell' }}
         uses: freckle/stack-action@v5
         with:
+          cache-prefix: ${{ matrix.arch || 'default-arch' }}-test
           stack-build-arguments: --fast --lock-file error-on-write --coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -144,6 +145,7 @@ jobs:
         name: Compile
         uses: freckle/stack-action@v5
         with:
+          cache-prefix: ${{ matrix.arch || 'default-arch' }}-test
           test: false
       - name: Move executable
         run: cp ${{ steps.compile.outputs.local-install-root }}/bin/mybox ./mybox-$(uname)-$(uname -m)
