@@ -75,4 +75,4 @@ class TerminalShow a where
   terminalShow :: a -> [[TerminalItem]]
 
 dumbShow :: TerminalShow a => a -> String
-dumbShow = Text.unpack . Text.unlines . map (Text.unwords . map (.text)) . terminalShow
+dumbShow = Text.unpack . Text.unlines . map (Text.concat . map (.text)) . terminalShow

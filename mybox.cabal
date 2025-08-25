@@ -29,6 +29,7 @@ library
       Mybox.Display.Class
       Mybox.Display.Data
       Mybox.Display.None
+      Mybox.Display.Print
       Mybox.Display.Simple
       Mybox.Driver
       Mybox.Driver.Class
@@ -181,6 +182,7 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
+      Mybox.DisplaySpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
       Mybox.ExtractorSpec
