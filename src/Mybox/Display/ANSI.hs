@@ -9,7 +9,7 @@ import Data.Text.IO qualified as Text
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local
 import System.Console.ANSI
-import System.IO (hFlush, stdout)
+import System.IO (Handle, hFlush, hPutStrLn, stdout)
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -19,7 +19,6 @@ supportsANSI :: IOE :> es => Eff es Bool
 supportsANSI = liftIO $ hSupportsANSI stdout
 
 runANSIDisplay ::
-  forall a es r.
   ( IOE :> es
   , Monoid (Banner a)
   , TerminalShow (Banner a)
@@ -27,57 +26,70 @@ runANSIDisplay ::
   ) =>
   Eff (Display a : es) r ->
   Eff es r
-runANSIDisplay =
+runANSIDisplay = runANSIDisplay' stdout
+
+runANSIDisplay' ::
+  forall a es r.
+  ( IOE :> es
+  , Monoid (Banner a)
+  , TerminalShow (Banner a)
+  , TerminalShow (Log a)
+  ) =>
+  Handle ->
+  Eff (Display a : es) r ->
+  Eff es r
+runANSIDisplay' h =
   reinterpret_
     (evalState @(Banner a) mempty)
     ( \case
-        Log log -> withBanner @(Banner a) $ draw $ terminalShow log
-        SetBanner banner -> withBanner @(Banner a) $ put banner
+        Log log -> withBanner @(Banner a) h $ draw h $ terminalShow log
+        SetBanner banner -> withBanner @(Banner a) h $ put banner
         GetBanner -> get
     )
 
 withBanner ::
   forall banner es r.
   (IOE :> es, State banner :> es, TerminalShow banner) =>
+  Handle ->
   Eff es r ->
   Eff es r
-withBanner act = do
+withBanner h act = do
   oldBanner <- get @banner
-  eraseBanner oldBanner
+  eraseBanner h oldBanner
   act `finally` do
     newBanner <- get @banner
-    drawBanner newBanner
+    drawBanner h newBanner
 
 mlist :: (a -> b) -> Maybe a -> [b]
 mlist f = toList . fmap f
 
-draw :: IOE :> es => [[TerminalItem]] -> Eff es ()
-draw items = liftIO $ do
+draw :: IOE :> es => Handle -> [[TerminalItem]] -> Eff es ()
+draw h items = liftIO $ do
   forM_ items $ \line -> do
     forM_ line $ \item -> do
-      setSGR $
+      hSetSGR h $
         [Reset]
           ++ mlist (SetColor Foreground Dull) item.foreground
           ++ mlist (SetColor Background Dull) item.background
-      Text.putStr item.text
-    Text.putStr "\n"
+      Text.hPutStr h item.text
+    Text.hPutStr h "\n"
 
-drawBanner :: (IOE :> es, TerminalShow banner) => banner -> Eff es ()
-drawBanner banner = do
+drawBanner :: (IOE :> es, TerminalShow banner) => Handle -> banner -> Eff es ()
+drawBanner h banner = do
   let items = terminalShow banner
-  draw items
-  backLines $ length items
+  draw h items
+  backLines h $ length items
 
-eraseBanner :: (IOE :> es, TerminalShow banner) => banner -> Eff es ()
-eraseBanner banner = do
+eraseBanner :: (IOE :> es, TerminalShow banner) => Handle -> banner -> Eff es ()
+eraseBanner h banner = do
   let lineCount = length $ terminalShow banner
   replicateM_ lineCount $ do
-    liftIO $ clearFromCursorToLineEnd
-    liftIO $ putStrLn ""
-  backLines lineCount
+    liftIO $ hClearFromCursorToLineEnd h
+    liftIO $ hPutStrLn h ""
+  backLines h lineCount
 
-backLines :: IOE :> es => Int -> Eff es ()
-backLines n = liftIO $ do
-  cursorUp n
-  setCursorColumn 0
-  hFlush stdout
+backLines :: IOE :> es => Handle -> Int -> Eff es ()
+backLines h n = liftIO $ do
+  hCursorUp h n
+  hSetCursorColumn h 0
+  hFlush h
