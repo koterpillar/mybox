@@ -7,5 +7,5 @@ import Mybox.SpecBase
 
 spec :: Spec
 spec =
-  onlyIfOS (\case Linux (Debian _) -> True; _ -> False) $
+  onlyIfOS "APT installer tests are only available on Debian-based systems" (\case Linux (Debian _) -> True; _ -> False) $
     installerSpec apt

@@ -33,8 +33,8 @@ spec = do
     it "produces description" $ do
       daemonDescription pkg `shouldBe` "Mybox: echo 'multiple words' 'привет мир' /etc/passwd"
 
-  onlyIf inCI $
-    skipIf inDocker $
+  onlyIf "Daemon tests require CI environment" inCI $
+    skipIf "Daemon tests cannot run in Docker" inDocker $
       packageSpec $ \psa -> do
         ps (mkDaemonPackage ("sleep" :| ["3600"]))
           & checkInstalledCommandOutput

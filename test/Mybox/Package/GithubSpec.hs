@@ -77,7 +77,7 @@ spec = do
         )
 
   -- Eza does not provide macOS binaries
-  onlyIfOS (\case Linux _ -> True; _ -> False) $
+  onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "eza-community/eza")
@@ -127,7 +127,7 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
-  onlyIf virtualSystem $
+  onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
     packageSpec $ \_ ->
       ps
         ( (mkGithubPackage "tonsky/FiraCode")

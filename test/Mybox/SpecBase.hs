@@ -29,7 +29,6 @@ import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, should
 import Test.Hspec qualified as Hspec
 
 import Mybox.Driver
-import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -41,8 +40,9 @@ type EffSpec es = Hspec.SpecWith (RunEff es)
 type Spec = EffSpec '[Driver, Stores, IOE]
 
 effSpec :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
-effSpec dispatch = around $ \ioa -> runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
-  ioa $ RunEff unlift
+effSpec dispatch = around $ \ioa ->
+  runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
+    ioa $ RunEff unlift
 
 withEff :: (forall a. Eff es' a -> Eff es a) -> EffSpec es' -> EffSpec es
 withEff dispatch = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ dispatch test
@@ -75,18 +75,19 @@ shouldThrow act ex = withSeqEffToIO $ \unlift -> Hspec.shouldThrow (unlift act) 
 expectationFailure :: (HasCallStack, IOE :> es) => String -> Eff es ()
 expectationFailure = liftIO . Hspec.expectationFailure
 
-onlyIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
-onlyIf cond spec =
-  runIO (runEff $ testDriver cond)
-    >>= \case
-      True -> spec
-      False -> xdescribe "(skipped)" spec
+onlyIf :: IOE :> es => String -> Eff es Bool -> EffSpec es -> EffSpec es
+onlyIf !reason cond =
+  mapSubject $ \(RunEff unlift) ->
+    RunEff $ \test -> unlift $ do
+      x <- cond
+      unless x $ liftIO $ Hspec.pendingWith reason
+      test
 
-onlyIfOS :: (OS -> Bool) -> EffSpec es -> EffSpec es
-onlyIfOS cond = onlyIf $ cond <$> drvOS
+onlyIfOS :: (Driver :> es, IOE :> es) => String -> (OS -> Bool) -> EffSpec es -> EffSpec es
+onlyIfOS reason cond = onlyIf reason $ cond <$> drvOS
 
-skipIf :: (forall es. (Driver :> es, IOE :> es) => Eff es Bool) -> EffSpec a -> EffSpec a
-skipIf cond = onlyIf $ fmap not cond
+skipIf :: IOE :> es => String -> Eff es Bool -> EffSpec es -> EffSpec es
+skipIf reason cond = onlyIf reason $ fmap not cond
 
 hasEnv :: IOE :> es => String -> Eff es Bool
 hasEnv name = not . null . fromMaybe mempty <$> withSeqEffToIO (\_ -> lookupEnv name)

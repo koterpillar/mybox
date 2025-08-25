@@ -12,8 +12,8 @@ spec = do
     (Nothing @BrewRepo)
     [ (Nothing, "{\"brew_tap\": \"denji/nginx\"}")
     ]
-  onlyIfOS (\case MacOS -> True; _ -> False) $
-    onlyIf virtualSystem $
+  onlyIfOS "Homebrew repository tests are only available on macOS" (\case MacOS -> True; _ -> False) $
+    onlyIf "Homebrew repository tests require virtual system (Docker or CI)" virtualSystem $
       packageSpec $ \_ ->
         ps
           (mkBrewRepo "denji/nginx")
