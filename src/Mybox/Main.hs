@@ -2,7 +2,10 @@ module Mybox.Main (
   main,
 ) where
 
+import Data.Text qualified as Text
+
 import Mybox.Config
+import Mybox.Display
 import Mybox.Driver
 import Mybox.Package.Queue
 import Mybox.Prelude
@@ -11,12 +14,15 @@ import Mybox.Tracker
 
 main :: IO ()
 main =
-  runEff $ do
-    runStores $
-      localDriver $ do
-        config <- readConfig
-        state <- drvMyboxState
-        drvTracker (state </> "files.json") $
-          trkSession $
-            runInstallQueue $
-              for_ config.packages queueInstall
+  runEff $
+    runDisplay $
+      runStores $
+        localDriver $ do
+          config <- readConfig
+          state <- drvMyboxState
+          ((), installed) <-
+            drvTracker (state </> "files.json") $
+              trkSession $
+                runInstallQueue $
+                  for_ config.packages queueInstall
+          displayLogText $ "installed: " <> Text.intercalate ", " (toList installed)

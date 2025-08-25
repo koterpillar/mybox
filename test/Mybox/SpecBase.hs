@@ -28,6 +28,7 @@ import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
+import Mybox.Display
 import Mybox.Driver
 import Mybox.Driver.Test
 import Mybox.Prelude
@@ -38,7 +39,7 @@ newtype RunEff es
 
 type EffSpec es = Hspec.SpecWith (RunEff es)
 
-type Spec = EffSpec '[Driver, Stores, IOE]
+type Spec = EffSpec '[Driver, Stores, AppDisplay, IOE]
 
 effSpec :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
 effSpec dispatch = around $ \ioa -> runEff $ dispatch $ withEffToIO (ConcUnlift Persistent Unlimited) $ \unlift ->
