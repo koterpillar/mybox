@@ -12,9 +12,9 @@ spec = do
     (Nothing @FlatpakPackage)
     [ (Nothing, "{\"flatpak\": \"com.example.Test\"}")
     ]
-  onlyIf inCI $
-    skipIf inDocker $
-      onlyIfOS (\case Linux _ -> True; _ -> False) $
+  onlyIf "Flatpak package tests require CI environment" inCI $
+    skipIf "Flatpak package tests cannot run in Docker" inDocker $
+      onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
         packageSpec $ \_ ->
           ps (mkFlatpakPackage "org.videolan.VLC")
             & checkInstalledCommandOutput
