@@ -14,7 +14,7 @@ spec = do
     , (Just "URL", "{\"system\": \"test\", \"url\": \"test\"}")
     , (Just "auto update", "{\"system\": \"test\", \"auto_updates\": true}")
     ]
-  onlyIf virtualSystem $ do
+  onlyIf "System package tests require virtual system (Docker or CI)" virtualSystem $ do
     packageSpec $ \_ ->
       ps (mkSystemPackage "ripgrep")
         & checkInstalledCommandOutput
@@ -26,19 +26,19 @@ spec = do
         & checkInstalledCommandOutput
           ("alacritty" :| ["--version"])
           "alacritty 0"
-    onlyIfOS (\case Linux Fedora -> True; _ -> False) $
+    onlyIfOS "RPM Fusion package tests are only available on Fedora" (\case Linux Fedora -> True; _ -> False) $
       packageSpec $ \_ ->
         ps ((mkSystemPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm"})
           & checkInstalledCommandOutput
             ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
-    onlyIfOS (\case Linux (Debian _) -> True; _ -> False) $
+    onlyIfOS "Timezone package only requires interactive configuration on Debian" (\case Linux (Debian _) -> True; _ -> False) $
       packageSpec $ \_ ->
         ps (mkSystemPackage "tzdata")
           & checkInstalledCommandOutput
             ("cat" :| ["/usr/share/doc/tzdata/copyright"])
             "Internet Assigned Numbers Authority"
-    onlyIfOS (\case Linux _ -> True; _ -> False) $
+    onlyIfOS "GCC package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
       packageSpec $ \_ ->
         ps (mkSystemPackage "g++")
           & checkInstalledCommandOutput

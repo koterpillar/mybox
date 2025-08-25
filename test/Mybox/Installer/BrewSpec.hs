@@ -11,7 +11,7 @@ alacrittyVersion :: Text -> Bool
 alacrittyVersion v = v >= "0.13.2" && v < "99"
 
 spec :: Spec
-spec = onlyIfOS (\case MacOS -> True; _ -> False) $ do
+spec = onlyIfOS "Homebrew installer tests are only available on macOS" (\case MacOS -> True; _ -> False) $ do
   installerSpec brew
   it "returns cask version" $
     iLatestVersion brew "alacritty" >>= (`shouldSatisfy` alacrittyVersion)

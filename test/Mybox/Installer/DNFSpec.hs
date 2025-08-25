@@ -6,4 +6,4 @@ import Mybox.Installer.SpecBase
 import Mybox.SpecBase
 
 spec :: Spec
-spec = onlyIfOS (\case Linux Fedora -> True; _ -> False) $ installerSpec dnf
+spec = onlyIfOS "DNF installer tests are only available on Fedora" (\case Linux Fedora -> True; _ -> False) $ installerSpec dnf
