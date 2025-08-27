@@ -40,48 +40,24 @@ jobs:
     name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
-      matrix:
+      matrix: &test-matrix
         include:
           - docker: debian
-            part: Haskell
-          - docker: debian
-            part: Python
           - docker: ubuntu
-            part: Haskell
-          - docker: ubuntu
-            part: Python
           - docker: ubuntu
             arch: arm
-            part: Haskell
-          - docker: ubuntu
-            arch: arm
-            part: Python
           - docker: fedora
-            part: Haskell
-          - docker: fedora
-            part: Python
           - host: ubuntu
-            part: Haskell
-          - host: ubuntu
-            part: Python
           - host: macos
-            part: Haskell
-          - host: macos
-            part: Python
-    runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
+    runs-on: &test-runs-on ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Set up Python
-        if: ${{ matrix.part == 'Python' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Install dependencies
-        run: ./bin/install-dev --no-lint${{ matrix.part == 'Python' && ' --no-haskell' || '' }}${{ matrix.part == 'Haskell' && ' --no-python' || '' }}
+        run: ./bin/install-dev --no-lint --no-python
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
-        run: |
+        run: &configure-host-system |
           sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
             polkit.addRule(function(action, subject) {
               if (
@@ -94,29 +70,84 @@ jobs:
             });
           EOF
           command -v apt >/dev/null && sudo apt update || true
-      - name: Test
-        if: ${{ matrix.part == 'Haskell' }}
+      - id: test
+        name: Test
         uses: freckle/stack-action@v5
         with:
-          cache-prefix: ${{ matrix.arch || 'default-arch' }}-test
+          cache-prefix: test
           stack-build-arguments: --fast --lock-file error-on-write --coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
-      - name: Test (Python)
-        if: ${{ matrix.part == 'Python' }}
+      - name: Rename coverage
+        run: cp ${{ steps.test.outputs.local-hpc-root }}/mybox/tests/tests.tix ${{ strategy.job-index }}.tix
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ strategy.job-index }}
+          path: '*.tix'
+
+  test-python:
+    name: "Test Python (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
+    strategy:
+      fail-fast: false
+      matrix: *test-matrix
+    runs-on: *test-runs-on
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: ./bin/install-dev --no-lint --no-haskell
+      - name: Configure host system
+        if: matrix.host && matrix.host != 'macos'
+        run: *configure-host-system
+      - name: Test
         run: |
           ./bin/test
           ./bin/coverage-report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
-      - name: Prepare coverage
-        if: ${{ matrix.part == 'Haskell' }}
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  coverage:
+    name: Coverage
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install dependencies
+        run: ./bin/install-dev --no-lint --no-python
+      - id: compile
+        name: Compile
+        uses: freckle/stack-action@v5
+        with:
+          # Run the suite to generate coverage skeleton, but no tests
+          stack-build-arguments: --fast --lock-file error-on-write --coverage --ta "--match XXXXX"
+          cache-prefix: coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download
+        uses: actions/download-artifact@v5
+        with:
+          pattern: 'coverage-*'
+          merge-multiple: true
+      - name: Merge
+        run: bin/merge-coverage *.tix > ${{ steps.compile.outputs.local-hpc-root }}/combined/all/all.tix
+      - name: Convert
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: stack:all
-      - name: Upload coverage
+      - name: Upload
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -124,8 +155,8 @@ jobs:
   build:
     needs:
       - lint
-      - lint-python
       - test
+      - coverage
     if: ${{ github.ref == 'refs/heads/main' }}
     strategy:
       matrix:
@@ -145,7 +176,7 @@ jobs:
         name: Compile
         uses: freckle/stack-action@v5
         with:
-          cache-prefix: ${{ matrix.arch || 'default-arch' }}-test
+          cache-prefix: build
           test: false
       - name: Move executable
         run: cp ${{ steps.compile.outputs.local-install-root }}/bin/mybox ./mybox-$(uname)-$(uname -m)
@@ -158,6 +189,8 @@ jobs:
   publish:
     needs:
       - build
+      - lint-python
+      - test-python
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
     permissions:

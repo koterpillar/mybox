@@ -1,0 +1,120 @@
+#!/usr/bin/env stack
+-- stack script --resolver lts --package base --package containers --package hpc --package hashable --package process
+
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
+
+import Data.Char
+import Data.Foldable
+import Data.Hashable (hash)
+import Data.List
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Maybe
+import Data.Traversable
+import System.Environment (getArgs)
+import System.Process (readProcess)
+import Trace.Hpc.Tix (Tix (..), TixModule (..), readTix, writeTix)
+
+main :: IO ()
+main = do
+  kc <- readKnownComponents
+  args <- getArgs
+  tixes <- traverse readTixError args
+  print $ merge kc tixes
+
+readTixError :: FilePath -> IO Tix
+readTixError path =
+  readTix path >>= \case
+    Just tix -> pure tix
+    Nothing -> error $ "Failed to read tix file: " ++ path
+
+merge :: KnownComponents -> [Tix] -> Tix
+merge kc = Tix . Map.elems . Map.unionsWith mergeModule . map (toMap kc)
+
+mergeModule :: TixModule -> TixModule -> TixModule
+mergeModule (TixModule k1 hash1 len1 tix1) (TixModule k2 hash2 len2 tix2)
+  | k1 /= k2 = error $ "Mismatched module names: " <> k1 <> " /= " <> k2
+  | hash1 /= hash2 = error $ "Mismatched module hashes for " <> k1 <> ": " <> show hash1 <> " /= " <> show hash2
+  | len1 /= len2 = error $ "Mismatched module lengths for " <> k1 <> ": " <> show len1 <> " /= " <> show len2
+  | otherwise = TixModule k1 hash1 len1 (zipWith (+) tix1 tix2)
+
+toMap :: KnownComponents -> Tix -> Map String TixModule
+toMap kc (Tix ms) = Map.fromList $ map (\x@(TixModule k _ _ _) -> (k, x)) $ map (unifyName kc) ms
+
+unifyName :: KnownComponents -> TixModule -> TixModule
+unifyName kc m@(TixModule n _ tixLen tixData) =
+  let md = mMake n
+      md' = md{mComponent = fromJust $ Map.lookup (cComponent $ mComponent md) kc}
+      newHash = fromIntegral $ abs $ hash $ mModule md
+   in TixModule (mPrint md') newHash tixLen tixData
+
+data Component = Component
+  { cPackage :: String
+  , cVersion :: String
+  , cHash :: String
+  , cComponent :: Maybe String
+  }
+  deriving (Show)
+
+cMake :: String -> Component
+cMake s0 = Component{..}
+ where
+  (cPackage, s1) = breakAt '-' s0
+  (cVersion, s2) = breakAt '-' s1
+  (cHash, cComponent) = case breakAt_ '-' s2 of
+    Just (h, c) -> (h, Just c)
+    Nothing -> (s2, Nothing)
+
+cPrint :: Component -> String
+cPrint Component{..} =
+  intercalate "-" ([cPackage, cVersion, cHash] ++ toList cComponent)
+
+data Module = Module
+  { mComponent :: Component
+  , mModule :: String
+  }
+  deriving (Show)
+
+mMake :: String -> Module
+mMake s0 = Module{..}
+ where
+  (s1, mModule) = breakAt '/' s0
+  mComponent = cMake s1
+
+mPrint :: Module -> String
+mPrint Module{..} = intercalate "/" [cPrint mComponent, mModule]
+
+type KnownComponents = Map (Maybe String) Component
+
+readKnownComponents :: IO KnownComponents
+readKnownComponents = fmap Map.fromList $
+  for [Nothing, Just "tests"] $ \component -> do
+    result <- readKC component
+    pure (component, result)
+
+readKC :: Maybe String -> IO Component
+readKC component = do
+  dist <- dropWhileEnd isSpace <$> readProcess "stack" ["path", "--dist-dir"] ""
+  let macrosFile =
+        intercalate
+          "/"
+          ([dist, "build"] ++ toList component ++ ["autogen", "cabal_macros.h"])
+  content <- readFile macrosFile
+  line <- case find (isPrefixOf "#define CURRENT_COMPONENT_ID") (lines content) of
+    Nothing -> error $ "Could not find CURRENT_COMPONENT_ID in " ++ macrosFile
+    Just line -> pure line
+
+  let (_, quoted) = breakAt '"' line
+  let (componentId, _) = breakAt '"' quoted
+  pure $ cMake componentId
+
+breakAt_ :: Char -> String -> Maybe (String, String)
+breakAt_ c s = case break (== c) s of
+  (before, after) | not (null after) -> Just (before, drop 1 after)
+  _ -> Nothing
+
+breakAt :: Char -> String -> (String, String)
+breakAt c s = case breakAt_ c s of
+  Just (before, after) -> (before, after)
+  Nothing -> error $ "Unexpected format: " <> show s <> " does not contain " <> show c
