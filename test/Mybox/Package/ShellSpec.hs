@@ -36,16 +36,16 @@ spec = do
         whoamiResult <- drvRunOutput $ (if root then sudo else id) $ "su" :| [username]
         whoamiResult `shouldBe` username
 
-  onlyIf virtualSystem $ do
+  onlyIf "Shell package tests require virtual system (Docker or CI)" virtualSystem $ do
     forRoot $ \(root, desc) ->
       describe desc $ do
         -- cannot test normal user's shell without Docker on GitHub Actions
-        (if root then id else skipIf inCI) $ do
+        (if root then id else skipIf "Cannot test normal user's shell without Docker on GitHub Actions" inCI) $ do
           packageSpec $ \psa ->
             let username = if root then "root" else psa.username
              in ps (shPackage{root})
                   & checkInstalledCommandOutput ("grep" :| [username, passwd.text]) sh.text
-          onlyIf inDocker $ do
+          onlyIf "Whoami shell test requires Docker environment" inDocker $ do
             packageSpec $ \_ ->
               ps ((mkShellPackage $ pRoot </> "bin" </> "whoami"){root})
                 & psName "whoami"
@@ -68,7 +68,7 @@ spec = do
           localVersion shPackage `shouldThrow` anyException
 
   describe "validation" $
-    onlyIf inDocker $
+    onlyIf "Shell validation tests require Docker environment" inDocker $
       withEff (nullTrackerSession . runInstallQueue) $ do
         it "fails when shell does not exist" $
           install (mkShellPackage $ pRoot </> "bin" </> "xxxxxxxx") `shouldThrow` anyException
