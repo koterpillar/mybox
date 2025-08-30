@@ -55,7 +55,7 @@ spec :: Spec
 spec = do
   jsonSpec (Nothing @GithubPackage) [(Nothing, "{\"repo\": \"example/example\"}")]
 
-  packageSpec $ \psa ->
+  packageSpecGen "neovim" $ \psa ->
     ps
       ( (mkGithubPackage "neovim/neovim")
           { archive =
@@ -78,7 +78,7 @@ spec = do
 
   -- Eza does not provide macOS binaries
   onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
-    packageSpec $ \_ ->
+    packageSpec $
       ps
         ( (mkGithubPackage "eza-community/eza")
             { archive =
@@ -93,7 +93,7 @@ spec = do
         )
         & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
 
-  packageSpec $ \psa ->
+  packageSpecGen "Ammonite" $ \psa ->
     ps
       ( (mkGithubPackage "com-lihaoyi/Ammonite")
           { archive =
@@ -115,7 +115,7 @@ spec = do
         )
       & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
 
-  packageSpec $ \_ ->
+  packageSpec $
     ps
       ( (mkGithubPackage "jqlang/jq")
           { archive =
@@ -128,7 +128,7 @@ spec = do
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
   onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
-    packageSpec $ \_ ->
+    packageSpec $
       ps
         ( (mkGithubPackage "tonsky/FiraCode")
             { archive =

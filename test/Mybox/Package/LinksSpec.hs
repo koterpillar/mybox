@@ -20,6 +20,6 @@ spec = do
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"only\": [\"only1\", \"only2\"]}")
     ]
   let expectedFilesNoDot = ["myfile", mkPath "deep/space/nine/ncc-1701.txt"]
-  packageSpec $ baseLinks id expectedFilesNoDot
-  packageSpec $ baseLinks (\p -> p{shallow = True}) expectedFilesNoDot
-  packageSpec $ baseLinks (\p -> p{dot = True}) [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]
+  packageSpecGen "links" $ baseLinks id expectedFilesNoDot
+  packageSpecGen "shallow links" $ baseLinks (\p -> p{shallow = True}) expectedFilesNoDot
+  packageSpecGen "dot links" $ baseLinks (\p -> p{dot = True}) [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]

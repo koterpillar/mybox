@@ -26,7 +26,7 @@ spec = do
       it "returns a Git commit hash for a git package" $ do
         let package = mkPipxPackage "git+https://github.com/django/django.git"
         remoteVersion package >>= (`shouldSatisfy` (\v -> Text.length v == 40))
-  let tqdmPackage name _ =
+  let tqdmPackage name =
         ps (mkPipxPackage name)
           & checkInstalledCommandOutput
             ("tqdm" :| ["--help"])

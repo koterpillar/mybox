@@ -14,7 +14,6 @@ spec = do
     ]
   onlyIfOS "Homebrew repository tests are only available on macOS" (\case MacOS -> True; _ -> False) $
     onlyIf "Homebrew repository tests require virtual system (Docker or CI)" virtualSystem $
-      packageSpec $ \_ ->
-        ps
-          (mkBrewRepo "denji/nginx")
+      packageSpec $
+        ps (mkBrewRepo "denji/nginx")
           & checkInstalledCommandOutput ("brew" :| ["info", "nginx-full"]) "HTTP(S) server"
