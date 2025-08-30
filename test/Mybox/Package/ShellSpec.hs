@@ -41,14 +41,13 @@ spec = do
       describe desc $ do
         -- cannot test normal user's shell without Docker on GitHub Actions
         (if root then id else skipIf "Cannot test normal user's shell without Docker on GitHub Actions" inCI) $ do
-          packageSpec $ \psa ->
+          packageSpecGen "sh" $ \psa ->
             let username = if root then "root" else psa.username
              in ps (shPackage{root})
                   & checkInstalledCommandOutput ("grep" :| [username, passwd.text]) sh.text
           onlyIf "Whoami shell test requires Docker environment" inDocker $ do
-            packageSpec $ \_ ->
+            packageSpec $
               ps ((mkShellPackage $ pRoot </> "bin" </> "whoami"){root})
-                & psName "whoami"
                 & checkInstalled (checkWhoamiShell root)
 
   withEff (nullTrackerSession . runInstallQueue) $

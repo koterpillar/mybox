@@ -15,7 +15,9 @@ brewInstall action package = do
 
 brewPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
-  drvRunSilent $ "brew" :| ["update"]
+  when (isNothing package_) $
+    drvRunSilent $
+      "brew" :| ["update"]
   info <- drvRunOutput $ "brew" :| ["info", "--json=v2", fromMaybe "--installed" package_]
   parseVersions <$> jsonDecode "brew info" info
 

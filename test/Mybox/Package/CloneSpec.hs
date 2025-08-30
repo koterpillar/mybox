@@ -19,17 +19,15 @@ spec = do
           & checkInstalledCommandOutput
             ("cat" :| [(psa.directory </> "templates" </> "zshrc.zsh-template").text])
             "alias ohmyzsh"
-  packageSpec baseClone
-  packageSpec $ \psa ->
+  packageSpecGen "ohmyzsh" baseClone
+  packageSpecGen "branch switch" $ \psa ->
     baseClone psa
-      & psName "branch switch"
       & preinstallPackage (mkSystemPackage "git")
       & preinstall (checkoutEarlierCommit psa)
-  packageSpec $ \psa ->
+  packageSpecGen "empty directory" $ \psa ->
     baseClone psa
-      & psName "empty directory"
       & preinstall (createEmptyDirectory psa)
-  packageSpec $ \psa ->
+  packageSpecGen "node-fetch" $ \psa ->
     ps ((mkClonePackage "node-fetch/node-fetch" $ pWiden psa.directory){branch = Just "2.x"})
       & checkInstalledCommandOutput
         ("cat" :| [(psa.directory </> "package.json").text])

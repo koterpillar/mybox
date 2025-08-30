@@ -25,10 +25,9 @@ spec = do
       it "fails for non-existent package" $ do
         let package = mkNPMPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException
-  let expressGenerator _ =
-        ps ((mkNPMPackage "express-generator"){binaries = ["express"]})
-          & checkInstalledCommandOutput
-            ("express" :| ["--help"])
-            "engine support"
-          & ignorePath ".npm"
-  packageSpec expressGenerator
+  packageSpec $
+    ps ((mkNPMPackage "express-generator"){binaries = ["express"]})
+      & checkInstalledCommandOutput
+        ("express" :| ["--help"])
+        "engine support"
+      & ignorePath ".npm"

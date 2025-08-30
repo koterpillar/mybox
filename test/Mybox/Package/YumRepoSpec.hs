@@ -15,7 +15,7 @@ spec = do
     ]
   onlyIfOS "YUM repository tests are only available on Fedora" (\case Linux Fedora -> True; _ -> False) $
     onlyIf "YUM repository tests require virtual system (Docker or CI)" virtualSystem $
-      packageSpec $ \_ ->
+      packageSpec $
         ps
           (mkYumRepo "nodesource" "https://rpm.nodesource.com/pub_23.x/nodistro/nodejs/$basearch")
             { gpgKey = Just "https://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL"

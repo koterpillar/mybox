@@ -34,7 +34,9 @@ rpmQuery package_ = do
 
 dnfRepoQuery :: Driver :> es => Maybe Text -> Eff es (Map Text Text)
 dnfRepoQuery package_ = do
-  drvRunSilent $ "dnf" :| ["--quiet", "clean", "expire-cache"]
+  when (isNothing package_) $
+    drvRunSilent $
+      "dnf" :| ["--quiet", "clean", "expire-cache"]
 
   arch <- drvArchitecture
   let archStr = case arch of
