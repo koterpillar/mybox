@@ -202,6 +202,8 @@ test-suite tests
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.Spec.Assertions
+      Mybox.Spec.Uncovered.Assertions
+      Mybox.Spec.Uncovered.Utils
       Mybox.Spec.Utils
       Mybox.SpecBase
       Mybox.SpecHook
