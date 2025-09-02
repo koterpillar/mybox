@@ -17,6 +17,7 @@ module Mybox.Prelude (
   unlessM,
   unsnoc,
   whenM,
+  whileM,
   ExitCode (..),
   HasCallStack,
   HasField (..),
@@ -33,7 +34,7 @@ module Mybox.Prelude (
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (MonadThrow, throwString)
 import Control.Monad
-import Control.Monad.Extra (anyM, unlessM, whenM)
+import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))

@@ -51,15 +51,27 @@ case "$OSTYPE" in
     then
       brew install shellcheck
     fi
+    if ! command_exists tmux
+    then
+      brew install tmux
+    fi
   ;;
   linux*)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
     case $DISTRO in
       debian|ubuntu)
         sudo_ apt install --yes liblzma-dev libbz2-dev
+        if ! command_exists tmux
+        then
+          sudo_ apt install --yes tmux
+        fi
         ;;
       fedora)
         sudo_ dnf install --assumeyes xz-devel bzip2-devel
+        if ! command_exists tmux
+        then
+          sudo_ dnf install --assumeyes tmux
+        fi
     esac
   ;;
 esac

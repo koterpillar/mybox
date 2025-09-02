@@ -175,6 +175,8 @@ test-suite tests
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
       Mybox.Display.PrintSpec
+      Mybox.Display.Tmux
+      Mybox.Display.TmuxSpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
       Mybox.ExtractorSpec
