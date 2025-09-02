@@ -71,7 +71,7 @@ CONTAINER=$(docker run \
 )
 trap 'docker rm -f "$CONTAINER"' EXIT
 
-docker exec "$CONTAINER" sh -c 'command -v apt && apt update && apt install -y curl sudo || true'
+docker exec "$CONTAINER" sh -c 'command -v apt >/dev/null 2>&1 && apt update && apt install -y curl sudo || true'
 docker exec "$CONTAINER" useradd "$OPT_USER"
 USER_HOME="/home/$OPT_USER"
 docker exec "$CONTAINER" sh -c 'mkdir -p '"$USER_HOME"' && chown '"$OPT_USER"':'"$OPT_USER"' '"$USER_HOME"
