@@ -16,7 +16,6 @@ module Mybox.Package.SpecBase (
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
-import System.Random
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -24,6 +23,7 @@ import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Stores
 import Mybox.Tracker
@@ -38,7 +38,7 @@ data PackageSpecArgs = PackageSpecArgs
 mkPSA :: (Driver :> es, IOE :> es) => Eff es PackageSpecArgs
 mkPSA = do
   home <- drvHome
-  directoryName <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
+  directoryName <- randomText "dest"
   let directory = home </> directoryName
   username <- drvUsername
   architecture <- drvArchitecture
@@ -48,7 +48,7 @@ mkPSA = do
 data PackageSpec a = PackageSpec
   { package :: a
   , checkInstalled_ :: forall es. (Driver :> es, IOE :> es) => Eff es ()
-  , preinstall_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
+  , preinstall_ :: forall es. App es => Eff es ()
   , cleanup_ :: forall es. (Driver :> es, Stores :> es) => Eff es ()
   , ignoredPaths_ :: Set (Path Rel)
   }
@@ -86,14 +86,14 @@ checkInstalledCommandOutput cmd expectedOutput =
 ignorePath :: Path Rel -> MPS a
 ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
 
-preinstall :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
+preinstall :: (forall es. App es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
 cleanup :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
 cleanup f s = s{cleanup_ = cleanup_ s >> f}
 
 preinstallPackage :: Package b => b -> MPS a
-preinstallPackage p = preinstall $ nullTrackerSession $ runInstallQueue $ ensureInstalled p
+preinstallPackage p = preinstall $ ensureInstalled p
 
 packageSpecGen :: Package a => String -> (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpecGen name makePS = do
@@ -103,10 +103,10 @@ packageSpecGen name makePS = do
       let s = makePS psa
       let p = s.package
       finally (cleanup_ s) $ do
-        preinstall_ s
+        nullTrackerSession $ runInstallQueue_ $ preinstall_ s
         preexistingFiles <- trackableFiles s
         ((), ts) <-
-          stateTracker mempty $ trkSession $ runInstallQueue $ do
+          stateTracker mempty $ trkSession $ runInstallQueue_ $ do
             install p
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts

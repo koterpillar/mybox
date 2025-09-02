@@ -1,6 +1,14 @@
-module Mybox.Spec.Utils where
+module Mybox.Spec.Utils (
+  module Mybox.Spec.Uncovered.Utils,
+  module Mybox.Spec.Utils,
+) where
 
-import Mybox.Prelude
+import Data.Text (Text)
+import Data.Text qualified as Text
+import Effectful
+import System.Random
 
-requireJust :: String -> Maybe a -> a
-requireJust !msg = fromMaybe (error msg)
+import Mybox.Spec.Uncovered.Utils
+
+randomText :: IOE :> es => Text -> Eff es Text
+randomText prefix = ((prefix <> "-") <>) <$> Text.pack . show <$> liftIO (randomIO @Word)

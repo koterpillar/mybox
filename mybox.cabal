@@ -24,6 +24,7 @@ library
       Mybox.Compute.URL
       Mybox.Config
       Mybox.Config.Match
+      Mybox.Display.Print
       Mybox.Driver
       Mybox.Driver.Class
       Mybox.Driver.IO
@@ -173,6 +174,9 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
+      Mybox.Display.PrintSpec
+      Mybox.Display.Tmux
+      Mybox.Display.TmuxSpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
       Mybox.ExtractorSpec
@@ -200,6 +204,8 @@ test-suite tests
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
       Mybox.Spec.Assertions
+      Mybox.Spec.Uncovered.Assertions
+      Mybox.Spec.Uncovered.Utils
       Mybox.Spec.Utils
       Mybox.SpecBase
       Mybox.SpecHook

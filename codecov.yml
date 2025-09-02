@@ -1,2 +1,2 @@
 ignore:
-  - test/Mybox/Spec  # Extra functionality when tests fail, unused when they pass
+  - test/Mybox/Spec/Uncovered  # Extra functionality when tests fail, unused when they pass
