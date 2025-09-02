@@ -1,19 +1,17 @@
 module Mybox.Package.URLSpec where
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Package.Archive
 import Mybox.Package.Class
-import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Package.URL
 import Mybox.Prelude
 import Mybox.SpecBase
-import Mybox.Stores
-import Mybox.Tracker
 
-preinstallNode :: (Driver :> es, Stores :> es) => Eff es ()
-preinstallNode = nullTrackerSession $ runInstallQueue $ do
+preinstallNode :: App es => Eff es ()
+preinstallNode = do
   os <- drvOS
   case os of
     Linux _ -> ensureInstalled $ mkSystemPackage "nodejs"
