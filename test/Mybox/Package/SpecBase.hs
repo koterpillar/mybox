@@ -16,7 +16,6 @@ module Mybox.Package.SpecBase (
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
-import System.Random
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -24,6 +23,7 @@ import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Stores
 import Mybox.Tracker
@@ -38,7 +38,7 @@ data PackageSpecArgs = PackageSpecArgs
 mkPSA :: (Driver :> es, IOE :> es) => Eff es PackageSpecArgs
 mkPSA = do
   home <- drvHome
-  directoryName <- ("dest-" <>) . Text.pack . show <$> randomIO @Int
+  directoryName <- randomText "dest"
   let directory = home </> directoryName
   username <- drvUsername
   architecture <- drvArchitecture

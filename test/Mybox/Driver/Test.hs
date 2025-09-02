@@ -8,7 +8,6 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 import System.Environment
-import System.Random
 
 import Mybox.Driver.Class
 import Mybox.Driver.IO
@@ -102,7 +101,7 @@ testDockerDriver baseImage act =
   mkContainer :: IOE :> es => Eff es Text
   mkContainer =
     localDriver $ do
-      containerName <- Text.pack . show <$> liftIO (randomIO @Word)
+      containerName <- randomText "mybox"
       githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
         drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
