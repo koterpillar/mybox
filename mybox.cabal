@@ -200,6 +200,7 @@ test-suite tests
       Mybox.Installer.SpecBase
       Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec
+      Mybox.Package.ClassSpec
       Mybox.Package.CloneSpec
       Mybox.Package.DaemonSpec
       Mybox.Package.FlatpakSpec
