@@ -55,12 +55,11 @@ displayModifyBannerWhile f act = do
 
 data TerminalItem = TerminalItem
   { foreground :: Maybe Color
-  , background :: Maybe Color
   , text :: Text
   }
 
 tiMk :: Text -> TerminalItem
-tiMk text = TerminalItem{foreground = Nothing, background = Nothing, text}
+tiMk text = TerminalItem{foreground = Nothing, text}
 
 tiComma :: TerminalItem
 tiComma = tiMk ","
