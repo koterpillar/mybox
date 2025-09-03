@@ -59,7 +59,6 @@ draw items = do
         setSGRCode $
           [Reset]
             ++ mlist (SetColor Foreground Dull) item.foreground
-            ++ mlist (SetColor Background Dull) item.background
       Print.print $ Text.unpack item.text
     Print.print "\n"
 
