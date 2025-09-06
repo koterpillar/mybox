@@ -1,10 +1,7 @@
 module Mybox.Display.PrintSpec where
 
-import Data.Text qualified as Text
-import System.IO
-
 import Mybox.Display.Print qualified as Print
-import Mybox.Driver
+import Mybox.Display.SpecUtils
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -22,11 +19,5 @@ spec = do
       logs `shouldBe` "hello\nworld\n"
   describe "run" $ do
     it "prints to the given handle" $ do
-      localDriver $ do
-        drvTempFile $ \filePath -> do
-          let fileName = Text.unpack filePath.text
-          bracket
-            (liftIO $ openFile fileName WriteMode)
-            (liftIO . hClose)
-            $ \h -> Print.run h helloWorld
-          liftIO (readFile fileName) >>= (`shouldBe` "hello\nworld\n")
+      ((), logs) <- writeHandle $ \h -> Print.run h helloWorld
+      logs `shouldBe` "hello\nworld\n"
