@@ -26,7 +26,7 @@ queueInstall pkg = do
 type PackageSet = Set Text
 
 runInstallQueue ::
-  (Driver :> es, TrackerSession :> es) =>
+  (Driver :> es, Tracker :> es) =>
   Eff (InstallQueue : es) a ->
   Eff es (a, Set Text)
 runInstallQueue act =
@@ -38,7 +38,7 @@ runInstallQueue act =
       MarkInstalled pkgName -> modify $ Set.insert pkgName
 
 runInstallQueue_ ::
-  (Driver :> es, TrackerSession :> es) =>
+  (Driver :> es, Tracker :> es) =>
   Eff (InstallQueue : es) a ->
   Eff es a
 runInstallQueue_ = fmap fst . runInstallQueue

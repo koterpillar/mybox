@@ -43,7 +43,7 @@ hasInstallLog = do
   drvIsFile (home <//> installLogFile)
 
 spec :: Spec
-spec = withEff (nullTrackerSession . runInstallQueue_) $ do
+spec = withEff (nullTracker . runInstallQueue_) $ do
   let pkg = DummyPackage "dummy" "one"
   it "is not reported installed initially" $ do
     setRemoteVersion "version1"

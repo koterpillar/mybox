@@ -5,6 +5,7 @@ module Mybox.Prelude (
   module Data.Foldable,
   module Data.Maybe,
   module Effectful,
+  module Effectful.Concurrent,
   module Effectful.Exception,
   module GHC.Generics,
   module Mybox.Path,
@@ -47,6 +48,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
+import Effectful.Concurrent (Concurrent, runConcurrent)
 import Effectful.Exception (Exception, bracket, bracket_, finally)
 import GHC.Generics (Generic, Generically (..))
 import GHC.Records (HasField (..))

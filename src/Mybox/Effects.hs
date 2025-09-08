@@ -9,8 +9,9 @@ import Mybox.Stores
 import Mybox.Tracker
 
 type App es =
-  ( Driver :> es
+  ( Concurrent :> es
+  , Driver :> es
   , InstallQueue :> es
   , Stores :> es
-  , TrackerSession :> es
+  , Tracker :> es
   )

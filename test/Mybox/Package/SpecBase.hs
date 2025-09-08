@@ -14,6 +14,7 @@ module Mybox.Package.SpecBase (
   jsonSpec,
 ) where
 
+import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 
@@ -103,10 +104,10 @@ packageSpecGen name makePS = do
       let s = makePS psa
       let p = s.package
       finally (cleanup_ s) $ do
-        nullTrackerSession $ runInstallQueue_ $ preinstall_ s
+        nullTracker $ runInstallQueue_ $ preinstall_ s
         preexistingFiles <- trackableFiles s
         ((), ts) <-
-          stateTracker mempty $ trkSession $ runInstallQueue_ $ do
+          trkSession mempty $ runInstallQueue_ $ do
             install p
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts
@@ -131,7 +132,7 @@ checkAllTracked ::
 checkAllTracked s preexisting ts = do
   current <- trackableFiles s
   let new = Set.difference current preexisting
-  let tracked = Set.map (.path) ts.tracked
+  let tracked = Set.unions $ Map.elems ts.tracked
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
 

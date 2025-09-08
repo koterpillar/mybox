@@ -1,131 +1,90 @@
 module Mybox.Tracker (
   Tracker,
-  TrackerSession,
-  TrackedFile (..),
   TrackerState (..),
-  trkSession,
   trkSkip,
   trkAdd,
-  nullTrackerSession,
+  trkSession,
   nullTracker,
-  stateTracker,
   drvTracker,
 ) where
 
+import Data.Map qualified as Map
 import Data.Set qualified as Set
+import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
 
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Package.Name
 import Mybox.Prelude
 
-data TrackerSession :: Effect where
-  TrkSkip :: PackageName p => p -> TrackerSession m ()
-  TrkAdd :: PackageName p => p -> Path Abs -> TrackerSession m ()
-
-type instance DispatchOf TrackerSession = Dynamic
-
-trkSkip :: (PackageName p, TrackerSession :> es) => p -> Eff es ()
-trkSkip = send . TrkSkip
-
-trkAdd :: (PackageName p, TrackerSession :> es) => p -> Path Abs -> Eff es ()
-trkAdd pkg file = send $ TrkAdd pkg file
-
-data TrackedFile = TrackedFile
-  { name :: !Text
-  , path :: !(Path Abs)
-  }
-  deriving (Eq, Generic, Ord, Show)
-
-instance FromJSON TrackedFile
-
-instance ToJSON TrackedFile where
-  toEncoding = genericToEncoding defaultOptions
-
-tfMake :: PackageName p => p -> Path Abs -> TrackedFile
-tfMake = TrackedFile . (.name)
-
-tfBelongsTo :: PackageName p => p -> TrackedFile -> Bool
-tfBelongsTo pkg tf = pkg.name == tf.name
-
 data Tracker :: Effect where
-  TrkGet ::
-    -- | Get all currently tracked files
-    Tracker m (Set TrackedFile)
-  TrkSet ::
-    Set TrackedFile ->
-    -- | Set all tracked files
-    Tracker m ()
-  TrkRemove ::
-    Path Abs ->
-    -- | Remove file from disk
-    Tracker m ()
+  TrkSkip :: PackageName p => p -> Tracker m ()
+  TrkAdd :: PackageName p => p -> Path Abs -> Tracker m ()
 
 type instance DispatchOf Tracker = Dynamic
 
-trkSession :: Tracker :> es => Eff (TrackerSession : es) a -> Eff es a
-trkSession act = do
-  ts0 <- send TrkGet
-  (r, ts1) <-
-    reinterpretWith_
-      (runState mempty)
-      (inject act)
-      $ \case
-        TrkAdd pkg file -> modify $ Set.insert $ tfMake pkg file
-        TrkSkip pkg -> modify $ Set.union $ Set.filter (tfBelongsTo pkg) ts0
-  let deletedFiles = (Set.difference `on` Set.map (.path)) ts0 ts1
-  for_ deletedFiles $ send . TrkRemove
-  send $ TrkSet ts1
-  pure r
+trkSkip :: (PackageName p, Tracker :> es) => p -> Eff es ()
+trkSkip = send . TrkSkip
 
-nullTracker :: Eff (Tracker : es) a -> Eff es a
-nullTracker = interpret_ $ \case
-  TrkGet -> pure mempty
-  TrkSet _ -> pure ()
-  TrkRemove _ -> pure ()
+trkAdd :: (PackageName p, Tracker :> es) => p -> Path Abs -> Eff es ()
+trkAdd pkg file = send $ TrkAdd pkg file
 
-nullTrackerSession :: Eff (TrackerSession : es) a -> Eff es a
-nullTrackerSession = nullTracker . trkSession . inject
+type TrackedFiles = Map Text (Set (Path Abs))
+
+tsAdd :: PackageName p => p -> Set (Path Abs) -> TrackedFiles -> TrackedFiles
+tsAdd pkg = Map.insertWith Set.union pkg.name
+
+tsDiff :: TrackedFiles -> TrackedFiles -> Set (Path Abs)
+tsDiff = Set.difference `on` Set.unions . Map.elems
 
 data TrackerState = TrackerState
-  { tracked :: !(Set TrackedFile)
+  { tracked :: !TrackedFiles
   , deleted :: !(Set (Path Abs))
   }
   deriving (Eq, Ord, Show)
 
-stateTracker ::
-  Set TrackedFile -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
-stateTracker tfs =
-  reinterpret_ (runState $ TrackerState tfs mempty) $ \case
-    TrkGet -> gets @TrackerState (.tracked)
-    TrkSet tfs' -> modify $ \s -> s{tracked = tfs'}
-    TrkRemove file ->
-      modify $ \s -> s{deleted = Set.insert file s.deleted}
+modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
+modifyMVarPure v f = modifyMVar_ v $ pure . f
 
-newtype TrackedFiles = TrackedFiles
-  { trackedFiles :: Set TrackedFile
+trkSession :: Concurrent :> es => TrackedFiles -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
+trkSession before act = do
+  ts <- newMVar mempty
+  r <-
+    interpretWith_
+      (inject act)
+      $ \case
+        TrkAdd pkg file -> modifyMVarPure ts $ tsAdd pkg $ Set.singleton file
+        TrkSkip pkg -> modifyMVarPure ts $ tsAdd pkg $ fromMaybe mempty $ Map.lookup pkg.name before
+  tracked <- takeMVar ts
+  let deleted = tsDiff before tracked
+  pure $ (r, TrackerState{..})
+
+nullTracker :: Concurrent :> es => Eff (Tracker : es) a -> Eff es a
+nullTracker = fmap fst . trkSession mempty
+
+newtype TrackerStateFile = TrackerStateFile
+  { trackedFiles :: TrackedFiles
   }
   deriving (Eq, Generic, Ord, Show)
 
-instance FromJSON TrackedFiles
+instance FromJSON TrackerStateFile
 
-instance ToJSON TrackedFiles where
+instance ToJSON TrackerStateFile where
   toEncoding = genericToEncoding defaultOptions
 
-drvTracker :: (Anchor a, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
-drvTracker stateFile =
-  interpret_ $ \case
-    TrkGet -> do
-      exists <- drvIsFile stateFile
-      if exists
-        then
-          maybe mempty (.trackedFiles) . jsonDecode @TrackedFiles "tracked files"
-            <$> drvReadFile stateFile
-        else pure mempty
-    TrkSet tfs ->
-      drvWriteBinaryFile stateFile $
-        encode $
-          TrackedFiles tfs
-    TrkRemove file -> drvRm file
+drvTracker :: (Anchor a, Concurrent :> es, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
+drvTracker stateFile act = do
+  exists <- drvIsFile stateFile
+  before <-
+    if exists
+      then
+        fmap (.trackedFiles) $
+          drvReadFile stateFile >>= jsonDecode @TrackerStateFile "tracker state"
+      else pure mempty
+  (r, after) <- trkSession before act
+  forM_ after.deleted $ drvRm
+  drvWriteBinaryFile stateFile $
+    encode $
+      TrackerStateFile after.tracked
+  pure r

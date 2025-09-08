@@ -19,12 +19,13 @@ hook spec = do
   globalStats <- runIO $ newMVar Map.empty
   afterAll_ (takeMVar globalStats >>= printStats 20) $ effSpec (dispatch globalStats) spec
 
-dispatch :: MVar (Map Args Int) -> Eff '[Driver, Stores, IOE] r -> Eff '[IOE] r
+dispatch :: MVar (Map Args Int) -> Eff BaseEff r -> Eff '[IOE] r
 dispatch globalStats act =
-  runStores $ do
-    (stats, r) <- testDriver $ driverStats act
-    liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
-    pure r
+  runConcurrent $
+    runStores $ do
+      (stats, r) <- testDriver $ driverStats act
+      liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
+      pure r
 
 printStats :: Int -> Map Args Int -> IO ()
 printStats n stats = do
