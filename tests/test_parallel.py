@@ -1,3 +1,4 @@
+import re
 from functools import partial
 
 import pytest
@@ -35,7 +36,10 @@ async def keyboard_interrupt(duration: float) -> int:
 
 def display_result(result: PartialResult[T]) -> str:
     if isinstance(result, PartialException):
-        return f"exception: {result.exception}"
+        exc = str(result.exception)
+        # Remove details that change between runs
+        exc = re.sub(r"<Task .+>$", "<Task ...>", exc)
+        return f"exception: {exc}"
     return f"success: {result.result}"
 
 
@@ -82,7 +86,7 @@ class TestGather:
             "success: 3",
             "exception: interrupted",
             "success: 3",
-            "exception: Cancelled",
+            "exception: cancelled due to explicit from task <Task ...>",
             "success: 5",
         ]
 
