@@ -112,15 +112,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
+      - name: Rename coverage
+        run: mv coverage.xml coverage${{ strategy.job-index }}.xml
       - name: Upload coverage
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-python-${{ strategy.job-index }}
+          path: '*.xml'
 
   coverage:
     name: Coverage
     needs:
       - test
+      - test-python
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -149,6 +153,8 @@ jobs:
           target: stack:all
       - name: Upload
         uses: codecov/codecov-action@v5
+        with:
+          files: codecov.json,coverage*.xml
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
