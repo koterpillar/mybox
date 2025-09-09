@@ -117,6 +117,7 @@ class PackageTestBase(ABC):
         return set(
             [
                 await self.check_driver.home() / ".cache",
+                await self.check_driver.home() / "Library" / "Caches",
                 await self.check_driver.home() / "Library" / "Preferences",
                 await self.check_driver.home() / ".local" / "state" / "dnf5.log.1",
             ]
