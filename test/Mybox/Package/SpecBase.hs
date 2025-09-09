@@ -107,7 +107,7 @@ packageSpecGen name makePS = do
         nullTracker $ runInstallQueue_ $ preinstall_ s
         preexistingFiles <- trackableFiles s
         ((), ts) <-
-          trkSession mempty $ runInstallQueue_ $ do
+          stateTracker mempty $ runInstallQueue_ $ do
             install p
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts
@@ -132,7 +132,7 @@ checkAllTracked ::
 checkAllTracked s preexisting ts = do
   current <- trackableFiles s
   let new = Set.difference current preexisting
-  let tracked = Set.unions $ Map.elems ts.tracked
+  let tracked = Set.unions $ Map.elems ts.current
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
 

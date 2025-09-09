@@ -25,8 +25,8 @@ spec = do
             , mkTrk "pkg3" ["common-file", "pkg3-file"]
             , mkTrk "pkg4" ["common-file", "pkg4-file"]
             ]
-    ((), TrackerState filesAfter deleted) <-
-      trkSession filesBefore $
+    ((), ts) <-
+      stateTracker filesBefore $
         do
           let pkg1 = DummyPackage "pkg1"
           let pkg2 = DummyPackage "pkg2"
@@ -36,13 +36,13 @@ spec = do
           trkSkip pkg2
           trkAdd pkg3 $ mkAbs "common-file"
           trkAdd pkg3 $ mkAbs "pkg3-file-new"
-    filesAfter
+    ts.current
       `shouldBe` Map.fromList
         [ mkTrk "pkg1" ["common-file", "pkg1-file"]
         , mkTrk "pkg2" ["common-file", "pkg2-file"]
         , mkTrk "pkg3" ["common-file", "pkg3-file-new"]
         ]
-    deleted `shouldBe` Set.fromList (map mkAbs ["pkg3-file", "pkg4-file"])
+    tsDeleted ts `shouldBe` Set.fromList (map mkAbs ["pkg3-file", "pkg4-file"])
   describe "drvTracker" $ do
     it "gets, sets state and removes files" $
       drvTempDir $ \dir -> do

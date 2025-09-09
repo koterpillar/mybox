@@ -1,10 +1,11 @@
 module Mybox.Tracker (
   Tracker,
   TrackerState (..),
+  tsDeleted,
   trkSkip,
   trkAdd,
-  trkSession,
   nullTracker,
+  stateTracker,
   drvTracker,
 ) where
 
@@ -32,36 +33,40 @@ trkAdd pkg file = send $ TrkAdd pkg file
 
 type TrackedFiles = Map Text (Set (Path Abs))
 
-tsAdd :: PackageName p => p -> Set (Path Abs) -> TrackedFiles -> TrackedFiles
-tsAdd pkg = Map.insertWith Set.union pkg.name
-
-tsDiff :: TrackedFiles -> TrackedFiles -> Set (Path Abs)
-tsDiff = Set.difference `on` Set.unions . Map.elems
-
 data TrackerState = TrackerState
-  { tracked :: !TrackedFiles
-  , deleted :: !(Set (Path Abs))
+  { previous :: !TrackedFiles
+  , current :: !TrackedFiles
   }
-  deriving (Eq, Ord, Show)
+
+tsAdd :: PackageName p => p -> Set (Path Abs) -> TrackerState -> TrackerState
+tsAdd pkg files ts = ts{current = Map.insertWith Set.union pkg.name files ts.current}
+
+tsDeleted :: TrackerState -> Set (Path Abs)
+tsDeleted ts = (Set.difference `on` allPaths) ts.previous ts.current
+ where
+  allPaths = Set.unions . Map.elems
 
 modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
 modifyMVarPure v f = modifyMVar_ v $ pure . f
 
-trkSession :: Concurrent :> es => TrackedFiles -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
-trkSession before act = do
-  ts <- newMVar mempty
-  r <-
-    interpretWith_
-      (inject act)
-      $ \case
-        TrkAdd pkg file -> modifyMVarPure ts $ tsAdd pkg $ Set.singleton file
-        TrkSkip pkg -> modifyMVarPure ts $ tsAdd pkg $ fromMaybe mempty $ Map.lookup pkg.name before
+trkSession :: Concurrent :> es => MVar TrackerState -> Eff (Tracker : es) a -> Eff es a
+trkSession ts act = do
+  before <- (.previous) <$> readMVar ts
+  interpretWith_
+    (inject act)
+    $ \case
+      TrkAdd pkg file -> modifyMVarPure ts $ tsAdd pkg $ Set.singleton file
+      TrkSkip pkg -> modifyMVarPure ts $ tsAdd pkg $ fromMaybe mempty $ Map.lookup pkg.name before
+
+stateTracker :: Concurrent :> es => TrackedFiles -> Eff (Tracker : es) a -> Eff es (a, TrackerState)
+stateTracker before act = do
+  ts <- newMVar $ TrackerState before mempty
+  r <- trkSession ts act
   tracked <- takeMVar ts
-  let deleted = tsDiff before tracked
-  pure $ (r, TrackerState{..})
+  pure (r, tracked)
 
 nullTracker :: Concurrent :> es => Eff (Tracker : es) a -> Eff es a
-nullTracker = fmap fst . trkSession mempty
+nullTracker = fmap fst . stateTracker mempty
 
 newtype TrackerStateFile = TrackerStateFile
   { trackedFiles :: TrackedFiles
@@ -82,9 +87,9 @@ drvTracker stateFile act = do
         fmap (.trackedFiles) $
           drvReadFile stateFile >>= jsonDecode @TrackerStateFile "tracker state"
       else pure mempty
-  (r, after) <- trkSession before act
-  forM_ after.deleted $ drvRm
+  (r, ts) <- stateTracker before act
+  forM_ (tsDeleted ts) $ drvRm
   drvWriteBinaryFile stateFile $
     encode $
-      TrackerStateFile after.tracked
+      TrackerStateFile ts.current
   pure r
