@@ -10,7 +10,6 @@ import Mybox.Tracker
 
 newtype DummyPackage
   = DummyPackage {name :: Text}
-  deriving (Eq, Ord, Show)
 
 spec :: Spec
 spec = do
