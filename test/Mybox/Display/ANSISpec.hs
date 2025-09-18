@@ -2,7 +2,6 @@ module Mybox.Display.ANSISpec where
 
 import Mybox.Display
 import Mybox.Display.ANSI
-import Mybox.Display.Data
 import Mybox.Display.Tmux
 import Mybox.SpecBase
 
@@ -14,11 +13,12 @@ spec = do
       run (displayLogText "hello") >>= (`shouldBe` "hello")
     it "displays banner" $ do
       output <- run $ do
-        displayModifyBanner $ addChecking "check" . addInstalling "install"
+        displayBanner $ bannerChecking "check" <> bannerInstalling "install"
+
       output `shouldBe` colourString "<blue>checking<reset> check\n<green>installing<reset> install"
     it "replaces banner" $ do
       output <- run $ do
-        displayModifyBanner $ addInstalling "long package name"
-        displayModifyBanner $ \b -> b{installing = mempty}
-        displayModifyBanner $ addInstalling "short"
+        displayBannerWhile (bannerInstalling "long package name") $ pure ()
+        displayBanner $ bannerInstalling "short"
+
       output `shouldBe` colourString "<green>installing<reset> short"

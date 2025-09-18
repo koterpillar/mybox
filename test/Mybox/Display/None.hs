@@ -11,5 +11,5 @@ noDisplay ::
   Eff (Display a : es) r -> Eff es r
 noDisplay = interpret_ $ \case
   Log !_ -> pure ()
-  SetBanner !_ -> pure ()
-  GetBanner -> pure mempty
+  AddBanner !_ -> pure ()
+  RemoveBanner !_ -> pure ()

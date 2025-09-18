@@ -26,10 +26,12 @@ spec = do
     it "displays and updates the banner" $ do
       let logs = run $ do
             displayLogText "hello"
-            displayModifyBannerWhile (addInstalling "one") $ displayLogText "inside"
+            displayBannerWhile (bannerInstalling "one") $ displayLogText "inside"
+
             displayLogText "world"
-            displayModifyBanner $
-              addChecking "two" . addInstalling "three" . addInstalling "four"
+            displayBanner $
+              bannerChecking "two" <> bannerInstalling "three" <> bannerInstalling "four"
+
       logs
         `shouldBe` unlines
           [ "hello"

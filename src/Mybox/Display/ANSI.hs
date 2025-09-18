@@ -6,6 +6,7 @@ module Mybox.Display.ANSI (
   runANSIDisplay,
 ) where
 
+import Data.List (delete)
 import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Local
@@ -30,22 +31,22 @@ runANSIDisplay ::
   Eff es r
 runANSIDisplay =
   reinterpret_
-    (evalState @(Banner a) mempty)
+    (evalState @[Banner a] mempty)
     $ \case
       Log log -> withBanner @(Banner a) $ draw $ terminalShow log
-      SetBanner banner -> withBanner @(Banner a) $ put banner
-      GetBanner -> get
+      AddBanner banner -> withBanner @(Banner a) $ modify (banner :)
+      RemoveBanner banner -> withBanner @(Banner a) $ modify (delete banner)
 
 withBanner ::
   forall banner es r.
-  (Print :> es, State banner :> es, TerminalShow banner) =>
+  (Monoid banner, Print :> es, State [banner] :> es, TerminalShow banner) =>
   Eff es r ->
   Eff es r
 withBanner act = do
-  oldBanner <- get @banner
+  oldBanner <- gets @[banner] mconcat
   eraseBanner oldBanner
   act `finally` do
-    newBanner <- get @banner
+    newBanner <- gets @[banner] mconcat
     drawBanner newBanner
 
 mlist :: (a -> b) -> Maybe a -> [b]

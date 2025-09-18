@@ -18,7 +18,7 @@ data instance Banner MDisplay = MBanner
   { checking :: Set Text
   , installing :: Set Text
   }
-  deriving (Generic)
+  deriving (Eq, Generic)
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
 instance TerminalShow (Banner MDisplay) where
@@ -37,8 +37,8 @@ bannerPart color label set
           : tiSpace
           : intersperse tiComma (map tiMk (toList set))
 
-addChecking :: Text -> Banner MDisplay -> Banner MDisplay
-addChecking text banner = banner{checking = Set.insert text banner.checking}
+bannerChecking :: Text -> Banner MDisplay
+bannerChecking text = mempty{checking = Set.singleton text}
 
-addInstalling :: Text -> Banner MDisplay -> Banner MDisplay
-addInstalling text banner = banner{installing = Set.insert text banner.installing}
+bannerInstalling :: Text -> Banner MDisplay
+bannerInstalling text = mempty{installing = Set.singleton text}

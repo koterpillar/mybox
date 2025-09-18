@@ -33,10 +33,10 @@ isInstalled pkg = do
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = do
   installed <-
-    displayModifyBannerWhile (addChecking pkg.name) $
+    displayBannerWhile (bannerChecking pkg.name) $
       isInstalled pkg
   if installed
     then trkSkip pkg
     else
-      displayModifyBannerWhile (addInstalling pkg.name) $
+      displayBannerWhile (bannerInstalling pkg.name) $
         install pkg

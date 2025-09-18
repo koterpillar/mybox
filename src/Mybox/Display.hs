@@ -1,11 +1,11 @@
 module Mybox.Display (
   runDisplay,
   displayLog,
-  displayModifyBanner,
-  displayModifyBannerWhile,
+  displayBanner,
+  displayBannerWhile,
   AppDisplay,
-  addChecking,
-  addInstalling,
+  bannerChecking,
+  bannerInstalling,
   MDisplay,
   displayLogText,
 ) where
