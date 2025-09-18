@@ -54,7 +54,23 @@ spec = do
         drvTracker state $ trkAdd pkg testFile
         -- State should be written out
         drvIsFile state >>= (`shouldBe` True)
+        drvReadFile state
+          >>= (`shouldBe` ("{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"))
         -- Now record no files
+        drvTracker state $ pure ()
+        -- State is still there but empty
+        drvIsFile state >>= (`shouldBe` True)
+        drvReadFile state >>= (`shouldBe` "{\"trackedFiles\":{}}")
+        -- Test file should be deleted
+        drvIsFile testFile >>= (`shouldBe` False)
+    it "reads and removes previously saved files" $
+      drvTempDir $ \dir -> do
+        let testFile = dir </> "file1"
+        drvWriteFile testFile "content"
+        -- Assume previous run tracked the test file
+        let state = dir </> "state.json"
+        drvWriteFile state $ "{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"
+        -- Record no files
         drvTracker state $ pure ()
         -- State is still there but empty
         drvIsFile state >>= (`shouldBe` True)
