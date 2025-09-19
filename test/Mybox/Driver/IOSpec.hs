@@ -26,6 +26,13 @@ spec = do
   it "trims whitespace from output" $ do
     result <- drvRunOutput $ "echo" :| ["  trimmed  "]
     result `shouldBe` "trimmed"
+  skipIf "Running in Docker modifies commands run" inDocker $ do
+    it "reports an error" $
+      drvRun ("false" :| []) `shouldThrow` errorCall "Process false failed with exit code 1"
+    it "includes output and error in failure message" $
+      shouldThrow
+        (drvRun $ shellRaw "echo fail; echo err >&2; false")
+        (errorCall "Process /bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err; stdout: fail")
   it "writes and reads files" $ do
     let testFile = pRoot </> "tmp" </> "test.txt"
     drvWriteFile testFile "Hello World"
