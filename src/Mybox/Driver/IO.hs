@@ -23,9 +23,11 @@ errorMessage args code stdout stderr =
       <> Text.unpack (shellJoin args)
       <> " failed with exit code "
       <> show code
-  extraMessage str desc
-    | BS.null str = ""
-    | otherwise = "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str)
+  extraMessage str desc =
+    let str_ = bsStrip str
+     in if BS.null str_
+          then ""
+          else "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str_)
 
 bsStrip :: ByteString -> ByteString
 bsStrip = BS.dropWhileEnd whitespace . BS.dropWhile whitespace
