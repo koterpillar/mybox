@@ -1,2 +1,11 @@
 ignore:
   - test/Mybox/Spec/Uncovered  # Extra functionality when tests fail, unused when they pass
+coverage:
+  status:
+    project:
+      default:
+        threshold: 1%
+    patch:
+      default:
+        target: 90%
+        threshold: 0%
