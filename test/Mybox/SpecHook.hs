@@ -7,6 +7,7 @@ import Data.Ord (Down (..))
 import Data.Text qualified as Text
 import Test.Hspec qualified as Hspec
 
+import Mybox.Display.None
 import Mybox.Driver
 import Mybox.Driver.Stats
 import Mybox.Driver.Test
@@ -22,10 +23,11 @@ hook spec = do
 dispatch :: MVar (Map Args Int) -> Eff BaseEff r -> Eff '[IOE] r
 dispatch globalStats act =
   runConcurrent $
-    runStores $ do
-      (stats, r) <- testDriver $ driverStats act
-      liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
-      pure r
+    noDisplay $
+      runStores $ do
+        (stats, r) <- testDriver $ driverStats act
+        liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
+        pure r
 
 printStats :: Int -> Map Args Int -> IO ()
 printStats n stats = do

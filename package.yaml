@@ -27,6 +27,7 @@ dependencies:
   - aeson
   - aeson-extra
   - aeson-jsonpath
+  - ansi-terminal
   - base
   - base64-bytestring
   - bytestring
