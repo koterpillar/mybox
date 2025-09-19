@@ -44,7 +44,7 @@ instance ToJSON YumRepo where
 yumRepoRemoteVersion :: YumRepo -> Text
 yumRepoRemoteVersion = jsonEncode
 
-writeRepoFile :: (Driver :> es, TrackerSession :> es) => YumRepo -> Eff es ()
+writeRepoFile :: (Driver :> es, Tracker :> es) => YumRepo -> Eff es ()
 writeRepoFile p = do
   let repoConfig =
         Text.unlines $
@@ -69,7 +69,7 @@ importGpgKey :: Driver :> es => YumRepo -> Eff es ()
 importGpgKey p = for_ p.gpgKey $ \key ->
   drvRun $ sudo $ "rpm" :| ["--import", key]
 
-yumRepoInstall :: (Driver :> es, TrackerSession :> es) => YumRepo -> Eff es ()
+yumRepoInstall :: (Driver :> es, Tracker :> es) => YumRepo -> Eff es ()
 yumRepoInstall p = do
   os <- drvOS
   case os of

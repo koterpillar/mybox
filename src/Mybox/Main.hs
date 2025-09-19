@@ -2,6 +2,8 @@ module Mybox.Main (
   main,
 ) where
 
+import Effectful.Concurrent
+
 import Mybox.Config
 import Mybox.Driver
 import Mybox.Package.Queue
@@ -11,12 +13,12 @@ import Mybox.Tracker
 
 main :: IO ()
 main =
-  runEff $ do
-    runStores $
-      localDriver $ do
-        config <- readConfig
-        state <- drvMyboxState
-        drvTracker (state </> "files.json") $
-          trkSession $
+  runEff $
+    runConcurrent $
+      runStores $
+        localDriver $ do
+          config <- readConfig
+          state <- drvMyboxState
+          drvTracker (state </> "files.json") $
             runInstallQueue_ $
               for_ config.packages queueInstall

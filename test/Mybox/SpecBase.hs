@@ -1,5 +1,6 @@
 module Mybox.SpecBase (
   module Test.Hspec,
+  BaseEff,
   EffSpec,
   Spec,
   effSpec,
@@ -37,7 +38,9 @@ newtype RunEff es
 
 type EffSpec es = Hspec.SpecWith (RunEff es)
 
-type Spec = EffSpec '[Driver, Stores, IOE]
+type BaseEff = '[Driver, Stores, Concurrent, IOE]
+
+type Spec = EffSpec BaseEff
 
 effSpec :: IOE :> es => (forall r. Eff es r -> Eff '[IOE] r) -> EffSpec es -> Hspec.Spec
 effSpec dispatch = around $ \ioa ->

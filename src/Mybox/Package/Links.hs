@@ -82,7 +82,7 @@ paths p = do
 lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
 lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
 
-lpInstall :: (Driver :> es, TrackerSession :> es) => LinksPackage -> Eff es ()
+lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
 lpInstall p = do
   destination <- destinationPath p
   pp <- paths p
