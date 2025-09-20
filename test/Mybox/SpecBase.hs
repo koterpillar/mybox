@@ -36,6 +36,7 @@ import Mybox.Aeson
 import Mybox.Display
 import Mybox.Driver
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.Stores
 
 newtype RunEff es
@@ -118,8 +119,8 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
   it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
     let pkgE = jsonDecode @a "example" json
     pkgE `shouldSatisfy` isRight
-    pkg <- either (error . show) pure pkgE
+    let pkg = requireRight pkgE
     let json' = jsonEncode pkg
     let pkgE' = jsonDecode @a "example" json'
-    pkg' <- either (error . show) pure pkgE'
+    let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
