@@ -4,22 +4,58 @@ import Mybox.Aeson
 import Mybox.Prelude
 import Mybox.SpecBase
 
-newtype Test = Test {unTest :: Text} deriving (Eq, Show)
+newtype JATest = JATest Text deriving (Eq, Show)
 
-instance FromJSON Test where
+instance FromJSON JATest where
   parseJSON v =
-    Test
+    JATest
       <$> jsonAlternative
         (withObject "Test 1" (\o -> o .: "foo") v)
         (withObject "Test 2" (\o -> o .: "bar") v)
+
+data WOTTest = WOTTest Text (Maybe Text) deriving (Eq, Show)
+
+instance FromJSON WOTTest where
+  parseJSON = withObjectTotal "WOTTest" $ WOTTest <$> takeField "a" <*> takeFieldMaybe "b"
+
+data CLTest = CLTest [Text] deriving (Eq, Show)
+
+instance FromJSON CLTest where
+  parseJSON = withObjectTotal "CLTest" $ CLTest <$> takeCollapsedList "items"
 
 spec :: Spec
 spec = do
   describe "jsonAlternative" $ do
     it "works if first parser succeeds" $
-      eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (Test "test")
+      eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (JATest "test")
     it "works if second parser succeeds" $
-      eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (Test "test")
+      eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (JATest "test")
     it "combines errors if both parsers fail" $
-      eitherDecode @Test "{}"
+      eitherDecode @JATest "{}"
         `shouldBe` Left "Error in $: key \"foo\" not found; key \"bar\" not found"
+  describe "withObjectTotal" $ do
+    it "fails on missing fields" $
+      eitherDecode @WOTTest "{}" `shouldBe` Left "Error in $: key \"a\" not found"
+    it "fails on wrong types" $
+      eitherDecode @WOTTest "{\"a\": 123}"
+        `shouldBe` Left "Error in $.a: parsing Text failed, expected String, but encountered Number"
+    it "succeeds on valid JSON" $
+      eitherDecode "{\"a\": \"test\", \"b\": \"value\"}" `shouldBe` Right (WOTTest "test" (Just "value"))
+    it "succeeds on valid JSON without optional field" $
+      eitherDecode "{\"a\": \"test\"}" `shouldBe` Right (WOTTest "test" Nothing)
+    it "succeeds when optional field is null" $
+      eitherDecode "{\"a\": \"test\", \"b\": null}" `shouldBe` Right (WOTTest "test" Nothing)
+    it "fails on extra fields" $
+      eitherDecode @WOTTest "{\"a\": \"test\", \"b\": \"value\", \"c\": \"extra\"}"
+        `shouldBe` Left "Error in $: unexpected keys: \"c\""
+    describe "takeCollapsedList" $ do
+      it "returns single element as list" $
+        eitherDecode "{\"items\": \"one\"}" `shouldBe` Right (CLTest ["one"])
+      it "returns array as list" $
+        eitherDecode "{\"items\": [\"one\", \"two\"]}" `shouldBe` Right (CLTest ["one", "two"])
+      it "returns empty list when key is missing" $
+        eitherDecode "{}" `shouldBe` Right (CLTest [])
+      it "fails on wrong type"
+        $ shouldBe
+          (eitherDecode @CLTest "{\"items\": 123}")
+        $ Left "Error in $.items: parsing Text failed, expected String, but encountered Number"
