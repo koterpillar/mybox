@@ -21,9 +21,9 @@ instance HasField "name" BrewRepo Text where
   getField p = "brew-" <> p.name_
 
 instance FromJSON BrewRepo where
-  parseJSON = withObject "BrewRepo" $ \o -> do
-    name_ <- o .: "brew_tap"
-    post <- parsePost o
+  parseJSON = withObjectTotal "BrewRepo" $ do
+    name_ <- takeField "brew_tap"
+    post <- takePost
     pure BrewRepo{..}
 
 instance ToJSON BrewRepo where

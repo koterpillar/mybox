@@ -34,11 +34,11 @@ instance HasField "name" ClonePackage Text where
   getField p = Text.intercalate "#" $ p.repo : toList p.branch
 
 instance FromJSON ClonePackage where
-  parseJSON = withObject "ClonePackage" $ \o -> do
-    repo <- o .: "clone"
-    branch <- o .:? "branch"
-    destination <- o .: "destination"
-    post <- parsePost o
+  parseJSON = withObjectTotal "ClonePackage" $ do
+    repo <- takeField "clone"
+    branch <- takeFieldMaybe "branch"
+    destination <- takeField "destination"
+    post <- takePost
     pure ClonePackage{..}
 
 instance ToJSON ClonePackage where

@@ -1,6 +1,7 @@
 module Mybox.Package.SomeSpec where
 
 import Mybox.Aeson
+import Mybox.Package.Archive
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
@@ -33,6 +34,8 @@ spec = do
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []
     roundtrip $ mkGithubPackage "test/repo"
+    roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Right True}}
+    roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Left "raw"}}
     roundtrip $ mkFlatpakPackage "com.example.Test"
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}

@@ -18,10 +18,10 @@ data URLPackage = URLPackage
   deriving (Eq, Show)
 
 instance FromJSON URLPackage where
-  parseJSON = withObject "URLPackage" $ \o -> do
-    url <- o .: "url"
-    post <- parsePost o
-    archive <- parseArchive o
+  parseJSON = withObjectTotal "URLPackage" $ do
+    url <- takeField "url"
+    post <- takePost
+    archive <- takeArchive
     pure $ URLPackage{..}
 
 instance ToJSON URLPackage where

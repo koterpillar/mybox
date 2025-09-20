@@ -1,4 +1,4 @@
-module Mybox.Package.Post (PackagePost, parsePost, postToJSON, runPost, installWithPost) where
+module Mybox.Package.Post (PackagePost, takePost, postToJSON, runPost, installWithPost) where
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -6,8 +6,8 @@ import Mybox.Prelude
 
 type PackagePost p = HasField "post" p [Text]
 
-parsePost :: Object -> Parser [Text]
-parsePost o = parseCollapsedList o "post"
+takePost :: ObjectParser [Text]
+takePost = takeCollapsedList "post"
 
 postToJSON :: PackagePost p => p -> [Pair]
 postToJSON p = ["post" .= p.post]

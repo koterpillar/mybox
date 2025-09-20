@@ -19,9 +19,9 @@ mkFlatpakPackage :: Text -> FlatpakPackage
 mkFlatpakPackage name = FlatpakPackage{name, post = []}
 
 instance FromJSON FlatpakPackage where
-  parseJSON = withObject "FlatpakPackage" $ \o -> do
-    name <- o .: "flatpak"
-    post <- parsePost o
+  parseJSON = withObjectTotal "FlatpakPackage" $ do
+    name <- takeField "flatpak"
+    post <- takePost
     pure FlatpakPackage{..}
 
 instance ToJSON FlatpakPackage where
