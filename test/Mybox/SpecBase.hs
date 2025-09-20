@@ -21,6 +21,7 @@ module Mybox.SpecBase (
   inDocker,
   virtualSystem,
   evaluate,
+  jsonSpec,
 ) where
 
 import Data.Text qualified as Text
@@ -29,6 +30,7 @@ import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
+import Mybox.Aeson
 import Mybox.Display
 import Mybox.Driver
 import Mybox.Prelude
@@ -104,3 +106,19 @@ inCI = hasEnv "CI"
 
 virtualSystem :: (Driver :> es, IOE :> es) => Eff es Bool
 virtualSystem = (||) <$> inDocker <*> inCI
+
+jsonSpec ::
+  forall proxy a.
+  (Eq a, FromJSON a, Show a, ToJSON a) =>
+  proxy a ->
+  [(Maybe Text, Text)] ->
+  Spec
+jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+  it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
+    let pkgE = jsonDecode @a "example" json
+    pkgE `shouldSatisfy` isRight
+    pkg <- either (error . show) pure pkgE
+    let json' = jsonEncode pkg
+    let pkgE' = jsonDecode @a "example" json'
+    pkg' <- either (error . show) pure pkgE'
+    pkg' `shouldBe` pkg

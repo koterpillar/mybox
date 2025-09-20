@@ -6,7 +6,6 @@ import Data.Set qualified as Set
 import Mybox.Aeson
 import Mybox.Package.Class
 import Mybox.Package.Queue
-import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
