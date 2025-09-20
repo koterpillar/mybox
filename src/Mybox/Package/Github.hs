@@ -35,12 +35,12 @@ instance HasField "name" GithubPackage Text where
   getField p = p.repo
 
 instance FromJSON GithubPackage where
-  parseJSON = withObject "GithubPackage" $ \o -> do
-    repo <- o .: "repo"
-    skipReleases <- parseCollapsedList o "skip_release"
-    archive <- parseArchive o
-    filters <- parseFilter o
-    post <- parsePost o
+  parseJSON = withObjectTotal "GithubPackage" $ do
+    repo <- takeField "repo"
+    skipReleases <- takeCollapsedList "skip_release"
+    archive <- takeArchive
+    filters <- takeFilter
+    post <- takePost
     pure GithubPackage{..}
 
 instance ToJSON GithubPackage where

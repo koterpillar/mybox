@@ -22,11 +22,11 @@ mkSystemPackage :: Text -> SystemPackage
 mkSystemPackage name = SystemPackage{name, url = Nothing, autoUpdates = True, post = []}
 
 instance FromJSON SystemPackage where
-  parseJSON = withObject "SystemPackage" $ \o -> do
-    name <- o .: "system"
-    url <- o .:? "url"
-    autoUpdates <- o .:? "auto_updates" .!= True
-    post <- parsePost o
+  parseJSON = withObjectTotal "SystemPackage" $ do
+    name <- takeField "system"
+    url <- takeFieldMaybe "url"
+    autoUpdates <- fromMaybe True <$> takeFieldMaybe "auto_updates"
+    post <- takePost
     pure SystemPackage{..}
 
 instance ToJSON SystemPackage where

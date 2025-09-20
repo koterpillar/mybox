@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Mybox.SpecBase (
   module Test.Hspec,
   BaseEff,
@@ -21,6 +23,7 @@ module Mybox.SpecBase (
   inDocker,
   virtualSystem,
   evaluate,
+  jsonSpec,
 ) where
 
 import Data.Text qualified as Text
@@ -29,9 +32,11 @@ import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
+import Mybox.Aeson
 import Mybox.Display
 import Mybox.Driver
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.Stores
 
 newtype RunEff es
@@ -104,3 +109,18 @@ inCI = hasEnv "CI"
 
 virtualSystem :: (Driver :> es, IOE :> es) => Eff es Bool
 virtualSystem = (||) <$> inDocker <*> inCI
+
+jsonSpec ::
+  forall a.
+  (Eq a, FromJSON a, Show a, ToJSON a) =>
+  [(Maybe Text, Text)] ->
+  Spec
+jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+  it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
+    let pkgE = jsonDecode @a "example" json
+    pkgE `shouldSatisfy` isRight
+    let pkg = requireRight pkgE
+    let json' = jsonEncode pkg
+    let pkgE' = jsonDecode @a "example" json'
+    let pkg' = requireRight pkgE'
+    pkg' `shouldBe` pkg

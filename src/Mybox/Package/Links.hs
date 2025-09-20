@@ -40,13 +40,13 @@ instance HasField "name" LinksPackage Text where
   getField p = Text.intercalate "-" ["links", p.source_.text, p.destination.text, Text.pack (show p.dot)]
 
 instance FromJSON LinksPackage where
-  parseJSON = withObject "LinksPackage" $ \o -> do
-    source_ <- o .: "links"
-    destination <- o .: "destination"
-    dot <- o .:? "dot" .!= False
-    shallow <- o .:? "shallow" .!= False
-    only <- parseCollapsedList o "only"
-    post <- parsePost o
+  parseJSON = withObjectTotal "LinksPackage" $ do
+    source_ <- takeField "links"
+    destination <- takeField "destination"
+    dot <- fromMaybe False <$> takeFieldMaybe "dot"
+    shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
+    only <- takeCollapsedListMaybe "only"
+    post <- takePost
     pure LinksPackage{..}
 
 instance ToJSON LinksPackage where

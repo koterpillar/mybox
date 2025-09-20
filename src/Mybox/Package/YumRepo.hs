@@ -25,11 +25,11 @@ instance HasField "name" YumRepo Text where
   getField p = "yum-" <> p.name_
 
 instance FromJSON YumRepo where
-  parseJSON = withObject "YumRepo" $ \o -> do
-    name_ <- o .: "yum_name"
-    url <- o .: "yum_url"
-    gpgKey <- o .:? "gpg_key"
-    post <- parsePost o
+  parseJSON = withObjectTotal "YumRepo" $ do
+    name_ <- takeField "yum_name"
+    url <- takeField "yum_url"
+    gpgKey <- takeFieldMaybe "gpg_key"
+    post <- takePost
     pure YumRepo{..}
 
 instance ToJSON YumRepo where

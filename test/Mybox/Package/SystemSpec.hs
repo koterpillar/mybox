@@ -9,7 +9,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @SystemPackage)
+    @SystemPackage
     [ (Nothing, "{\"system\": \"test\"}")
     , (Just "URL", "{\"system\": \"test\", \"url\": \"test\"}")
     , (Just "auto update", "{\"system\": \"test\", \"auto_updates\": true}")

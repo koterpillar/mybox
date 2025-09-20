@@ -1,25 +1,97 @@
 module Mybox.AesonSpec where
 
+import Control.Exception.Safe (StringException (..))
+import Data.Aeson.Types (parseEither)
+
 import Mybox.Aeson
 import Mybox.Prelude
 import Mybox.SpecBase
 
-newtype Test = Test {unTest :: Text} deriving (Eq, Show)
+newtype JATest = JATest Text deriving (Eq, Show)
 
-instance FromJSON Test where
+instance FromJSON JATest where
   parseJSON v =
-    Test
+    JATest
       <$> jsonAlternative
         (withObject "Test 1" (\o -> o .: "foo") v)
         (withObject "Test 2" (\o -> o .: "bar") v)
 
+data WOTTest = WOTTest Text (Maybe Text) deriving (Eq, Show)
+
+instance FromJSON WOTTest where
+  parseJSON = withObjectTotal "WOTTest" $ WOTTest <$> takeField "a" <*> takeFieldMaybe "b"
+
+data CLTest = CLTest [Text] deriving (Eq, Show)
+
+instance FromJSON CLTest where
+  parseJSON = withObjectTotal "CLTest" $ CLTest <$> takeCollapsedList "items"
+
+type CETest = CollapsedEither Text Int
+
 spec :: Spec
 spec = do
+  describe "jsonDecode" $ do
+    it "succeeds for valid JSON" $
+      jsonDecode @Text "text" "\"hello\"" >>= (`shouldBe` "hello")
+    it "fails for invalid JSON" $
+      jsonDecode @Text "text" "123" `shouldThrow` (\(StringException msg _) -> msg == "Failed to decode text: Error in $: parsing Text failed, expected String, but encountered Number")
+  describe "yamlDecode" $ do
+    it "succeeds for valid YAML" $
+      yamlDecode @[Text] "- one\n- two" >>= (`shouldBe` ["one", "two"])
+    it "fails for invalid YAML" $
+      yamlDecode @[Text] "123" `shouldThrow` anyException
+  describe "parseJSONWithContext" $ do
+    it "succeeds for matching value" $
+      parseEither (parseJSONWithContext @Text "text") "hello" `shouldBe` Right "hello"
+    it "fails for wrong value" $
+      parseEither (parseJSONWithContext @Text "text") (Object mempty) `shouldBe` Left "Error in $.text: parsing Text failed, expected String, but encountered Object"
   describe "jsonAlternative" $ do
     it "works if first parser succeeds" $
-      eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (Test "test")
+      eitherDecode "{\"foo\": \"test\"}" `shouldBe` Right (JATest "test")
     it "works if second parser succeeds" $
-      eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (Test "test")
+      eitherDecode "{\"bar\": \"test\"}" `shouldBe` Right (JATest "test")
     it "combines errors if both parsers fail" $
-      eitherDecode @Test "{}"
+      eitherDecode @JATest "{}"
         `shouldBe` Left "Error in $: key \"foo\" not found; key \"bar\" not found"
+  describe "withObjectTotal" $ do
+    it "fails on missing fields" $
+      eitherDecode @WOTTest "{}" `shouldBe` Left "Error in $: key \"a\" not found"
+    it "fails on wrong types" $
+      eitherDecode @WOTTest "{\"a\": 123}"
+        `shouldBe` Left "Error in $.a: parsing Text failed, expected String, but encountered Number"
+    it "fails on non-objects" $
+      eitherDecode @WOTTest "123" `shouldBe` Left "Error in $: parsing WOTTest failed, expected Object, but encountered Number"
+    it "succeeds on valid JSON" $
+      eitherDecode "{\"a\": \"test\", \"b\": \"value\"}" `shouldBe` Right (WOTTest "test" (Just "value"))
+    it "succeeds on valid JSON without optional field" $
+      eitherDecode "{\"a\": \"test\"}" `shouldBe` Right (WOTTest "test" Nothing)
+    it "succeeds when optional field is null" $
+      eitherDecode "{\"a\": \"test\", \"b\": null}" `shouldBe` Right (WOTTest "test" Nothing)
+    it "fails on extra fields" $
+      eitherDecode @WOTTest "{\"a\": \"test\", \"b\": \"value\", \"c\": \"extra\", \"d\": \"more\"}"
+        `shouldBe` Left "Error in $: unexpected keys: \"c\", \"d\""
+    describe "takeCollapsedList" $ do
+      it "returns single element as list" $
+        eitherDecode "{\"items\": \"one\"}" `shouldBe` Right (CLTest ["one"])
+      it "returns array as list" $
+        eitherDecode "{\"items\": [\"one\", \"two\"]}" `shouldBe` Right (CLTest ["one", "two"])
+      it "returns empty list when key is missing" $
+        eitherDecode "{}" `shouldBe` Right (CLTest [])
+      it "fails on wrong type"
+        $ shouldBe
+          (eitherDecode @CLTest "{\"items\": 123}")
+        $ Left "Error in $.items: parsing Text failed, expected String, but encountered Number; parsing [] failed, expected Array, but encountered Number"
+  describe "CollapsedEither" $ do
+    it "parses left value" $
+      eitherDecode @CETest "\"value\"" `shouldBe` Right (CollapsedEither (Left "value"))
+    it "parses right value" $
+      eitherDecode @CETest "123" `shouldBe` Right (CollapsedEither (Right 123))
+    it "fails when neither parser succeeds"
+      $ shouldBe
+        (eitherDecode @CETest "true")
+      $ Left "Error in $: parsing Int failed, expected Number, but encountered Boolean; parsing Text failed, expected String, but encountered Boolean"
+    jsonSpec
+      @CETest
+      [ (Just "left", "\"left\"")
+      , (Just "right", "123")
+      ]

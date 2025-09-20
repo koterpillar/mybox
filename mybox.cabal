@@ -99,7 +99,6 @@ library
   build-depends:
       Glob
     , aeson
-    , aeson-extra
     , aeson-jsonpath
     , ansi-terminal
     , base
@@ -148,7 +147,6 @@ executable mybox
   build-depends:
       Glob
     , aeson
-    , aeson-extra
     , aeson-jsonpath
     , ansi-terminal
     , base
@@ -251,7 +249,6 @@ test-suite tests
   build-depends:
       Glob
     , aeson
-    , aeson-extra
     , aeson-jsonpath
     , ansi-terminal
     , base

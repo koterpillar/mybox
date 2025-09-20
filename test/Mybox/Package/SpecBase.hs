@@ -11,14 +11,12 @@ module Mybox.Package.SpecBase (
   ignorePath,
   packageSpec,
   packageSpecGen,
-  jsonSpec,
 ) where
 
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 
-import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Package.Class
@@ -141,14 +139,3 @@ checkVersionMatches p = do
   remote <- remoteVersion p
   local <- localVersion p
   local `shouldBe` Just remote
-
-jsonSpec :: forall proxy a. (Eq a, Package a) => proxy a -> [(Maybe Text, Text)] -> Spec
-jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
-  it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
-    let pkgE = jsonDecode @a "example" json
-    pkgE `shouldSatisfy` isRight
-    pkg <- either (error . show) pure pkgE
-    let json' = jsonEncode pkg
-    let pkgE' = jsonDecode @a "example" json'
-    pkg' <- either (error . show) pure pkgE'
-    pkg' `shouldBe` pkg

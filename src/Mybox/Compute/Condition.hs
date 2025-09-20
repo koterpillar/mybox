@@ -12,9 +12,9 @@ data Conditions = Conditions
   deriving (Eq, Ord, Show)
 
 instance FromJSON Conditions where
-  parseJSON = withObject "Conditions" $ \o -> do
-    os <- parseCollapsedListMaybe o "os"
-    architecture <- parseCollapsedListMaybe o "architecture"
+  parseJSON = withObjectTotal "Conditions" $ do
+    os <- takeCollapsedListMaybe "os"
+    architecture <- takeCollapsedListMaybe "architecture"
     pure Conditions{..}
 
 andM :: Monad m => [m Bool] -> m Bool

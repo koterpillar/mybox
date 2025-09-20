@@ -12,7 +12,7 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec (Nothing @PipxPackage) [(Nothing, "{\"pipx\": \"django\"}")]
+  jsonSpec @PipxPackage [(Nothing, "{\"pipx\": \"django\"}")]
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue_) $ do
       it "gets version for existing package" $ do

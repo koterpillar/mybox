@@ -27,10 +27,10 @@ instance HasField "name" NPMPackage Text where
   getField p = p.package
 
 instance FromJSON NPMPackage where
-  parseJSON = withObject "NPMPackage" $ \o -> do
-    package <- o .: "npm"
-    binaries <- parseCollapsedList o "binary"
-    post <- parsePost o
+  parseJSON = withObjectTotal "NPMPackage" $ do
+    package <- takeField "npm"
+    binaries <- takeCollapsedList "binary"
+    post <- takePost
     pure NPMPackage{..}
 
 instance ToJSON NPMPackage where

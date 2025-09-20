@@ -23,10 +23,10 @@ mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
 
 instance FromJSON ShellPackage where
-  parseJSON = withObject "ShellPackage" $ \o -> do
-    shellPath <- o .: "shell"
-    root <- o .:? "root" .!= False
-    post <- parsePost o
+  parseJSON = withObjectTotal "ShellPackage" $ do
+    shellPath <- takeField "shell"
+    root <- fromMaybe False <$> takeFieldMaybe "root"
+    post <- takePost
     pure ShellPackage{shell = shellPath, ..}
 
 instance ToJSON ShellPackage where

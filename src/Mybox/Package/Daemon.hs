@@ -27,13 +27,10 @@ mkDaemonPackage :: NonEmpty Text -> DaemonPackage
 mkDaemonPackage daemon = DaemonPackage{daemon, nameOverride = Nothing, post = []}
 
 instance FromJSON DaemonPackage where
-  parseJSON = withObject "DaemonPackage" $ \o -> do
-    daemon <-
-      parseCollapsedList o "daemon" >>= \case
-        [] -> fail "Expected non-empty list for 'daemon'"
-        (x : xs) -> pure (x :| xs)
-    nameOverride <- o .:? "name"
-    post <- parsePost o
+  parseJSON = withObjectTotal "DaemonPackage" $ do
+    daemon <- takeCollapsedNEList "daemon"
+    nameOverride <- takeFieldMaybe "name"
+    post <- takePost
     pure DaemonPackage{..}
 
 instance ToJSON DaemonPackage where

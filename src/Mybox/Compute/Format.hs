@@ -7,7 +7,7 @@ import Mybox.Compute.Base
 import Mybox.Prelude
 
 parseBase :: Object -> Parser [Text]
-parseBase o = parseCollapsedList o "base"
+parseBase = parseObjectTotal $ takeCollapsedList "base"
 
 doFormat :: Text -> [Text] -> Either String Text
 doFormat str values =

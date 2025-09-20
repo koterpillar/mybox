@@ -36,19 +36,19 @@ emptyArchiveFields =
     , fonts = []
     }
 
-parseArchive :: Object -> Parser ArchiveFields
-parseArchive o = do
-  raw <- fromMaybe (Right False) <$> (fmap Left <$> o .:? "raw" <|> fmap Right <$> o .:? "raw")
-  binaries <- parseCollapsedList o "binary" <|> pure []
-  binaryWrapper <- o .:? "binary_wrapper" .!= False
-  binaryPaths <- parseCollapsedList o "binary_path"
-  apps <- parseCollapsedList o "app"
-  fonts <- parseCollapsedList o "font"
-  return ArchiveFields{..}
+takeArchive :: ObjectParser ArchiveFields
+takeArchive = do
+  raw <- fromMaybe (Right False) . fmap getCollapsedEither <$> takeFieldMaybe "raw"
+  binaries <- takeCollapsedList "binary"
+  binaryWrapper <- fromMaybe False <$> takeFieldMaybe "binary_wrapper"
+  binaryPaths <- takeCollapsedList "binary_path"
+  apps <- takeCollapsedList "app"
+  fonts <- takeCollapsedList "font"
+  pure ArchiveFields{..}
 
 archiveToJSON :: ArchiveFields -> [Pair]
 archiveToJSON p =
-  [ "raw" .= either toJSON toJSON p.raw
+  [ "raw" .= CollapsedEither p.raw
   , "binary" .= p.binaries
   , "binary_wrapper" .= p.binaryWrapper
   , "binary_path" .= p.binaryPaths

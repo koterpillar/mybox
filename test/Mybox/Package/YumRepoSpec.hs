@@ -9,7 +9,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @YumRepo)
+    @YumRepo
     [ (Nothing, "{\"yum_name\": \"test\", \"yum_url\": \"https://example.com/repo\"}")
     , (Just "with GPG key", "{\"yum_name\": \"test\", \"yum_url\": \"https://example.com/repo\", \"gpg_key\": \"https://example.com/key\"}")
     ]

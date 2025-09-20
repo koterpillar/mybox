@@ -6,7 +6,6 @@ import Data.Set qualified as Set
 import Mybox.Aeson
 import Mybox.Package.Class
 import Mybox.Package.Queue
-import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -40,7 +39,7 @@ instance Package TestPackage where
 
 spec :: Spec
 spec = do
-  describe "TestPackage" $ jsonSpec (Nothing @TestPackage) [(Nothing, "{\"installed\": false}")]
+  describe "TestPackage" $ jsonSpec @TestPackage [(Nothing, "{\"installed\": false}")]
   describe "ensureInstalled" $ do
     let run initialSet =
           fmap snd

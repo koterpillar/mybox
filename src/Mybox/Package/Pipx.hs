@@ -28,9 +28,9 @@ instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package
 
 instance FromJSON PipxPackage where
-  parseJSON = withObject "PipxPackage" $ \o -> do
-    package <- o .: "pipx"
-    post <- parsePost o
+  parseJSON = withObjectTotal "PipxPackage" $ do
+    package <- takeField "pipx"
+    post <- takePost
     pure PipxPackage{..}
 
 instance ToJSON PipxPackage where

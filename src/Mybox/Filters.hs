@@ -46,13 +46,16 @@ data FilterFields = FilterFields
   deriving (Eq, Generic, Ord, Show)
   deriving (Monoid, Semigroup) via Generically FilterFields
 
-parseFilter :: Object -> Parser FilterFields
-parseFilter o = do
-  prefixes <- parseCollapsedList o "prefix"
-  suffixes <- parseCollapsedList o "suffix"
-  includes <- parseCollapsedList o "include"
-  excludes <- parseCollapsedList o "exclude"
+takeFilter :: ObjectParser FilterFields
+takeFilter = do
+  prefixes <- takeCollapsedList "prefix"
+  suffixes <- takeCollapsedList "suffix"
+  includes <- takeCollapsedList "include"
+  excludes <- takeCollapsedList "exclude"
   pure FilterFields{..}
+
+parseFilter :: Object -> Parser FilterFields
+parseFilter = parseObjectTotal takeFilter
 
 filterToJSON :: FilterFields -> [Pair]
 filterToJSON a =

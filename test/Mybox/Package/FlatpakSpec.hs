@@ -9,7 +9,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @FlatpakPackage)
+    @FlatpakPackage
     [ (Nothing, "{\"flatpak\": \"com.example.Test\"}")
     ]
   onlyIf "Flatpak package tests require CI environment" inCI $
