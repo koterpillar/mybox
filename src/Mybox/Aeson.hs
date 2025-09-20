@@ -19,6 +19,7 @@ module Mybox.Aeson (
   takeCollapsedList,
   takeCollapsedListMaybe,
   takeCollapsedNEList,
+  CollapsedEither (..),
 ) where
 
 import Control.Monad.State.Strict
@@ -109,3 +110,15 @@ parseObjectTotal p o = do
 
 withObjectTotal :: String -> ObjectParser a -> Value -> Parser a
 withObjectTotal desc = withObject desc . parseObjectTotal
+
+newtype CollapsedEither a b = CollapsedEither {getCollapsedEither :: Either a b}
+  deriving (Eq, Ord, Show)
+
+instance (FromJSON a, FromJSON b) => FromJSON (CollapsedEither a b) where
+  parseJSON v = CollapsedEither <$> (jsonAlternative (Right <$> parseJSON v) (Left <$> parseJSON v))
+
+instance (ToJSON a, ToJSON b) => ToJSON (CollapsedEither a b) where
+  toJSON (CollapsedEither (Left x)) = toJSON x
+  toJSON (CollapsedEither (Right y)) = toJSON y
+  toEncoding (CollapsedEither (Left x)) = toEncoding x
+  toEncoding (CollapsedEither (Right y)) = toEncoding y

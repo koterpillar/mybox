@@ -23,6 +23,8 @@ data CLTest = CLTest [Text] deriving (Eq, Show)
 instance FromJSON CLTest where
   parseJSON = withObjectTotal "CLTest" $ CLTest <$> takeCollapsedList "items"
 
+type CETest = CollapsedEither Text Int
+
 spec :: Spec
 spec = do
   describe "jsonAlternative" $ do
@@ -59,3 +61,17 @@ spec = do
         $ shouldBe
           (eitherDecode @CLTest "{\"items\": 123}")
         $ Left "Error in $.items: parsing Text failed, expected String, but encountered Number"
+  describe "CollapsedEither" $ do
+    it "parses left value" $
+      eitherDecode @CETest "\"value\"" `shouldBe` Right (CollapsedEither (Left "value"))
+    it "parses right value" $
+      eitherDecode @CETest "123" `shouldBe` Right (CollapsedEither (Right 123))
+    it "fails when neither parser succeeds"
+      $ shouldBe
+        (eitherDecode @CETest "true")
+      $ Left "Error in $: parsing Int failed, expected Number, but encountered Boolean; parsing Text failed, expected String, but encountered Boolean"
+    jsonSpec
+      (Nothing @CETest)
+      [ (Just "left", "\"left\"")
+      , (Just "right", "123")
+      ]
