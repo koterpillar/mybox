@@ -39,7 +39,7 @@ instance Package TestPackage where
 
 spec :: Spec
 spec = do
-  describe "TestPackage" $ jsonSpec (Nothing @TestPackage) [(Nothing, "{\"installed\": false}")]
+  describe "TestPackage" $ jsonSpec @TestPackage [(Nothing, "{\"installed\": false}")]
   describe "ensureInstalled" $ do
     let run initialSet =
           fmap snd

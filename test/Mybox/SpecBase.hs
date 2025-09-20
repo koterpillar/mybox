@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Mybox.SpecBase (
   module Test.Hspec,
   BaseEff,
@@ -108,12 +110,11 @@ virtualSystem :: (Driver :> es, IOE :> es) => Eff es Bool
 virtualSystem = (||) <$> inDocker <*> inCI
 
 jsonSpec ::
-  forall proxy a.
+  forall a.
   (Eq a, FromJSON a, Show a, ToJSON a) =>
-  proxy a ->
   [(Maybe Text, Text)] ->
   Spec
-jsonSpec _ examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
+jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> do
   it ("parses" <> Text.unpack (maybe mempty (" " <>) name) <> " and roundtrips") $ do
     let pkgE = jsonDecode @a "example" json
     pkgE `shouldSatisfy` isRight

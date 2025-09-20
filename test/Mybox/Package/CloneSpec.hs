@@ -10,7 +10,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @ClonePackage)
+    @ClonePackage
     [ (Nothing, "{\"clone\": \"test/test\", \"destination\": \"test\"}")
     , (Just "branch", "{\"clone\": \"test/test\", \"branch\": \"test\", \"destination\": \"test\"}")
     ]

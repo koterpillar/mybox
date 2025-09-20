@@ -25,7 +25,7 @@ forRoot = for_ [(False, "normal user"), (True, "root")]
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @ShellPackage)
+    @ShellPackage
     [ (Nothing, "{\"shell\": \"/bin/bash\"}")
     , (Just "with root", "{\"shell\": \"/bin/zsh\", \"root\": true}")
     , (Just "with post commands", "{\"shell\": \"/bin/fish\", \"post\": [\"echo setup complete\"]}")

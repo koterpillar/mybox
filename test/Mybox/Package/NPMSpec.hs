@@ -11,7 +11,7 @@ import Mybox.Tracker
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @NPMPackage)
+    @NPMPackage
     [ (Nothing, "{\"npm\": \"test\"}")
     , (Just "single binary", "{\"npm\": \"test\", \"binary\": \"test\"}")
     , (Just "multiple binaries", "{\"npm\": \"test\", \"binary\": [\"one\", \"two\"]}")

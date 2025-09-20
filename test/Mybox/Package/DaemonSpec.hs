@@ -11,7 +11,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @DaemonPackage)
+    @DaemonPackage
     [ (Nothing, "{\"daemon\": [\"echo\", \"hello\"]}")
     , (Just "single command", "{\"daemon\": \"true\"}")
     , (Just "with name override", "{\"daemon\": [\"sleep\", \"3600\"], \"name\": \"my-sleep\"}")

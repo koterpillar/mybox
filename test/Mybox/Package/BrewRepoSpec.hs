@@ -9,7 +9,7 @@ import Mybox.SpecBase
 spec :: Spec
 spec = do
   jsonSpec
-    (Nothing @BrewRepo)
+    @BrewRepo
     [ (Nothing, "{\"brew_tap\": \"denji/nginx\"}")
     ]
   onlyIfOS "Homebrew repository tests are only available on macOS" (\case MacOS -> True; _ -> False) $

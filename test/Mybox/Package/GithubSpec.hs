@@ -53,7 +53,7 @@ iconPaths name = do
 
 spec :: Spec
 spec = do
-  jsonSpec (Nothing @GithubPackage) [(Nothing, "{\"repo\": \"example/example\"}")]
+  jsonSpec @GithubPackage [(Nothing, "{\"repo\": \"example/example\"}")]
 
   packageSpecGen "neovim" $ \psa ->
     ps

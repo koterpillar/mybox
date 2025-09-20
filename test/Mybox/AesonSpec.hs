@@ -91,7 +91,7 @@ spec = do
         (eitherDecode @CETest "true")
       $ Left "Error in $: parsing Int failed, expected Number, but encountered Boolean; parsing Text failed, expected String, but encountered Boolean"
     jsonSpec
-      (Nothing @CETest)
+      @CETest
       [ (Just "left", "\"left\"")
       , (Just "right", "123")
       ]
