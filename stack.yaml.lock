@@ -3,18 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/topics/lock_files
 
-packages:
-- completed:
-    name: aeson-extra
-    pantry-tree:
-      sha256: 86e7c2b881904aaa6e5568bc6cb3297d09e8cb40c9b508e98f510b168356f0f8
-      size: 1355
-    sha256: 190995a589a2146192f428f20d61d69018b62bcd77de7fd8422bd3c196c62ba8
-    size: 12970
-    url: https://github.com/koterpillar/aeson-extra/archive/faf9147e2dc1acd4f79e1086dd12ac969c366159.tar.gz
-    version: 0.5.1.3
-  original:
-    url: https://github.com/koterpillar/aeson-extra/archive/faf9147e2dc1acd4f79e1086dd12ac969c366159.tar.gz
+packages: []
 snapshots:
 - completed:
     sha256: 057c5a66404132b661211de21bb4490f6df89c162752a17f0df5a0959381b869

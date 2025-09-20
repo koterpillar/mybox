@@ -2,8 +2,6 @@ module Mybox.Aeson (
   module Data.Aeson,
   Parser,
   Pair,
-  parseCollapsedList,
-  parseCollapsedListMaybe,
   jsonEncode,
   jsonDecode,
   yamlDecode,
@@ -24,7 +22,6 @@ module Mybox.Aeson (
 
 import Control.Monad.State.Strict
 import Data.Aeson hiding (Options)
-import Data.Aeson.Extra
 import Data.Aeson.KeyMap qualified as KM
 import Data.Aeson.Types
 import Data.Bifunctor (first)
@@ -61,12 +58,6 @@ parseWithContext c p v = p v <?> Key (fromString $ Text.unpack c)
 parseJSONWithContext :: FromJSON b => Text -> Value -> Parser b
 parseJSONWithContext c = parseWithContext c parseJSON
 
-parseCollapsedListMaybe :: FromJSON a => Object -> String -> Parser (Maybe [a])
-parseCollapsedListMaybe obj key =
-  obj .:? fromString key >>= \case
-    Nothing -> pure Nothing
-    Just (_ :: Value) -> Just <$> parseCollapsedList obj (fromString key)
-
 type ObjectParser a = StateT Object Parser a
 
 takeField_ :: Key -> (Maybe Value -> Parser a) -> ObjectParser a
@@ -89,18 +80,6 @@ takeFieldMaybe k = takeField_ k $ \case
   Just Null -> pure Nothing
   Just v -> Just <$> parseJSON v
 
-takeCollapsedListMaybe :: FromJSON a => Key -> ObjectParser (Maybe [a])
-takeCollapsedListMaybe k = fmap getCollapsedList <$> takeFieldMaybe k
-
-takeCollapsedList :: FromJSON a => Key -> ObjectParser [a]
-takeCollapsedList k = fromMaybe [] <$> takeCollapsedListMaybe k
-
-takeCollapsedNEList :: FromJSON a => Key -> ObjectParser (NonEmpty a)
-takeCollapsedNEList k =
-  takeCollapsedList k >>= \case
-    [] -> fail $ "Expected non-empty list for key " <> show k
-    (x : xs) -> pure (x :| xs)
-
 parseObjectTotal :: ObjectParser a -> Object -> Parser a
 parseObjectTotal p o = do
   (r, o') <- runStateT p o
@@ -122,3 +101,19 @@ instance (ToJSON a, ToJSON b) => ToJSON (CollapsedEither a b) where
   toJSON (CollapsedEither (Right y)) = toJSON y
   toEncoding (CollapsedEither (Left x)) = toEncoding x
   toEncoding (CollapsedEither (Right y)) = toEncoding y
+
+getCollapsedList :: CollapsedEither [a] a -> [a]
+getCollapsedList (CollapsedEither (Left xs)) = xs
+getCollapsedList (CollapsedEither (Right x)) = [x]
+
+takeCollapsedListMaybe :: FromJSON a => Key -> ObjectParser (Maybe [a])
+takeCollapsedListMaybe k = fmap getCollapsedList <$> takeFieldMaybe k
+
+takeCollapsedList :: FromJSON a => Key -> ObjectParser [a]
+takeCollapsedList k = fromMaybe [] <$> takeCollapsedListMaybe k
+
+takeCollapsedNEList :: FromJSON a => Key -> ObjectParser (NonEmpty a)
+takeCollapsedNEList k =
+  takeCollapsedList k >>= \case
+    [] -> fail $ "Expected non-empty list for key " <> show k
+    (x : xs) -> pure (x :| xs)

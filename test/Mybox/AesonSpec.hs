@@ -80,7 +80,7 @@ spec = do
       it "fails on wrong type"
         $ shouldBe
           (eitherDecode @CLTest "{\"items\": 123}")
-        $ Left "Error in $.items: parsing Text failed, expected String, but encountered Number"
+        $ Left "Error in $.items: parsing Text failed, expected String, but encountered Number; parsing [] failed, expected Array, but encountered Number"
   describe "CollapsedEither" $ do
     it "parses left value" $
       eitherDecode @CETest "\"value\"" `shouldBe` Right (CollapsedEither (Left "value"))

@@ -12,7 +12,7 @@ data Match = Match
   deriving (Generic, Show)
 
 instance FromJSON Match where
-  parseJSON = withObject "Match" $ \obj -> do
-    host <- parseCollapsedListMaybe obj "host"
-    component <- parseCollapsedList obj "component"
+  parseJSON = withObjectTotal "Match" $ do
+    host <- takeCollapsedListMaybe "host"
+    component <- takeCollapsedList "component"
     pure $ Match{..}
