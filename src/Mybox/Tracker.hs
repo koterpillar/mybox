@@ -78,6 +78,14 @@ instance FromJSON TrackerStateFile
 instance ToJSON TrackerStateFile where
   toEncoding = genericToEncoding defaultOptions
 
+-- FIXME: store whether files were created with sudo?
+rmWithRoot :: Driver :> es => Path Abs -> Eff es ()
+rmWithRoot p = modifyDriver m $ drvRm p
+ where
+  m
+    | pUnder (pRoot </> "root") p = sudo
+    | otherwise = id
+
 drvTracker :: (Anchor a, Concurrent :> es, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
 drvTracker stateFile act = do
   exists <- drvIsFile stateFile
@@ -88,7 +96,7 @@ drvTracker stateFile act = do
           drvReadFile stateFile >>= jsonDecode @TrackerStateFile "tracker state"
       else pure mempty
   (r, ts) <- stateTracker before act
-  forM_ (tsDeleted ts) $ drvRm
+  forM_ (tsDeleted ts) $ rmWithRoot
   drvWriteBinaryFile stateFile $
     encode $
       TrackerStateFile ts.current
