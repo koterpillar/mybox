@@ -1,5 +1,8 @@
 module Mybox.Package.LinksSpec where
 
+import Data.Text qualified as Text
+
+import Mybox.Driver
 import Mybox.Package.Links
 import Mybox.Package.SpecBase
 import Mybox.Prelude
@@ -13,9 +16,9 @@ data Test = Test
 
 baseLinks :: Test -> PackageSpecArgs -> PackageSpec LinksPackage
 baseLinks test psa =
-  ps (test.modifyPkg $ mkLinksPackage (mkPath "test/fixtures/links") $ pWiden psa.directory)
+  ps (test.modifyPkg $ mkLinksPackage (mkPath "test/fixtures/links") $ mkPath psa.directory.basename)
     & checkInstalledCommandOutput
-      ("cat" :| [(psa.directory <//> file).text | file <- test.expectedFiles])
+      (shellRaw $ Text.unwords $ "cat" : ["~/" <> psa.directory.basename <> "/" <> file.text | file <- test.expectedFiles])
       test.content
 
 defTest :: Test
