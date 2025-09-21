@@ -25,7 +25,7 @@ runTmux act =
 catViaTmux :: (Driver :> es, IOE :> es) => String -> Eff es ByteString
 catViaTmux contents = do
   tmux <- drvRunOutput $ "which" :| ["tmux"]
-  socketName <- randomText "mybox"
+  socketName <- randomText "tmux"
   let sendTmux arg = tmux <> " -L " <> socketName <> " " <> arg
   drvTempFile $ \input -> do
     drvWriteFile input $ Text.pack contents

@@ -101,7 +101,7 @@ testDockerDriver baseImage act =
   mkContainer :: IOE :> es => Eff es Text
   mkContainer =
     localDriver $ do
-      containerName <- randomText "mybox"
+      containerName <- randomText "tests"
       githubToken <- drvGithubToken
       drvTempDir $ \tempDir -> do
         drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")

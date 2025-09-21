@@ -11,4 +11,4 @@ import System.Random
 import Mybox.Spec.Uncovered.Utils
 
 randomText :: IOE :> es => Text -> Eff es Text
-randomText prefix = ((prefix <> "-") <>) <$> Text.pack . show <$> liftIO (randomIO @Word)
+randomText prefix = (("mybox-" <> prefix <> "-") <>) <$> Text.pack . show <$> liftIO (randomIO @Word)
