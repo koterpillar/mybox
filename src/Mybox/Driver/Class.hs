@@ -88,3 +88,7 @@ drvRunOutput = fmap Text.decodeUtf8 . drvRunOutputBinary
 
 drvRunOutputExit :: Driver :> es => Args -> Eff es (RunResult ExitCode Text)
 drvRunOutputExit = fmap (rrMap Text.decodeUtf8) . drvRunOutputExitBinary
+
+modifyDriver :: Driver :> es => (Args -> Args) -> Eff es a -> Eff es a
+modifyDriver transformArgs = interpose_ $ \case
+  DrvRun e o args -> send $ DrvRun e o $ transformArgs args
