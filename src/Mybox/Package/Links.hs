@@ -21,6 +21,7 @@ data LinksPackage = LinksPackage
   , dot :: Bool
   , shallow :: Bool
   , only :: Maybe [Path AnyAnchor]
+  , root :: Bool
   , post :: [Text]
   }
   deriving (Eq, Show)
@@ -33,6 +34,7 @@ mkLinksPackage src dest =
     , dot = False
     , shallow = False
     , only = Nothing
+    , root = False
     , post = []
     }
 
@@ -46,6 +48,7 @@ instance FromJSON LinksPackage where
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
     shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
     only <- takeCollapsedListMaybe "only"
+    root <- fromMaybe False <$> takeFieldMaybe "root"
     post <- takePost
     pure LinksPackage{..}
 
@@ -57,6 +60,7 @@ instance ToJSON LinksPackage where
       , "dot" .= p.dot
       , "shallow" .= p.shallow
       , "only" .= p.only
+      , "root" .= p.root
       ]
         <> postToJSON p
 
@@ -91,7 +95,7 @@ lpInstall p = do
     let path = pRelativeTo_ src path_
     let pathDot = (if p.dot then mkPath $ "." <> path.text else path)
     let pathDest = destination <//> pathDot
-    drvLink path_ pathDest
+    modifyDriver (if p.root then sudo else id) $ drvLink path_ pathDest
     trkAdd p pathDest
 
 instance Package LinksPackage where
