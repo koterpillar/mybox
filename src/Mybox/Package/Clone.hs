@@ -21,6 +21,9 @@ data ClonePackage = ClonePackage
   }
   deriving (Eq, Show)
 
+instance HasField "root" ClonePackage Bool where
+  getField _ = False
+
 mkClonePackage :: Text -> Path AnyAnchor -> ClonePackage
 mkClonePackage repo destination =
   ClonePackage

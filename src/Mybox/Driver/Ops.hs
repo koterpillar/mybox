@@ -64,7 +64,10 @@ drvCurrentDir = mkPath <$> drvRunOutput ("pwd" :| [])
 
 -- | Get the home directory for the user.
 drvHome :: Driver :> es => Eff es (Path Abs)
-drvHome = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~"]
+drvHome = drvHome_ ""
+
+drvHome_ :: Driver :> es => Text -> Eff es (Path Abs)
+drvHome_ user = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~" <> user]
 
 -- | Get the local directory for the user.
 drvLocal :: Driver :> es => Eff es (Path Abs)
