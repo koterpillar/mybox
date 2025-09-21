@@ -36,11 +36,11 @@ dependencies:
   - Glob
   - mtl
   - network-uri
-  - process-extras
   - random
   - safe-exceptions
   - scalpel
   - text
+  - typed-process
   - vector
   - witherable
   - yaml

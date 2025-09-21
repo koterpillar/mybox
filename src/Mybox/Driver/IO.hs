@@ -2,10 +2,11 @@ module Mybox.Driver.IO (localDriver) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
-import System.Process.ByteString
+import System.Process.Typed
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
@@ -23,11 +24,9 @@ errorMessage args code stdout stderr =
       <> Text.unpack (shellJoin args)
       <> " failed with exit code "
       <> show code
-  extraMessage str desc =
-    let str_ = bsStrip str
-     in if BS.null str_
-          then ""
-          else "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str_)
+  extraMessage str desc
+    | BS.null str = ""
+    | otherwise = "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str)
 
 bsStrip :: ByteString -> ByteString
 bsStrip = BS.dropWhileEnd whitespace . BS.dropWhile whitespace
@@ -43,8 +42,18 @@ localDriver =
   interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> args_
-      (exitCode, stdout, stderr) <-
-        liftIO $ readProcessWithExitCode cmd args mempty
+      let process = proc cmd args
+      (exitCode :: ExitCode, stdout_, stderr_) <-
+        case outputBehavior of
+          RunOutputShow -> do
+            (exitCode, stderr) <- liftIO $ readProcessStderr $ process & setStdout inherit
+            pure (exitCode, mempty, stderr)
+          RunOutputHide -> do
+            (exitCode, stderr) <- liftIO $ readProcessStderr $ process & setStdout nullStream
+            pure (exitCode, mempty, stderr)
+          RunOutputReturn -> liftIO $ readProcess process
+      let stdout = bsStrip $ LBS.toStrict stdout_
+      let stderr = bsStrip $ LBS.toStrict stderr_
       exit <-
         case exitBehavior of
           RunExitError ->
@@ -52,9 +61,9 @@ localDriver =
               ExitSuccess -> pure ()
               ExitFailure code -> error $ errorMessage args_ code stdout stderr
           RunExitReturn -> pure exitCode
-      output <-
-        case outputBehavior of
-          RunOutputShow -> void $ liftIO $ BS.putStr stdout
-          RunOutputHide -> pure ()
-          RunOutputReturn -> pure $ bsStrip stdout
+      let output =
+            case outputBehavior of
+              RunOutputShow -> ()
+              RunOutputHide -> ()
+              RunOutputReturn -> stdout
       pure $ RunResult{..}

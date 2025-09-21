@@ -31,17 +31,6 @@ rrMap f (RunResult e o) = RunResult e (f o)
 class RunResultSimplified rr o | rr -> o where
   rrSimplify :: rr -> o
 
-rrLower :: RunExit e -> RunOutput o -> RunResult ExitCode ByteString -> RunResult e o
-rrLower re ro (RunResult e o) = RunResult (lowerE re e) (lowerO ro o)
- where
-  lowerE :: RunExit e -> ExitCode -> e
-  lowerE RunExitError _ = ()
-  lowerE RunExitReturn ec = ec
-  lowerO :: RunOutput o -> ByteString -> o
-  lowerO RunOutputShow _ = ()
-  lowerO RunOutputHide _ = ()
-  lowerO RunOutputReturn output = output
-
 instance RunResultSimplified (RunResult () ()) () where
   rrSimplify (RunResult () ()) = ()
 

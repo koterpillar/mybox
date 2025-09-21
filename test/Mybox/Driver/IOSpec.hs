@@ -29,10 +29,10 @@ spec = do
   skipIf "Running in Docker modifies commands run" inDocker $ do
     it "reports an error" $
       drvRun ("false" :| []) `shouldThrow` errorCall "Process false failed with exit code 1"
-    it "includes output and error in failure message" $
+    it "includes error in failure message" $
       shouldThrow
         (drvRun $ shellRaw "echo fail; echo err >&2; false")
-        (errorCall "Process /bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err; stdout: fail")
+        (errorCall "Process /bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err")
   it "writes and reads files" $ do
     let testFile = pRoot </> "tmp" </> "test.txt"
     drvWriteFile testFile "Hello World"

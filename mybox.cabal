@@ -109,11 +109,11 @@ library
     , extra
     , mtl
     , network-uri
-    , process-extras
     , random
     , safe-exceptions
     , scalpel
     , text
+    , typed-process
     , vector
     , witherable
     , yaml
@@ -158,11 +158,11 @@ executable mybox
     , mtl
     , mybox
     , network-uri
-    , process-extras
     , random
     , safe-exceptions
     , scalpel
     , text
+    , typed-process
     , vector
     , witherable
     , yaml
@@ -263,11 +263,11 @@ test-suite tests
     , mtl
     , mybox
     , network-uri
-    , process-extras
     , random
     , safe-exceptions
     , scalpel
     , text
+    , typed-process
     , vector
     , witherable
     , yaml
