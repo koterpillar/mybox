@@ -70,10 +70,10 @@ source p = do
 paths :: Driver :> es => LinksPackage -> Eff es (Set (Path Abs))
 paths p = do
   let opt = if p.shallow then mempty{maxDepth = Just 1} else mempty{onlyFiles = True}
-  pp <- source p >>= (`drvFind` opt)
+  src <- source p
+  pp <- drvFind src opt
 
-  cwd <- drvCurrentDir
-  let only_ = map (cwd <//>) <$> p.only
+  let only_ = map (src <//>) <$> p.only
 
   case only_ of
     Nothing -> pure pp

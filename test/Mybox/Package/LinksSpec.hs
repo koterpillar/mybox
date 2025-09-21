@@ -1,16 +1,33 @@
 module Mybox.Package.LinksSpec where
 
+import Data.Text qualified as Text
+
+import Mybox.Driver
 import Mybox.Package.Links
 import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
 
-baseLinks :: (LinksPackage -> LinksPackage) -> [Path Rel] -> PackageSpecArgs -> PackageSpec LinksPackage
-baseLinks modifyPkg expectedFiles psa =
-  ps (modifyPkg $ mkLinksPackage (mkPath "test/fixtures/links") $ pWiden psa.directory)
+data Test = Test
+  { modifyPkg :: LinksPackage -> LinksPackage
+  , expectedFiles :: [Path Rel]
+  , content :: Text
+  }
+
+baseLinks :: Test -> PackageSpecArgs -> PackageSpec LinksPackage
+baseLinks test psa =
+  ps (test.modifyPkg $ mkLinksPackage (mkPath "test/fixtures/links") $ mkPath psa.directory.basename)
     & checkInstalledCommandOutput
-      ("cat" :| [(psa.directory <//> file).text | file <- expectedFiles])
-      "Linked file\nEnterprise"
+      (shellRaw $ Text.unwords $ "cat" : ["~/" <> psa.directory.basename <> "/" <> file.text | file <- test.expectedFiles])
+      test.content
+
+defTest :: Test
+defTest =
+  Test
+    { modifyPkg = id
+    , expectedFiles = ["myfile", mkPath "deep/space/nine/ncc-1701.txt"]
+    , content = "Linked file\nEnterprise"
+    }
 
 spec :: Spec
 spec = do
@@ -19,7 +36,18 @@ spec = do
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"only\": [\"only1\", \"only2\"]}")
     ]
-  let expectedFilesNoDot = ["myfile", mkPath "deep/space/nine/ncc-1701.txt"]
-  packageSpecGen "links" $ baseLinks id expectedFilesNoDot
-  packageSpecGen "shallow links" $ baseLinks (\p -> p{shallow = True}) expectedFilesNoDot
-  packageSpecGen "dot links" $ baseLinks (\p -> p{dot = True}) [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]
+  packageSpecGen "links" $ baseLinks defTest
+  packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{shallow = True}}
+  packageSpecGen "dot links" $
+    baseLinks $
+      defTest
+        { modifyPkg = \p -> p{dot = True}
+        , expectedFiles = [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]
+        }
+  packageSpecGen "only links" $
+    baseLinks $
+      defTest
+        { modifyPkg = \p -> p{only = Just [mkPath "myfile"]}
+        , expectedFiles = ["myfile"]
+        , content = "Linked file"
+        }
