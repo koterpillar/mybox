@@ -1,6 +1,6 @@
 module Mybox.Driver.Test (
   pureDriver,
-  modifyDriver,
+  stubDriver,
   testDriver,
 ) where
 
@@ -24,8 +24,8 @@ pureDriver run = interpret_ $ \case
         requireJust ("pureDriver: unexpected command " <> show args) $
           run args
 
-modifyDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a
-modifyDriver run = interpose_ $ \case
+stubDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a
+stubDriver run = interpose_ $ \case
   DrvRun exitBehaviour outputBehaviour args -> case run args of
     Nothing -> send $ DrvRun exitBehaviour outputBehaviour args
     Just result -> pure $ rrSuccess exitBehaviour outputBehaviour result
@@ -76,8 +76,7 @@ testHostDriver act = do
           localDriver act
 
 containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
-containerDriver container = interpose_ $ \case
-  DrvRun e o args -> send $ DrvRun e o $ transformArgs args
+containerDriver container = modifyDriver transformArgs
  where
   transformArgs :: Args -> Args
   transformArgs ("sudo" :| args') = dockerExec "root" args'

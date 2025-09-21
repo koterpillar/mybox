@@ -63,7 +63,7 @@ spec = do
             brokenGetShell ("getent" :| _) = Just "unexpected output"
             brokenGetShell ("dscl" :| _) = Just "unexpected output"
             brokenGetShell _ = Nothing
-        modifyDriver brokenGetShell $
+        stubDriver brokenGetShell $
           localVersion shPackage `shouldThrow` anyException
 
   describe "validation" $
