@@ -84,6 +84,7 @@ rmWithRoot p = modifyDriver m $ drvRm p
  where
   m
     | pUnder (pRoot </> "root") p = sudo
+    | pUnder (pRoot </> "var" </> "root") p = sudo -- macOS root home
     | otherwise = id
 
 drvTracker :: (Anchor a, Concurrent :> es, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
