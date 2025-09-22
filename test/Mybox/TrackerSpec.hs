@@ -5,6 +5,7 @@ import Data.Set qualified as Set
 
 import Mybox.Driver
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -76,3 +77,18 @@ spec = do
         drvReadFile state >>= (`shouldBe` "{\"trackedFiles\":{}}")
         -- Test file should be deleted
         drvIsFile testFile >>= (`shouldBe` False)
+    onlyIf "Root tests pollute real /root and require a virtual system" virtualSystem $
+      it "removes root-installed files with sudo" $
+        drvTempDir $ \dir -> do
+          -- Write a file as root
+          rootHome <- drvHome_ "root"
+          testFile <- (rootHome </>) <$> randomText "file"
+          modifyDriver sudo $ drvWriteFile testFile "content"
+          -- Record the file as tracked from a previous run
+          let state = dir </> "state.json"
+          drvWriteFile state $ "{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"
+          -- Record no files
+          drvTracker state $ pure ()
+          -- Test file should be deleted (checking with root as the regular user
+          -- won't see it)
+          modifyDriver sudo (drvIsFile testFile) >>= (`shouldBe` False)
