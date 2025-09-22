@@ -17,7 +17,7 @@ module Mybox.Stores (
 
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
+import Effectful.State.Static.Shared
 
 import Mybox.Aeson
 import Mybox.Prelude

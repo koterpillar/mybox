@@ -7,7 +7,7 @@ module Mybox.Package.Queue (
 
 import Data.Set qualified as Set
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
+import Effectful.State.Static.Shared
 
 import Mybox.Driver
 import Mybox.Effects

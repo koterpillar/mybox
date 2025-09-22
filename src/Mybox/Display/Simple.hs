@@ -3,7 +3,7 @@ module Mybox.Display.Simple (runSimpleDisplay) where
 import Data.List (delete)
 import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
+import Effectful.State.Static.Shared
 import Prelude hiding (log)
 
 import Mybox.Display.Class

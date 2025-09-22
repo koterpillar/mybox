@@ -8,7 +8,7 @@ module Mybox.Display.Print (
 ) where
 
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Local
+import Effectful.State.Static.Shared
 import System.IO hiding (print)
 import Prelude hiding (print)
 
