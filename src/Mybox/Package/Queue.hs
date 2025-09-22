@@ -2,7 +2,6 @@ module Mybox.Package.Queue (
   InstallQueue,
   queueInstall,
   runInstallQueue,
-  runInstallQueue_,
 ) where
 
 import Data.Set qualified as Set
@@ -28,17 +27,12 @@ type PackageSet = Set Text
 runInstallQueue ::
   (Driver :> es, Tracker :> es) =>
   Eff (InstallQueue : es) a ->
-  Eff es (a, Set Text)
+  Eff es a
 runInstallQueue act =
-  reinterpretWith_
-    (runState $ mempty @PackageSet)
-    (inject act)
+  fmap fst
+    $ reinterpretWith_
+      (runState $ mempty @PackageSet)
+      (inject act)
     $ \case
       IsInstalled pkgName -> gets $ Set.member pkgName
       MarkInstalled pkgName -> modify $ Set.insert pkgName
-
-runInstallQueue_ ::
-  (Driver :> es, Tracker :> es) =>
-  Eff (InstallQueue : es) a ->
-  Eff es a
-runInstallQueue_ = fmap fst . runInstallQueue

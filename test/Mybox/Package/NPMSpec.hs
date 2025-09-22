@@ -17,7 +17,7 @@ spec = do
     , (Just "multiple binaries", "{\"npm\": \"test\", \"binary\": [\"one\", \"two\"]}")
     ]
   describe "remote version" $ do
-    withEff (nullTracker . runInstallQueue_) $ do
+    withEff (nullTracker . runInstallQueue) $ do
       it "gets version for existing package" $ do
         let package = mkNPMPackage "express"
         version <- remoteVersion package
