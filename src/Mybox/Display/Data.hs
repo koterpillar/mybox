@@ -46,6 +46,7 @@ bannerPart color label set
 progressPart :: Banner MDisplay -> Maybe [TerminalItem]
 progressPart banner
   | Set.null banner.all = Nothing
+  | banner.all == Set.union banner.unchanged banner.modified = Nothing
   | otherwise = Just [tiMk "progress", tiSpace, tiNumber finishedCount, tiMk "/", tiNumber totalCount]
  where
   totalCount = Set.size banner.all
