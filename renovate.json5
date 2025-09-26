@@ -10,10 +10,8 @@
   packageRules: [
     {
       matchPackageNames: ["node"],
-      versioning: "docker"
-    }
-  ],
-  packageRules: [
+      versioning: "docker",
+    },
     {
       matchDepNames: ["python"],
       matchUpdateTypes: ["patch"],
