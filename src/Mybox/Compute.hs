@@ -8,6 +8,7 @@ import Mybox.Aeson
 import Mybox.Compute.Base
 import Mybox.Compute.Condition
 import Mybox.Compute.Format
+import Mybox.Compute.Implementation
 import Mybox.Compute.JSONPath
 import Mybox.Compute.Links
 import Mybox.Compute.URL
@@ -25,4 +26,4 @@ sigils =
     ]
 
 preprocess :: Driver :> es => Value -> Eff es Value
-preprocess = inject . processSigils sigils
+preprocess = inject . processSigils sigils . filterImplementation
