@@ -57,4 +57,5 @@ colourString =
     . Text.replace "<green>" "\ESC[32m"
     . Text.replace "<yellow>" "\ESC[33m"
     . Text.replace "<blue>" "\ESC[34m"
+    . Text.replace "<magenta>" "\ESC[35m"
     . Text.replace "<reset>" "\ESC[39m"

@@ -15,10 +15,11 @@ spec = do
       output <- run $ do
         displayBanner $ bannerChecking "check" <> bannerInstalling "install"
 
-      output `shouldBe` colourString "<blue>checking<reset> check\n<green>installing<reset> install"
+      output `shouldBe` colourString "<magenta>checking<reset> check\n<blue>installing<reset> install"
+
     it "replaces banner" $ do
       output <- run $ do
         displayBannerWhile (bannerInstalling "long package name") $ pure ()
         displayBanner $ bannerInstalling "short"
 
-      output `shouldBe` colourString "<green>installing<reset> short"
+      output `shouldBe` colourString "<blue>installing<reset> short"

@@ -44,7 +44,9 @@ bannerPart color label set
           : intersperse tiComma (map tiMk (toList set))
 
 progressPart :: Banner MDisplay -> Maybe [TerminalItem]
-progressPart banner = Just [tiMk "progress", tiSpace, tiNumber finishedCount, tiMk "/", tiNumber totalCount]
+progressPart banner
+  | Set.null banner.all = Nothing
+  | otherwise = Just [tiMk "progress", tiSpace, tiNumber finishedCount, tiMk "/", tiNumber totalCount]
  where
   totalCount = Set.size banner.all
   finishedCount = Set.size banner.unchanged + Set.size banner.modified
