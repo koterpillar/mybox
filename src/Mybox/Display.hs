@@ -4,8 +4,11 @@ module Mybox.Display (
   displayBanner,
   displayBannerWhile,
   AppDisplay,
+  bannerPending,
   bannerChecking,
   bannerInstalling,
+  bannerUnchanged,
+  bannerModified,
   MDisplay,
   displayLogText,
 ) where
