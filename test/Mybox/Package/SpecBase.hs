@@ -102,10 +102,11 @@ packageSpecGen name makePS = do
       let s = makePS psa
       let p = s.package
       finally (cleanup_ s) $ do
-        nullTracker $ runInstallQueue_ $ preinstall_ s
+        nullTracker $ runInstallQueue $ preinstall_ s
+
         preexistingFiles <- trackableFiles s
         ((), ts) <-
-          stateTracker mempty $ runInstallQueue_ $ do
+          stateTracker mempty $ runInstallQueue $ do
             install p
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts

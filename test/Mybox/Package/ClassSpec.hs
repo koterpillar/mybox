@@ -44,7 +44,7 @@ spec = do
     let run initialSet =
           fmap snd
             . stateTracker initialSet
-            . runInstallQueue_
+            . runInstallQueue
             . ensureInstalled
     let mkTrk = Map.singleton "test" . Set.fromList . map (\f -> pRoot </> f)
     let initState = mkTrk ["preexisting"]

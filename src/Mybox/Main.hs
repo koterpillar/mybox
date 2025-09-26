@@ -2,7 +2,6 @@ module Mybox.Main (
   main,
 ) where
 
-import Data.Text qualified as Text
 import Effectful.Concurrent
 import System.IO (stdout)
 
@@ -23,8 +22,6 @@ main =
           localDriver $ do
             config <- readConfig
             state <- drvMyboxState
-            ((), installed) <-
-              drvTracker (state </> "files.json") $
-                runInstallQueue $
-                  for_ config.packages queueInstall
-            displayLogText $ "installed: " <> Text.intercalate ", " (toList installed)
+            drvTracker (state </> "files.json") $
+              runInstallQueue $
+                for_ config.packages queueInstall
