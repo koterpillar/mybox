@@ -8,9 +8,8 @@ from pydantic import Field, ValidationError
 
 from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
-from mybox.package.github import GitHubPackage
 from mybox.package.manual_version import ManualVersion
-from mybox.package.url import URLPackage
+from mybox.package.system import SystemPackage
 from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
 from mybox.tracker import Tracker
 from mybox.utils import allow_singular_none
@@ -312,9 +311,9 @@ class TestManager:
     def test_parses_packages(self):
         self.write_component(
             "one",
-            {"repo": "asdf/asdf", "binary": ["asdf"]},
+            {"system": "alpha"},
             {
-                "name": "asdf",
+                "system": "beta",
                 "url": {
                     "base": {"url": "https://example.com/asdf"},
                     "jsonpath": "asdf.asdf[0]",
@@ -326,11 +325,11 @@ class TestManager:
         packages = self.manager.load_components(frozenset(["one"]))
 
         assert len(packages) == 2
-        github_package, url_package = packages
-        assert isinstance(github_package, GitHubPackage)
-        assert github_package.repo == "asdf/asdf"
-        assert github_package.binaries == ["asdf"]
-        assert isinstance(url_package, URLPackage)
+        package1, package2 = packages
+        assert isinstance(package1, SystemPackage)
+        assert package1.name == "alpha"
+        assert isinstance(package2, SystemPackage)
+        assert package2.name == "beta"
 
     def test_parse_package_error_not_a_dict(self):
         self.write_component_raw("one", ["not", "a", "dict"])

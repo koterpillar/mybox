@@ -41,8 +41,6 @@ class Package(BaseModel, ABC):
     )
     os_val = allow_singular("os")
 
-    implementation: Optional[str] = Field(default=None, alias="$implementation")
-
     distribution: Optional[list[str]] = None
     distribution_val = allow_singular("distribution")
 
@@ -87,8 +85,6 @@ class Package(BaseModel, ABC):
             await self.driver.run("sh", "-c", cmd)
 
     async def applicable(self) -> bool:
-        if self.implementation is not None and self.implementation != "python":
-            return False
         os = await self.driver.os()
         return os.switch_(
             linux=lambda linux: (

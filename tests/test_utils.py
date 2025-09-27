@@ -5,7 +5,6 @@ from mybox.utils import (
     intercalate,
     matches_if_specified,
     run_ok,
-    with_extensions,
 )
 
 
@@ -39,12 +38,6 @@ def test_intercalate():
         3,
         13,
     ]
-
-
-def test_with_extensions():
-    extensions = ["com", "exe"]
-    assert with_extensions("foo", extensions) == ["foo.com", "foo.exe"]
-    assert with_extensions("foo.com", extensions) == ["foo.com"]
 
 
 def test_matches_if_specified():
