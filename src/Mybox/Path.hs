@@ -20,7 +20,8 @@ module Mybox.Path (
   pMyboxState,
 ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson (FromJSON (..), FromJSONKey (..), ToJSON (..), ToJSONKey (..))
+import Data.Aeson.Types (FromJSONKeyFunction (..), Parser, toJSONKeyText)
 import Data.List (isPrefixOf, unsnoc)
 import Data.Maybe (isJust)
 import Data.String (IsString (..))
@@ -81,14 +82,21 @@ instance Anchor a => HasField "text" (Path a) Text where
     (Rel, []) -> "."
     (Rel, s) -> Text.intercalate "/" s
 
+instance Anchor a => ToJSONKey (Path a) where
+  toJSONKey = toJSONKeyText (.text)
+
 instance Anchor a => ToJSON (Path a) where
   toJSON = toJSON . (.text)
   toEncoding = toEncoding . (.text)
 
+parseJSONText :: Anchor a => Text -> Parser (Path a)
+parseJSONText = either fail pure . mkPath_
+
+instance Anchor a => FromJSONKey (Path a) where
+  fromJSONKey = FromJSONKeyTextParser parseJSONText
+
 instance Anchor a => FromJSON (Path a) where
-  parseJSON v = do
-    t <- parseJSON v
-    either fail pure $ mkPath_ t
+  parseJSON v = parseJSON v >>= parseJSONText
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p
