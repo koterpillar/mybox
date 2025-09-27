@@ -7,13 +7,20 @@
   ],
   rangeStrategy: "bump",
   ignoreDeps: ["python"],
-  packageRules: [
+  customManagers: [
     {
-      matchPackageNames: ["node"],
-      versioning: "docker"
-    }
+      customType: "regex",
+      managerFilePatterns: [".github/workflows/build.yml"],
+      matchStrings: ["--package (?<depName>[^@]+)@(?<currentValue>\\d+)"],
+      datasourceTemplate: "npm",
+      extractVersionTemplate: "^(?<version>v\\d+)",
+    },
   ],
   packageRules: [
+    {
+      matchPackageNames: ["actions/node-versions"],
+      extractVersion: "^(?<version>v\\d+)",
+    },
     {
       matchDepNames: ["python"],
       matchUpdateTypes: ["patch"],
