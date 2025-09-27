@@ -192,6 +192,7 @@ test-suite tests
       Mybox.DisplaySpec
       Mybox.Driver.IOSpec
       Mybox.Driver.Test
+      Mybox.Driver.TestSpec
       Mybox.ExtractorSpec
       Mybox.FiltersSpec
       Mybox.Installer.AptSpec
