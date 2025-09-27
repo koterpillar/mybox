@@ -23,7 +23,7 @@ data Extractor = Extractor
   }
 
 instance Show Extractor where
-  show Extractor{description} = Text.unpack description
+  show e = Text.unpack e.description
 
 findContents :: Driver :> es => Path Abs -> Int -> Eff es (Path Abs, Set (Path Rel))
 findContents sourceDir maxDepth = do
@@ -101,7 +101,7 @@ data RawExtractor = RawExtractor
   }
 
 instance Show RawExtractor where
-  show RawExtractor{description} = Text.unpack description
+  show e = Text.unpack e.description
 
 mkRawExtractor :: Text -> (forall es a1 a2. (Anchor a1, Anchor a2, App es) => Path a1 -> Path a2 -> Eff es ()) -> RawExtractor
 mkRawExtractor description extractRaw_ = RawExtractor{extractRaw_ = extractRaw_, description}
