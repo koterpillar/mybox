@@ -88,8 +88,6 @@ archiveInstall p = do
   drvTempFile $ \archiveFile -> do
     drvRun $ curl ["-o", archiveFile.text] url
     target <- aDirectory p
-    drvMkdir target.dirname
-    trkAdd p target.dirname
     trkAdd p target
     aExtract p url archiveFile
   for_ p.archive.binaries $ installBinary p
