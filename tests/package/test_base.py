@@ -1,9 +1,7 @@
 from pathlib import Path
 
-import pytest
-
 from mybox.driver import LocalDriver
-from mybox.package import Daemon
+from mybox.package import Daemon, parse_packages
 from mybox.state import DB
 
 from ..base import PACKAGE_ROOT
@@ -39,23 +37,38 @@ class TestRootPost(PostTestBase):
     root = True
 
 
-@pytest.mark.trio
-async def test_applicable_implementation():
+async def test_parse_packages():
+    driver = LocalDriver()
+    db = DB.temporary()
+
     args = {
         "name": "Test",
         "daemon": ["echo", "hello"],
-        "driver": LocalDriver(),
-        "db": DB.temporary(),
     }
 
-    # Package with no implementation field should be applicable
-    package_no_impl = Daemon(**args)
-    assert await package_no_impl.applicable()
+    # Package with no implementation field are kept
+    normal_packages = parse_packages([args], db=db, driver=driver)
+    assert len(normal_packages) == 1
+    assert isinstance(normal_packages[0], Daemon)
 
-    # Package with implementation=python should be applicable
-    package_python = Daemon(**{**args, "$implementation": "python"})
-    assert await package_python.applicable()
+    # Package with implementation=python are kept
+    explicit_implementation = parse_packages(
+        [{**args, "$implementation": "python"}], db=db, driver=driver
+    )
+    assert len(explicit_implementation) == 1
+    assert isinstance(explicit_implementation[0], Daemon)
 
-    # Package with implementation=haskell should NOT be applicable
-    package_haskell = Daemon(**{**args, "$implementation": "haskell"})
-    assert not await package_haskell.applicable()
+    # Package with implementation=haskell is filtered out
+    package_haskell = parse_packages(
+        [{**args, "$implementation": "haskell"}], db=db, driver=driver
+    )
+    assert package_haskell == []
+
+    # Packages moved to Haskell implementation are filtered out
+    special_packages = parse_packages(
+        [{"repo": "test/test"}, {"pipx": "test"}, {"url": "http://example.com"}, args],
+        db=db,
+        driver=driver,
+    )
+    assert len(special_packages) == 1
+    assert isinstance(special_packages[0], Daemon)

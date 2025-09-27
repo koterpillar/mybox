@@ -99,21 +99,10 @@ async def url_version(url: str) -> str:
     return head_response.headers["etag"]
 
 
-GIT_PREFIX = "git+"
-
-
 async def repo_version(repo: str, *, branch: Optional[str] = None) -> str:
-    if repo.startswith(GIT_PREFIX):
-        repo = repo.removeprefix(GIT_PREFIX)
     if not branch:
         branch = "HEAD"
     return (await run_output("git", "ls-remote", repo, branch)).split()[0]
-
-
-def with_extensions(name: str, extensions: list[str]) -> list[str]:
-    if any(name.endswith(f".{ext}") for ext in extensions):
-        return [name]
-    return [f"{name}.{ext}" for ext in extensions]
 
 
 def raise_(exception: BaseException) -> Any:

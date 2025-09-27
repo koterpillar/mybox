@@ -24,20 +24,6 @@ class Filters(BaseModel):
     def endswith(suffix: str) -> Filter[str]:
         return lambda x: x.endswith(suffix)
 
-    @classmethod
-    def from_synonyms(
-        cls, items: dict[str, list[str]], key: str
-    ) -> Iterator[Filter[str]]:
-        yield cls.includes_(key)
-        for synonym in items.get(key, []):
-            yield cls.includes_(synonym)
-
-        for other, synonyms in items.items():
-            if other == key:
-                continue
-            for synonym in [other, *synonyms]:
-                yield cls.excludes_(synonym)
-
     prefixes: list[str] = Field(default_factory=list, alias="prefix")
     prefixes_val = allow_singular_none("prefixes")
 
