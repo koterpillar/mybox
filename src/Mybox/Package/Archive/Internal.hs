@@ -77,6 +77,7 @@ aExtractRaw :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Text -> Ef
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
+  drvMkdir target
   let targetPath = target </> filename
   extractRaw extractor archiveFile targetPath
   when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
