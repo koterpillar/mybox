@@ -139,6 +139,8 @@ dockerfile baseImage =
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
       "RUN command -v dnf >/dev/null && dnf check-update || true"
+    , -- download often-used apt packages to speed up tests
+      "RUN command -v apt >/dev/null && apt install -y --download-only git nodejs npm python3-pip python3-venv unzip xz-utils || true"
     ]
 
 dockerUser :: Text
