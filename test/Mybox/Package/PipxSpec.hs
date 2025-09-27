@@ -33,8 +33,9 @@ spec = do
             "Usage:\n  tqdm"
           & ignorePath ".shiv"
           & ignorePath (".local" </> "bin" </> "pipx")
-          & ignorePath (".local" </> "share" </> "pipx")
+          & ignorePath (".local" </> "share" </> "pipx" </> "shared")
           & ignorePath (".local" </> "state" </> "pipx" </> "log")
+          & ignorePath (".local" </> "share" </> "pipx" </> "py")
           & ignorePath (".rustup" </> "settings.toml") -- something on GitHub runners creates this
   packageSpec $ tqdmPackage "tqdm"
   packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"

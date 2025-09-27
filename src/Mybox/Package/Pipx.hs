@@ -113,6 +113,9 @@ remoteVersionPipx p = do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
+venvsPath :: Driver :> es => Eff es (Path Abs)
+venvsPath = fmap mkPath $ drvRunOutput $ "pipx" :| ["environment", "--value", "PIPX_LOCAL_VENVS"]
+
 pipxInstall :: App es => PipxPackage -> Eff es ()
 pipxInstall p = do
   prerequisites p
@@ -121,7 +124,8 @@ pipxInstall p = do
   local <- drvLocal
   for_ metadata_ $ \metadata -> do
     -- track virtual environment
-    let envPath = local </> "pipx" </> "venvs" </> metadata.canonicalName
+    venvs <- venvsPath
+    let envPath = venvs </> metadata.canonicalName
     trkAdd p envPath
     -- Track binaries
     for_ metadata.binaries $ \binary ->
