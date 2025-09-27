@@ -100,6 +100,9 @@ data RawExtractor = RawExtractor
   , description :: Text
   }
 
+instance Show RawExtractor where
+  show RawExtractor{description} = Text.unpack description
+
 mkRawExtractor :: Text -> (forall es a1 a2. (Anchor a1, Anchor a2, App es) => Path a1 -> Path a2 -> Eff es ()) -> RawExtractor
 mkRawExtractor description extractRaw_ = RawExtractor{extractRaw_ = extractRaw_, description}
 
