@@ -24,4 +24,4 @@ main =
             state <- drvMyboxState
             drvTracker (state </> "files.json") $
               runInstallQueue $
-                for_ config.packages queueInstall
+                queueInstallMany config.packages
