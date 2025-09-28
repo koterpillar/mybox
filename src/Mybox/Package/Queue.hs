@@ -36,6 +36,7 @@ runInstallQueue =
         Enqueue items -> do
           res <- for items $ \(pkgName, action) ->
             do
+              displayBanner $ bannerPending pkgName
               ps <- stateM $ \qs -> case Map.lookup pkgName qs of
                 Just mv -> pure (Left mv, qs)
                 Nothing -> do
