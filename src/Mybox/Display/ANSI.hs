@@ -8,6 +8,7 @@ module Mybox.Display.ANSI (
 
 import Data.List (delete)
 import Data.Text qualified as Text
+import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
 import System.Console.ANSI
@@ -22,20 +23,30 @@ import Mybox.Prelude
 supportsANSI :: IOE :> es => Handle -> Eff es Bool
 supportsANSI = liftIO . hSupportsANSI
 
+newtype Lock = Lock (forall es a. Concurrent :> es => Eff es a -> Eff es a)
+
+mkLock :: Concurrent :> es => Eff es Lock
+mkLock = do
+  lock <- newMVar ()
+  pure $ Lock $ withMVar lock . const
+
 runANSIDisplay ::
   forall a es r.
   ( ANSIDisplayable a
+  , Concurrent :> es
   , Print :> es
   ) =>
   Eff (Display a : es) r ->
   Eff es r
-runANSIDisplay =
-  reinterpret_
+runANSIDisplay act = do
+  Lock locked <- mkLock
+  reinterpretWith_
     (evalState @[Banner a] mempty)
+    act
     $ \case
-      Log log -> withBanner @(Banner a) $ draw $ terminalShow log
-      AddBanner banner -> withBanner @(Banner a) $ modify (banner :)
-      RemoveBanner banner -> withBanner @(Banner a) $ modify (delete banner)
+      Log log -> locked $ withBanner @(Banner a) $ draw $ terminalShow log
+      AddBanner banner -> locked $ withBanner @(Banner a) $ modify (banner :)
+      RemoveBanner banner -> locked $ withBanner @(Banner a) $ modify (delete banner)
 
 withBanner ::
   forall banner es r.
