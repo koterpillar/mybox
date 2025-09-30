@@ -76,13 +76,30 @@ draw items = do
 
 drawBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
 drawBanner banner = do
-  let items = terminalShow banner
+  items <- terminalWrap banner
   draw items
   backLines $ length items
 
+wrapLine :: Int -> [TerminalItem] -> [[TerminalItem]]
+wrapLine maxWidth items = go 0 [] [] items
+ where
+  go :: Int -> [TerminalItem] -> [[TerminalItem]] -> [TerminalItem] -> [[TerminalItem]]
+  go _ currentLine acc [] = reverse $ reverse currentLine : acc
+  go currentWidth currentLine acc (item : rest) =
+    let itemWidth = Text.length item.text
+        newWidth = currentWidth + itemWidth
+     in if newWidth <= maxWidth || null currentLine
+          then go newWidth (item : currentLine) acc rest
+          else go itemWidth [item] (reverse currentLine : acc) rest
+
+terminalWrap :: (Print :> es, TerminalShow banner) => banner -> Eff es [[TerminalItem]]
+terminalWrap banner = do
+  width <- (fromMaybe 80 . fmap fst) <$> Print.terminalSize
+  pure $ concatMap (wrapLine width) $ terminalShow banner
+
 eraseBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
 eraseBanner banner = do
-  let lineCount = length $ terminalShow banner
+  lineCount <- length <$> terminalWrap banner
   replicateM_ lineCount $ Print.printLn clearFromCursorToLineEndCode
   backLines lineCount
 
