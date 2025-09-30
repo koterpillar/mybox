@@ -25,7 +25,7 @@ import Mybox.Prelude
 
 type AppDisplay = Display MDisplay
 
-runDisplay :: IOE :> es => Handle -> Eff (AppDisplay : es) r -> Eff es r
+runDisplay :: (Concurrent :> es, IOE :> es) => Handle -> Eff (AppDisplay : es) r -> Eff es r
 runDisplay h act = do
   isANSI <- supportsANSI h
   let run = if isANSI then runANSIDisplay else runSimpleDisplay

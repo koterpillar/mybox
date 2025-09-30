@@ -8,6 +8,7 @@ module Mybox.Display.ANSI (
 
 import Data.List (delete)
 import Data.Text qualified as Text
+import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
 import System.Console.ANSI
@@ -22,20 +23,30 @@ import Mybox.Prelude
 supportsANSI :: IOE :> es => Handle -> Eff es Bool
 supportsANSI = liftIO . hSupportsANSI
 
+newtype Lock = Lock (forall es a. Concurrent :> es => Eff es a -> Eff es a)
+
+mkLock :: Concurrent :> es => Eff es Lock
+mkLock = do
+  lock <- newMVar ()
+  pure $ Lock $ withMVar lock . const
+
 runANSIDisplay ::
   forall a es r.
   ( ANSIDisplayable a
+  , Concurrent :> es
   , Print :> es
   ) =>
   Eff (Display a : es) r ->
   Eff es r
-runANSIDisplay =
-  reinterpret_
+runANSIDisplay act = do
+  Lock locked <- mkLock
+  reinterpretWith_
     (evalState @[Banner a] mempty)
+    act
     $ \case
-      Log log -> withBanner @(Banner a) $ draw $ terminalShow log
-      AddBanner banner -> withBanner @(Banner a) $ modify (banner :)
-      RemoveBanner banner -> withBanner @(Banner a) $ modify (delete banner)
+      Log log -> locked $ withBanner @(Banner a) $ draw $ terminalShow log
+      AddBanner banner -> locked $ withBanner @(Banner a) $ modify (banner :)
+      RemoveBanner banner -> locked $ withBanner @(Banner a) $ modify (delete banner)
 
 withBanner ::
   forall banner es r.
@@ -65,13 +76,30 @@ draw items = do
 
 drawBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
 drawBanner banner = do
-  let items = terminalShow banner
+  items <- terminalWrap banner
   draw items
   backLines $ length items
 
+wrapLine :: Int -> [TerminalItem] -> [[TerminalItem]]
+wrapLine maxWidth items = go 0 [] [] items
+ where
+  go :: Int -> [TerminalItem] -> [[TerminalItem]] -> [TerminalItem] -> [[TerminalItem]]
+  go _ currentLine acc [] = reverse $ reverse currentLine : acc
+  go currentWidth currentLine acc (item : rest) =
+    let itemWidth = Text.length item.text
+        newWidth = currentWidth + itemWidth
+     in if newWidth <= maxWidth || null currentLine
+          then go newWidth (item : currentLine) acc rest
+          else go itemWidth [item] (reverse currentLine : acc) rest
+
+terminalWrap :: (Print :> es, TerminalShow banner) => banner -> Eff es [[TerminalItem]]
+terminalWrap banner = do
+  width <- (fromMaybe 80 . fmap fst) <$> Print.terminalSize
+  pure $ concatMap (wrapLine width) $ terminalShow banner
+
 eraseBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
 eraseBanner banner = do
-  let lineCount = length $ terminalShow banner
+  lineCount <- length <$> terminalWrap banner
   replicateM_ lineCount $ Print.printLn clearFromCursorToLineEndCode
   backLines lineCount
 

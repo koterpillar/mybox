@@ -209,6 +209,7 @@ test-suite tests
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NPMSpec
       Mybox.Package.PipxSpec
+      Mybox.Package.QueueSpec
       Mybox.Package.ShellSpec
       Mybox.Package.SomeSpec
       Mybox.Package.SpecBase

@@ -1,8 +1,11 @@
 module Mybox.Display.ANSISpec where
 
+import Data.Text qualified as Text
+
 import Mybox.Display
 import Mybox.Display.ANSI
 import Mybox.Display.Tmux
+import Mybox.Prelude
 import Mybox.SpecBase
 
 spec :: Spec
@@ -50,3 +53,25 @@ spec = do
         displayBanner $ bannerInstalling "short"
 
       output `shouldBe` colourString "<blue>installing<reset> short"
+
+    it "wraps banner" $ do
+      let placeholder :: Int -> Int -> [Text]
+          placeholder from to =
+            [ "package #" <> Text.pack (show i)
+            | i <- [from .. to]
+            ]
+
+      output <-
+        run $
+          displayBanner $
+            mconcat $
+              map bannerInstalling $
+                placeholder 0 9
+
+      output
+        `shouldBe` colourString
+          ( Text.intercalate "\n" $
+              [ "<blue>installing<reset> " <> Text.intercalate "," (placeholder 0 5) <> ","
+              , Text.intercalate "," (placeholder 6 9)
+              ]
+          )
