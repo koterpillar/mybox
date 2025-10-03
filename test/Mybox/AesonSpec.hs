@@ -1,6 +1,5 @@
 module Mybox.AesonSpec where
 
-import Control.Exception.Safe (StringException (..))
 import Data.Aeson.Types (parseEither)
 
 import Mybox.Aeson

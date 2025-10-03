@@ -3,6 +3,7 @@ module Mybox.Tracker (
   TrackedFiles,
   TrackerState (..),
   TrackResult (..),
+  trkTry,
   trkSkip,
   trkAdd,
   nullTracker,

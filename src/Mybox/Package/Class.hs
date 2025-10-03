@@ -31,7 +31,7 @@ isInstalled pkg = do
       pure $ lv' == rv
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
-ensureInstalled pkg = do
+ensureInstalled pkg = trkTry pkg $ do
   installed <-
     displayBannerWhile (bannerChecking pkg.name) $
       isInstalled pkg

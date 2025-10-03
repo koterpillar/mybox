@@ -16,6 +16,9 @@ data Tracker :: Effect where
 
 type instance DispatchOf Tracker = Dynamic
 
+trkTry :: (PackageName p, Tracker :> es) => p -> Eff es r -> Eff es r
+trkTry pkg act = act `onException` trkSkip pkg
+
 trkSkip :: (PackageName p, Tracker :> es) => p -> Eff es ()
 trkSkip = send . TrkSkip
 
@@ -62,12 +65,10 @@ modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
 modifyMVarPure v f = modifyMVar_ v $ pure . f
 
 trkSession :: Concurrent :> es => MVar TrackerState -> Eff (Tracker : es) a -> Eff es a
-trkSession ts act =
-  interpretWith_
-    (inject act)
-    $ \case
-      TrkAdd pkg file -> modifyMVarPure ts $ tsAdd pkg file
-      TrkSkip pkg -> modifyMVarPure ts $ tsSkip pkg
+trkSession ts = interpret_ $
+  \case
+    TrkAdd pkg file -> modifyMVarPure ts $ tsAdd pkg file
+    TrkSkip pkg -> modifyMVarPure ts $ tsSkip pkg
 
 stateTracker :: Concurrent :> es => TrackedFiles -> Eff (Tracker : es) a -> Eff es (a, TrackResult)
 stateTracker before act = do

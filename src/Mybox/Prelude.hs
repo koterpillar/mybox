@@ -33,7 +33,7 @@ module Mybox.Prelude (
 ) where
 
 import Control.Applicative ((<|>))
-import Control.Exception.Safe (MonadThrow, throwString)
+import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
 import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
 import Data.Either
