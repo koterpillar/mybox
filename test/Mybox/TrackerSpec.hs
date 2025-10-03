@@ -7,7 +7,7 @@ import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.SpecBase
-import Mybox.Tracker
+import Mybox.Tracker.Internal
 
 newtype DummyPackage
   = DummyPackage {name :: Text}
@@ -17,13 +17,14 @@ spec = do
   it "adds new files, removes stale files, skips packages" $ do
     let mkAbs :: Text -> Path Abs
         mkAbs t = pRoot </> t
-    let mkTrk p fs = (p, Set.fromList $ map mkAbs fs)
+    let mkTrk f ps = (mkAbs f, Set.fromList ps)
     let filesBefore =
           Map.fromList
-            [ mkTrk "pkg1" ["common-file", "pkg1-file"]
-            , mkTrk "pkg2" ["common-file", "pkg2-file"]
-            , mkTrk "pkg3" ["common-file", "pkg3-file"]
-            , mkTrk "pkg4" ["common-file", "pkg4-file"]
+            [ mkTrk "common-file" ["pkg1", "pkg2", "pkg3", "pkg4"]
+            , mkTrk "pkg1-file" ["pkg1"]
+            , mkTrk "pkg2-file" ["pkg2"]
+            , mkTrk "pkg3-file" ["pkg3"]
+            , mkTrk "pkg4-file" ["pkg4"]
             ]
     ((), ts) <-
       stateTracker filesBefore $
@@ -36,13 +37,14 @@ spec = do
           trkSkip pkg2
           trkAdd pkg3 $ mkAbs "common-file"
           trkAdd pkg3 $ mkAbs "pkg3-file-new"
-    ts.current
+    ts.state
       `shouldBe` Map.fromList
-        [ mkTrk "pkg1" ["common-file", "pkg1-file"]
-        , mkTrk "pkg2" ["common-file", "pkg2-file"]
-        , mkTrk "pkg3" ["common-file", "pkg3-file-new"]
+        [ mkTrk "common-file" ["pkg1", "pkg2", "pkg3"]
+        , mkTrk "pkg1-file" ["pkg1"]
+        , mkTrk "pkg2-file" ["pkg2"]
+        , mkTrk "pkg3-file-new" ["pkg3"]
         ]
-    tsDeleted ts `shouldBe` Set.fromList (map mkAbs ["pkg3-file", "pkg4-file"])
+    ts.deleted `shouldBe` Set.fromList (map mkAbs ["pkg3-file", "pkg4-file"])
   describe "drvTracker" $ do
     it "gets, sets state and removes files" $
       drvTempDir $ \dir -> do
@@ -55,7 +57,7 @@ spec = do
         -- State should be written out
         drvIsFile state >>= (`shouldBe` True)
         drvReadFile state
-          >>= (`shouldBe` ("{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"))
+          >>= (`shouldBe` ("{\"trackedFiles\":{\"" <> testFile.text <> "\":[\"pkg1\"]}}"))
         -- Now record no files
         drvTracker state $ pure ()
         -- State is still there but empty
@@ -69,7 +71,7 @@ spec = do
         drvWriteFile testFile "content"
         -- Assume previous run tracked the test file
         let state = dir </> "state.json"
-        drvWriteFile state $ "{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"
+        drvWriteFile state $ "{\"trackedFiles\":{\"" <> testFile.text <> "\":[\"pkg1\"]}}"
         -- Record no files
         drvTracker state $ pure ()
         -- State is still there but empty
@@ -86,7 +88,7 @@ spec = do
           modifyDriver sudo $ drvWriteFile testFile "content"
           -- Record the file as tracked from a previous run
           let state = dir </> "state.json"
-          drvWriteFile state $ "{\"trackedFiles\":{\"pkg1\":[\"" <> testFile.text <> "\"]}}"
+          drvWriteFile state $ "{\"trackedFiles\":{\"" <> testFile.text <> "\":[\"pkg1\"]}}"
           -- Record no files
           drvTracker state $ pure ()
           -- Test file should be deleted (checking with root as the regular user

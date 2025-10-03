@@ -46,13 +46,14 @@ spec = do
             . stateTracker initialSet
             . runInstallQueue
             . ensureInstalled
-    let mkTrk = Map.singleton "test" . Set.fromList . map (\f -> pRoot </> f)
-    let initState = mkTrk ["preexisting"]
+    let mkTrk :: Text -> TrackedFiles
+        mkTrk f = Map.singleton (pRoot </> f) $ Set.singleton "test"
+    let initState = mkTrk "preexisting"
 
     it "adds tracked files when installing a package" $ do
       state <- run initState $ mkTestPackage False
-      state.current `shouldBe` mkTrk ["test-file-1"]
+      state.state `shouldBe` mkTrk "test-file-1"
 
     it "keeps existing files when already installed" $ do
       state <- run initState $ mkTestPackage True
-      state.current `shouldBe` mkTrk ["preexisting"]
+      state.state `shouldBe` mkTrk "preexisting"
