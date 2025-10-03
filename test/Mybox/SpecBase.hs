@@ -22,12 +22,10 @@ module Mybox.SpecBase (
   inCI,
   inDocker,
   virtualSystem,
-  evaluate,
   jsonSpec,
 ) where
 
 import Data.Text qualified as Text
-import Effectful.Exception (evaluate)
 import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec

@@ -1,8 +1,7 @@
 module Mybox.PathSpec where
 
-import Data.Foldable (for_)
-
 import Mybox.Path
+import Mybox.Prelude
 import Mybox.SpecBase
 
 spec :: Spec
