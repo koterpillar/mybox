@@ -49,7 +49,7 @@ spec = do
           fmap snd
             . stateTracker initialSet
             . fn
-            . runInstallQueue
+            . runInstallQueue QParallel
             . ensureInstalled
     let run = run_ id
     let mkTrk :: Text -> TrackedFiles

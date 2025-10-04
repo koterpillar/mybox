@@ -51,7 +51,7 @@ compress fn extension contents act = do
 
 spec :: Spec
 spec =
-  withEff (nullTracker . runInstallQueue) $ do
+  withEff (nullTracker . runInstallQueue QParallel) $ do
     describe "extract" $ do
       it "unzips removing common prefix" $ do
         temporaryZip ["foo/bar", "foo/baz"] $ \archive -> do
