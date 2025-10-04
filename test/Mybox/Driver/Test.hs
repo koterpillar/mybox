@@ -136,6 +136,8 @@ dockerfile baseImage =
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development --haskell"
     , "ENV PATH=" <> (pRoot </> "home" </> dockerUser).text <> "/.local/bin:$PATH"
+    , -- download often-used apt packages to speed up tests
+      "RUN if command -v apt >/dev/null; then apt install -y --download-only nodejs npm python3-pip python3-venv unzip xz-utils; fi"
     , "USER " <> dockerUser
     , -- populate dnf cache so each test doesn't have to do it
       "RUN command -v dnf >/dev/null && dnf check-update || true"
