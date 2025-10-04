@@ -50,7 +50,7 @@ spec = do
               ps ((mkShellPackage $ pRoot </> "bin" </> "whoami"){root})
                 & checkInstalled (checkWhoamiShell root)
 
-  withEff (nullTracker . runInstallQueue) $
+  withEff (nullTracker . runInstallQueue QParallel) $
     describe "local version" $ do
       forRoot $ \(root, desc) ->
         it ("gets shell for " <> desc) $ do
@@ -68,7 +68,7 @@ spec = do
 
   describe "validation" $
     onlyIf "Shell validation tests require Docker environment" inDocker $
-      withEff (nullTracker . runInstallQueue) $ do
+      withEff (nullTracker . runInstallQueue QParallel) $ do
         it "fails when shell does not exist" $
           install (mkShellPackage $ pRoot </> "bin" </> "xxxxxxxx") `shouldThrow` anyException
 

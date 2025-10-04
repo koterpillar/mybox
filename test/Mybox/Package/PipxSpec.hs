@@ -14,7 +14,7 @@ spec :: Spec
 spec = do
   jsonSpec @PipxPackage [(Nothing, "{\"pipx\": \"django\"}")]
   describe "remote version" $ do
-    withEff (nullTracker . runInstallQueue) $ do
+    withEff (nullTracker . runInstallQueue QParallel) $ do
       it "gets version for existing package" $ do
         let package = mkPipxPackage "black"
         version <- remoteVersion package

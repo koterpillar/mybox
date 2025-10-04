@@ -53,30 +53,52 @@ spec :: Spec
 spec = do
   describe "ActionPackage" $ jsonSpec @ActionPackage [(Nothing, "{\"name\":\"test\",\"destination\":\"test\",\"delayS\":1,\"deps\":[]}")]
   describe "runInstallQueue" $ do
-    it "installs packages with dependencies" $ do
-      fileName <- mkPath <$> randomText "queue-spec-test"
-      let mkPkg name delayS deps = ActionPackage{destination = fileName, ..}
+    let pkgs :: Path AnyAnchor -> [ActionPackage]
+        pkgs fileName =
+          [ one
+          , mkPkg "four" 0 [mkPkg "four.dep" 4 []]
+          , mkPkg "one.rdep" 0 [one]
+          , mkPkg "two" 2 []
+          , mkPkg "three" 3 []
+          ]
+         where
+          mkPkg name delayS deps = ActionPackage{destination = fileName, ..}
+          one = mkPkg "one" 1 []
 
-      let one = mkPkg "one" 1 []
-      nullTracker $
-        runInstallQueue $
-          queueInstallMany
-            [ one
-            , mkPkg "four" 0 [mkPkg "four.dep" 4 []]
-            , mkPkg "one.rdep" 0 [one]
-            , mkPkg "two" 2 []
-            , mkPkg "three" 3 []
-            ]
+    let actualOrder :: Driver :> es => Path AnyAnchor -> Eff es [Text]
+        actualOrder path = do
+          home <- drvHome
+          logs <- drvReadFile (home <//> path)
+          pure $ Text.lines logs
 
-      let expectedOrder =
-            Text.intercalate
-              "\n"
-              [ "one"
-              , "one.rdep" -- depends on already-installed "one"
-              , "two"
-              , "three"
-              , "four.dep"
-              , "four" -- would have gone first, but waited for "four.dep"
-              ]
-      home <- drvHome
-      drvReadFile (home <//> fileName) >>= (`shouldBe` expectedOrder)
+    describe "parallel" $
+      it "installs packages with dependencies" $ do
+        fileName <- mkPath <$> randomText "queue-spec-test"
+
+        nullTracker $ runInstallQueue QParallel $ queueInstallMany $ pkgs fileName
+        actualOrder fileName
+          >>= ( `shouldBe`
+                  [ "one"
+                  , "one.rdep" -- depends on already-installed "one"
+                  , "two"
+                  , "three"
+                  , "four.dep"
+                  , "four" -- would have gone first, but waited for "four.dep"
+                  ]
+              )
+
+    describe "sequential" $
+      it "installs packages with dependencies" $ do
+        fileName <- mkPath <$> randomText "queue-spec-test"
+
+        nullTracker $ runInstallQueue QSequential $ queueInstallMany $ pkgs fileName
+        actualOrder fileName
+          >>= ( `shouldBe`
+                  [ "one" -- everything in order with dependencies before dependents
+                  , "four.dep"
+                  , "four"
+                  , "one.rdep"
+                  , "two"
+                  , "three"
+                  ]
+              )

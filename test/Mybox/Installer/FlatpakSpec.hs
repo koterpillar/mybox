@@ -19,7 +19,7 @@ expectedFlatpakVersion version = case Text.splitOn ":" version of
 spec :: Spec
 spec = onlyIfOS "Flatpak installer tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
   skipIf "Flatpak installer tests cannot run in Docker" inDocker $
-    withEff (nullTracker . runInstallQueue) $ do
+    withEff (nullTracker . runInstallQueue QParallel) $ do
       describe "flatpak" $
         before (ensureInstalled flatpakPackage) $ do
           describe "iLatestVersion" $ do

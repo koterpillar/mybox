@@ -102,11 +102,11 @@ packageSpecGen name makePS = do
       let s = makePS psa
       let p = s.package
       finally (cleanup_ s) $ do
-        nullTracker $ runInstallQueue $ preinstall_ s
+        nullTracker $ runInstallQueue QParallel $ preinstall_ s
 
         preexistingFiles <- trackableFiles s
         ((), ts) <-
-          stateTracker mempty $ runInstallQueue $ do
+          stateTracker mempty $ runInstallQueue QParallel $ do
             install p
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts.state

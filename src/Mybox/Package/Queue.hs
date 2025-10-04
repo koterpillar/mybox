@@ -1,5 +1,6 @@
 module Mybox.Package.Queue (
   InstallQueue,
+  QueueStrategy (..),
   queueInstall,
   queueInstallMany,
   runInstallQueue,
@@ -25,11 +26,19 @@ queueInstall = queueInstallMany . pure
 
 type QueueState = Map Text (MVar ())
 
+-- FIXME: install in parallel by default
+data QueueStrategy = QParallel | QSequential
+
+queueAction :: Concurrent :> es => QueueStrategy -> Eff es () -> Eff es ()
+queueAction QParallel = void . forkIO
+queueAction QSequential = void
+
 runInstallQueue ::
   (AppDisplay :> es, Concurrent :> es) =>
+  QueueStrategy ->
   Eff (InstallQueue : es) a ->
   Eff es a
-runInstallQueue =
+runInstallQueue strategy =
   reinterpret (evalState $ mempty @QueueState) $
     \localEnv ->
       \case
@@ -46,6 +55,6 @@ runInstallQueue =
                 Left mv -> pure mv
                 Right mv -> localUnlift localEnv (ConcUnlift Persistent Unlimited) $
                   \unlift -> do
-                    _ <- forkIO $ unlift action `finally` putMVar mv ()
+                    queueAction strategy $ unlift action `finally` putMVar mv ()
                     pure mv
           traverse_ readMVar res
