@@ -19,15 +19,14 @@ module Mybox.SpecBase (
   shouldContainText,
   shouldSatisfy,
   shouldThrow,
+  stringException,
   inCI,
   inDocker,
   virtualSystem,
-  evaluate,
   jsonSpec,
 ) where
 
 import Data.Text qualified as Text
-import Effectful.Exception (evaluate)
 import System.Environment
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
@@ -124,3 +123,6 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE' = jsonDecode @a "example" json'
     let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
+
+stringException :: String -> Selector StringException
+stringException expected (StringException msg _) = msg == expected

@@ -109,7 +109,7 @@ packageSpecGen name makePS = do
           stateTracker mempty $ runInstallQueue $ do
             install p
             checkVersionMatches p
-        checkAllTracked s preexistingFiles ts
+        checkAllTracked s preexistingFiles ts.state
         checkInstalled_ s
 
 packageSpec :: Package a => PackageSpec a -> Spec
@@ -126,12 +126,12 @@ checkAllTracked ::
   (Driver :> es, IOE :> es) =>
   PackageSpec a ->
   Set (Path Abs) ->
-  TrackerState ->
+  TrackedFiles ->
   Eff es ()
 checkAllTracked s preexisting ts = do
   current <- trackableFiles s
   let new = Set.difference current preexisting
-  let tracked = Set.unions $ Map.elems ts.current
+  let tracked = Map.keys ts
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
   missing `shouldBe` Set.empty
 

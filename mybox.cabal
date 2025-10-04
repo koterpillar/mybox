@@ -73,6 +73,7 @@ library
       Mybox.Prelude
       Mybox.Stores
       Mybox.Tracker
+      Mybox.Tracker.Internal
       Mybox.Utils
   other-modules:
       Paths_mybox

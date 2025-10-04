@@ -20,7 +20,8 @@ module Mybox.Path (
   pMyboxState,
 ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson (FromJSON (..), FromJSONKey (..), ToJSON (..), ToJSONKey (..))
+import Data.Aeson.Types (FromJSONKeyFunction (..), Parser, toJSONKeyText)
 import Data.List (isPrefixOf, unsnoc)
 import Data.Maybe (isJust)
 import Data.String (IsString (..))
@@ -45,7 +46,7 @@ instance Anchor Abs where
     p <- mkPath_ t
     case p.anchor_ of
       Abs -> Right $ Path Abs_ p.segments
-      Rel -> Left $ "Path is not absolute: " <> Text.unpack t
+      Rel -> Left $ "Path is not absolute: " <> show t
 
 instance Anchor Rel where
   toAnchor _ = Rel
@@ -53,7 +54,7 @@ instance Anchor Rel where
     p <- mkPath_ t
     case p.anchor_ of
       Rel -> Right $ Path Rel_ p.segments
-      Abs -> Left $ "Path is not relative: " <> Text.unpack t
+      Abs -> Left $ "Path is not relative: " <> show t
 
 instance Anchor AnyAnchor where
   toAnchor = id
@@ -81,14 +82,21 @@ instance Anchor a => HasField "text" (Path a) Text where
     (Rel, []) -> "."
     (Rel, s) -> Text.intercalate "/" s
 
+instance Anchor a => ToJSONKey (Path a) where
+  toJSONKey = toJSONKeyText (.text)
+
 instance Anchor a => ToJSON (Path a) where
   toJSON = toJSON . (.text)
   toEncoding = toEncoding . (.text)
 
+parseJSONText :: Anchor a => Text -> Parser (Path a)
+parseJSONText = either fail pure . mkPath_
+
+instance Anchor a => FromJSONKey (Path a) where
+  fromJSONKey = FromJSONKeyTextParser parseJSONText
+
 instance Anchor a => FromJSON (Path a) where
-  parseJSON v = do
-    t <- parseJSON v
-    either fail pure $ mkPath_ t
+  parseJSON v = parseJSON v >>= parseJSONText
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p
@@ -101,7 +109,7 @@ pWiden (Path a s) = Path (toAnchor a) s
 pSegment :: HasCallStack => Text -> Path Rel
 pSegment s
   | Text.null s = error "Cannot create a path segment from an empty string"
-  | Text.isInfixOf "/" s = error $ "Path segments cannot contain slashes: " <> Text.unpack s
+  | Text.isInfixOf "/" s = error $ "Path segments cannot contain slashes: " <> show s
   | otherwise = Path Rel_ [s]
 
 instance IsString (Path Rel) where

@@ -33,7 +33,7 @@ module Mybox.Prelude (
 ) where
 
 import Control.Applicative ((<|>))
-import Control.Exception.Safe (MonadThrow, throwString)
+import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
 import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
 import Data.Either
@@ -49,7 +49,7 @@ import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
 import Effectful.Concurrent (Concurrent, runConcurrent)
-import Effectful.Exception (Exception, bracket, bracketOnError, bracket_, finally)
+import Effectful.Exception
 import GHC.Generics (Generic, Generically (..))
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
