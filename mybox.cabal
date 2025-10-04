@@ -19,7 +19,6 @@ library
       Mybox.Compute.Base
       Mybox.Compute.Condition
       Mybox.Compute.Format
-      Mybox.Compute.Implementation
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
       Mybox.Compute.URL
@@ -178,7 +177,6 @@ test-suite tests
       Mybox.Compute.BaseSpec
       Mybox.Compute.ConditionSpec
       Mybox.Compute.FormatSpec
-      Mybox.Compute.ImplementationSpec
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.URLSpec
