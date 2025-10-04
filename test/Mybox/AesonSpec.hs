@@ -33,7 +33,7 @@ spec = do
     it "succeeds for valid JSON" $
       jsonDecode @Text "text" "\"hello\"" >>= (`shouldBe` "hello")
     it "fails for invalid JSON" $
-      jsonDecode @Text "text" "123" `shouldThrow` (\(StringException msg _) -> msg == "Failed to decode text: Error in $: parsing Text failed, expected String, but encountered Number")
+      jsonDecode @Text "text" "123" `shouldThrow` (stringException "Failed to decode text: Error in $: parsing Text failed, expected String, but encountered Number")
   describe "yamlDecode" $ do
     it "succeeds for valid YAML" $
       yamlDecode @[Text] "- one\n- two" >>= (`shouldBe` ["one", "two"])

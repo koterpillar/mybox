@@ -19,6 +19,7 @@ module Mybox.SpecBase (
   shouldContainText,
   shouldSatisfy,
   shouldThrow,
+  stringException,
   inCI,
   inDocker,
   virtualSystem,
@@ -122,3 +123,6 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE' = jsonDecode @a "example" json'
     let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
+
+stringException :: String -> Selector StringException
+stringException expected (StringException msg _) = msg == expected

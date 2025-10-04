@@ -6,21 +6,33 @@ import Mybox.SpecBase
 
 spec :: Spec
 spec = do
-  describe "pRelativeTo" $ do
+  describe "pRelativeTo_" $ do
     let usr = pRoot </> "usr"
-    it "returns Nothing for unrelated paths" $
-      pRelativeTo usr (pRoot </> "etc" </> "passwd") `shouldBe` Nothing
+    it "errors for unrelated paths" $
+      evaluate (pRelativeTo_ usr $ pRoot </> "etc" </> "passwd")
+        `shouldThrow` errorCall "Cannot get relative path from mkPath \"/usr\" to mkPath \"/etc/passwd\""
     it "returns Just relative path for subdirectory paths" $
-      pRelativeTo usr (usr </> "local" </> "bin") `shouldBe` Just (pSegment "local" </> "bin")
+      pRelativeTo_ usr (usr </> "local" </> "bin") `shouldBe` (pSegment "local" </> "bin")
     it "returns Just empty path for the same path" $ do
-      let result = pRelativeTo usr usr
-      case result of
-        Just p -> p.segments `shouldBe` []
-        Nothing -> expectationFailure "Expected Just, got Nothing"
-    it "returns Nothing for prefix paths" $
-      pRelativeTo (usr </> "local") usr `shouldBe` Nothing
-    it "returns Nothing for string-prefix paths" $
-      pRelativeTo usr (pRoot </> "usr1") `shouldBe` Nothing
+      let result = pRelativeTo_ usr usr
+      result.segments `shouldBe` []
+    it "errors for prefix paths" $
+      evaluate (pRelativeTo_ (usr </> "local") usr)
+        `shouldThrow` errorCall "Cannot get relative path from mkPath \"/usr/local\" to mkPath \"/usr\""
+    it "errors for string-prefix paths" $
+      evaluate (pRelativeTo_ usr $ pRoot </> "usr1")
+        `shouldThrow` errorCall "Cannot get relative path from mkPath \"/usr\" to mkPath \"/usr1\""
+
+  describe "pSegment" $ do
+    it "creates a relative path" $ do
+      let result = pSegment "home"
+      result.segments `shouldBe` ["home"]
+    it "errors on empty segments" $ do
+      evaluate (pSegment "")
+        `shouldThrow` errorCall "Cannot create a path segment from an empty string"
+    it "errors on segments with slashes" $ do
+      evaluate (pSegment "with/slash")
+        `shouldThrow` errorCall "Path segments cannot contain slashes: \"with/slash\""
 
   describe "mkPath" $ do
     describe "for absolute paths" $ do
@@ -28,6 +40,9 @@ spec = do
         (mkPath "/usr/local/bin" :: Path Abs) `shouldBe` (pRoot </> "usr" </> "local" </> "bin")
       it "creates absolute path from root" $
         (mkPath "/" :: Path Abs) `shouldBe` pRoot
+      it "errors on relative paths" $ do
+        evaluate (mkPath "relative" :: Path Abs)
+          `shouldThrow` errorCall "Path is not absolute: \"relative\""
 
     describe "for relative paths" $ do
       it "creates relative path from relative string" $
@@ -39,6 +54,9 @@ spec = do
           let result = mkPath current :: Path AnyAnchor
           pAbs result `shouldBe` Nothing
           result.segments `shouldBe` []
+      it "errors on absolute paths" $ do
+        evaluate (mkPath "/absolute" :: Path Rel)
+          `shouldThrow` errorCall "Path is not relative: \"/absolute\""
 
     describe "for AnyAnchor paths" $ do
       it "creates absolute path from absolute string" $ do

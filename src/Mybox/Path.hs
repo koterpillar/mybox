@@ -46,7 +46,7 @@ instance Anchor Abs where
     p <- mkPath_ t
     case p.anchor_ of
       Abs -> Right $ Path Abs_ p.segments
-      Rel -> Left $ "Path is not absolute: " <> Text.unpack t
+      Rel -> Left $ "Path is not absolute: " <> show t
 
 instance Anchor Rel where
   toAnchor _ = Rel
@@ -54,7 +54,7 @@ instance Anchor Rel where
     p <- mkPath_ t
     case p.anchor_ of
       Rel -> Right $ Path Rel_ p.segments
-      Abs -> Left $ "Path is not relative: " <> Text.unpack t
+      Abs -> Left $ "Path is not relative: " <> show t
 
 instance Anchor AnyAnchor where
   toAnchor = id
@@ -109,7 +109,7 @@ pWiden (Path a s) = Path (toAnchor a) s
 pSegment :: HasCallStack => Text -> Path Rel
 pSegment s
   | Text.null s = error "Cannot create a path segment from an empty string"
-  | Text.isInfixOf "/" s = error $ "Path segments cannot contain slashes: " <> Text.unpack s
+  | Text.isInfixOf "/" s = error $ "Path segments cannot contain slashes: " <> show s
   | otherwise = Path Rel_ [s]
 
 instance IsString (Path Rel) where
