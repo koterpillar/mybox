@@ -39,24 +39,8 @@ def parse_package(package: Any, *, db: DB, driver: Driver) -> Package:
     return AnyPackage.validate_python({**package, "db": db, "driver": driver})
 
 
-def keep_package(package: dict) -> bool:
-    implementation = package.pop("$implementation", None)
-    if implementation and implementation != "python":
-        return False
-
-    if any(k in package for k in ("repo", "pipx")):
-        return False
-
-    if "url" in package and "system" not in package:
-        return False
-
-    return True
-
-
 def parse_packages(packages: Any, *, db: DB, driver: Driver) -> Sequence[Package]:
     packages = TypeAdapter(list[dict]).validate_python(packages)
-
-    packages = list(filter(keep_package, packages))
 
     return AnyPackageList.validate_python(
         [{**package, "db": db, "driver": driver} for package in packages]
