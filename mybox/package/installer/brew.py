@@ -7,13 +7,6 @@ from .base import PackageCacheInstaller, PackageVersionInfo
 
 
 class Brew(PackageCacheInstaller):
-    async def tap(self, repo: str) -> None:
-        await self.driver.run(await self.brew(), "tap", repo)
-
-    async def tapped(self) -> set[str]:
-        output = await self.driver.run_output(await self.brew(), "tap")
-        return set(output.strip().splitlines())
-
     async def install(self, package: str) -> None:
         await self.driver.run(await self.brew(), "install", package)
         await super().install(package)
