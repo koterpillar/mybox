@@ -73,7 +73,7 @@ source p = do
 
 paths :: Driver :> es => LinksPackage -> Eff es (Set (Path Abs))
 paths p = do
-  let opt = if p.shallow then mempty{maxDepth = Just 1} else mempty{onlyFiles = True}
+  let opt = if p.shallow then findOptions{maxDepth = Just 1} else findOptions{onlyFiles = True}
   src <- source p
   pp <- drvFind src opt
 

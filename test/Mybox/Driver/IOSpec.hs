@@ -46,11 +46,11 @@ spec = do
         touch $ pSegment "subdir" </> "one"
         touch "two"
         touch "three"
-        go (mempty{names = Just ["one"]}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one"])
-        go (mempty{names = Just ["one", "two"]}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two"])
-        go mempty >>= (`shouldBe` Set.fromList ["one", "subdir", "subdir" </> "one", "two", "three"])
-        go (mempty{onlyFiles = True}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two", "three"])
-        go (mempty{names = Just ["four"]}) >>= (`shouldBe` Set.empty)
+        go (findOptions{names = Just ["one"]}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one"])
+        go (findOptions{names = Just ["one", "two"]}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two"])
+        go findOptions >>= (`shouldBe` Set.fromList ["one", "subdir", "subdir" </> "one", "two", "three"])
+        go (findOptions{onlyFiles = True}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two", "three"])
+        go (findOptions{names = Just ["four"]}) >>= (`shouldBe` Set.empty)
   describe "drvFindExecutable" $ do
     it "returns executable path" $ do
       drvFindExecutable ["sh"] >>= (`shouldBe` "sh")

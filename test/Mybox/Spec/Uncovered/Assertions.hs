@@ -21,7 +21,7 @@ assertAnyFileExists !name dir' paths = do
 
   exists <- anyM (\p -> drvIsFile (dir <//> p)) paths
   unless exists $ do
-    allFiles <- drvFind dir (mempty{onlyFiles = True})
+    allFiles <- drvFind dir (findOptions{onlyFiles = True})
     expectationFailure $
       Text.unpack name <> "' not found in '" <> show dir <> "'. Existing files: " <> show allFiles
 

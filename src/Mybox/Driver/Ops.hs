@@ -131,14 +131,9 @@ data FindOptions = FindOptions
   , onlyFiles :: Bool
   , names :: Maybe [Text]
   }
-  deriving (Eq, Ord, Show)
 
-instance Semigroup FindOptions where
-  FindOptions d1 f1 n1 <> FindOptions d2 f2 n2 =
-    FindOptions (d2 <|> d1) (f1 || f2) (n1 <> n2)
-
-instance Monoid FindOptions where
-  mempty = FindOptions Nothing False Nothing
+findOptions :: FindOptions
+findOptions = FindOptions{maxDepth = Nothing, onlyFiles = False, names = Nothing}
 
 drvFind :: (Anchor a, Driver :> es) => Path a -> FindOptions -> Eff es (Set (Path a))
 drvFind path fo = do

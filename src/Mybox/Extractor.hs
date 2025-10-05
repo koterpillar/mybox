@@ -30,7 +30,7 @@ findContents sourceDir maxDepth = do
   if maxDepth < 0
     then terror $ "maxDepth must be positive, got " <> Text.pack (show maxDepth)
     else do
-      contents <- drvFind sourceDir (mempty{maxDepth = Just 1})
+      contents <- drvFind sourceDir (findOptions{maxDepth = Just 1})
       case Set.toList contents of
         [element] -> do
           isDir <- drvIsDir element

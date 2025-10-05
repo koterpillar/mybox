@@ -119,7 +119,7 @@ trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set (Path Abs))
 trackableFiles s = do
   home <- drvHome
   let ignored = Set.map (home <//>) s.ignoredPaths_
-  existing <- drvFind home (mempty{onlyFiles = True})
+  existing <- drvFind home (findOptions{onlyFiles = True})
   pure $ Set.filter (\p -> not $ any (`pUnder` p) ignored) existing
 
 checkAllTracked ::
