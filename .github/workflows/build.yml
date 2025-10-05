@@ -57,7 +57,7 @@ jobs:
         run: ./bin/install-dev --no-lint --no-python
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
-        run: &configure-host-system |
+        run: |
           sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
             polkit.addRule(function(action, subject) {
               if (
@@ -102,9 +102,6 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: ./bin/install-dev --no-lint --no-haskell
-      - name: Configure host system
-        if: matrix.host && matrix.host != 'macos'
-        run: *configure-host-system
       - name: Test
         run: |
           ./bin/test

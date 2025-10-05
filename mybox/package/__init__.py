@@ -9,7 +9,6 @@ from .base import Package, PackageArgs
 from .brew_repo import BrewRepo
 from .clone import Clone
 from .daemon import Daemon
-from .flatpak import FlatpakPackage
 from .links import Links
 from .npm import NpmPackage
 from .shell import Shell
@@ -20,7 +19,6 @@ AnyPackageT = Union[
     BrewRepo,
     Clone,
     Daemon,
-    FlatpakPackage,
     Links,
     NpmPackage,
     Shell,
