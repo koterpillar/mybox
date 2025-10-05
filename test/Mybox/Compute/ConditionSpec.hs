@@ -25,10 +25,10 @@ rest :: Object
 rest = "rest" .= String "value"
 
 shouldMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
-shouldMatch arch os value = run arch os value rest `shouldBe` Just (Object rest)
+shouldMatch !arch !os value = run arch os value rest `shouldBe` Just (Object rest)
 
 shouldNotMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
-shouldNotMatch arch os value = run arch os value rest `shouldBe` Nothing
+shouldNotMatch !arch !os value = run arch os value rest `shouldBe` Nothing
 
 spec :: Spec
 spec = do
@@ -37,10 +37,32 @@ spec = do
       shouldMatch X86_64 MacOS (object [])
       shouldMatch Aarch64 (Linux Fedora) (object [])
 
-    it "filters on OS" $ do
-      let value = object ["os" .= ("darwin" :: Text)]
-      shouldMatch X86_64 MacOS value
-      shouldNotMatch X86_64 (Linux Fedora) value
+    describe "OS matching" $ do
+      let osFilter (cond :: Text) = object ["os" .= cond]
+
+      it "filters macOS" $ do
+        let f = osFilter "darwin"
+        shouldMatch X86_64 MacOS f
+        shouldNotMatch X86_64 (Linux Fedora) f
+
+      it "filters Linux" $ do
+        let f = osFilter "linux"
+        shouldMatch X86_64 (Linux Fedora) f
+        shouldMatch X86_64 (Linux (Debian "debian")) f
+        shouldNotMatch X86_64 MacOS f
+
+      it "filters Fedora" $ do
+        let f = osFilter "fedora"
+        shouldMatch X86_64 (Linux Fedora) f
+        shouldNotMatch X86_64 (Linux (Debian "debian")) f
+        shouldNotMatch X86_64 MacOS f
+
+      it "filters Debian variants" $ do
+        let f = osFilter "debian"
+        shouldMatch X86_64 (Linux (Debian "debian")) f
+        shouldNotMatch X86_64 (Linux (Debian "ubuntu")) f
+        shouldNotMatch X86_64 (Linux Fedora) f
+        shouldNotMatch X86_64 MacOS f
 
     it "filters on architecture" $ do
       let value = object ["architecture" .= ("x86_64" :: Text)]

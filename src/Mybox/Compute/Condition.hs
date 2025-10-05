@@ -9,7 +9,6 @@ data Conditions = Conditions
   { os :: Maybe [Text]
   , architecture :: Maybe [Architecture]
   }
-  deriving (Eq, Ord, Show)
 
 instance FromJSON Conditions where
   parseJSON = withObjectTotal "Conditions" $ do
@@ -22,12 +21,6 @@ andM = foldM go True
  where
   go False _ = pure False
   go True act = act
-
-orM :: Monad m => [m Bool] -> m Bool
-orM = foldM go False
- where
-  go True _ = pure True
-  go False act = act
 
 match :: Driver :> es => Conditions -> Eff es Bool
 match c = andM $ toList (osMatches <$> c.os) <> toList (architectureMatches <$> c.architecture)
