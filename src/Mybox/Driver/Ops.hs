@@ -185,7 +185,7 @@ drvHttpGetStatus = drvHttpGetStatusArgs []
 
 drvHttpGetStatusArgs :: Driver :> es => [Text] -> Text -> Eff es (Int, Text)
 drvHttpGetStatusArgs args url = do
-  fullResult <- drvRunOutput $ curlNoFail ("--write-out" : "%{http_code}" : args) url
+  fullResult <- drvRunOutput $ curlNoFail ("--write-out" : "\n%{http_code}" : args) url
   let (result, status) = Text.breakOnEnd "\n" fullResult
   pure (read $ Text.unpack status, Text.dropEnd 1 result)
 
