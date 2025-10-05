@@ -3,20 +3,10 @@
 set -euo pipefail
 
 OPT_FORMAT=""
-OPT_PYTHON="true"
-OPT_HASKELL="true"
 while [ $# -gt 0 ]; do
   case "$1" in
     --format)
       OPT_FORMAT="true"
-      shift
-      ;;
-    --no-python)
-      OPT_PYTHON=""
-      shift
-      ;;
-    --no-haskell)
-      OPT_HASKELL=""
       shift
       ;;
     *)
@@ -28,13 +18,9 @@ done
 
 # macOS's bash (3.x) can't interpolate empty arrays into parameters under
 # nounset; keep command and args together as a workaround.
-ISORT=(isort)
-BLACK=(black)
 FOURMOLU=(fourmolu)
 if [ -z "$OPT_FORMAT" ]
 then
-  ISORT+=(--check)
-  BLACK+=(--check)
   FOURMOLU+=(--mode check)
 else
   FOURMOLU+=(--mode inplace)
@@ -45,19 +31,5 @@ DIR=$(cd "$(dirname "$0")" && cd .. && pwd)
 readarray -t SHELL_SCRIPTS < <(grep -lER --exclude-dir .git --exclude-dir .stack-work '^#!.+(ba)?sh$' "$DIR")
 shellcheck "${SHELL_SCRIPTS[@]}"
 
-if [ -n "$OPT_HASKELL" ]
-then
-  readarray -t HASKELL_SCRIPTS < <(grep -lER --exclude-dir .git --exclude-dir .stack-work '^#!.+stack$' "$DIR")
-  "${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/test" "${HASKELL_SCRIPTS[@]}"
-fi
-
-if [ -n "$OPT_PYTHON" ]
-then
-  PYTHON=("${DIR}/mybox" "${DIR}/tests")
-
-  poetry run "${ISORT[@]}" "${PYTHON[@]}"
-  poetry run "${BLACK[@]}" "${PYTHON[@]}"
-  poetry run mypy "${PYTHON[@]}"
-  poetry run pylint "${PYTHON[@]}"
-  poetry run fawltydeps
-fi
+readarray -t HASKELL_SCRIPTS < <(grep -lER --exclude-dir .git --exclude-dir .stack-work '^#!.+stack$' "$DIR")
+"${FOURMOLU[@]}" "${DIR}/app" "${DIR}/src" "${DIR}/test" "${HASKELL_SCRIPTS[@]}"

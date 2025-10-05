@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-poetry run coverage erase
-poetry run -- coverage run -m pytest "$@"

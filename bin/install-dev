@@ -4,16 +4,11 @@
 set -euo pipefail
 
 OPT_LINT="true"
-OPT_PYTHON="true"
 OPT_HASKELL="true"
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-lint)
       OPT_LINT=""
-      shift
-      ;;
-    --no-python)
-      OPT_PYTHON=""
       shift
       ;;
     --no-haskell)
@@ -76,11 +71,6 @@ case "$OSTYPE" in
   ;;
 esac
 
-if [ -n "${OPT_PYTHON-}" ] && ! command_exists poetry
-then
-  pip install poetry
-fi
-
 GH_CURL=(curl -fsSL --retry 5)
 if [ -n "${GITHUB_TOKEN-}" ]
 then
@@ -111,9 +101,4 @@ then
   FOURMOLU_URL="https://github.com/fourmolu/fourmolu/releases/latest/download/${FILENAME}"
   "${GH_CURL[@]}" "$FOURMOLU_URL" -o ~/.local/bin/fourmolu
   chmod +x ~/.local/bin/fourmolu
-fi
-
-if [ -n "${OPT_PYTHON-}" ]
-then
-  poetry install
 fi

@@ -6,7 +6,6 @@
     "github>koterpillar/renovate-haskell:default.json5",
   ],
   rangeStrategy: "bump",
-  ignoreDeps: ["python"],
   customManagers: [
     {
       customType: "regex",
@@ -19,11 +18,6 @@
     {
       matchPackageNames: ["actions/node-versions"],
       extractVersion: "^(?<version>v\\d+)",
-    },
-    {
-      matchDepNames: ["python"],
-      matchUpdateTypes: ["patch"],
-      enabled: false,
     },
   ],
 }
