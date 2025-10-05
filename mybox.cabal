@@ -54,6 +54,7 @@ library
       Mybox.Package.Destination
       Mybox.Package.Flatpak
       Mybox.Package.Github
+      Mybox.Package.Github.Internal
       Mybox.Package.Links
       Mybox.Package.ManualVersion
       Mybox.Package.Name

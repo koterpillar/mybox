@@ -6,7 +6,7 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Filters
 import Mybox.Package.Archive
-import Mybox.Package.Github
+import Mybox.Package.Github.Internal hiding (id)
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
@@ -145,3 +145,12 @@ spec = do
             }
         )
         & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
+
+  it "skips release" $ do
+    let keytar = (mkGithubPackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
+    r <- release keytar
+    r.tag_name `shouldBe` "v7.8.0"
+
+  it "errors when no releases" $ do
+    let nixos = mkGithubPackage "NixOS/nixpkgs"
+    release nixos `shouldThrow` errorCall "No releases found for NixOS/nixpkgs"

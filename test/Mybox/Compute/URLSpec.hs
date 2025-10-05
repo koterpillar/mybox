@@ -8,7 +8,7 @@ import Mybox.Prelude
 import Mybox.SpecBase
 
 testCurl :: Args -> Maybe Text
-testCurl ("curl" :| args) = (\(_, url) -> "content of " <> url) <$> unsnoc args
+testCurl ("curl" :| args) = (\(_, url) -> "content of " <> url <> "\n200") <$> unsnoc args
 testCurl _ = Nothing
 
 run :: Value -> Object -> Maybe Value

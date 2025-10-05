@@ -19,7 +19,7 @@ linksHTML =
     ]
 
 testFetch :: Text -> Maybe Text
-testFetch "http://example.com/test" = Just linksHTML
+testFetch "http://example.com/test" = Just $ linksHTML <> "\n200"
 testFetch _ = Nothing
 
 testCurl :: Args -> Maybe Text
