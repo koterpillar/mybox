@@ -178,7 +178,7 @@ iconExtensions = ["png", "svg"]
 installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installIcon p icon = do
   directory <- aDirectory p
-  iconPaths <- drvFind directory $ mempty{names = Just $ withExtensions iconExtensions icon}
+  iconPaths <- drvFind directory $ findOptions{names = Just $ withExtensions iconExtensions icon}
   local <- drvLocal
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
@@ -212,7 +212,7 @@ installFont p font = do
       Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal
       MacOS -> (\h -> h </> "Library" </> "Fonts") <$> drvHome
   directory <- aDirectory p
-  fontPaths <- drvFind directory $ mempty{names = Just $ withExtensions fontExtensions font}
+  fontPaths <- drvFind directory $ findOptions{names = Just $ withExtensions fontExtensions font}
   fontPath <- case Set.toList fontPaths of
     [path] -> pure path
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory.text

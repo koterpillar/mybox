@@ -32,7 +32,7 @@ extractFileNames archive = do
   extractor <- getExtractor archive.text
   drvTempDir $ \dir -> do
     extract extractor archive dir
-    files <- drvFind dir mempty{onlyFiles = True}
+    files <- drvFind dir findOptions{onlyFiles = True}
     pure $ Set.map (pRelativeTo_ dir) files
 
 compress ::
