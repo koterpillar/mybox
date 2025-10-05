@@ -23,5 +23,5 @@ main =
             config <- readConfig
             state <- drvMyboxState
             drvTracker (state </> "files.json") $
-              runInstallQueue QSequential $
+              runInstallQueue $
                 queueInstallMany config.packages
