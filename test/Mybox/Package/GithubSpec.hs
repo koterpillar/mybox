@@ -1,5 +1,6 @@
 module Mybox.Package.GithubSpec where
 
+import Data.List
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
@@ -11,6 +12,7 @@ import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Spec.Assertions
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 
 -- | Assert that a desktop file exists with the given name and optional executable
@@ -154,3 +156,14 @@ spec = do
   it "errors when no releases" $ do
     let nixos = mkGithubPackage "NixOS/nixpkgs"
     release nixos `shouldThrow` errorCall "No releases found for NixOS/nixpkgs"
+
+  it "skips prereleases" $ do
+    let neovim = mkGithubPackage "neovim/neovim"
+    nvReleases <- filter (\r -> Text.isPrefixOf "v" r.tag_name) <$> releases neovim
+    let (nvLatest, nvPrevious) = requireJust "Neovim has no releases" $ do
+          (r1, nvr') <- uncons nvReleases
+          (r2, _) <- uncons nvr'
+          pure (r1, r2)
+    let neovimSkip = neovim{skipReleases = [nvLatest.tag_name, "stable"]}
+    r <- release neovimSkip
+    r.tag_name `shouldBe` nvPrevious.tag_name
