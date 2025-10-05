@@ -10,7 +10,6 @@ from .clone import Clone
 from .daemon import Daemon
 from .links import Links
 from .npm import NpmPackage
-from .shell import Shell
 from .system import SystemPackage
 
 AnyPackageT = Union[
@@ -18,7 +17,6 @@ AnyPackageT = Union[
     Daemon,
     Links,
     NpmPackage,
-    Shell,
     SystemPackage,
 ]
 
