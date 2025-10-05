@@ -51,3 +51,10 @@ spec = do
         go mempty >>= (`shouldBe` Set.fromList ["one", "subdir", "subdir" </> "one", "two", "three"])
         go (mempty{onlyFiles = True}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two", "three"])
         go (mempty{names = Just ["four"]}) >>= (`shouldBe` Set.empty)
+  describe "drvFindExecutable" $ do
+    it "returns executable path" $ do
+      drvFindExecutable ["sh"] >>= (`shouldBe` "sh")
+      drvFindExecutable ["nonexistent-command", "sh"] >>= (`shouldBe` "sh")
+    it "errors when no executable found" $
+      drvFindExecutable ["nonexistent-command"]
+        `shouldThrow` errorCall "Neither of nonexistent-command found in PATH."

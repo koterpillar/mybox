@@ -52,7 +52,7 @@ drvFindExecutable candidates = go candidates
     exists <- drvExecutableExists exe
     if exists
       then pure exe
-      else drvFindExecutable executables
+      else go executables
 
 -- | Get the current username.
 drvUsername :: Driver :> es => Eff es Text
