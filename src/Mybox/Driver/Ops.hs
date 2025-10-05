@@ -180,7 +180,19 @@ drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
 
 drvHttpGet :: Driver :> es => Text -> Eff es Text
-drvHttpGet url = drvRunOutput $ curl [] url
+drvHttpGet url =
+  drvHttpGetStatus url >>= \case
+    (200, result) -> pure result
+    (status, err) -> terror $ "HTTP URL " <> url <> " returned " <> Text.pack (show status) <> ": " <> err
+
+drvHttpGetStatus :: Driver :> es => Text -> Eff es (Int, Text)
+drvHttpGetStatus = drvHttpGetStatusArgs []
+
+drvHttpGetStatusArgs :: Driver :> es => [Text] -> Text -> Eff es (Int, Text)
+drvHttpGetStatusArgs args url = do
+  fullResult <- drvRunOutput $ curlNoFail ("--write-out" : "%{http_code}" : args) url
+  let (result, status) = Text.breakOnEnd "\n" fullResult
+  pure (read $ Text.unpack status, Text.dropEnd 1 result)
 
 drvRedirectLocation :: Driver :> es => Text -> Eff es Text
 drvRedirectLocation = drvUrlProperty "%{url_effective}"
@@ -257,7 +269,10 @@ sudo :: Args -> Args
 sudo args = "sudo" :| toList args
 
 curl :: [Text] -> Text -> Args
-curl args url = "curl" :| ["-fsSL"] <> args <> [url]
+curl args url = curlNoFail ("--fail" : args) url
+
+curlNoFail :: [Text] -> Text -> Args
+curlNoFail args url = "curl" :| ["--silent", "--show-error", "--location"] <> args <> [url]
 
 env :: [(Text, Text)] -> Args -> Args
 env vars args = "env" :| map mkVar vars ++ toList args
