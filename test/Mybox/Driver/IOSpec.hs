@@ -1,6 +1,7 @@
 module Mybox.Driver.IOSpec where
 
 import Data.Set qualified as Set
+import Data.Text qualified as Text
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
@@ -58,3 +59,20 @@ spec = do
     it "errors when no executable found" $
       drvFindExecutable ["nonexistent-command"]
         `shouldThrow` errorCall "Neither of nonexistent-command found in PATH."
+  describe "drvHttpGet" $ do
+    let page = "http://deb.debian.org/"
+    let page404 = "http://deb.debian.org/nonexistent"
+    let expectedPage contents = Text.isPrefixOf "<!DOCTYPE" contents && Text.isSuffixOf "</HTML>\n" contents
+    it "fetches content from a URL" $ do
+      result <- drvHttpGet page
+      result `shouldSatisfy` expectedPage
+    it "errors on non-200 status"
+      $ shouldThrow
+        (drvHttpGet page404)
+      $ \(ErrorCall msg') ->
+        let msg = Text.pack msg'
+         in Text.isPrefixOf "HTTP URL http://deb.debian.org/nonexistent returned 404: <!DOCTYPE" msg
+    it "returns status and contents" $ do
+      (status, result) <- drvHttpGetStatus page
+      status `shouldBe` 200
+      result `shouldSatisfy` expectedPage
