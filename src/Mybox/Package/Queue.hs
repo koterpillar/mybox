@@ -8,7 +8,6 @@ module Mybox.Package.Queue (
 
 import Data.Map qualified as Map
 import Effectful.Concurrent
-import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
 

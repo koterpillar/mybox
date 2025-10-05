@@ -1,4 +1,4 @@
-module Mybox.Installer.Class (module Mybox.Installer.Class, Map) where
+module Mybox.Installer.Class where
 
 import Data.Map.Strict qualified as Map
 
@@ -19,32 +19,42 @@ instance ToJSON PackageVersion where
   toEncoding = genericToEncoding defaultOptions
 
 data Installer = Installer
-  { storePackages :: Store Text PackageVersion
-  , storeGlobal :: Store () Bool
+  { storeKey :: Text
   , install_ :: forall es. Driver :> es => Text -> Eff es ()
   , upgrade_ :: forall es. Driver :> es => Text -> Eff es ()
   , getPackageInfo :: forall es. Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
   }
 
-iGetCachePackageInfo :: (Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
+instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) where
+  getField i = Store{key = "installer-" <> i.storeKey <> "-packages", iso = jsonIso, def = Map.empty}
+
+iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
+iLocked i act = storeModifyM s $ \() -> (,) <$> act <*> pure ()
+ where
+  s = Store{key = "installer-" <> i.storeKey <> "-lock", iso = jsonIso, def = ()}
+
+iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
-  results <- getPackageInfo i package
-  for_ (Map.toList results) $ \(pkgName, pkgInfo) -> do
-    storeSet i.storePackages pkgName pkgInfo
+  results <- iLocked i $ getPackageInfo i package
+  storeModify i.storePackages $ Map.union results
   pure results
 
-iPackageInfo :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
+iInitLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es () -> Eff es ()
+iInitLocked i act = storeModifyM_ s $ \case
+  True -> pure True
+  False -> act *> pure True
+ where
+  s = Store{key = "installer-" <> i.storeKey <> "-global", iso = jsonIso, def = False}
+
+iPackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do
-  cacheInitialized <- fromMaybe False <$> storeGet i.storeGlobal ()
-  unless cacheInitialized $ do
-    _ <- iGetCachePackageInfo i Nothing
-    storeSet i.storeGlobal () True
-  storeGet i.storePackages package
+  iInitLocked i $ void $ iGetCachePackageInfo i Nothing
+  (Map.lookup package <$> storeGet i.storePackages)
     `fromMaybeOrMM` fmap (Map.lookup package) (iGetCachePackageInfo i $ Just package)
     `fromMaybeOrMM` terror ("Unknown package: " <> package)
 
-iInvalidate :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
-iInvalidate = storeDelete . storePackages
+iInvalidate :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInvalidate i = storeModify i.storePackages . Map.delete
 
 iCombineLatestInstalled :: Map Text Text -> Map Text Text -> Map Text PackageVersion
 iCombineLatestInstalled latest installed =
@@ -57,18 +67,18 @@ iCombineLatestInstalled latest installed =
     )
     latest
 
-iInstall :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInstall :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iInstall i package = do
   install_ i package
   iInvalidate i package
 
-iUpgrade :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iUpgrade :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iUpgrade i package = do
   upgrade_ i package
   iInvalidate i package
 
-iInstalledVersion :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)
+iInstalledVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)
 iInstalledVersion i package = (.installed) <$> iPackageInfo i package
 
-iLatestVersion :: (Driver :> es, Stores :> es) => Installer -> Text -> Eff es Text
+iLatestVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es Text
 iLatestVersion i package = (.latest) <$> iPackageInfo i package

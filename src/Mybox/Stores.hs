@@ -2,16 +2,14 @@ module Mybox.Stores (
   Iso,
   textIso,
   jsonIso,
+  Store (..),
   Stores,
-  Store,
-  mkStore,
+  storeVar,
   storeGet,
   storeSet,
-  storeDelete,
-  storeAdjust,
   storeModify,
-  storeClear,
-  storeGetAll,
+  storeModifyM_,
+  storeModifyM,
   runStores,
 ) where
 
@@ -27,10 +25,10 @@ data Iso a b = Iso
   , deserialize :: b -> a
   }
 
-data Store k v = Store
-  { storeKey :: Text
-  , keyIso :: Iso k Text
-  , valueIso :: Iso v Text
+data Store v = Store
+  { key :: Text
+  , iso :: Iso v Text
+  , def :: v
   }
 
 textIso :: Iso Text Text
@@ -43,65 +41,47 @@ jsonIso =
     , deserialize = either (error . show) id . jsonDecode "iso"
     }
 
-mkStore :: Text -> Iso k Text -> Iso v Text -> Store k v
-mkStore storeKey keyIso valueIso = Store{storeKey, keyIso, valueIso}
+type MegaStore = Map Text (MVar Text)
 
 data Stores :: Effect where
-  StoreGet :: Store k v -> k -> Stores m (Maybe v)
-  StoreSet :: Store k v -> k -> v -> Stores m ()
-  StoreDelete :: Store k v -> k -> Stores m ()
-  StoreClear :: Store k v -> Stores m ()
-  StoreGetAll :: Store k v -> Stores m (Map Text v)
+  StoreGet :: Store v -> Stores m (MVar Text)
 
 type instance DispatchOf Stores = Dynamic
 
-storeGet :: Stores :> es => Store k v -> k -> Eff es (Maybe v)
-storeGet store key = send $ StoreGet store key
+storeVar :: Stores :> es => Store v -> Eff es (MVar Text)
+storeVar store = send $ StoreGet store
 
-storeSet :: Stores :> es => Store k v -> k -> v -> Eff es ()
-storeSet store key value = send $ StoreSet store key value
+storeGet :: (Concurrent :> es, Stores :> es) => Store v -> Eff es v
+storeGet store = do
+  v <- storeVar store
+  vText <- readMVar v
+  pure $ store.iso.deserialize vText
 
-storeDelete :: Stores :> es => Store k v -> k -> Eff es ()
-storeDelete store key = send $ StoreDelete store key
+storeSet :: (Concurrent :> es, Stores :> es) => Store v -> v -> Eff es ()
+storeSet store = storeModify store . const
 
-storeAdjust :: Stores :> es => Store k v -> k -> (Maybe v -> Maybe v) -> Eff es ()
-storeAdjust store key f = do
-  currentValue <- storeGet store key
-  case f currentValue of
-    Nothing -> storeDelete store key
-    Just newValue -> storeSet store key newValue
+storeModify :: (Concurrent :> es, Stores :> es) => Store v -> (v -> v) -> Eff es ()
+storeModify store = storeModifyM_ store . ((.) pure)
 
-storeModify :: Stores :> es => Store k v -> k -> (v -> v) -> Eff es ()
-storeModify store key = storeAdjust store key . fmap
+storeModifyM_ :: (Concurrent :> es, Stores :> es) => Store v -> (v -> Eff es v) -> Eff es ()
+storeModifyM_ store f = storeModifyM store $ \v -> (,) () <$> f v
 
-storeGetAll :: (Ord k, Stores :> es) => Store k v -> Eff es (Map k v)
-storeGetAll store = fmap (Map.mapKeys store.keyIso.deserialize) $ send $ StoreGetAll store
+storeModifyM :: (Concurrent :> es, Stores :> es) => Store v -> (v -> Eff es (r, v)) -> Eff es r
+storeModifyM store f = do
+  vv <- storeVar store
+  modifyMVar vv $ \vText -> do
+    let v = store.iso.deserialize vText
+    (r, v') <- f v
+    let vText' = store.iso.serialize v'
+    pure (vText', r)
 
-storeClear :: Stores :> es => Store k v -> Eff es ()
-storeClear store = send $ StoreClear store
-
-type MegaKey = (Text, Text)
-
-type MegaStore = Map MegaKey Text
-
-runStores :: forall es a. Eff (Stores : es) a -> Eff es a
+runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
 runStores = reinterpret_
   (evalState $ mempty @MegaStore)
   $ \case
-    StoreGet store key ->
-      gets $
-        fmap store.valueIso.deserialize . Map.lookup (store.storeKey, store.keyIso.serialize key)
-    StoreSet store key value ->
-      modify $
-        Map.insert (store.storeKey, store.keyIso.serialize key) (store.valueIso.serialize value)
-    StoreDelete store key ->
-      modify $
-        Map.delete @_ @Text (store.storeKey, store.keyIso.serialize key)
-    StoreClear store -> modify $
-      Map.filterWithKey @MegaKey @Text $
-        \(k, _) _ -> k /= store.storeKey
-    StoreGetAll store ->
-      gets $
-        fmap store.valueIso.deserialize
-          . Map.mapKeys snd
-          . Map.filterWithKey @MegaKey @Text (\(k, _) _ -> k == store.storeKey)
+    StoreGet store -> stateM $ \m -> case Map.lookup store.key m of
+      Just v -> pure (v, m)
+      Nothing -> do
+        v <- newMVar $ store.iso.serialize store.def
+        let m' = Map.insert store.key v m
+        pure (v, m')

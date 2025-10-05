@@ -11,7 +11,7 @@ import Mybox.Display.None
 import Mybox.Driver
 import Mybox.Driver.Stats
 import Mybox.Driver.Test
-import Mybox.Prelude
+import Mybox.Prelude hiding (MVar, modifyMVar_, newMVar, takeMVar)
 import Mybox.SpecBase
 import Mybox.Stores
 

@@ -6,7 +6,6 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
-import Mybox.Stores
 
 brewInstall :: Driver :> es => Text -> Text -> Eff es ()
 brewInstall action package = do
@@ -79,8 +78,7 @@ parseVersions info = Map.fromList $ map parseCask info.casks ++ map parseFormula
 brew :: Installer
 brew =
   Installer
-    { storePackages = mkStore "brew" textIso jsonIso
-    , storeGlobal = mkStore "brew-global" jsonIso jsonIso
+    { storeKey = "brew"
     , install_ = brewInstall "install"
     , upgrade_ = brewInstall "upgrade"
     , getPackageInfo = brewPackageInfo

@@ -6,7 +6,6 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
-import Mybox.Stores
 
 aptInstall :: Driver :> es => Text -> Eff es ()
 aptInstall package =
@@ -51,8 +50,7 @@ aptPackageInfo (Just package) = fmap (Map.singleton package) $ PackageVersion <$
 apt :: Installer
 apt =
   Installer
-    { storePackages = mkStore "apt" textIso jsonIso
-    , storeGlobal = mkStore "apt-global" jsonIso jsonIso
+    { storeKey = "apt"
     , install_ = aptInstall
     , upgrade_ = aptInstall
     , getPackageInfo = aptPackageInfo

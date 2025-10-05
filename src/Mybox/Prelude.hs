@@ -5,7 +5,7 @@ module Mybox.Prelude (
   module Data.Foldable,
   module Data.Maybe,
   module Effectful,
-  module Effectful.Concurrent,
+  module Effectful.Concurrent.MVar,
   module Effectful.Exception,
   module GHC.Generics,
   module Mybox.Path,
@@ -30,6 +30,7 @@ module Mybox.Prelude (
   fromMaybeOrM,
   fromMaybeOrMM,
   throwLeft,
+  modifyMVarPure,
 ) where
 
 import Control.Applicative ((<|>))
@@ -48,7 +49,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Traversable (for)
 import Effectful
-import Effectful.Concurrent (Concurrent, runConcurrent)
+import Effectful.Concurrent.MVar
 import Effectful.Exception
 import GHC.Generics (Generic, Generically (..))
 import GHC.Records (HasField (..))
@@ -72,3 +73,6 @@ infixr 9 `fromMaybeOrMM`
 
 throwLeft :: MonadThrow m => Either String a -> m a
 throwLeft = either throwString pure
+
+modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
+modifyMVarPure v f = modifyMVar_ v $ pure . f
