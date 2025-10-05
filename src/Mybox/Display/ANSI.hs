@@ -8,7 +8,6 @@ module Mybox.Display.ANSI (
 
 import Data.List (delete)
 import Data.Text qualified as Text
-import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
 import System.Console.ANSI

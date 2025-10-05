@@ -41,14 +41,14 @@ instance ToJSON SystemPackage where
 autoUpdateVersion :: SystemPackage -> Text -> Text
 autoUpdateVersion p = if p.autoUpdates then const "latest" else id
 
-systemRemoteVersion :: (Driver :> es, Stores :> es) => SystemPackage -> Eff es Text
+systemRemoteVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => SystemPackage -> Eff es Text
 systemRemoteVersion p = case p.url of
   Nothing -> do
     installer <- mkInstaller
     autoUpdateVersion p <$> iLatestVersion installer p.name
   Just url -> drvUrlEtag url
 
-systemLocalVersion :: (Driver :> es, Stores :> es) => SystemPackage -> Eff es (Maybe Text)
+systemLocalVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => SystemPackage -> Eff es (Maybe Text)
 systemLocalVersion p = case p.url of
   Nothing -> do
     installer <- mkInstaller

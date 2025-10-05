@@ -6,7 +6,6 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Prelude
-import Mybox.Stores
 
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
 dnfInstall action package =
@@ -87,8 +86,7 @@ dnfPackageInfo package = iCombineLatestInstalled <$> dnfRepoQuery package <*> rp
 dnf :: Installer
 dnf =
   Installer
-    { storePackages = mkStore "dnf" textIso jsonIso
-    , storeGlobal = mkStore "dnf-global" jsonIso jsonIso
+    { storeKey = "dnf"
     , install_ = dnfInstall "install"
     , upgrade_ = dnfInstall "upgrade"
     , getPackageInfo = dnfPackageInfo

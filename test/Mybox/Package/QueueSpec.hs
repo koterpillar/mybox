@@ -71,34 +71,18 @@ spec = do
           logs <- drvReadFile (home <//> path)
           pure $ Text.lines logs
 
-    describe "parallel" $
-      it "installs packages with dependencies" $ do
-        fileName <- mkPath <$> randomText "queue-spec-test"
+    it "installs packages with dependencies" $ do
+      fileName <- mkPath <$> randomText "queue-spec-test"
 
-        nullTracker $ runInstallQueue QParallel $ queueInstallMany $ pkgs fileName
-        actualOrder fileName
-          >>= ( `shouldBe`
-                  [ "one"
-                  , "one.rdep" -- depends on already-installed "one"
-                  , "two"
-                  , "three"
-                  , "four.dep"
-                  , "four" -- would have gone first, but waited for "four.dep"
-                  ]
-              )
+      nullTracker $ runInstallQueue $ queueInstallMany $ pkgs fileName
 
-    describe "sequential" $
-      it "installs packages with dependencies" $ do
-        fileName <- mkPath <$> randomText "queue-spec-test"
-
-        nullTracker $ runInstallQueue QSequential $ queueInstallMany $ pkgs fileName
-        actualOrder fileName
-          >>= ( `shouldBe`
-                  [ "one" -- everything in order with dependencies before dependents
-                  , "four.dep"
-                  , "four"
-                  , "one.rdep"
-                  , "two"
-                  , "three"
-                  ]
-              )
+      actualOrder fileName
+        >>= ( `shouldBe`
+                [ "one"
+                , "one.rdep" -- depends on already-installed "one"
+                , "two"
+                , "three"
+                , "four.dep"
+                , "four" -- would have gone first, but waited for "four.dep"
+                ]
+            )

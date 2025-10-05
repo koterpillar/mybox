@@ -2,7 +2,6 @@ module Mybox.Tracker.Internal where
 
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Effectful.Concurrent.MVar
 import Effectful.Dispatch.Dynamic
 
 import Mybox.Aeson
@@ -60,9 +59,6 @@ tsResult :: TrackedFiles -> TrackerState -> TrackResult
 tsResult before ts =
   mconcat [tsKeep ts f pkgs | (f, pkgs) <- Map.toList before]
     <> mempty{state = Map.difference ts.added before}
-
-modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
-modifyMVarPure v f = modifyMVar_ v $ pure . f
 
 trkSession :: Concurrent :> es => MVar TrackerState -> Eff (Tracker : es) a -> Eff es a
 trkSession ts = interpret_ $

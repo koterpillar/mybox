@@ -7,7 +7,6 @@ import Mybox.Driver
 import Mybox.Installer.Class
 import Mybox.Package.System
 import Mybox.Prelude
-import Mybox.Stores
 
 repoName :: Text
 repoName = "flathub"
@@ -57,8 +56,7 @@ flatpakPackageInfo _ = iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakG
 flatpak :: Installer
 flatpak =
   Installer
-    { storePackages = mkStore "flatpak" textIso jsonIso
-    , storeGlobal = mkStore "flatpak-global" jsonIso jsonIso
+    { storeKey = "flatpak"
     , install_ = flatpakInstall
     , upgrade_ = flatpakUpgrade
     , getPackageInfo = flatpakPackageInfo

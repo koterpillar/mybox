@@ -43,7 +43,7 @@ hasInstallLog = do
   drvIsFile (home <//> installLogFile)
 
 spec :: Spec
-spec = withEff (nullTracker . runInstallQueue QParallel) $ do
+spec = withEff (nullTracker . runInstallQueue) $ do
   let pkg = DummyPackage "dummy" "one"
   it "is not reported installed initially" $ do
     setRemoteVersion "version1"
