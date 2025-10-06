@@ -3,10 +3,13 @@ module Mybox.Package.DaemonSpec where
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Package.Class
 import Mybox.Package.Daemon
+import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Tracker
 
 spec :: Spec
 spec = do
@@ -32,6 +35,11 @@ spec = do
       daemonName pkg `shouldBe` "com.koterpillar.mybox.echo_multiple_words_привет_мир__etc_passwd"
     it "produces description" $ do
       daemonDescription pkg `shouldBe` "Mybox: echo 'multiple words' 'привет мир' /etc/passwd"
+
+  describe "daemon version" $ do
+    it "is Nothing if not installed" $ do
+      let pkg = mkDaemonPackage ("sleep" :| ["3600"])
+      (nullTracker $ runInstallQueue $ localVersion pkg) >>= (`shouldBe` Nothing)
 
   onlyIf "Daemon tests require CI environment" inCI $
     skipIf "Daemon tests cannot run in Docker" inDocker $
