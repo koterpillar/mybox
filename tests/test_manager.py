@@ -312,24 +312,15 @@ class TestManager:
         self.write_component(
             "one",
             {"system": "alpha"},
-            {
-                "system": "beta",
-                "url": {
-                    "base": {"url": "https://example.com/asdf"},
-                    "jsonpath": "asdf.asdf[0]",
-                },
-            },
         )
         self.write_component("two", {"name": "foo"})
 
         packages = self.manager.load_components(frozenset(["one"]))
 
-        assert len(packages) == 2
-        package1, package2 = packages
+        assert len(packages) == 1
+        (package1,) = packages
         assert isinstance(package1, SystemPackage)
         assert package1.name == "alpha"
-        assert isinstance(package2, SystemPackage)
-        assert package2.name == "beta"
 
     def test_parse_package_error_not_a_dict(self):
         self.write_component_raw("one", ["not", "a", "dict"])

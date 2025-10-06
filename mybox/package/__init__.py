@@ -6,17 +6,11 @@ from pydantic import TypeAdapter
 from ..driver import Driver
 from ..state import DB
 from .base import Package, PackageArgs
-from .clone import Clone
-from .daemon import Daemon
 from .links import Links
-from .npm import NpmPackage
 from .system import SystemPackage
 
 AnyPackageT = Union[
-    Clone,
-    Daemon,
     Links,
-    NpmPackage,
     SystemPackage,
 ]
 
