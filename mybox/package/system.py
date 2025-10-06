@@ -1,9 +1,8 @@
 from typing import Optional
 
 import trio
-from pydantic import Field
 
-from ..utils import allow_singular_none, url_version
+from ..utils import url_version
 from .installer import make_installer
 from .manual_version import ManualVersion
 
@@ -14,8 +13,6 @@ class SystemPackage(ManualVersion):
     system: str
     url: Optional[str] = None
     auto_updates: bool = False
-    services: list[str] = Field(default_factory=list, alias="service")
-    services_val = allow_singular_none("services")
 
     async def installer(self):
         return await make_installer(self.driver)
@@ -39,15 +36,6 @@ class SystemPackage(ManualVersion):
             return "latest" if version else None
         return version
 
-    async def postinstall_linux(self):
-        if self.services:
-            await self.driver.run("sudo", "systemctl", "daemon-reload")
-            for service in self.services:
-                await self.driver.run("sudo", "systemctl", "enable", "--now", service)
-
-    async def postinstall_macos(self):
-        pass
-
     async def install(self) -> None:
         async with INSTALLER_LOCK:
             installer = await self.installer()
@@ -58,8 +46,5 @@ class SystemPackage(ManualVersion):
                 await installer.upgrade(self.system)
             else:
                 await installer.install(self.system)
-        await (await self.driver.os()).switch(
-            linux=self.postinstall_linux, macos=self.postinstall_macos
-        )()
 
         await super().install()
