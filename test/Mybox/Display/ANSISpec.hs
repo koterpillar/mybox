@@ -54,24 +54,37 @@ spec = do
 
       output `shouldBe` colourString "<blue>installing<reset> short"
 
-    it "wraps banner" $ do
+    describe "banner wrapping" $ do
       let placeholder :: Int -> Int -> [Text]
           placeholder from to =
             [ "package #" <> Text.pack (show i)
             | i <- [from .. to]
             ]
+      let run' = run . displayBanner . mconcat . map bannerInstalling
 
-      output <-
-        run $
-          displayBanner $
-            mconcat $
-              map bannerInstalling $
-                placeholder 0 9
+      it "wraps banner" $ do
+        output <- run' $ placeholder 0 9
 
-      output
-        `shouldBe` colourString
-          ( Text.intercalate "\n" $
-              [ "<blue>installing<reset> " <> Text.intercalate "," (placeholder 0 5) <> ","
-              , Text.intercalate "," (placeholder 6 9)
-              ]
-          )
+        output
+          `shouldBe` colourString
+            ( Text.intercalate "\n" $
+                [ "<blue>installing<reset> " <> Text.intercalate "," (placeholder 0 5) <> ","
+                , Text.intercalate "," (placeholder 6 9)
+                ]
+            )
+
+      it "splits very long items" $ do
+        let one = "aaa"
+        let veryLong = Text.replicate 100 "b"
+        let three = "ccc"
+        output <- run' [one, veryLong, three]
+
+        let cutoff = 79 - Text.length ("installing " <> one <> ",")
+
+        output
+          `shouldBe` colourString
+            ( Text.intercalate "\n" $
+                [ "<blue>installing<reset> " <> one <> "," <> Text.take cutoff veryLong
+                , Text.drop cutoff veryLong <> "," <> three
+                ]
+            )

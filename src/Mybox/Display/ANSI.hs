@@ -86,7 +86,9 @@ wrapLine maxWidth = fillLines []
   fillLines acc items = let (line, rest) = go 0 [] items in fillLines (line : acc) rest
   go _ acc [] = (reverse acc, [])
   go w acc (x : xs)
-    | null acc && lw x > maxWidth = ([x], xs) -- single too long item
+    | lw x > maxWidth =
+        let (x1, x2) = tiSplitAt (pred maxWidth - w) x
+         in (reverse (x1 : acc), (x2 : xs)) -- single too long item
     | w + lw x > maxWidth = (reverse acc, x : xs) -- current item doesn't fit
     | otherwise = go (w + lw x) (x : acc) xs
   lw item = Text.length item.text
