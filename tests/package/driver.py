@@ -19,15 +19,8 @@ class TestDriver(LocalDriver):
     @classmethod
     async def create(cls) -> "TestDriver":
         driver = TestDriver()
-        await driver.run(bootstrap_script(), "--development")
+        await driver.run(PACKAGE_ROOT / "bootstrap", "--development")
         return driver
-
-
-def bootstrap_script() -> Path:
-    bootstrap = PACKAGE_ROOT / "bootstrap"
-    assert bootstrap.is_file()
-
-    return bootstrap
 
 
 DOCKER_USER = "regular_user"
@@ -70,7 +63,7 @@ class DockerDriver(TestDriver):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
-            shutil.copy(bootstrap_script(), tmppath / "bootstrap")
+            shutil.copy(PACKAGE_ROOT / "bootstrap", tmppath / "bootstrap")
             with open(tmppath / "Dockerfile", "w") as dockerfile:
                 dockerfile.write(
                     f"""

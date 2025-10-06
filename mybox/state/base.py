@@ -19,10 +19,6 @@ class Storage(Generic[M], ABC):
         pass
 
     @abstractmethod
-    def __delitem__(self, key: str) -> None:
-        pass
-
-    @abstractmethod
     def __setitem__(self, key: str, value: M) -> None:
         pass
 
@@ -33,10 +29,6 @@ class Storage(Generic[M], ABC):
     def find(self, **kwargs: Any) -> Iterable[M]:
         for _, value in self.find_ids(**kwargs):
             yield value
-
-    @abstractmethod
-    def delete(self, **kwargs: Any) -> None:
-        pass
 
 
 StorageDefinition = Callable[[DB], Storage[M]]
@@ -52,16 +44,12 @@ def storage(name: str, klass: Type[M]) -> StorageDefinition[M]:
             )
 
         class StorageImpl(Storage[M]):
-            def where_clause(self, **kwargs: Any) -> tuple[str, list[Any]]:
-                result = "1=1"
+            def find_ids(self, **kwargs: Any) -> Iterable[tuple[str, M]]:
+                where = "1=1"
                 values = []
                 for key, value in kwargs.items():
-                    result += f" AND {key} = ?"
+                    where += f" AND {key} = ?"
                     values.append(value)
-                return result, values
-
-            def find_ids(self, **kwargs: Any) -> Iterable[tuple[str, M]]:
-                where, values = self.where_clause(**kwargs)
 
                 with db as connection:
                     cursor = connection.execute(
@@ -82,17 +70,9 @@ def storage(name: str, klass: Type[M]) -> StorageDefinition[M]:
                 except StopIteration:
                     raise KeyError(key) from None
 
-            def __delitem__(self, key: str) -> None:
-                self.delete(id=key)
-
-            def delete(self, **kwargs: Any) -> None:
-                where, values = self.where_clause(**kwargs)
-                with db as connection:
-                    connection.execute(f"DELETE FROM {name} WHERE {where}", values)
-
             def __setitem__(self, key: str, value: M) -> None:
                 with db as connection:
-                    del self[key]
+                    connection.execute(f"DELETE FROM {name} WHERE id=?", [key])
                     attr_clause = "?"
                     attr_values = [key]
                     for attribute in attributes:
