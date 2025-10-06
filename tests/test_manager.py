@@ -40,7 +40,7 @@ class DummyPackage(ManualVersion):
         for name in self.prerequisite_packages or []:
             yield DummyPackage(
                 db=self.db,
-                driver=self.driver_,
+                driver=self.driver,
                 name=name,
                 version="1",
             )
@@ -86,7 +86,6 @@ class TestManager:
         self,
         name: str,
         *,
-        root: bool = False,
         version: str = "1",
         error: Optional[Exception] = None,
         version_error: Optional[Exception] = None,
@@ -96,7 +95,6 @@ class TestManager:
             db=self.db,
             driver=self.driver,
             name=name,
-            root=root,
             version=version,
             error=error,
             version_error=version_error,

@@ -1,7 +1,7 @@
 import shlex
 import shutil
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Sequence
 from os import getpid
 from pathlib import Path
 
@@ -14,30 +14,16 @@ from ..base import PACKAGE_ROOT
 class TestDriver(Driver):
     __test__ = False
 
-    def __init__(self, *, enable_root: bool = True, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.enable_root = enable_root
-
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {"enable_root": self.enable_root}
-
-    def disable_root(self) -> "Driver":
-        kwargs = self.deconstruct() | {"enable_root": False}
-        return type(self)(**kwargs)
-
-    def log_command(self, args: Iterable[RunArg]) -> None:
+    def log_command(self, args: Sequence[RunArg]) -> None:
         def show_arg(arg: RunArg) -> str:
             result = str(arg)
             result = shlex.quote(result)
             result = result.replace("\n", "\\n")
             return result
 
-        prompt_symbol = "#" if self.root else "$"
-        print(f"->{prompt_symbol}", *map(show_arg, args))
+        print("->$", *map(show_arg, args))
 
     async def run_(self, *args, **kwargs) -> RunResult:
-        if not self.enable_root:
-            assert not self.root, "Root operations are disabled."
         self.log_command(args)
         result = await super().run_(*args, **kwargs)
         return result
@@ -58,12 +44,7 @@ class OverrideHomeDriver(TestDriver, LocalDriver):
         super().__init__(**kwargs)
         self.override_home = override_home
 
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {"override_home": self.override_home}
-
     async def home(self) -> Path:
-        if self.root:
-            return await super().home()
         return self.override_home
 
     async def link_to_real_home(self, *path: str) -> None:
@@ -92,18 +73,20 @@ class DockerDriver(TestDriver, SubprocessDriver):
         super().__init__(**kwargs)
         self.container = container
 
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {"container": self.container}
-
     async def stop(self) -> None:
         await run("docker", "rm", "--force", self.container)
 
-    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
+    def prepare_command(self, args: Sequence[RunArg]) -> list[RunArg]:
+        root = False
+        if args and args[0] == "sudo":
+            root = True
+            args = args[1:]
+
         return super().prepare_command(
             [
                 "docker",
                 "exec",
-                *(["--user", "root"] if self.root else []),
+                *(["--user", "root"] if root else []),
                 "--interactive",
                 self.container,
                 *args,

@@ -2,7 +2,6 @@ import pytest
 
 from mybox.utils import (
     flatten,
-    intercalate,
     matches_if_specified,
     run_ok,
 )
@@ -24,20 +23,6 @@ class TestRunOK:
 
 def test_flatten():
     assert flatten([[1, 2], [3, 4]]) == [1, 2, 3, 4]
-
-
-def test_intercalate():
-    assert list(intercalate(0, (x for x in []))) == []
-    assert list(intercalate(0, ((x, x + 10) for x in range(1, 4)))) == [
-        1,
-        11,
-        0,
-        2,
-        12,
-        0,
-        3,
-        13,
-    ]
 
 
 def test_matches_if_specified():

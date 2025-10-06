@@ -13,9 +13,6 @@ class FileReadingDriver(Driver):
         super().__init__(**kwargs)
         self.file_contents = file_contents
 
-    def deconstruct(self) -> dict:  # pragma: no cover
-        return super().deconstruct() | {"file_contents": self.file_contents}
-
     async def run_(
         self,
         *args: RunArg,

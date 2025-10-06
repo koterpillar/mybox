@@ -5,8 +5,14 @@ from .base import Installer
 
 class Apt(Installer):
     async def install(self, package: str) -> None:
-        await self.driver.with_root(True).run(
-            "env", "DEBIAN_FRONTEND=noninteractive", "apt", "install", "--yes", package
+        await self.driver.run(
+            "sudo",
+            "env",
+            "DEBIAN_FRONTEND=noninteractive",
+            "apt",
+            "install",
+            "--yes",
+            package,
         )
 
     async def upgrade(self, package: str) -> None:

@@ -29,12 +29,6 @@ class DummyDriver(Driver):
         self.commands = commands if commands is not None else []
         self.hostname = hostname
 
-    def deconstruct(self) -> dict:
-        return super().deconstruct() | {
-            "commands": self.commands,
-            "hostname": self.hostname,
-        }
-
     def reset(self) -> None:
         self.commands[:] = []
 
@@ -57,9 +51,6 @@ class DummyDriver(Driver):
         elif args_[0] == "cat":
             if args_[1] == "/etc/os-release":
                 output = "ID=ubuntu"
-
-        if self.root:
-            args_.insert(0, "sudo")
 
         self.commands.append(args_)
 
