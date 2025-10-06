@@ -86,7 +86,6 @@ class Driver(ABC):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
-        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
         pass
@@ -95,10 +94,9 @@ class Driver(ABC):
         self,
         *args: RunArg,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        show_output: bool = False,
         silent: bool = False,
     ) -> None:
-        await self.run_(*args, input=input, show_output=show_output, silent=silent)
+        await self.run_(*args, input=input, silent=silent)
 
     async def run_ok(self, *args: RunArg) -> bool:
         result = await self.run_(*args, check=False)
@@ -255,14 +253,8 @@ class SubprocessDriver(Driver, ABC):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
         capture_output: bool = False,
-        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
-        if capture_output and show_output:
-            raise ValueError(
-                "Cannot use capture_output and show_output at the same time."
-            )  # pragma: no cover
-
         command = self.prepare_command(args)
 
         if not check or silent:
@@ -274,7 +266,7 @@ class SubprocessDriver(Driver, ABC):
             command,
             check=check,
             stdin=input,
-            capture_stdout=not show_output,
+            capture_stdout=True,
             stderr=stderr,
             **self.run_args(),
         )
@@ -313,25 +305,3 @@ class LocalDriver(SubprocessDriver):
             )
             result["env"] = new_environment
         return result
-
-    async def run_(
-        self,
-        *args: RunArg,
-        check: bool = True,
-        input: Optional[bytes] = None,  # pylint:disable=redefined-builtin
-        capture_output: bool = False,
-        show_output: bool = False,
-        silent: bool = False,
-    ) -> RunResult:
-        if args and args[0] == "sudo":
-            # If the sudo prompt is needed, authenticate the user first while
-            # showing the prompt.
-            await super().run("sudo", "-v", show_output=True)
-        return await super().run_(
-            *args,
-            check=check,
-            input=input,
-            capture_output=capture_output,
-            show_output=show_output,
-            silent=silent,
-        )
