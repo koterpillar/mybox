@@ -27,6 +27,9 @@ class DummyPackage(ManualVersion):
 
     prerequisite_packages: Optional[list[str]] = None
 
+    async def local_version(self) -> Optional[str]:
+        return self.cached_version
+
     async def get_remote_version(self) -> str:
         if self.version_error is not None:
             raise self.version_error
@@ -37,6 +40,7 @@ class DummyPackage(ManualVersion):
             raise self.error
         for file in self.files:
             tracker.track(Path(file), root=self.root)
+        await self.cache_version()
         await super().install(tracker=tracker)
 
     async def prerequisites(self) -> AsyncIterable[Package]:
