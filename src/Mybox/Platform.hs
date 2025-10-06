@@ -49,8 +49,7 @@ instance ToJSON Architecture where
   toJSON = String . architectureString
 
 instance FromJSON Architecture where
-  parseJSON (String s) = either fail pure $ parseArchitecture s
-  parseJSON _ = fail "Expected a string for Architecture"
+  parseJSON = withText "Architecture" $ \s -> either fail pure $ parseArchitecture s
 
 architectureFilters :: Architecture -> [Text -> Bool]
 architectureFilters = fromSynonyms allArchSynonyms . architectureString

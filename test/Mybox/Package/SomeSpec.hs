@@ -27,6 +27,7 @@ spec = do
           let some = jsonDecode @SomePackage "SomePackage" pkgJson
           some `shouldSatisfy` isRight
           some' <- either (error . show) pure some
+          some'.name `shouldBe` pkg.name
           show some' `shouldBe` ("SomePackage " <> show pkg)
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson

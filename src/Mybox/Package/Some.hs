@@ -16,7 +16,7 @@ import Mybox.Package.URL
 import Mybox.Package.YumRepo
 import Mybox.Prelude
 
-newtype SomePackage = SomePackage {package :: forall r. (forall p. Package p => p -> r) -> r}
+newtype SomePackage = SomePackage (forall r. (forall p. Package p => p -> r) -> r)
 
 mkSomePackage :: Package p => p -> SomePackage
 mkSomePackage p = SomePackage $ \f -> f p
