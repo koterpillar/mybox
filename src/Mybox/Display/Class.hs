@@ -5,6 +5,7 @@ module Mybox.Display.Class (
   Display (..),
   Color (..),
   TerminalItem (..),
+  TerminalLine,
   tiMk,
   tiSpace,
   tiComma,
@@ -67,5 +68,7 @@ tiComma = tiMk ","
 tiSpace :: TerminalItem
 tiSpace = tiMk " "
 
+type TerminalLine = [TerminalItem]
+
 class TerminalShow a where
-  terminalShow :: a -> [[TerminalItem]]
+  terminalShow :: a -> [TerminalLine]
