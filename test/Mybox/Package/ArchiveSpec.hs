@@ -38,3 +38,6 @@ spec = do
       iconPath (mkPath @AnyAnchor "icon.png") `shouldBe` mkPath "hicolor/16x16/apps/icon.png"
     it "returns path with resolution for PNG" $ do
       iconPath (mkPath @AnyAnchor "somewhere/32x32/icon.png") `shouldBe` mkPath "hicolor/32x32/apps/icon.png"
+    it "errors on unsupported extension" $ do
+      evaluate ((iconPath $ mkPath @AnyAnchor "icon.jpg").text)
+        `shouldThrow` errorCall "Unexpected icon extension: jpg from icon.jpg"
