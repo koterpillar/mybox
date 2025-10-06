@@ -1,11 +1,9 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import AbstractContextManager, asynccontextmanager
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import partial
-from typing import Generic, Optional, Protocol
+from typing import Generic
 
 import trio
-from alive_progress import alive_bar
 
 from .utils import T, U, raise_
 
@@ -28,48 +26,8 @@ class PartialResults(Exception, Generic[T]):
     results: list[PartialResult[T]]
 
 
-TERMINAL_LOCK = trio.Lock()
-
-
-class ProgressBar(Protocol):
-    def pause(self) -> AbstractContextManager[None]: ...
-    def __call__(self) -> None: ...
-
-
-CURRENT_PROGRESS: Optional[ProgressBar] = None
-
-
-async def parallel_map_progress(
-    action: Callable[[T], Awaitable[U]], items: list[T]
-) -> list[U]:
-    with alive_bar(len(items)) as progress:
-        global CURRENT_PROGRESS  # pylint:disable=global-statement
-        async with TERMINAL_LOCK:
-            CURRENT_PROGRESS = progress
-
-        try:
-
-            async def action_and_update(item: T) -> U:
-                result = await action(item)
-                async with TERMINAL_LOCK:
-                    if CURRENT_PROGRESS is not None:
-                        CURRENT_PROGRESS()
-                return result
-
-            return await gather(*(partial(action_and_update, item) for item in items))
-        finally:
-            async with TERMINAL_LOCK:
-                CURRENT_PROGRESS = None
-
-
-@asynccontextmanager
-async def parallel_map_pause() -> AsyncIterator[None]:
-    async with TERMINAL_LOCK:
-        if CURRENT_PROGRESS is None:
-            yield
-        else:
-            with CURRENT_PROGRESS.pause():
-                yield
+async def parallel_map(action: Callable[[T], Awaitable[U]], items: list[T]) -> list[U]:
+    return await gather(*(partial(action, item) for item in items))
 
 
 async def gather(*tasks: Callable[[], Awaitable[T]]) -> list[T]:

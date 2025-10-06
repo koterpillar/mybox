@@ -10,8 +10,7 @@ from mybox.parallel import (
     PartialResults,
     gather,
     gather_,
-    parallel_map_pause,
-    parallel_map_progress,
+    parallel_map,
 )
 from mybox.utils import T
 
@@ -106,13 +105,13 @@ class TestGather:
 class TestParallelMapProgress:
     @pytest.mark.trio
     async def test_success(self):
-        results = await parallel_map_progress(alen, ["one", "two", "three", "four"])
+        results = await parallel_map(alen, ["one", "two", "three", "four"])
         assert results == [3, 3, 5, 4]
 
     @pytest.mark.trio
     async def test_exceptions(self):
         with pytest.raises(PartialResults) as excinfo:
-            await parallel_map_progress(
+            await parallel_map(
                 alen, ["one", "two", "twelve", "three", "four", "eleven"]
             )
 
@@ -124,20 +123,3 @@ class TestParallelMapProgress:
             "success: 4",
             "exception: too long",
         ]
-
-
-class TestParallelMapPause:
-    @staticmethod
-    async def paused_len(item: str) -> int:
-        async with parallel_map_pause():
-            return len(item)
-
-    @pytest.mark.trio
-    async def test_outside(self):
-        result = await self.paused_len("one")
-        assert result == 3
-
-    @pytest.mark.trio
-    async def test_inside_map(self):
-        results = await parallel_map_progress(self.paused_len, ["one", "two", "three"])
-        assert results == [3, 3, 5]
