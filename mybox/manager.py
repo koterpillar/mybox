@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterable, Iterable, Sequence
+from collections.abc import AsyncIterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -8,7 +8,7 @@ import yaml
 from .config import MatchConfig, parse_config
 from .driver import Driver
 from .package import Package, parse_packages
-from .parallel import PartialException, PartialResults, parallel_map
+from .parallel import PartialException, PartialResults
 from .state import DB, VERSIONS
 from .utils import flatten
 
@@ -63,15 +63,15 @@ class Manager:
         return await self.install_packages(packages)
 
     async def install_packages(self, packages: list[Package]) -> InstallResult:
-        async def process_and_record(package: Package) -> Iterable[Package]:
-            return [pkg async for pkg in self.install_package(package)]
-
         try:
-            results = await parallel_map(process_and_record, packages)
+            results = []
+            for pkg in packages:
+                async for package in self.install_package(pkg):
+                    results.append(package)
 
             await self.cleanup(packages)
 
-            return InstallResult(installed=flatten(results), failed=[])
+            return InstallResult(installed=results, failed=[])
         except PartialResults as e:
             installed: list[Package] = []
             failed: list[tuple[Package, BaseException]] = []

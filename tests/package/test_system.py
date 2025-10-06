@@ -1,6 +1,5 @@
 import pytest
 
-from ..base import CI, DOCKER
 from .base import PackageArgs, PackageTestBase
 
 
@@ -73,24 +72,3 @@ class TestVirtualPackage(PackageTestBase):
         await super().check_applicable()
         if not (await self.driver.os()).switch(linux=True, macos=False):
             pytest.skip("This test is only applicable on Linux.")
-
-
-class TestService(PackageTestBase):
-    async def constructor_args(self) -> PackageArgs:
-        return {"system": "apache2", "service": "apache2"}
-
-    async def check_installed_command(self):
-        return ["ps", "aux"]
-
-    check_installed_output = "apache2"
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        if not CI:
-            pytest.skip("Test affects local system.")
-        (await self.driver.os()).switch_(
-            linux=lambda _: None,
-            macos=lambda: pytest.skip("Service test is only applicable on Linux"),
-        )
-        if DOCKER:
-            pytest.skip("Daemon relies on systemd, which is not available in Docker.")

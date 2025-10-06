@@ -1,16 +1,14 @@
 import subprocess
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator, Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from functools import cache
-from os import environ
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
 
 from trio import run_process
 
-from .utils import RunArg, Some, T, async_cached, intercalate, unsome
+from .utils import RunArg, T, async_cached
 
 
 class OS(ABC):
@@ -33,7 +31,7 @@ class Linux(OS):
 
     @classmethod
     async def get_distribution(cls, driver: "Driver") -> str:
-        release_file = await driver.read_file(Path(cls.RELEASE_FILE))
+        release_file = await driver.run_output("cat", Path(cls.RELEASE_FILE))
         for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
@@ -65,20 +63,6 @@ class RunResultOutput(RunResult):
 
 
 class Driver(ABC):
-    def __init__(self, *, root: bool = False) -> None:
-        self.root = root
-        super().__init__()
-
-    def deconstruct(self) -> dict:
-        return {"root": self.root}
-
-    @cache
-    def with_root(self, /, root: bool) -> "Driver":
-        if self.root == root:
-            return self
-        kwargs = self.deconstruct() | {"root": root}
-        return type(self)(**kwargs)
-
     @abstractmethod
     async def run_(
         self,
@@ -129,51 +113,12 @@ class Driver(ABC):
         return await self.run_ok("test", "-d", path)
 
     async def username(self) -> str:
-        if self.root:
-            return "root"
         return await self.run_output("whoami")
 
     @async_cached
     async def home(self) -> Path:
-        path = "~root" if self.root else "~"
-        result = await self.with_root(False).run_output("sh", "-c", f"eval echo {path}")
+        result = await self.run_output("sh", "-c", "eval echo ~")
         return Path(result)
-
-    async def local(self) -> Path:
-        if self.root:
-            return Path("/usr/local")
-        return await self.home() / ".local"
-
-    async def find(
-        self,
-        path: Path,
-        *,
-        name: Some[str] = None,
-        file_type: Some[str] = None,
-        maxdepth: Optional[int] = None,
-    ) -> list[Path]:
-        args: list[RunArg] = ["find", path, "-mindepth", "1"]
-
-        def add_some_arg(arg: str, values: list[str]) -> None:
-            if values:
-                if len(values) > 1:
-                    args.append("(")
-                args.extend(intercalate("-o", ([arg, v] for v in values)))
-                if len(values) > 1:
-                    args.append(")")
-
-        def add_optional_arg(arg: str, value: Optional[Any]) -> None:
-            if value is not None:
-                args.extend([arg, str(value)])
-
-        add_optional_arg("-maxdepth", maxdepth)
-        add_some_arg("-name", unsome(name))
-        add_some_arg("-type", unsome(file_type))
-
-        args.append("-print0")
-
-        output = await self.run_output(*args)
-        return [Path(result) for result in output.split("\0") if result]
 
     @asynccontextmanager
     async def tempfile(
@@ -203,9 +148,6 @@ class Driver(ABC):
     async def make_executable(self, path: Path) -> None:
         await self.run("chmod", "+x", path)
 
-    async def read_file(self, path: Path) -> str:
-        return await self.run_output("cat", path)
-
     async def write_file(self, path: Path, content: str) -> None:
         await self.makedirs(path.parent)
         await self.rm(path)
@@ -222,10 +164,9 @@ class Driver(ABC):
 
     @async_cached
     async def os(self) -> OS:
-        driver = self.with_root(False)
-        os_type = await driver.run_output("uname")
+        os_type = await self.run_output("uname")
         if os_type == "Linux":
-            distribution = await Linux.get_distribution(driver)
+            distribution = await Linux.get_distribution(self)
             return Linux(distribution=distribution)
         elif os_type == "Darwin":
             return MacOS()
@@ -234,7 +175,7 @@ class Driver(ABC):
 
     @async_cached
     async def architecture(self) -> Architecture:
-        result = await self.with_root(False).run_output("uname", "-m")
+        result = await self.run_output("uname", "-m")
         if result == "x86_64":
             return "x86_64"
         elif result in {"arm64", "aarch64"}:
@@ -243,8 +184,8 @@ class Driver(ABC):
             raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
 
-class SubprocessDriver(Driver, ABC):
-    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
+class LocalDriver(Driver):
+    def prepare_command(self, args: Sequence[RunArg]) -> list[RunArg]:
         return list(args)
 
     async def run_(
@@ -280,28 +221,3 @@ class SubprocessDriver(Driver, ABC):
 
     def run_args(self) -> dict[str, Any]:
         return {}
-
-
-class LocalDriver(SubprocessDriver):
-    def prepare_command(self, args: Iterable[RunArg]) -> list[RunArg]:
-        if self.root:
-            return super().prepare_command(["sudo", *args])
-        else:
-            return super().prepare_command(args)
-
-    def run_args(self) -> dict[str, Any]:
-        result = super().run_args()
-        if "VIRTUAL_ENV" in environ:
-            # mybox is running in a virtual environment (for testing or
-            # development). Remove virtual environment from PATH so that any
-            # pip and pipx commands run in the user environment (they will
-            # fail otherwise).
-            new_environment = environ.copy()
-            virtual_env = new_environment.pop("VIRTUAL_ENV")
-            new_environment["PATH"] = ":".join(
-                segment
-                for segment in new_environment["PATH"].split(":")
-                if not segment.startswith(virtual_env)
-            )
-            result["env"] = new_environment
-        return result

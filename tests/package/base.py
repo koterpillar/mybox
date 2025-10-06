@@ -12,7 +12,7 @@ from mybox.state import DB
 from mybox.utils import RunArg, T, U
 
 from ..base import CI, DOCKER
-from .driver import Driver, TestDriver
+from .driver import TestDriver
 
 TEST = TypeVar("TEST", bound="PackageTestBase")
 
@@ -68,18 +68,12 @@ class PackageTestBase(ABC):
     def setup_db(self) -> DB:
         return DB.temporary()
 
-    root = False
-
-    @property
-    def check_driver(self) -> Driver:
-        return self.driver.with_root(self.root)
-
     async def check_installed(self):
         command = await self.check_installed_command()
         if self.check_installed_output is None:
-            await self.check_driver.run_ok(*command)  # pragma: no cover
+            await self.driver.run_ok(*command)  # pragma: no cover
         else:
-            output = await self.check_driver.run_output(*command)
+            output = await self.driver.run_output(*command)
             assert self.check_installed_output in output
 
     async def install_prerequisites(self, package: Package) -> None:
@@ -123,31 +117,6 @@ class PackageTestBase(ABC):
             ), "Package version should be the same as the remote version."
         finally:
             await self.cleanup()
-
-    root_required_for_is_installed = False
-
-    @pytest.mark.trio
-    @requires_driver
-    async def test_no_root_required_for_is_installed(
-        self, make_driver: TestDriver  # pylint:disable=unused-argument
-    ):
-        if self.root_required_for_is_installed:
-            return
-
-        # Installing prerequisites might require root
-        args = await self.constructor_args()
-        package_pre = parse_package(args, driver=self.driver, db=self.setup_db())
-        await self.install_prerequisites(package_pre)
-
-        package = parse_package(
-            args, driver=self.driver.disable_root(), db=self.setup_db()
-        )
-        assert await package.applicable()
-
-        # Check that the property works, installation status doesn't matter
-        # (if running on the host machine system packages might or might not
-        # be installed)
-        assert await package.is_installed() in {True, False}
 
     @pytest.mark.trio
     @requires_driver

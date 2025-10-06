@@ -7,7 +7,6 @@ from typing import Optional
 from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
 from ..driver import Driver
-from ..parallel import gather_
 from ..state import DB
 from ..utils import (
     allow_singular,
@@ -43,17 +42,11 @@ class Package(BaseModel, ABC):
     distribution: Optional[list[str]] = None
     distribution_val = allow_singular("distribution")
 
-    root: bool = False
-
     post: list[str] = Field(default_factory=list)
     post_val = allow_singular_none("post")
 
     db: DB
-    driver_: Driver = Field(..., alias="driver")
-
-    @property
-    def driver(self) -> Driver:
-        return self.driver_.with_root(self.root)
+    driver: Driver
 
     @property
     def name(self) -> str:
@@ -75,7 +68,8 @@ class Package(BaseModel, ABC):
         pass
 
     async def is_installed(self) -> bool:
-        remote, local = await gather_(self.remote_version, self.local_version)
+        remote = await self.remote_version()
+        local = await self.local_version()
         return remote == local
 
     @abstractmethod

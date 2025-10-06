@@ -43,18 +43,6 @@ def matches_if_specified(possibilities: Optional[list[T]], value: T) -> bool:
     return possibilities is None or value in possibilities
 
 
-def intercalate(delimiter: T, items: Iterable[Iterable[T]]) -> list[T]:
-    it = iter(items)
-    try:
-        result = list(next(it))
-    except StopIteration:
-        return []
-    for x in it:
-        result.append(delimiter)
-        result.extend(list(x))
-    return result
-
-
 RunArg = str | Path
 
 
