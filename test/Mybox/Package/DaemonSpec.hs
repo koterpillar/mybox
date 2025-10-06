@@ -36,7 +36,7 @@ spec = do
   onlyIf "Daemon tests require CI environment" inCI $
     skipIf "Daemon tests cannot run in Docker" inDocker $
       packageSpecGen "test daemon" $ \psa -> do
-        ps (mkDaemonPackage ("sleep" :| ["3600"]))
+        ps (mkDaemonPackage $ shellRaw "sleep 3600 && echo -e wake up")
           & checkInstalledCommandOutput
             ( case psa.os of
                 Linux _ -> "systemctl" :| ["--user", "list-units"]
