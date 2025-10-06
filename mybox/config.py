@@ -2,12 +2,11 @@ from fnmatch import fnmatchcase
 from functools import cached_property
 from typing import Any, Optional, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from .driver import Driver
 from .utils import (
     allow_singular,
-    allow_singular_none,
 )
 
 
@@ -22,8 +21,7 @@ class MatchConfig(BaseModel):
     host: Optional[list[str]] = None
     host_val = allow_singular("host")
 
-    component: list[str] = Field(default_factory=list)
-    component_val = allow_singular_none("component")
+    component: list[str] = []
 
     driver: Driver
 

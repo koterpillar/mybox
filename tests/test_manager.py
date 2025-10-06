@@ -104,33 +104,6 @@ class TestManager:
         result = await self.install_assert(self.make_package("foo"))
 
         assert self.package_names(result) == ["foo"]
-        assert self.versions() == {"foo": "1"}
-
-    @pytest.mark.trio
-    async def test_result_versions_for_added_packages(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install_assert(
-            self.make_package("foo"), self.make_package("bar")
-        )
-
-        assert self.package_names(result) == ["bar"]
-        assert self.versions() == {"foo": "1", "bar": "1"}
-
-    @pytest.mark.trio
-    async def test_result_versions_for_removed_packages(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install_assert()
-
-        assert self.package_names(result) == []
-        assert self.versions() == {}
-
-    @pytest.mark.trio
-    async def test_result_versions_for_updated_packages(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install_assert(self.make_package("foo", version="2"))
-
-        assert self.package_names(result) == ["foo"]
-        assert self.versions() == {"foo": "2"}
 
     def test_parses_packages(self):
         self.write_component(
@@ -173,8 +146,8 @@ class TestManager:
         with open(self.manager.data_path / "mybox.yaml", "w") as out:
             yaml.dump(
                 [
-                    {"host": "*", "component": "one"},
-                    {"host": "never", "component": "two"},
+                    {"host": "*", "component": ["one"]},
+                    {"host": "never", "component": ["two"]},
                 ],
                 out,
             )

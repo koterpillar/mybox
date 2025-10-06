@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional, cast
+from typing import Literal, Optional, cast
 
 from trio import run_process
 
@@ -209,7 +209,6 @@ class LocalDriver(Driver):
             stdin=input,
             capture_stdout=True,
             stderr=stderr,
-            **self.run_args(),
         )
 
         ok = result.returncode == 0
@@ -218,6 +217,3 @@ class LocalDriver(Driver):
             return RunResultOutput(ok=ok, output=output)
         else:
             return RunResult(ok=ok)
-
-    def run_args(self) -> dict[str, Any]:
-        return {}

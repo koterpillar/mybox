@@ -26,16 +26,8 @@ def unsome_(x: Some[T]) -> Optional[list[T]]:
     return [x]
 
 
-def unsome(x: Some[T]) -> list[T]:
-    return unsome_(x) or []
-
-
 def allow_singular(field: str) -> Any:
     return field_validator(field, mode="before")(lambda cls, x: unsome_(x))
-
-
-def allow_singular_none(field: str) -> Any:
-    return field_validator(field, mode="before")(lambda cls, x: unsome(x))
 
 
 def matches_if_specified(possibilities: Optional[list[T]], value: T) -> bool:

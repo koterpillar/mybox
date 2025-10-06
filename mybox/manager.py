@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -9,7 +9,7 @@ from .config import MatchConfig, parse_config
 from .driver import Driver
 from .package import Package, parse_packages
 from .parallel import PartialException, PartialResults
-from .state import DB, VERSIONS
+from .state import DB
 
 
 @dataclass
@@ -45,17 +45,6 @@ class Manager:
             pkg for component in components for pkg in self.load_component(component)
         ]
 
-    async def cleanup(self, packages: list[Package]) -> None:
-        package_names = set(package.name for package in packages)
-
-        versions = VERSIONS(self.db)
-
-        all_versions = list(versions.find_ids())
-
-        for package, _ in all_versions:
-            if package not in package_names:
-                versions.delete(id=package)
-
     async def install(self) -> InstallResult:
         config = self.load_config()
         components = await MatchConfig.components(config)
@@ -65,14 +54,16 @@ class Manager:
 
     async def install_packages(self, packages: list[Package]) -> InstallResult:
         try:
-            results = []
             for pkg in packages:
-                async for package in self.install_package(pkg):
-                    results.append(package)
+                if not await pkg.applicable():
+                    continue
 
-            await self.cleanup(packages)
+                if await pkg.is_installed():
+                    continue
 
-            return InstallResult(installed=results, failed=[])
+                await pkg.install()
+
+            return InstallResult(installed=packages, failed=[])
         except PartialResults as e:
             installed: list[Package] = []
             failed: list[tuple[Package, BaseException]] = []
@@ -84,14 +75,3 @@ class Manager:
                     installed.extend(result.result)
 
             return InstallResult(installed=installed, failed=failed)
-
-    async def install_package(self, package: Package) -> AsyncIterable[Package]:
-        if not await package.applicable():
-            return
-
-        if await package.is_installed():
-            return
-
-        await package.install()
-
-        yield package

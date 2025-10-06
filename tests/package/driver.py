@@ -1,11 +1,10 @@
-import shlex
 import shutil
 import tempfile
 from collections.abc import Sequence
 from os import getpid
 from pathlib import Path
 
-from mybox.driver import LocalDriver, RunResult
+from mybox.driver import LocalDriver
 from mybox.utils import RunArg, run, run_output
 
 from ..base import PACKAGE_ROOT
@@ -14,35 +13,14 @@ from ..base import PACKAGE_ROOT
 class TestDriver(LocalDriver):
     __test__ = False
 
-    def log_command(self, args: Sequence[RunArg]) -> None:
-        def show_arg(arg: RunArg) -> str:
-            result = str(arg)
-            result = shlex.quote(result)
-            result = result.replace("\n", "\\n")
-            return result
-
-        print("->$", *map(show_arg, args))
-
-    async def run_(self, *args, **kwargs) -> RunResult:
-        self.log_command(args)
-        result = await super().run_(*args, **kwargs)
-        return result
-
     async def stop(self) -> None:
         pass
 
     @classmethod
     async def create(cls) -> "TestDriver":
         driver = TestDriver()
-        await driver.run(bootstrap_script(), "--development")
+        await driver.run(PACKAGE_ROOT / "bootstrap", "--development")
         return driver
-
-
-def bootstrap_script() -> Path:
-    bootstrap = PACKAGE_ROOT / "bootstrap"
-    assert bootstrap.is_file()
-
-    return bootstrap
 
 
 DOCKER_USER = "regular_user"
@@ -85,7 +63,7 @@ class DockerDriver(TestDriver):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
-            shutil.copy(bootstrap_script(), tmppath / "bootstrap")
+            shutil.copy(PACKAGE_ROOT / "bootstrap", tmppath / "bootstrap")
             with open(tmppath / "Dockerfile", "w") as dockerfile:
                 dockerfile.write(
                     f"""
