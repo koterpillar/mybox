@@ -7,7 +7,6 @@ from typing import Optional
 from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
 from ..driver import Driver
-from ..parallel import gather_
 from ..state import DB
 from ..utils import (
     allow_singular,
@@ -69,7 +68,8 @@ class Package(BaseModel, ABC):
         pass
 
     async def is_installed(self) -> bool:
-        remote, local = await gather_(self.remote_version, self.local_version)
+        remote = await self.remote_version()
+        local = await self.local_version()
         return remote == local
 
     @abstractmethod

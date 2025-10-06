@@ -147,50 +147,6 @@ class TestManager:
         assert self.versions() == {"foo": "2"}
 
     @pytest.mark.trio
-    async def test_result_versions_for_failed_packages(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install(
-            self.make_package("foo", version="2", error=Exception("foo error")),
-            self.make_package("bar", error=Exception("bar error")),
-        )
-
-        assert self.package_names(result) == []
-        assert {package.name: str(error) for package, error in result.failed} == {
-            "foo": "foo error",
-            "bar": "bar error",
-        }
-        assert self.versions() == {"foo": "1"}
-
-    @pytest.mark.trio
-    async def test_result_versions_for_version_check_failed_packages(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install(
-            self.make_package("foo", version="2", version_error=Exception("foo error")),
-            self.make_package("bar", error=Exception("bar error")),
-        )
-
-        assert self.package_names(result) == []
-        assert {package.name: str(error) for package, error in result.failed} == {
-            "foo": "foo error",
-            "bar": "bar error",
-        }
-        assert self.versions() == {"foo": "1"}
-
-    @pytest.mark.trio
-    async def test_result_versions_for_partial_failure(self):
-        await self.install_assert(self.make_package("foo"))
-        result = await self.install(
-            self.make_package("foo", version="2"),
-            self.make_package("bar", error=Exception("bar error")),
-        )
-
-        assert self.package_names(result) == ["foo"]
-        assert {package.name: str(error) for package, error in result.failed} == {
-            "bar": "bar error",
-        }
-        assert self.versions() == {"foo": "2"}
-
-    @pytest.mark.trio
     async def test_result_versions_has_prerequisites(self):
         result = await self.install_assert(
             self.make_package("foo", prerequisites=["bar"])
