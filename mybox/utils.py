@@ -1,5 +1,5 @@
 import subprocess
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable
 from functools import wraps
 from importlib.metadata import version as importlib_version
 from pathlib import Path
@@ -13,7 +13,6 @@ MYBOX_VERSION = importlib_version("mybox")
 
 T = TypeVar("T")
 U = TypeVar("U")
-V = TypeVar("V")
 
 
 Some = Optional[T | list[T]]
@@ -50,25 +49,11 @@ async def run(*args: RunArg) -> subprocess.CompletedProcess:
     return await trio.run_process(args, check=True)
 
 
-async def run_ok(*args: RunArg) -> bool:
-    try:
-        result = await trio.run_process(
-            args, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        return result.returncode == 0
-    except FileNotFoundError:
-        return False
-
-
 async def run_output(*args: RunArg, silent: bool = False) -> str:
     result = await trio.run_process(
         args, capture_stdout=True, capture_stderr=silent, check=True
     )
     return result.stdout.decode().strip()
-
-
-def flatten(items: Iterable[Iterable[T]]) -> list[T]:
-    return [item for sublist in items for item in sublist]
 
 
 http_client = httpx.AsyncClient(
@@ -99,12 +84,6 @@ def async_cached(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[T]]: 
 def async_cached(fn: Callable[[U], Awaitable[T]]) -> Callable[[U], Awaitable[T]]: ...
 
 
-@overload
-def async_cached(
-    fn: Callable[[U, V], Awaitable[T]],
-) -> Callable[[U, V], Awaitable[T]]: ...
-
-
 def async_cached(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return _async_cached_lock(None, fn)
 
@@ -117,12 +96,6 @@ def async_cached_lock(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[
 def async_cached_lock(
     fn: Callable[[U], Awaitable[T]],
 ) -> Callable[[U], Awaitable[T]]: ...
-
-
-@overload
-def async_cached_lock(
-    fn: Callable[[U, V], Awaitable[T]],
-) -> Callable[[U, V], Awaitable[T]]: ...
 
 
 def async_cached_lock(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:

@@ -10,7 +10,6 @@ from .driver import Driver
 from .package import Package, parse_packages
 from .parallel import PartialException, PartialResults
 from .state import DB, VERSIONS
-from .utils import flatten
 
 
 @dataclass
@@ -42,7 +41,9 @@ class Manager:
         return parse_packages(packages, db=self.db, driver=self.driver)
 
     def load_components(self, components: frozenset[str]) -> list[Package]:
-        return flatten(self.load_component(component) for component in components)
+        return [
+            pkg for component in components for pkg in self.load_component(component)
+        ]
 
     async def cleanup(self, packages: list[Package]) -> None:
         package_names = set(package.name for package in packages)
@@ -85,10 +86,6 @@ class Manager:
             return InstallResult(installed=installed, failed=failed)
 
     async def install_package(self, package: Package) -> AsyncIterable[Package]:
-        async for prerequisite in package.prerequisites():
-            async for result in self.install_package(prerequisite):
-                yield result
-
         if not await package.applicable():
             return
 
