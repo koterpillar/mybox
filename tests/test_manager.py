@@ -40,6 +40,7 @@ class DummyPackage(ManualVersion):
             raise self.error
         for file in self.files:
             tracker.track(Path(file), root=self.root)
+        await self.cache_version()
         await super().install(tracker=tracker)
 
     async def prerequisites(self) -> AsyncIterable[Package]:

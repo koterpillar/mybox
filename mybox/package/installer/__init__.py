@@ -3,13 +3,10 @@ from ...utils import async_cached_lock
 from .apt import Apt
 from .base import Installer
 from .brew import Brew
-from .dnf import DNF
 
 
 async def linux_installer(driver: Driver) -> Installer:
-    if await driver.executable_exists("dnf"):
-        return DNF(driver)
-    elif await driver.executable_exists("apt"):
+    if await driver.executable_exists("apt"):
         return Apt(driver)
     else:
         raise NotImplementedError("Cannot find a package manager.")

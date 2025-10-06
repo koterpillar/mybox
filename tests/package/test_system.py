@@ -35,32 +35,6 @@ class TestCask(PackageTestBase):
         )
 
 
-class TestRPMFusion(PackageTestBase):
-    affects_system = True
-
-    async def constructor_args(self) -> PackageArgs:
-        return {
-            "system": "rpmfusion-free-release",
-            "url": "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm",
-        }
-
-    async def check_installed_command(self):
-        return ["cat", "/etc/yum.repos.d/rpmfusion-free.repo"]
-
-    check_installed_output = "RPM Fusion for Fedora"
-
-    async def check_applicable(self) -> None:
-        await super().check_applicable()
-        (await self.driver.os()).switch_(
-            linux=lambda os: (
-                None
-                if os.distribution == "fedora"
-                else pytest.skip("RPM repo test is only applicable on Fedora")
-            ),
-            macos=lambda: pytest.skip("RPM repo test is only applicable on Linux"),
-        )
-
-
 class TestInteractiveDeb(PackageTestBase):
     affects_system = True
 

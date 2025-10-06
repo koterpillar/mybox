@@ -40,7 +40,7 @@ jobs:
     name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
-      matrix: &test-matrix
+      matrix:
         include:
           - docker: debian
           - docker: ubuntu
@@ -91,7 +91,14 @@ jobs:
     name: "Test Python (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
-      matrix: *test-matrix
+      matrix:
+        include:
+          - docker: debian
+          - docker: ubuntu
+          - docker: ubuntu
+            arch: arm
+          - host: ubuntu
+          - host: macos
     runs-on: *test-runs-on
     steps:
       - name: Checkout
