@@ -88,12 +88,6 @@ http_client = httpx.AsyncClient(
 )
 
 
-async def http_get(url: str, headers: Optional[dict[str, str]] = None) -> str:
-    response = await http_client.get(url, headers=headers, follow_redirects=True)
-    response.raise_for_status()
-    return response.text
-
-
 async def url_version(url: str) -> str:
     head_response = await http_client.head(url, follow_redirects=True)
     return head_response.headers["etag"]

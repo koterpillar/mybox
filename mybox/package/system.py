@@ -3,9 +3,8 @@ from typing import Optional
 import trio
 from pydantic import Field
 
-from ..compute import Value, compute
 from ..tracker import Tracker
-from ..utils import allow_singular_none, async_cached, url_version
+from ..utils import allow_singular_none, url_version
 from .installer import make_installer
 from .manual_version import ManualVersion
 
@@ -14,7 +13,7 @@ INSTALLER_LOCK = trio.Lock()
 
 class SystemPackage(ManualVersion):
     system: str
-    url_: Optional[Value] = Field(default=None, alias="url")
+    url: Optional[str] = None
     auto_updates: bool = False
     services: list[str] = Field(default_factory=list, alias="service")
     services_val = allow_singular_none("services")
@@ -25,21 +24,15 @@ class SystemPackage(ManualVersion):
     def derive_name(self) -> str:
         return self.system
 
-    @async_cached
-    async def url(self) -> Optional[str]:
-        if self.url_:
-            return await compute(self.url_)
-        return None
-
     async def get_remote_version(self) -> str:
-        if url := await self.url():
-            return await url_version(url)
+        if self.url:
+            return await url_version(self.url)
         if self.auto_updates:
             return "latest"
         return await (await self.installer()).latest_version(self.system)
 
     async def local_version(self) -> Optional[str]:
-        if await self.url():
+        if self.url:
             return self.cached_version
         installer = await self.installer()
         version = await installer.installed_version(self.system)
@@ -60,8 +53,8 @@ class SystemPackage(ManualVersion):
     async def install(self, *, tracker: Tracker) -> None:
         async with INSTALLER_LOCK:
             installer = await self.installer()
-            if url := await self.url():
-                await installer.install(url)
+            if self.url:
+                await installer.install(self.url)
                 await self.cache_version()
             elif await self.local_version():
                 await installer.upgrade(self.system)
