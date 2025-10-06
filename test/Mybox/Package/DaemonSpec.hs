@@ -3,10 +3,13 @@ module Mybox.Package.DaemonSpec where
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Package.Class
 import Mybox.Package.Daemon
+import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Tracker
 
 spec :: Spec
 spec = do
@@ -33,16 +36,21 @@ spec = do
     it "produces description" $ do
       daemonDescription pkg `shouldBe` "Mybox: echo 'multiple words' 'привет мир' /etc/passwd"
 
+  describe "daemon version" $ do
+    it "is Nothing if not installed" $ do
+      let pkg = mkDaemonPackage ("sleep" :| ["3600"])
+      (nullTracker $ runInstallQueue $ localVersion pkg) >>= (`shouldBe` Nothing)
+
   onlyIf "Daemon tests require CI environment" inCI $
     skipIf "Daemon tests cannot run in Docker" inDocker $
       packageSpecGen "test daemon" $ \psa -> do
-        ps (mkDaemonPackage ("sleep" :| ["3600"]))
+        ps (mkDaemonPackage $ shellRaw "sleep 3600 && echo -e wake up")
           & checkInstalledCommandOutput
             ( case psa.os of
                 Linux _ -> "systemctl" :| ["--user", "list-units"]
                 MacOS -> "launchctl" :| ["list"]
             )
-            "Mybox: sleep 3600"
+            "Mybox: /bin/sh '-c' 'sleep 3600"
           & cleanup
             ( case psa.os of
                 Linux _ -> cleanupLinux
