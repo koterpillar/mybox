@@ -34,7 +34,7 @@ instance TerminalShow (Banner MDisplay) where
       , bannerPart Green "installed" banner.modified
       ]
 
-bannerPart :: Color -> Text -> Set Text -> Maybe [TerminalItem]
+bannerPart :: Color -> Text -> Set Text -> Maybe TerminalLine
 bannerPart color label set
   | Set.null set = Nothing
   | otherwise =
@@ -43,7 +43,7 @@ bannerPart color label set
           : tiSpace
           : intersperse tiComma (map tiMk (toList set))
 
-progressPart :: Banner MDisplay -> Maybe [TerminalItem]
+progressPart :: Banner MDisplay -> Maybe TerminalLine
 progressPart banner
   | Set.null banner.all = Nothing
   | banner.all == Set.union banner.unchanged banner.modified = Nothing

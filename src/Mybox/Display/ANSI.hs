@@ -62,7 +62,7 @@ withBanner act = do
 mlist :: (a -> b) -> Maybe a -> [b]
 mlist f = toList . fmap f
 
-draw :: Print :> es => [[TerminalItem]] -> Eff es ()
+draw :: Print :> es => [TerminalLine] -> Eff es ()
 draw items = do
   forM_ items $ \line -> do
     forM_ line $ \item -> do
@@ -79,21 +79,23 @@ drawBanner banner = do
   draw items
   backLines $ length items
 
-wrapLine :: Int -> [TerminalItem] -> [[TerminalItem]]
-wrapLine maxWidth items = go 0 [] [] items
+wrapLine :: Int -> TerminalLine -> [TerminalLine]
+wrapLine maxWidth = fillLines []
  where
-  go :: Int -> [TerminalItem] -> [[TerminalItem]] -> [TerminalItem] -> [[TerminalItem]]
-  go _ currentLine acc [] = reverse $ reverse currentLine : acc
-  go currentWidth currentLine acc (item : rest) =
-    let itemWidth = Text.length item.text
-        newWidth = currentWidth + itemWidth
-     in if newWidth <= maxWidth || null currentLine
-          then go newWidth (item : currentLine) acc rest
-          else go itemWidth [item] (reverse currentLine : acc) rest
+  fillLines acc [] = reverse acc
+  fillLines acc items = let (line, rest) = go 0 [] items in fillLines (line : acc) rest
+  go _ acc [] = (reverse acc, [])
+  go w acc (x : xs)
+    | lw x > maxWidth =
+        let (x1, x2) = tiSplitAt (pred maxWidth - w) x
+         in (reverse (x1 : acc), (x2 : xs)) -- single too long item
+    | w + lw x > maxWidth = (reverse acc, x : xs) -- current item doesn't fit
+    | otherwise = go (w + lw x) (x : acc) xs
+  lw item = Text.length item.text
 
-terminalWrap :: (Print :> es, TerminalShow banner) => banner -> Eff es [[TerminalItem]]
+terminalWrap :: (Print :> es, TerminalShow banner) => banner -> Eff es [TerminalLine]
 terminalWrap banner = do
-  width <- (fromMaybe 80 . fmap fst) <$> Print.terminalSize
+  width <- (fromMaybe 80 . fmap snd) <$> Print.terminalSize
   pure $ concatMap (wrapLine width) $ terminalShow banner
 
 eraseBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()

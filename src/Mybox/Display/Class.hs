@@ -5,7 +5,9 @@ module Mybox.Display.Class (
   Display (..),
   Color (..),
   TerminalItem (..),
+  TerminalLine,
   tiMk,
+  tiSplitAt,
   tiSpace,
   tiComma,
   TerminalShow (..),
@@ -15,6 +17,7 @@ module Mybox.Display.Class (
 ) where
 
 import Data.Kind
+import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
 import System.Console.ANSI
 import Prelude hiding (log)
@@ -61,11 +64,16 @@ data TerminalItem = TerminalItem
 tiMk :: Text -> TerminalItem
 tiMk text = TerminalItem{foreground = Nothing, text}
 
+tiSplitAt :: Int -> TerminalItem -> (TerminalItem, TerminalItem)
+tiSplitAt n t = (t{text = Text.take n (text t)}, t{text = Text.drop n (text t)})
+
 tiComma :: TerminalItem
 tiComma = tiMk ","
 
 tiSpace :: TerminalItem
 tiSpace = tiMk " "
 
+type TerminalLine = [TerminalItem]
+
 class TerminalShow a where
-  terminalShow :: a -> [[TerminalItem]]
+  terminalShow :: a -> [TerminalLine]
