@@ -13,7 +13,6 @@ MYBOX_VERSION = importlib_version("mybox")
 
 T = TypeVar("T")
 U = TypeVar("U")
-V = TypeVar("V")
 
 
 Some = Optional[T | list[T]]
@@ -99,12 +98,6 @@ def async_cached(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[T]]: 
 def async_cached(fn: Callable[[U], Awaitable[T]]) -> Callable[[U], Awaitable[T]]: ...
 
 
-@overload
-def async_cached(
-    fn: Callable[[U, V], Awaitable[T]],
-) -> Callable[[U, V], Awaitable[T]]: ...
-
-
 def async_cached(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return _async_cached_lock(None, fn)
 
@@ -117,12 +110,6 @@ def async_cached_lock(fn: Callable[[], Awaitable[T]]) -> Callable[[], Awaitable[
 def async_cached_lock(
     fn: Callable[[U], Awaitable[T]],
 ) -> Callable[[U], Awaitable[T]]: ...
-
-
-@overload
-def async_cached_lock(
-    fn: Callable[[U, V], Awaitable[T]],
-) -> Callable[[U, V], Awaitable[T]]: ...
 
 
 def async_cached_lock(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:

@@ -85,10 +85,6 @@ class Manager:
             return InstallResult(installed=installed, failed=failed)
 
     async def install_package(self, package: Package) -> AsyncIterable[Package]:
-        async for prerequisite in package.prerequisites():
-            async for result in self.install_package(prerequisite):
-                yield result
-
         if not await package.applicable():
             return
 

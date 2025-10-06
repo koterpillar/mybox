@@ -4,8 +4,6 @@ from .base import PackageArgs, PackageTestBase
 
 
 class TestRipGrep(PackageTestBase):
-    affects_system = True
-
     async def constructor_args(self) -> PackageArgs:
         return {"system": "ripgrep"}
 
@@ -16,8 +14,6 @@ class TestRipGrep(PackageTestBase):
 
 
 class TestCask(PackageTestBase):
-    affects_system = True
-
     async def constructor_args(self) -> PackageArgs:
         return {"system": "alacritty"}
 
@@ -35,8 +31,6 @@ class TestCask(PackageTestBase):
 
 
 class TestInteractiveDeb(PackageTestBase):
-    affects_system = True
-
     async def constructor_args(self) -> PackageArgs:
         return {"system": "tzdata"}
 
@@ -58,8 +52,6 @@ class TestInteractiveDeb(PackageTestBase):
 
 
 class TestVirtualPackage(PackageTestBase):
-    affects_system = True
-
     async def constructor_args(self) -> PackageArgs:
         return {"system": "g++"}
 

@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterable
 from pathlib import Path
 from typing import Any, Optional
 
@@ -20,8 +19,6 @@ class DummyPackage(ManualVersion):
     error: Optional[Exception] = None
     version_error: Optional[Exception] = None
 
-    prerequisite_packages: Optional[list[str]] = None
-
     async def local_version(self) -> Optional[str]:
         return self.cached_version
 
@@ -35,15 +32,6 @@ class DummyPackage(ManualVersion):
             raise self.error
         await self.cache_version()
         await super().install()
-
-    async def prerequisites(self) -> AsyncIterable[Package]:
-        for name in self.prerequisite_packages or []:
-            yield DummyPackage(
-                db=self.db,
-                driver=self.driver,
-                name=name,
-                version="1",
-            )
 
 
 class DummyManager(Manager):
@@ -89,7 +77,6 @@ class TestManager:
         version: str = "1",
         error: Optional[Exception] = None,
         version_error: Optional[Exception] = None,
-        prerequisites: Optional[list[str]] = None,
     ) -> DummyPackage:
         return DummyPackage(
             db=self.db,
@@ -98,7 +85,6 @@ class TestManager:
             version=version,
             error=error,
             version_error=version_error,
-            prerequisite_packages=prerequisites,
         )
 
     def versions(self) -> dict[str, str]:
@@ -145,13 +131,6 @@ class TestManager:
 
         assert self.package_names(result) == ["foo"]
         assert self.versions() == {"foo": "2"}
-
-    @pytest.mark.trio
-    async def test_result_versions_has_prerequisites(self):
-        result = await self.install_assert(
-            self.make_package("foo", prerequisites=["bar"])
-        )
-        assert self.package_names(result) == ["bar", "foo"]
 
     def test_parses_packages(self):
         self.write_component(
