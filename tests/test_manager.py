@@ -99,6 +99,12 @@ class TestManager:
         result.raise_for_failures()
         return result
 
+    @pytest.mark.trio
+    async def test_result_versions_for_new_packages(self):
+        result = await self.install_assert(self.make_package("foo"))
+
+        assert self.package_names(result) == ["foo"]
+
     def test_parses_packages(self):
         self.write_component(
             "one",
@@ -140,8 +146,8 @@ class TestManager:
         with open(self.manager.data_path / "mybox.yaml", "w") as out:
             yaml.dump(
                 [
-                    {"host": "*", "component": "one"},
-                    {"host": "never", "component": "two"},
+                    {"host": "*", "component": ["one"]},
+                    {"host": "never", "component": ["two"]},
                 ],
                 out,
             )

@@ -9,7 +9,6 @@ from ..driver import Driver
 from ..state import DB
 from ..utils import (
     allow_singular,
-    allow_singular_none,
     async_cached,
     matches_if_specified,
 )
@@ -41,9 +40,6 @@ class Package(BaseModel, ABC):
     distribution: Optional[list[str]] = None
     distribution_val = allow_singular("distribution")
 
-    post: list[str] = Field(default_factory=list)
-    post_val = allow_singular_none("post")
-
     db: DB
     driver: Driver
 
@@ -73,8 +69,7 @@ class Package(BaseModel, ABC):
 
     @abstractmethod
     async def install(self) -> None:
-        for cmd in self.post:
-            await self.driver.run("sh", "-c", cmd)
+        pass
 
     async def applicable(self) -> bool:
         os = await self.driver.os()
