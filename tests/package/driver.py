@@ -1,11 +1,10 @@
-import shlex
 import shutil
 import tempfile
 from collections.abc import Sequence
 from os import getpid
 from pathlib import Path
 
-from mybox.driver import LocalDriver, RunResult
+from mybox.driver import LocalDriver
 from mybox.utils import RunArg, run, run_output
 
 from ..base import PACKAGE_ROOT
@@ -13,20 +12,6 @@ from ..base import PACKAGE_ROOT
 
 class TestDriver(LocalDriver):
     __test__ = False
-
-    def log_command(self, args: Sequence[RunArg]) -> None:
-        def show_arg(arg: RunArg) -> str:
-            result = str(arg)
-            result = shlex.quote(result)
-            result = result.replace("\n", "\\n")
-            return result
-
-        print("->$", *map(show_arg, args))
-
-    async def run_(self, *args, **kwargs) -> RunResult:
-        self.log_command(args)
-        result = await super().run_(*args, **kwargs)
-        return result
 
     async def stop(self) -> None:
         pass

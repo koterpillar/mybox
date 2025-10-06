@@ -47,15 +47,6 @@ def test_storage_find(tmp_path: Path) -> None:
     assert items == [Widget("red", 10), Widget("red", 30)]
 
 
-def test_storage_append(tmp_path: Path) -> None:
-    widgets = make_widgets(tmp_path)
-    widgets.append(Widget("red", 10))
-
-    widgets = make_widgets(tmp_path)
-    items = list(widgets.find())
-    assert items == [Widget("red", 10)]
-
-
 def test_storage_delete(tmp_path: Path) -> None:
     widgets = make_widgets(tmp_path)
     widgets["one"] = Widget("red", 10)

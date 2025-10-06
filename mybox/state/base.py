@@ -2,7 +2,6 @@ import dataclasses
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
-from uuid import uuid4
 
 from .db import DB
 
@@ -25,10 +24,6 @@ class Storage(Generic[M], ABC):
 
     @abstractmethod
     def __setitem__(self, key: str, value: M) -> None:
-        pass
-
-    @abstractmethod
-    def append(self, value: M) -> None:
         pass
 
     @abstractmethod
@@ -106,9 +101,6 @@ def storage(name: str, klass: Type[M]) -> StorageDefinition[M]:
                     connection.execute(
                         f"INSERT INTO {name} VALUES ({attr_clause})", attr_values
                     )
-
-            def append(self, value: M) -> None:
-                self[str(uuid4())] = value
 
         return StorageImpl()
 
