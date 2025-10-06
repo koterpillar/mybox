@@ -9,7 +9,6 @@ import pytest
 from mybox.manager import Manager
 from mybox.package import Package, PackageArgs, parse_package, parse_packages
 from mybox.state import DB
-from mybox.tracker import Tracker
 from mybox.utils import RunArg, T, U
 
 from ..base import CI, DOCKER
@@ -40,16 +39,6 @@ def requires_driver(
         return await test_fn(self, make_driver, *args, **kwargs)
 
     return wrapper
-
-
-class DummyTracker(Tracker):
-    tracked: set[Path]
-
-    def __init__(self) -> None:
-        self.tracked = set()
-
-    def track(self, target: Path, *, root: bool = False) -> None:
-        self.tracked.add(target)
 
 
 class PackageTestBase(ABC):
@@ -102,26 +91,6 @@ class PackageTestBase(ABC):
         result = await manager.install_packages(packages)
         result.raise_for_failures()
 
-    async def all_files(self) -> set[Path]:
-        return {
-            path
-            for base_path in [await self.check_driver.home()]
-            for path in await self.check_driver.find(base_path, file_type=["f", "l"])
-            if not any(
-                path.is_relative_to(ignored) for ignored in await self.ignored_paths()
-            )
-        }
-
-    async def ignored_paths(self) -> set[Path]:
-        return set(
-            [
-                await self.check_driver.home() / ".cache",
-                await self.check_driver.home() / "Library" / "Caches",
-                await self.check_driver.home() / "Library" / "Preferences",
-                await self.check_driver.home() / ".local" / "state" / "dnf5.log.1",
-            ]
-        )
-
     async def cleanup(self) -> None:
         pass
 
@@ -139,11 +108,8 @@ class PackageTestBase(ABC):
 
         await self.install_prerequisites(package)
 
-        tracker = DummyTracker()
         try:
-            preexisting_files = await self.all_files()
-
-            await package.install(tracker=tracker)
+            await package.install()
 
             await self.check_installed()
 
@@ -155,12 +121,6 @@ class PackageTestBase(ABC):
             assert (await package.local_version()) == (
                 await package.get_remote_version()
             ), "Package version should be the same as the remote version."
-
-            for existing in await self.all_files() - preexisting_files:
-                if not any(
-                    existing.is_relative_to(installed) for installed in tracker.tracked
-                ):
-                    assert False, f"File {existing} was not tracked."
         finally:
             await self.cleanup()
 

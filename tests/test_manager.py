@@ -4,23 +4,18 @@ from typing import Any, Optional
 
 import pytest
 import yaml
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 
 from mybox.manager import InstallResult, Manager
 from mybox.package.base import Package
 from mybox.package.manual_version import ManualVersion
 from mybox.package.system import SystemPackage
-from mybox.state import DB, INSTALLED_FILES, VERSIONS, InstalledFile
-from mybox.tracker import Tracker
-from mybox.utils import allow_singular_none
+from mybox.state import DB, VERSIONS
 
 from .base import DummyDriver
 
 
 class DummyPackage(ManualVersion):
-    files: list[str] = Field(default_factory=list)
-    files_val = allow_singular_none("files")
-
     version: str = "1"
     error: Optional[Exception] = None
     version_error: Optional[Exception] = None
@@ -35,13 +30,11 @@ class DummyPackage(ManualVersion):
             raise self.version_error
         return self.version
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install(self) -> None:
         if self.error is not None:
             raise self.error
-        for file in self.files:
-            tracker.track(Path(file), root=self.root)
         await self.cache_version()
-        await super().install(tracker=tracker)
+        await super().install()
 
     async def prerequisites(self) -> AsyncIterable[Package]:
         for name in self.prerequisite_packages or []:
@@ -49,7 +42,6 @@ class DummyPackage(ManualVersion):
                 db=self.db,
                 driver=self.driver_,
                 name=name,
-                files=[],
                 version="1",
             )
 
@@ -94,7 +86,6 @@ class TestManager:
         self,
         name: str,
         *,
-        files: Optional[list[str]] = None,
         root: bool = False,
         version: str = "1",
         error: Optional[Exception] = None,
@@ -105,16 +96,12 @@ class TestManager:
             db=self.db,
             driver=self.driver,
             name=name,
-            files=files or [],
             root=root,
             version=version,
             error=error,
             version_error=version_error,
             prerequisite_packages=prerequisites,
         )
-
-    def installed_files(self) -> set[InstalledFile]:
-        return set(INSTALLED_FILES(self.db).find())
 
     def versions(self) -> dict[str, str]:
         return {name: version.version for name, version in VERSIONS(self.db).find_ids()}
@@ -211,106 +198,6 @@ class TestManager:
             self.make_package("foo", prerequisites=["bar"])
         )
         assert self.package_names(result) == ["bar", "foo"]
-
-    @pytest.mark.trio
-    async def test_tracks_files_installed(self):
-        await self.install_assert(self.make_package("foo", files=["/foo", "/bar"]))
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False),
-            InstalledFile(path="/bar", package="foo", root=False),
-        }
-
-    @pytest.mark.trio
-    async def test_tracks_files_removed(self):
-        await self.install_assert(self.make_package("foo", files=["/foo", "/bar"]))
-        await self.install_assert(self.make_package("foo", files=["/foo"], version="2"))
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False)
-        }
-        assert ["rm", "-r", "-f", "/bar"] in self.driver.commands
-
-    @pytest.mark.trio
-    async def test_tracks_files_installed_with_root(self):
-        await self.install_assert(self.make_package("foo", files=["/foo"], root=True))
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=True)
-        }
-
-        await self.install_assert()
-
-        assert self.installed_files() == set()
-        assert ["sudo", "rm", "-r", "-f", "/foo"] in self.driver.commands
-
-    @pytest.mark.trio
-    async def test_tracks_shared_files(self):
-        await self.install_assert(
-            self.make_package("foo", files=["/shared"]),
-            self.make_package("bar", files=["/shared"]),
-        )
-
-        assert self.installed_files() == {
-            InstalledFile(path="/shared", package="foo", root=False),
-            InstalledFile(path="/shared", package="bar", root=False),
-        }
-
-        await self.install_assert(
-            self.make_package("foo", files=["/shared"]),
-        )
-
-        assert self.installed_files() == {
-            InstalledFile(path="/shared", package="foo", root=False),
-        }
-        assert ["rm", "-r", "-f", "/shared"] not in self.driver.commands
-
-        await self.install_assert()
-        assert self.installed_files() == set()
-        assert ["rm", "-r", "-f", "/shared"] in self.driver.commands
-
-    @pytest.mark.trio
-    async def test_keeps_files_for_errored_packages(self):
-        await self.install_assert(self.make_package("foo", files=["/foo"]))
-
-        await self.install(
-            self.make_package(
-                "foo", files=["/foo"], error=Exception("foo error"), version="2"
-            ),
-        )
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False)
-        }
-        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
-
-        await self.install_assert(self.make_package("foo", files=["/foo"], version="3"))
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False)
-        }
-        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
-
-    @pytest.mark.trio
-    async def test_keeps_files_for_version_errored_packages(self):
-        await self.install_assert(self.make_package("foo", files=["/foo"]))
-
-        await self.install(
-            self.make_package(
-                "foo", files=["/foo"], version_error=Exception("foo error"), version="2"
-            ),
-        )
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False)
-        }
-        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
-
-        await self.install_assert(self.make_package("foo", files=["/foo"], version="3"))
-
-        assert self.installed_files() == {
-            InstalledFile(path="/foo", package="foo", root=False)
-        }
-        assert ["rm", "-r", "-f", "/foo"] not in self.driver.commands
 
     def test_parses_packages(self):
         self.write_component(

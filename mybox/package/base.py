@@ -9,7 +9,6 @@ from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 from ..driver import Driver
 from ..parallel import gather_
 from ..state import DB
-from ..tracker import Tracker
 from ..utils import (
     allow_singular,
     allow_singular_none,
@@ -80,7 +79,7 @@ class Package(BaseModel, ABC):
         return remote == local
 
     @abstractmethod
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install(self) -> None:
         for cmd in self.post:
             await self.driver.run("sh", "-c", cmd)
 

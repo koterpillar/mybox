@@ -3,7 +3,6 @@ from typing import Optional
 import trio
 from pydantic import Field
 
-from ..tracker import Tracker
 from ..utils import allow_singular_none, url_version
 from .installer import make_installer
 from .manual_version import ManualVersion
@@ -50,7 +49,7 @@ class SystemPackage(ManualVersion):
     async def postinstall_macos(self):
         pass
 
-    async def install(self, *, tracker: Tracker) -> None:
+    async def install(self) -> None:
         async with INSTALLER_LOCK:
             installer = await self.installer()
             if self.url:
@@ -64,4 +63,4 @@ class SystemPackage(ManualVersion):
             linux=self.postinstall_linux, macos=self.postinstall_macos
         )()
 
-        await super().install(tracker=tracker)
+        await super().install()
