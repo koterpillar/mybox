@@ -1,9 +1,34 @@
-# Project status
+# Development
 
-Project is being rewritten from Python to Haskell. Python code is in a freeze,
-if a new feature is required it needs to be implemented in both versions.
-However, Haskell is not at parity yet - the development is focussing on
-implementing the rest of missing features there.
+Pre-requisites:
+
+* [Stack](http://haskellstack.org/)
+* [ShellCheck](https://www.shellcheck.net/)
+* See [install-dev](bin/install-dev) for more - run it to install automatically.
+
+Run [`./bin/lint`](bin/lint) to check style & types, `./bin/lint --format` to apply
+formatting automatically.
+
+## Testing
+
+Run `stack test` to execute the project's tests.
+
+Since the project supports multiple OS and distributions, and modifies the
+target system, the tests can be run in a Docker container by specifying
+`DOCKER_IMAGE` environment variable, e.g. `DOCKER_IMAGE=ubuntu stack test`.
+
+## Running locally
+
+After building (`stack build`), in the directory with package definitions, run:
+
+```shell
+$(cd ..path/to/mybox; stack path --local-install-root)/bin/mybox
+```
+
+## Releasing
+
+Releases are done using Semantic Release, see [build.yml](.github/workflows/build.yml).
+
 
 # Code style
 

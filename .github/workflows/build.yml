@@ -13,31 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install dependencies
-        run: ./bin/install-dev --no-python
+        run: ./bin/install-dev
       - name: Lint
-        run: ./bin/lint --no-python
-  lint-python:
-    name: "Lint Python${{ format(' ({0})', matrix.python) || '' }}"
-    strategy:
-      fail-fast: false
-      matrix:
-        python:
-          - "3.11"
-          - "3.13"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Install dependencies
-        run: ./bin/install-dev --no-haskell
-      - name: Lint
-        run: ./bin/lint --no-haskell
+        run: ./bin/lint
   test:
-    name: "Test${{ matrix.part && matrix.part != 'Haskell' && format(' {0}', matrix.part) || ''}} (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
+    name: "Test (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
     strategy:
       fail-fast: false
       matrix:
@@ -49,12 +29,12 @@ jobs:
           - docker: fedora
           - host: ubuntu
           - host: macos
-    runs-on: &test-runs-on ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install dependencies
-        run: ./bin/install-dev --no-lint --no-python
+        run: ./bin/install-dev --no-lint
       - name: Configure host system
         if: matrix.host && matrix.host != 'macos'
         run: |
@@ -87,54 +67,16 @@ jobs:
           name: coverage-${{ strategy.job-index }}
           path: '*.tix'
 
-  test-python:
-    name: "Test Python (${{ matrix.docker && format('{0} Docker', matrix.docker) || format('{0} host', matrix.host) }}${{ matrix.arch && format(' {0}', matrix.arch) || ''}})"
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - docker: debian
-          - docker: ubuntu
-          - docker: ubuntu
-            arch: arm
-          - host: ubuntu
-          - host: macos
-    runs-on: *test-runs-on
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: ./bin/install-dev --no-lint --no-haskell
-      - name: Test
-        run: |
-          ./bin/test
-          ./bin/coverage-report
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_IMAGE: ${{ matrix.docker }}
-      - name: Rename coverage
-        run: mv coverage.xml coverage${{ strategy.job-index }}.xml
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-python-${{ strategy.job-index }}
-          path: '*.xml'
-
   coverage:
     name: Coverage
     needs:
       - test
-      - test-python
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install dependencies
-        run: ./bin/install-dev --no-lint --no-python
+        run: ./bin/install-dev --no-lint
       - id: compile
         name: Compile
         uses: freckle/stack-action@v5
@@ -157,8 +99,6 @@ jobs:
           target: stack:all
       - name: Upload
         uses: codecov/codecov-action@v5
-        with:
-          files: codecov.json,coverage*.xml
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -181,7 +121,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install dependencies
-        run: ./bin/install-dev --no-lint --no-python
+        run: ./bin/install-dev --no-lint
       - id: compile
         name: Compile
         uses: freckle/stack-action@v5
@@ -199,8 +139,6 @@ jobs:
   publish:
     needs:
       - build
-      - lint-python
-      - test-python
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
@@ -214,10 +152,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
       - name: Install dependencies
         run: ./bin/install-dev --no-lint --no-haskell
       - name: Download executables
@@ -229,9 +163,7 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           npx \
-            --package semantic-release-pypi@5 \
             --package semantic-release@24 \
             semantic-release

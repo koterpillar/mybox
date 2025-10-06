@@ -3,15 +3,10 @@
 set -eu
 
 OPT_DEVELOPMENT=""
-OPT_PYTHON="true"
 while [ $# -gt 0 ]; do
   case "$1" in
     --development)
       OPT_DEVELOPMENT="true"
-      shift
-      ;;
-    --haskell)
-      OPT_PYTHON=""
       shift
       ;;
     *)
@@ -93,12 +88,6 @@ case "$OS_KIND" in
     fi
 
     INSTALLER='brew install'
-
-    # macOS has Python 3, but it's too old
-    if [ -n "$OPT_PYTHON" ] && ! command_exists python3 || type python3 | grep -q /usr/bin/python3
-    then
-      $INSTALLER python@3
-    fi
     ;;
   Linux)
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
@@ -118,20 +107,6 @@ case "$OS_KIND" in
 
     ensure curl
     ensure sudo
-
-    if [ -n "$OPT_PYTHON" ]
-    then
-      ensure git
-    fi
-
-    case $DISTRO in
-      debian|ubuntu)
-        if [ -n "$OPT_PYTHON" ]
-        then
-          ensure python3 python3 python3-venv
-        fi
-        ;;
-    esac
     ;;
 esac
 
@@ -140,15 +115,4 @@ then
   download \
     "https://github.com/koterpillar/mybox/releases/latest/download/mybox-${OS_KIND}-${ARCH}" \
     "$HOME/.local/bin/mybox"
-fi
-
-if [ -n "$OPT_PYTHON" ]
-then
-  PIPX="$HOME/.local/mybox/pipx"
-  download "https://github.com/pypa/pipx/releases/latest/download/pipx.pyz" "$PIPX"
-
-  if [ -z "$OPT_DEVELOPMENT" ]
-  then
-    "$PIPX" upgrade --install mybox
-  fi
 fi
