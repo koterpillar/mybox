@@ -1,7 +1,6 @@
-import random
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterable
-from functools import cached_property, wraps
+from functools import wraps
 from pathlib import Path
 from typing import Optional, TypeVar, overload
 
@@ -199,20 +198,3 @@ class PackageTestBase(ABC):
             await self.constructor_args(), driver=self.driver, db=self.setup_db()
         )
         assert package.name != ""
-
-
-class DestinationPackageTestBase(PackageTestBase, ABC):
-    @cached_property
-    def dir_name(self) -> str:
-        return f"mybox_test_{random.randint(0, 1000000)}"
-
-    async def destination(self) -> Path:
-        return (await self.check_driver.home()) / self.dir_name
-
-    @pytest.mark.trio
-    @requires_driver
-    async def test_installs(self, make_driver: TestDriver):
-        try:
-            return await super().test_installs(make_driver)
-        finally:
-            await self.check_driver.run("rm", "-rf", await self.destination())
