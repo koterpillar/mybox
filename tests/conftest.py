@@ -1,28 +1,22 @@
 from collections.abc import AsyncIterator
-from pathlib import Path
 
 import pytest
 
 from .base import DOCKER_IMAGE
-from .package.driver import DockerDriver, OverrideHomeDriver, TestDriver
+from .package.driver import DockerDriver, TestDriver
 
 pytest.register_assert_rewrite("tests.package.base")
 
 
 @pytest.fixture(name="make_driver")
-async def fixture_driver(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> AsyncIterator[TestDriver]:
+async def fixture_driver() -> AsyncIterator[TestDriver]:
     driver: TestDriver
 
     if DOCKER_IMAGE:
-        driver = await DockerDriver.create(image=DOCKER_IMAGE)
+        driver = await DockerDriver.create_docker(image=DOCKER_IMAGE)
 
     else:
-        local_bin = tmp_path / ".local" / "bin"
-        monkeypatch.setenv("PATH", str(local_bin.absolute()), prepend=":")
-
-        driver = await OverrideHomeDriver.create(override_home=tmp_path)
+        driver = await TestDriver.create()
 
     yield driver
     await driver.stop()

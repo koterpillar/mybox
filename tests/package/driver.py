@@ -5,13 +5,13 @@ from collections.abc import Sequence
 from os import getpid
 from pathlib import Path
 
-from mybox.driver import Driver, LocalDriver, RunResult, SubprocessDriver
+from mybox.driver import LocalDriver, RunResult
 from mybox.utils import RunArg, run, run_output
 
 from ..base import PACKAGE_ROOT
 
 
-class TestDriver(Driver):
+class TestDriver(LocalDriver):
     __test__ = False
 
     def log_command(self, args: Sequence[RunArg]) -> None:
@@ -31,34 +31,18 @@ class TestDriver(Driver):
     async def stop(self) -> None:
         pass
 
+    @classmethod
+    async def create(cls) -> "TestDriver":
+        driver = TestDriver()
+        await driver.run(bootstrap_script(), "--development")
+        return driver
+
 
 def bootstrap_script() -> Path:
     bootstrap = PACKAGE_ROOT / "bootstrap"
     assert bootstrap.is_file()
 
     return bootstrap
-
-
-class OverrideHomeDriver(TestDriver, LocalDriver):
-    def __init__(self, *, override_home: Path, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.override_home = override_home
-
-    async def home(self) -> Path:
-        return self.override_home
-
-    async def link_to_real_home(self, *path: str) -> None:
-        overridden_dir = Path(self.override_home, *path)
-        real_dir = Path.home() / Path(*path)
-
-        await self.makedirs(real_dir)
-        await self.link(real_dir, overridden_dir)
-
-    @classmethod
-    async def create(cls, *, override_home: Path) -> "OverrideHomeDriver":
-        driver = OverrideHomeDriver(override_home=override_home)
-        await driver.run(bootstrap_script(), "--development")
-        return driver
 
 
 DOCKER_USER = "regular_user"
@@ -68,7 +52,7 @@ DOCKER_IMAGE_PREFIX = "mybox-test-"
 DOCKER_DRIVER_CONTAINER_NUMBER: int = 0
 
 
-class DockerDriver(TestDriver, SubprocessDriver):
+class DockerDriver(TestDriver):
     def __init__(self, *, container: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.container = container
@@ -96,7 +80,7 @@ class DockerDriver(TestDriver, SubprocessDriver):
     container_number = 0
 
     @classmethod
-    async def create(cls, *, image: str) -> "DockerDriver":
+    async def create_docker(cls, *, image: str) -> "DockerDriver":
         target_image = f"{DOCKER_IMAGE_PREFIX}{image}"
 
         with tempfile.TemporaryDirectory() as tmpdir:

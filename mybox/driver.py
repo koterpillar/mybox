@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from os import environ
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
 
@@ -32,7 +31,7 @@ class Linux(OS):
 
     @classmethod
     async def get_distribution(cls, driver: "Driver") -> str:
-        release_file = await driver.read_file(Path(cls.RELEASE_FILE))
+        release_file = await driver.run_output("cat", Path(cls.RELEASE_FILE))
         for line in release_file.splitlines():
             k, v = line.split("=", 1)
             if k == "ID":
@@ -121,9 +120,6 @@ class Driver(ABC):
         result = await self.run_output("sh", "-c", "eval echo ~")
         return Path(result)
 
-    async def local(self) -> Path:
-        return await self.home() / ".local"
-
     @asynccontextmanager
     async def tempfile(
         self, kind: Optional[Literal["directory"]] = None
@@ -151,9 +147,6 @@ class Driver(ABC):
 
     async def make_executable(self, path: Path) -> None:
         await self.run("chmod", "+x", path)
-
-    async def read_file(self, path: Path) -> str:
-        return await self.run_output("cat", path)
 
     async def write_file(self, path: Path, content: str) -> None:
         await self.makedirs(path.parent)
@@ -191,7 +184,7 @@ class Driver(ABC):
             raise ValueError(f"Unsupported architecture {result}.")  # pragma: no cover
 
 
-class SubprocessDriver(Driver, ABC):
+class LocalDriver(Driver):
     def prepare_command(self, args: Sequence[RunArg]) -> list[RunArg]:
         return list(args)
 
@@ -228,22 +221,3 @@ class SubprocessDriver(Driver, ABC):
 
     def run_args(self) -> dict[str, Any]:
         return {}
-
-
-class LocalDriver(SubprocessDriver):
-    def run_args(self) -> dict[str, Any]:
-        result = super().run_args()
-        if "VIRTUAL_ENV" in environ:
-            # mybox is running in a virtual environment (for testing or
-            # development). Remove virtual environment from PATH so that any
-            # pip and pipx commands run in the user environment (they will
-            # fail otherwise).
-            new_environment = environ.copy()
-            virtual_env = new_environment.pop("VIRTUAL_ENV")
-            new_environment["PATH"] = ":".join(
-                segment
-                for segment in new_environment["PATH"].split(":")
-                if not segment.startswith(virtual_env)
-            )
-            result["env"] = new_environment
-        return result
