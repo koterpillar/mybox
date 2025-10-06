@@ -27,6 +27,9 @@ class DummyPackage(ManualVersion):
 
     prerequisite_packages: Optional[list[str]] = None
 
+    async def local_version(self) -> Optional[str]:
+        return self.cached_version
+
     async def get_remote_version(self) -> str:
         if self.version_error is not None:
             raise self.version_error
