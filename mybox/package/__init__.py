@@ -6,26 +6,18 @@ from pydantic import TypeAdapter
 from ..driver import Driver
 from ..state import DB
 from .base import Package, PackageArgs
-from .brew_repo import BrewRepo
 from .clone import Clone
 from .daemon import Daemon
-from .flatpak import FlatpakPackage
 from .links import Links
 from .npm import NpmPackage
-from .shell import Shell
 from .system import SystemPackage
-from .yum_repo import YumRepo
 
 AnyPackageT = Union[
-    BrewRepo,
     Clone,
     Daemon,
-    FlatpakPackage,
     Links,
     NpmPackage,
-    Shell,
     SystemPackage,
-    YumRepo,
 ]
 
 AnyPackage: TypeAdapter[AnyPackageT] = TypeAdapter(AnyPackageT)
