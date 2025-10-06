@@ -42,7 +42,7 @@ spec = do
                 Linux _ -> "systemctl" :| ["--user", "list-units"]
                 MacOS -> "launchctl" :| ["list"]
             )
-            "Mybox: sleep 3600"
+            "Mybox: /bin/sh '-c' 'sleep 3600"
           & cleanup
             ( case psa.os of
                 Linux _ -> cleanupLinux
