@@ -8,9 +8,8 @@ import yaml
 from .config import MatchConfig, parse_config
 from .driver import Driver
 from .package import Package, parse_packages
-from .parallel import PartialException, PartialResults, parallel_map_progress
+from .parallel import PartialException, PartialResults, parallel_map
 from .state import DB, VERSIONS
-from .tracker import ManagerTracker, tracking
 from .utils import flatten
 
 
@@ -64,47 +63,38 @@ class Manager:
         return await self.install_packages(packages)
 
     async def install_packages(self, packages: list[Package]) -> InstallResult:
-        async with tracking(driver=self.driver, db=self.db) as tracker:
-
-            async def process_and_record(package: Package) -> Iterable[Package]:
-                return [pkg async for pkg in self.install_package(tracker, package)]
-
-            try:
-                results = await parallel_map_progress(process_and_record, packages)
-
-                await self.cleanup(packages)
-
-                return InstallResult(installed=flatten(results), failed=[])
-            except PartialResults as e:
-                installed: list[Package] = []
-                failed: list[tuple[Package, BaseException]] = []
-
-                for package, result in zip(packages, e.results):
-                    if isinstance(result, PartialException):
-                        failed.append((package, result.exception))
-                    else:
-                        installed.extend(result.result)
-
-                return InstallResult(installed=installed, failed=failed)
-
-    async def install_package(
-        self, tracker: ManagerTracker, package: Package
-    ) -> AsyncIterable[Package]:
-        async for prerequisite in package.prerequisites():
-            async for result in self.install_package(tracker, prerequisite):
-                yield result
+        async def process_and_record(package: Package) -> Iterable[Package]:
+            return [pkg async for pkg in self.install_package(package)]
 
         try:
-            if not await package.applicable():
-                return
+            results = await parallel_map(process_and_record, packages)
 
-            if await package.is_installed():
-                tracker.skip(package.name)
-                return
+            await self.cleanup(packages)
 
-            await package.install(tracker=tracker.for_package(package.name))
-        except:
-            tracker.skip(package.name)
-            raise
+            return InstallResult(installed=flatten(results), failed=[])
+        except PartialResults as e:
+            installed: list[Package] = []
+            failed: list[tuple[Package, BaseException]] = []
+
+            for package, result in zip(packages, e.results):
+                if isinstance(result, PartialException):
+                    failed.append((package, result.exception))
+                else:
+                    installed.extend(result.result)
+
+            return InstallResult(installed=installed, failed=failed)
+
+    async def install_package(self, package: Package) -> AsyncIterable[Package]:
+        async for prerequisite in package.prerequisites():
+            async for result in self.install_package(prerequisite):
+                yield result
+
+        if not await package.applicable():
+            return
+
+        if await package.is_installed():
+            return
+
+        await package.install()
 
         yield package

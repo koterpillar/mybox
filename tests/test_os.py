@@ -22,7 +22,6 @@ class FileReadingDriver(Driver):
         check: bool = True,
         input: Optional[bytes] = None,  # pylint: disable=redefined-builtin
         capture_output: bool = False,
-        show_output: bool = False,
         silent: bool = False,
     ) -> RunResult:
         args_list = [str(arg) for arg in args]
