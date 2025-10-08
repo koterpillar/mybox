@@ -16,5 +16,3 @@ plugins:
           results:
             - file: package.yaml
               hasChanged: true
-              numMatches: 1
-              numReplacements: 1
