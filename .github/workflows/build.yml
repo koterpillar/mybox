@@ -130,11 +130,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ln -s .releaserc.build.yaml .releaserc.yaml
           npx \
             --package semantic-release@24 \
             --package semantic-release-replace-plugin@1 \
             semantic-release
+          git push origin -d v$(yq .version package.yaml)
 
       - id: compile
         name: Compile
@@ -178,7 +178,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ln -s .releaserc.release.yaml .releaserc.yaml
           npx \
             --package semantic-release@24 \
             semantic-release
