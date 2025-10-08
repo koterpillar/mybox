@@ -135,6 +135,7 @@ jobs:
             --package semantic-release-replace-plugin@1 \
             semantic-release
           git push origin -d v$(yq .version package.yaml)
+          git push origin -d refs/notes/semantic-release-v$(yq .version package.yaml)
 
       - id: compile
         name: Compile
