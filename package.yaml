@@ -1,5 +1,5 @@
 name: mybox
-version: 0.0.1
+version: 0.0.0
 description: Manage the configuration and tools on your workstation without bothering the OS too much
 author: Alexey Kotlyarov <a@koterpillar.com>
 maintainer: Alexey Kotlyarov <a@koterpillar.com>

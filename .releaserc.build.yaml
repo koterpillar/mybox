@@ -1,0 +1,20 @@
+# Release configuration to set the version in package.yaml before building
+# executables (see .github/workflows/build.yml).
+# Must be renamed to .releaserc.yaml to be used.
+branches:
+  - main
+plugins:
+  # Must be the same as in .releaserc.release.yaml to derive the same version
+  - "@semantic-release/commit-analyzer"
+  # End common configuration
+  - - semantic-release-replace-plugin
+    - replacements:
+        - files:
+            - package.yaml
+          from: "^version: 0.0.0$"
+          to: "version: ${nextRelease.version}"
+          results:
+            - file: package.yaml
+              hasChanged: true
+              numMatches: 1
+              numReplacements: 1
