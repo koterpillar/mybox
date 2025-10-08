@@ -120,8 +120,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
+      - name: Set version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ln -s .releaserc.build.yaml .releaserc.yaml
+          npx \
+            --package semantic-release@24 \
+            semantic-release
+
       - id: compile
         name: Compile
         uses: freckle/stack-action@v5
@@ -164,6 +177,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          ln -s .releaserc.release.yaml .releaserc.yaml
           npx \
             --package semantic-release@24 \
             semantic-release
