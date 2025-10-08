@@ -133,6 +133,7 @@ jobs:
           ln -s .releaserc.build.yaml .releaserc.yaml
           npx \
             --package semantic-release@24 \
+            --package semantic-release-replace-plugin@1 \
             semantic-release
 
       - id: compile
