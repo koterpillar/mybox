@@ -19,6 +19,7 @@ export default {
               ],
             },
           ],
+          "semantic-release-stop",
         ]
       : [
           // Actual release; the build jobs must have run before and produced
