@@ -6,6 +6,7 @@ module Mybox.Display.Print (
   printLn,
   flush,
   terminalSize,
+  terminalWidth,
 ) where
 
 import Effectful.Dispatch.Dynamic
@@ -50,3 +51,6 @@ flush = send Flush
 
 terminalSize :: Print :> es => Eff es (Maybe (Int, Int))
 terminalSize = send TerminalSize
+
+terminalWidth :: Print :> es => Eff es (Maybe Int)
+terminalWidth = fmap snd <$> terminalSize

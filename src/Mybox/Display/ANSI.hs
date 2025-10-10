@@ -29,6 +29,16 @@ mkLock = do
   lock <- newMVar ()
   pure $ Lock $ withMVar lock . const
 
+data AStateContents a = AStateContents
+  { banners :: [Banner a]
+  , lines :: Int
+  }
+
+emptyAState :: AStateContents a
+emptyAState = AStateContents mempty 0
+
+type AState a es = (State (AStateContents a) :> es, Monoid (Banner a), TerminalShow (Banner a))
+
 runANSIDisplay ::
   forall a es r.
   ( ANSIDisplayable a
@@ -39,28 +49,43 @@ runANSIDisplay ::
   Eff es r
 runANSIDisplay act = do
   Lock locked <- mkLock
-  reinterpretWith_
-    (evalState @[Banner a] mempty)
+  (r, s) <- reinterpretWith_
+    (runState $ emptyAState @a)
     act
     $ \case
-      Log log -> locked $ withBanner @(Banner a) $ draw $ terminalShow log
-      AddBanner banner -> locked $ withBanner @(Banner a) $ modify (banner :)
-      RemoveBanner banner -> locked $ withBanner @(Banner a) $ modify (delete banner)
+      Log log -> locked $ modifyBanner @a (terminalShow log) id
+      AddBanner banner -> locked $ modifyBanner @a [] (banner :)
+      RemoveBanner banner -> locked $ modifyBanner @a [] $ delete banner
+  -- move cursor after the banner
+  replicateM_ s.lines $ Print.printLn ""
+  Print.flush
+  pure r
 
-withBanner ::
-  forall banner es r.
-  (Monoid banner, Print :> es, State [banner] :> es, TerminalShow banner) =>
-  Eff es r ->
-  Eff es r
-withBanner act = do
-  oldBanner <- gets @[banner] mconcat
-  eraseBanner oldBanner
-  act `finally` do
-    newBanner <- gets @[banner] mconcat
-    drawBanner newBanner
+drawOver :: forall a es. (AState a es, Print :> es) => [TerminalLine] -> Eff es ()
+drawOver content = do
+  oldState <- get @(AStateContents a)
+  let newHeight = length content
+  let erasingLines = max 0 $ oldState.lines - newHeight
+  let content' = content <> replicate erasingLines mempty
+  draw content'
+  upLines erasingLines
 
-mlist :: (a -> b) -> Maybe a -> [b]
-mlist f = toList . fmap f
+modifyBanner ::
+  forall a es.
+  (AState a es, Print :> es) =>
+  [TerminalLine] ->
+  ([Banner a] -> [Banner a]) ->
+  Eff es ()
+modifyBanner extra f = do
+  oldState <- get @(AStateContents a)
+  let newBanner = f oldState.banners
+  width <- fromMaybe 80 <$> Print.terminalWidth
+  let newBannerWrapped = wrapLines width $ terminalShow $ mconcat newBanner
+  let newContents = wrapLines width extra <> newBannerWrapped
+  drawOver @a newContents
+  let newLines = length newBannerWrapped
+  upLines newLines
+  put $ oldState{banners = newBanner, lines = newLines}
 
 draw :: Print :> es => [TerminalLine] -> Eff es ()
 draw items = do
@@ -69,15 +94,10 @@ draw items = do
       Print.print $
         setSGRCode $
           [Reset]
-            ++ mlist (SetColor Foreground Dull) item.foreground
+            ++ toList (SetColor Foreground Dull <$> item.foreground)
       Print.print $ Text.unpack item.text
+    Print.print clearFromCursorToLineEndCode
     Print.print "\n"
-
-drawBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
-drawBanner banner = do
-  items <- terminalWrap banner
-  draw items
-  backLines $ length items
 
 wrapLine :: Int -> TerminalLine -> [TerminalLine]
 wrapLine maxWidth = fillLines []
@@ -93,19 +113,11 @@ wrapLine maxWidth = fillLines []
     | otherwise = go (w + lw x) (x : acc) xs
   lw item = Text.length item.text
 
-terminalWrap :: (Print :> es, TerminalShow banner) => banner -> Eff es [TerminalLine]
-terminalWrap banner = do
-  width <- (fromMaybe 80 . fmap snd) <$> Print.terminalSize
-  pure $ concatMap (wrapLine width) $ terminalShow banner
+wrapLines :: Int -> [TerminalLine] -> [TerminalLine]
+wrapLines = concatMap . wrapLine
 
-eraseBanner :: (Print :> es, TerminalShow banner) => banner -> Eff es ()
-eraseBanner banner = do
-  lineCount <- length <$> terminalWrap banner
-  replicateM_ lineCount $ Print.printLn clearFromCursorToLineEndCode
-  backLines lineCount
-
-backLines :: Print :> es => Int -> Eff es ()
-backLines n = do
+upLines :: Print :> es => Int -> Eff es ()
+upLines n = do
   Print.print $ cursorUpCode n
   Print.print $ setCursorColumnCode 0
   Print.flush
