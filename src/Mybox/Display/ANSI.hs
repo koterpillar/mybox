@@ -49,13 +49,17 @@ runANSIDisplay ::
   Eff es r
 runANSIDisplay act = do
   Lock locked <- mkLock
-  reinterpretWith_
-    (evalState @[Banner a] mempty)
+  (r, s) <- reinterpretWith_
+    (runState $ emptyAState @a)
     act
     $ \case
       Log log -> locked $ modifyBanner @a (terminalShow log) id
       AddBanner banner -> locked $ modifyBanner @a [] (banner :)
       RemoveBanner banner -> locked $ modifyBanner @a [] $ delete banner
+  -- move cursor after the banner
+  replicateM_ s.lines $ Print.printLn ""
+  Print.flush
+  pure r
 
 drawOver :: forall a es. (AState a es, Print :> es) => [TerminalLine] -> Eff es ()
 drawOver content = do
