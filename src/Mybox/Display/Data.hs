@@ -13,7 +13,7 @@ data MDisplay
 newtype instance Log MDisplay = MLog {log :: Text}
 
 instance TerminalShow (Log MDisplay) where
-  terminalShow (MLog log) = [[tiMk log]]
+  terminalShow _ (MLog log) = [[tiMk log]]
 
 data instance Banner MDisplay = MBanner
   { all :: Set Text
@@ -26,13 +26,14 @@ data instance Banner MDisplay = MBanner
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
 instance TerminalShow (Banner MDisplay) where
-  terminalShow banner =
-    catMaybes
-      [ bannerPart Magenta "checking" banner.checking
-      , bannerPart Blue "installing" banner.installing
-      , progressPart banner
-      , bannerPart Green "installed" banner.modified
-      ]
+  terminalShow width banner =
+    wrapLines width $
+      catMaybes
+        [ bannerPart Magenta "checking" banner.checking
+        , bannerPart Blue "installing" banner.installing
+        , progressPart banner
+        , bannerPart Green "installed" banner.modified
+        ]
 
 bannerPart :: Color -> Text -> Set Text -> Maybe TerminalLine
 bannerPart color label set

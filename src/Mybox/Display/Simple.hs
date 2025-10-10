@@ -31,7 +31,7 @@ runSimpleDisplay =
         get >>= dumbPrint @(Banner a)
 
 dumbShow :: TerminalShow a => a -> String
-dumbShow = Text.unpack . Text.unlines . map (Text.concat . map (.text)) . terminalShow
+dumbShow = Text.unpack . Text.unlines . map (Text.concat . map (.text)) . terminalShow Nothing
 
 dumbPrint :: (Monoid a, Print :> es, TerminalShow a) => [a] -> Eff es ()
 dumbPrint = Print.print . dumbShow . mconcat

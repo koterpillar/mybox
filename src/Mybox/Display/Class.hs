@@ -14,6 +14,7 @@ module Mybox.Display.Class (
   displayLog,
   displayBanner,
   displayBannerWhile,
+  wrapLines,
 ) where
 
 import Data.Kind
@@ -76,4 +77,25 @@ tiSpace = tiMk " "
 type TerminalLine = [TerminalItem]
 
 class TerminalShow a where
-  terminalShow :: a -> [TerminalLine]
+  terminalShow :: Maybe Int -> a -> [TerminalLine]
+
+instance TerminalShow () where
+  terminalShow _ () = []
+
+wrapLine :: Int -> TerminalLine -> [TerminalLine]
+wrapLine maxWidth = fillLines []
+ where
+  fillLines acc [] = reverse acc
+  fillLines acc items = let (line, rest) = go 0 [] items in fillLines (line : acc) rest
+  go _ acc [] = (reverse acc, [])
+  go w acc (x : xs)
+    | lw x > maxWidth =
+        let (x1, x2) = tiSplitAt (pred maxWidth - w) x
+         in (reverse (x1 : acc), (x2 : xs)) -- single too long item
+    | w + lw x > maxWidth = (reverse acc, x : xs) -- current item doesn't fit
+    | otherwise = go (w + lw x) (x : acc) xs
+  lw item = Text.length item.text
+
+wrapLines :: Maybe Int -> [TerminalLine] -> [TerminalLine]
+wrapLines Nothing = id
+wrapLines (Just width) = concatMap $ wrapLine width

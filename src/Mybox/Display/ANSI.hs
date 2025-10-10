@@ -53,9 +53,9 @@ runANSIDisplay act = do
     (runState $ emptyAState @a)
     act
     $ \case
-      Log log -> locked $ modifyBanner @a (terminalShow log) id
-      AddBanner banner -> locked $ modifyBanner @a [] (banner :)
-      RemoveBanner banner -> locked $ modifyBanner @a [] $ delete banner
+      Log log -> locked $ modifyBanner @a log id
+      AddBanner banner -> locked $ modifyBanner @a () (banner :)
+      RemoveBanner banner -> locked $ modifyBanner @a () $ delete banner
   -- move cursor after the banner
   replicateM_ s.lines $ Print.printLn ""
   Print.flush
@@ -71,17 +71,18 @@ drawOver content = do
   upLines erasingLines
 
 modifyBanner ::
-  forall a es.
-  (AState a es, Print :> es) =>
-  [TerminalLine] ->
+  forall a extra es.
+  (AState a es, Print :> es, TerminalShow extra) =>
+  extra ->
   ([Banner a] -> [Banner a]) ->
   Eff es ()
 modifyBanner extra f = do
   oldState <- get @(AStateContents a)
   let newBanner = f oldState.banners
-  width <- fromMaybe 80 <$> Print.terminalWidth
-  let newBannerWrapped = wrapLines width $ terminalShow $ mconcat newBanner
-  let newContents = wrapLines width extra <> newBannerWrapped
+  -- FIXME: tmux test rendering runs without a tty and can't report the width
+  width <- Just . fromMaybe 80 <$> Print.terminalWidth
+  let newBannerWrapped = terminalShow width $ mconcat newBanner
+  let newContents = terminalShow width extra <> newBannerWrapped
   drawOver @a newContents
   let newLines = length newBannerWrapped
   upLines newLines
@@ -98,23 +99,6 @@ draw items = do
       Print.print $ Text.unpack item.text
     Print.print clearFromCursorToLineEndCode
     Print.print "\n"
-
-wrapLine :: Int -> TerminalLine -> [TerminalLine]
-wrapLine maxWidth = fillLines []
- where
-  fillLines acc [] = reverse acc
-  fillLines acc items = let (line, rest) = go 0 [] items in fillLines (line : acc) rest
-  go _ acc [] = (reverse acc, [])
-  go w acc (x : xs)
-    | lw x > maxWidth =
-        let (x1, x2) = tiSplitAt (pred maxWidth - w) x
-         in (reverse (x1 : acc), (x2 : xs)) -- single too long item
-    | w + lw x > maxWidth = (reverse acc, x : xs) -- current item doesn't fit
-    | otherwise = go (w + lw x) (x : acc) xs
-  lw item = Text.length item.text
-
-wrapLines :: Int -> [TerminalLine] -> [TerminalLine]
-wrapLines = concatMap . wrapLine
 
 upLines :: Print :> es => Int -> Eff es ()
 upLines n = do
