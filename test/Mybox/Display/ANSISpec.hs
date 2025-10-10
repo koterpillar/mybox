@@ -4,6 +4,7 @@ import Data.Text qualified as Text
 
 import Mybox.Display
 import Mybox.Display.ANSI
+import Mybox.Display.Print qualified as Print
 import Mybox.Display.Tmux
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -46,6 +47,14 @@ spec = do
               ]
 
       output `shouldBe` colourString "<green>installed<reset> three,two"
+
+    it "places cursor after banner at the end" $ do
+      output <- fmap snd . runTmux $ do
+        Print.printLn "before"
+        runANSIDisplay @MDisplay $ displayBanner $ bannerModified "one"
+        Print.printLn "after"
+
+      output `shouldBe` colourString "before\n<green>installed<reset> one\nafter"
 
     it "replaces banner" $ do
       output <- run $ do
