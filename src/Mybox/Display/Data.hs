@@ -2,10 +2,10 @@ module Mybox.Display.Data where
 
 import Data.List (intersperse)
 import Data.Set qualified as Set
-import Data.Text qualified as Text
 import Prelude hiding (log)
 
 import Mybox.Display.Class
+import Mybox.Display.Ops
 import Mybox.Prelude
 
 data MDisplay
@@ -13,7 +13,7 @@ data MDisplay
 newtype instance Log MDisplay = MLog {log :: Text}
 
 instance TerminalShow (Log MDisplay) where
-  terminalShow (MLog log) = [[tiMk log]]
+  terminalShow _ (MLog log) = [[tiMk log]]
 
 data instance Banner MDisplay = MBanner
   { all :: Set Text
@@ -26,13 +26,14 @@ data instance Banner MDisplay = MBanner
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
 
 instance TerminalShow (Banner MDisplay) where
-  terminalShow banner =
-    catMaybes
-      [ bannerPart Magenta "checking" banner.checking
-      , bannerPart Blue "installing" banner.installing
-      , progressPart banner
-      , bannerPart Green "installed" banner.modified
-      ]
+  terminalShow width banner =
+    tiWrapLines width $
+      catMaybes
+        [ bannerPart Magenta "checking" banner.checking
+        , bannerPart Blue "installing" banner.installing
+        , progressPart width banner
+        , bannerPart Green "installed" banner.modified
+        ]
 
 bannerPart :: Color -> Text -> Set Text -> Maybe TerminalLine
 bannerPart color label set
@@ -43,15 +44,11 @@ bannerPart color label set
           : tiSpace
           : intersperse tiComma (map tiMk (toList set))
 
-progressPart :: Banner MDisplay -> Maybe TerminalLine
-progressPart banner
-  | Set.null banner.all = Nothing
-  | banner.all == Set.union banner.unchanged banner.modified = Nothing
-  | otherwise = Just [tiMk "progress", tiSpace, tiNumber finishedCount, tiMk "/", tiNumber totalCount]
+progressPart :: Maybe Int -> Banner MDisplay -> Maybe TerminalLine
+progressPart width banner = tiProgressBar width finishedCount totalCount
  where
   totalCount = Set.size banner.all
   finishedCount = Set.size banner.unchanged + Set.size banner.modified
-  tiNumber = tiMk . Text.pack . show
 
 bannerPending :: Text -> Banner MDisplay
 bannerPending text = mempty{all = Set.singleton text}

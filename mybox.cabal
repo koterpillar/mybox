@@ -28,6 +28,7 @@ library
       Mybox.Display.ANSI
       Mybox.Display.Class
       Mybox.Display.Data
+      Mybox.Display.Ops
       Mybox.Display.Print
       Mybox.Display.Simple
       Mybox.Driver
@@ -183,6 +184,7 @@ test-suite tests
       Mybox.Compute.URLSpec
       Mybox.Display.ANSISpec
       Mybox.Display.None
+      Mybox.Display.OpsSpec
       Mybox.Display.PrintSpec
       Mybox.Display.SimpleSpec
       Mybox.Display.SpecUtils

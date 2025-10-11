@@ -28,10 +28,12 @@ spec = do
               [ bannerPending "one"
               , bannerPending "two"
               , bannerPending "three"
+              , bannerPending "four"
               , bannerUnchanged "one"
               , bannerModified "two"
               ]
-      output `shouldBe` colourString "progress 2/3\n<green>installed<reset> two"
+      let expectedBar = Text.replicate 38 "█" <> Text.replicate 38 " "
+      output `shouldBe` colourString (expectedBar <> " 2/4\n<green>installed<reset> two")
 
     it "displays final banner when all packages checked" $ do
       output <-
