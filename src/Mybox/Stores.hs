@@ -13,11 +13,12 @@ module Mybox.Stores (
   storeModifyM_,
   storeModifyM,
   runStores,
+  MegaStore,
+  runStoresWith,
 ) where
 
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Shared
 
 import Mybox.Aeson
 import Mybox.Prelude
@@ -88,12 +89,17 @@ storeModifyM store f = do
     pure (vText', r)
 
 runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
-runStores = reinterpret_
-  (evalState $ mempty @MegaStore)
-  $ \case
-    StoreGet store -> stateM $ \m -> case Map.lookup store.key m of
-      Just v -> pure (v, m)
-      Nothing -> do
-        v <- newMVar $ store.iso.serialize store.def
-        let m' = Map.insert store.key v m
-        pure (v, m')
+runStores act = do
+  stores <- newMVar Map.empty
+  runStoresWith stores act
+
+runStoresWith :: forall es a. Concurrent :> es => MVar MegaStore -> Eff (Stores : es) a -> Eff es a
+runStoresWith stores act = do
+  interpretWith_ act $
+    \case
+      StoreGet store -> modifyMVar stores $ \m -> case Map.lookup store.key m of
+        Just v -> pure (m, v)
+        Nothing -> do
+          v <- newMVar $ store.iso.serialize store.def
+          let m' = Map.insert store.key v m
+          pure (m', v)

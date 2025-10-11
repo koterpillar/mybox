@@ -1,17 +1,18 @@
-module Mybox.Driver.Stats (driverStats) where
+module Mybox.Driver.Stats (driverStats, driverStatsStore) where
 
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
 
 import Mybox.Driver.Class
 import Mybox.Prelude
+import Mybox.Stores
 
-driverStats :: (Concurrent :> es, Driver :> es) => Eff es a -> Eff es (Map Args Int, a)
-driverStats act = do
-  statVar <- newMVar (Map.empty :: Map Args Int)
-  r <- interposeWith_ act $ \case
+driverStatsStore :: Store (Map [Text] Int)
+driverStatsStore = Store{key = "driver-args-stats", iso = jsonIso, def = Map.empty}
+
+driverStats :: (Concurrent :> es, Driver :> es, Stores :> es) => Eff es a -> Eff es a
+driverStats =
+  interpose_ $ \case
     DrvRun e o args -> do
-      modifyMVarPure statVar $ Map.insertWith (+) args 1
+      storeModify driverStatsStore $ Map.insertWith (+) (toList args) 1
       send $ DrvRun e o args
-  stats <- readMVar statVar
-  pure (stats, r)

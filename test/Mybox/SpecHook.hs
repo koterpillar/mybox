@@ -17,23 +17,23 @@ import Mybox.Stores
 
 hook :: Spec -> Hspec.Spec
 hook spec = do
-  globalStats <- runIO $ newMVar Map.empty
-  afterAll_ (takeMVar globalStats >>= printStats 20) $
+  stores <- runIO $ newMVar Map.empty
+  afterAll_ (runEff $ runConcurrent $ runStoresWith stores $ printStats 20) $
     parallel $
-      effSpec (dispatch globalStats) spec
+      effSpec (dispatch stores) spec
 
-dispatch :: MVar (Map Args Int) -> Eff BaseEff r -> Eff '[IOE] r
-dispatch globalStats act =
+dispatch :: MVar MegaStore -> Eff BaseEff r -> Eff '[IOE] r
+dispatch stores act =
   runConcurrent $
     noDisplay $
-      runStores $ do
-        (stats, r) <- testDriver $ driverStats act
-        liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
-        pure r
+      runStoresWith stores $
+        testDriver $
+          driverStats act
 
-printStats :: Int -> Map Args Int -> IO ()
-printStats n stats = do
+printStats :: (Concurrent :> es, IOE :> es, Stores :> es) => Int -> Eff es ()
+printStats n = do
+  stats <- storeGet driverStatsStore
   let top = take n $ sortOn (Down . snd) $ Map.toList stats
-  putStrLn $ "Top " <> show n <> " commands:"
+  liftIO $ putStrLn $ "Top " <> show n <> " commands:"
   forM_ top $ \(arg, count) ->
-    putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
+    liftIO $ putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
