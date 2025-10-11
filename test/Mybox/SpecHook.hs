@@ -16,7 +16,8 @@ hook spec = do
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
   driverLock <- runIO $ runEff $ runConcurrent $ newLockMap
   afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $
-    effSpec (dispatch statVar driverLock) spec
+    parallel $
+      effSpec (dispatch statVar driverLock) spec
 
 dispatch :: MVar DriverStats -> DriverLockMap -> Eff BaseEff r -> Eff '[IOE] r
 dispatch statVar driverLock act =
