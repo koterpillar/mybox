@@ -49,6 +49,8 @@ ghc-options:
   - -Werror
   - -threaded
   - -optP-Wno-nonportable-include-path
+  - -rtsopts
+  - -with-rtsopts=-N
 library:
   source-dirs: src
 tests:
@@ -71,6 +73,3 @@ executables:
     source-dirs: app
     dependencies:
       - mybox
-    ghc-options:
-      - -rtsopts
-      - -with-rtsopts=-N

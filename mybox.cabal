@@ -98,7 +98,7 @@ library
       LambdaCase
       MonoLocalBinds
       RoleAnnotations
-  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
+  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       Glob
     , aeson
@@ -249,7 +249,7 @@ test-suite tests
       LambdaCase
       MonoLocalBinds
       RoleAnnotations
-  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
+  ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:

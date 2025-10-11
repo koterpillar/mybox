@@ -18,7 +18,9 @@ import Mybox.Stores
 hook :: Spec -> Hspec.Spec
 hook spec = do
   globalStats <- runIO $ newMVar Map.empty
-  afterAll_ (takeMVar globalStats >>= printStats 20) $ effSpec (dispatch globalStats) spec
+  afterAll_ (takeMVar globalStats >>= printStats 20) $
+    parallel $
+      effSpec (dispatch globalStats) spec
 
 dispatch :: MVar (Map Args Int) -> Eff BaseEff r -> Eff '[IOE] r
 dispatch globalStats act =
