@@ -1,6 +1,5 @@
 module Mybox.SpecHook where
 
-import Control.Concurrent.MVar
 import Data.List (sortOn)
 import Data.Map qualified as Map
 import Data.Ord (Down (..))
@@ -11,27 +10,28 @@ import Mybox.Display.None
 import Mybox.Driver
 import Mybox.Driver.Stats
 import Mybox.Driver.Test
-import Mybox.Prelude hiding (MVar, modifyMVar_, newMVar, takeMVar)
+import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Stores
 
 hook :: Spec -> Hspec.Spec
 hook spec = do
-  globalStats <- runIO $ newMVar Map.empty
-  afterAll_ (takeMVar globalStats >>= printStats 20) $ effSpec (dispatch globalStats) spec
+  stores <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
+  afterAll_ (runEff $ dispatch stores $ printStats 20) $
+    effSpec (dispatch stores) spec
 
-dispatch :: MVar (Map Args Int) -> Eff BaseEff r -> Eff '[IOE] r
-dispatch globalStats act =
+dispatch :: MVar MegaStore -> Eff BaseEff r -> Eff '[IOE] r
+dispatch stores act =
   runConcurrent $
     noDisplay $
-      runStores $ do
-        (stats, r) <- testDriver $ driverStats act
-        liftIO $ modifyMVar_ globalStats $ pure . Map.unionWith (+) stats
-        pure r
+      runStoresWith stores $
+        testDriver $
+          driverStats act
 
-printStats :: Int -> Map Args Int -> IO ()
-printStats n stats = do
+printStats :: (Concurrent :> es, IOE :> es, Stores :> es) => Int -> Eff es ()
+printStats n = do
+  stats <- storeGet driverStatsStore
   let top = take n $ sortOn (Down . snd) $ Map.toList stats
-  putStrLn $ "Top " <> show n <> " commands:"
+  liftIO $ putStrLn $ "Top " <> show n <> " commands:"
   forM_ top $ \(arg, count) ->
-    putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
+    liftIO $ putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
