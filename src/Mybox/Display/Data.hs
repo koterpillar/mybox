@@ -31,7 +31,7 @@ instance TerminalShow (Banner MDisplay) where
       catMaybes
         [ bannerPart Magenta "checking" banner.checking
         , bannerPart Blue "installing" banner.installing
-        , progressPart banner
+        , progressPart width banner
         , bannerPart Green "installed" banner.modified
         ]
 
@@ -44,14 +44,24 @@ bannerPart color label set
           : tiSpace
           : intersperse tiComma (map tiMk (toList set))
 
-progressPart :: Banner MDisplay -> Maybe TerminalLine
-progressPart banner
-  | Set.null banner.all = Nothing
-  | banner.all == Set.union banner.unchanged banner.modified = Nothing
-  | otherwise = Just [tiMk "progress", tiSpace, tiNumber finishedCount, tiMk "/", tiNumber totalCount]
+progressPart :: Maybe Int -> Banner MDisplay -> Maybe TerminalLine
+progressPart width banner = makeProgressBar width finishedCount totalCount
  where
   totalCount = Set.size banner.all
   finishedCount = Set.size banner.unchanged + Set.size banner.modified
+
+makeProgressBar :: Maybe Int -> Int -> Int -> Maybe TerminalLine
+makeProgressBar width progress total
+  | total == 0 = Nothing
+  | progress >= total = Nothing
+  | otherwise = Just [tiMk $ filledPart <> emptyPart, tiSpace, tiNumber progress, tiMk "/", tiNumber total]
+ where
+  -- Reserve space for the numbers
+  availableWidth = max 10 (fromMaybe 80 width - 10)
+  filledChars = (progress * availableWidth) `div` total
+  emptyChars = availableWidth - filledChars
+  filledPart = Text.replicate filledChars "#"
+  emptyPart = Text.replicate emptyChars " "
   tiNumber = tiMk . Text.pack . show
 
 bannerPending :: Text -> Banner MDisplay
