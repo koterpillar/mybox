@@ -29,9 +29,7 @@ instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) wh
   getField i = Store{key = "installer-" <> i.storeKey <> "-packages", iso = jsonIso, def = Map.empty}
 
 iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
-iLocked i act = storeModifyM s $ \() -> (,) <$> act <*> pure ()
- where
-  s = Store{key = "installer-" <> i.storeKey <> "-lock", iso = jsonIso, def = ()}
+iLocked i = storeLocked $ Store{key = "installer-" <> i.storeKey <> "-lock", iso = jsonIso, def = ()}
 
 iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
@@ -40,11 +38,7 @@ iGetCachePackageInfo i package = do
   pure results
 
 iInitLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es () -> Eff es ()
-iInitLocked i act = storeModifyM_ s $ \case
-  True -> pure True
-  False -> act *> pure True
- where
-  s = Store{key = "installer-" <> i.storeKey <> "-global", iso = jsonIso, def = False}
+iInitLocked i = storeInitLocked $ Store{key = "installer-" <> i.storeKey <> "-global", iso = jsonIso, def = Nothing}
 
 iPackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do

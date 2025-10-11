@@ -15,6 +15,7 @@ import Mybox.Driver.Ops
 import Mybox.Platform
 import Mybox.Prelude
 import Mybox.Spec.Utils
+import Mybox.Stores
 
 pureDriver :: (Args -> Maybe Text) -> Eff (Driver : es) a -> Eff es a
 pureDriver run = interpret_ $ \case
@@ -92,36 +93,45 @@ containerDriver container = modifyDriver transformArgs
          ]
       <> args
 
-testDockerDriver :: IOE :> es => Text -> Eff (Driver : es) a -> Eff es a
+imageCreateLock :: Store (Maybe Text)
+imageCreateLock = Store{key = "driver-docker-image", iso = jsonIso, def = Nothing}
+
+mkImage :: (Concurrent :> es, IOE :> es, Stores :> es) => Text -> Eff es Text
+mkImage baseImage = storeInitLocked imageCreateLock $
+  localDriver $
+    drvTempDir $ \tempDir -> do
+      drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
+      drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
+      let image = dockerImagePrefix <> baseImage
+      drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
+      pure image
+
+testDockerDriver :: (Concurrent :> es, IOE :> es, Stores :> es) => Text -> Eff (Driver : es) a -> Eff es a
 testDockerDriver baseImage act =
   bracket mkContainer rmContainer $ \container ->
     localDriver $ containerDriver container act
  where
-  mkContainer :: IOE :> es => Eff es Text
+  mkContainer :: (Concurrent :> es, IOE :> es, Stores :> es) => Eff es Text
   mkContainer =
     localDriver $ do
       containerName <- randomText "tests"
       githubToken <- drvGithubToken
-      drvTempDir $ \tempDir -> do
-        drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
-        drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
-        let image = dockerImagePrefix <> baseImage
-        drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
-        drvRunOutput $
-          "docker"
-            :| [ "run"
-               , "--rm"
-               , "--detach"
-               , "--name"
-               , "mybox-test-" <> containerName
-               , "--env"
-               , "GITHUB_TOKEN=" <> githubToken
-               , "--volume"
-               , ".:/mybox"
-               , image
-               , "sleep"
-               , "86400000"
-               ]
+      image <- mkImage baseImage
+      drvRunOutput $
+        "docker"
+          :| [ "run"
+             , "--rm"
+             , "--detach"
+             , "--name"
+             , containerName
+             , "--env"
+             , "GITHUB_TOKEN=" <> githubToken
+             , "--volume"
+             , ".:/mybox"
+             , image
+             , "sleep"
+             , "86400000"
+             ]
   rmContainer :: IOE :> es => Text -> Eff es ()
   rmContainer container =
     localDriver $ drvRunSilent $ "docker" :| ["rm", "--force", container]
@@ -149,7 +159,7 @@ dockerUser = "regular_user"
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
 
-testDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
+testDriver :: (Concurrent :> es, IOE :> es, Stores :> es) => Eff (Driver : es) a -> Eff es a
 testDriver act =
   localDriver (drvEnv "DOCKER_IMAGE") >>= \case
     Nothing -> testHostDriver act
