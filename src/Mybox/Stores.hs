@@ -5,6 +5,8 @@ module Mybox.Stores (
   Store (..),
   Stores,
   storeVar,
+  storeLocked,
+  storeInitLocked,
   storeGet,
   storeSet,
   storeModify,
@@ -50,6 +52,16 @@ type instance DispatchOf Stores = Dynamic
 
 storeVar :: Stores :> es => Store v -> Eff es (MVar Text)
 storeVar store = send $ StoreGet store
+
+storeLocked :: (Concurrent :> es, Stores :> es) => Store () -> Eff es a -> Eff es a
+storeLocked s act = storeModifyM s $ \() -> (,) <$> act <*> pure ()
+
+storeInitLocked :: (Concurrent :> es, Stores :> es) => Store (Maybe a) -> Eff es a -> Eff es a
+storeInitLocked s act = storeModifyM s $ \case
+  Just r -> pure (r, Just r)
+  Nothing -> do
+    r <- act
+    pure (r, Just r)
 
 storeGet :: (Concurrent :> es, Stores :> es) => Store v -> Eff es v
 storeGet store = do
