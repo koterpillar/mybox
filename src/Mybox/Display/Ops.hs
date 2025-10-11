@@ -8,8 +8,8 @@ module Mybox.Display.Ops (
   tiWrapLines,
 ) where
 
+import Data.Char
 import Data.List (groupBy)
-import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text qualified as Text
 
 import Mybox.Display.Class
@@ -58,11 +58,28 @@ tiProgressBar :: Maybe Int -> Int -> Int -> Maybe TerminalLine
 tiProgressBar width progress total
   | total == 0 = Nothing
   | progress >= total = Nothing
-  | otherwise = Just [tiMk $ filledPart <> emptyPart, tiSpace, tiShow progress, tiMk "/", tiShow total]
+  | otherwise = Just [tiMk $ bar <> legend]
  where
-  -- Reserve space for the numbers
-  availableWidth = max 10 (fromMaybe 80 width - 10)
-  filledChars = (progress * availableWidth) `div` total
-  emptyChars = availableWidth - filledChars
-  filledPart = Text.replicate filledChars "#"
-  emptyPart = Text.replicate emptyChars " "
+  -- How long will the full legend (100/100) be? 100/100 longer than 0/100
+  fullLegendLength = 2 + 2 * length (show total)
+  legend =
+    Text.justifyRight fullLegendLength ' ' $
+      " " <> Text.pack (show progress) <> "/" <> Text.pack (show total)
+  -- The rest of the space is for the bar
+  barWidth = max 10 (fromMaybe 80 width - fullLegendLength)
+  bar =
+    Text.pack
+      [ blockChar $
+          progress * barWidth * blockCount `div` total
+            - x * blockCount
+      | x <- [0 .. barWidth - 1]
+      ]
+
+blockCount :: Int
+blockCount = 8
+
+-- See Unicode Block Elements: https://unicode.org/charts/nameslist/n_2580.html
+blockChar :: Int -> Char
+blockChar n
+  | n <= 0 = ' '
+  | otherwise = chr $ 9616 - min blockCount n
