@@ -56,6 +56,7 @@ data TerminalItem = TerminalItem
   { foreground :: Maybe Color
   , text :: Text
   }
+  deriving (Eq, Show)
 
 tiMk :: Text -> TerminalItem
 tiMk text = TerminalItem{foreground = Nothing, text}

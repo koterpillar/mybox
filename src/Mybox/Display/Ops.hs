@@ -4,9 +4,12 @@ module Mybox.Display.Ops (
   tiComma,
   tiSpace,
   tiSplitAt,
+  tiMerge,
   tiWrapLines,
 ) where
 
+import Data.List (groupBy)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text qualified as Text
 
 import Mybox.Display.Class
@@ -23,6 +26,14 @@ tiShow = tiMk . Text.pack . show
 
 tiSplitAt :: Int -> TerminalItem -> (TerminalItem, TerminalItem)
 tiSplitAt n t = (t{text = Text.take n (text t)}, t{text = Text.drop n (text t)})
+
+tiMerge :: [TerminalItem] -> [TerminalItem]
+tiMerge = map mergeGroup . groupBy sameAttributes
+ where
+  mergeGroup [] = error "tiMerge: empty group"
+  mergeGroup l@(x : _) = x{text = mconcat $ map (.text) l}
+  sameAttributes = (==) `on` attributes
+  attributes ti = ti{text = ""}
 
 -- | Wrap terminal lines to fit within a specified width
 tiWrapLines :: Maybe Int -> [TerminalLine] -> [TerminalLine]
