@@ -46,7 +46,7 @@ instance Package ActionPackage where
   install p = do
     queueInstallMany p.deps
     d <- destinationPath p
-    drvRun $ "sleep" :| [Text.pack $ show $ fromIntegral p.delayS / (5 :: Double)]
+    drvRun $ "sleep" :| [Text.pack $ show $ fromIntegral p.delayS / (2 :: Double)]
     drvRun $ shellRaw $ "echo " <> p.name <> " >> " <> d.text
 
 spec :: Spec
