@@ -2,10 +2,10 @@ module Mybox.Display.Data where
 
 import Data.List (intersperse)
 import Data.Set qualified as Set
-import Data.Text qualified as Text
 import Prelude hiding (log)
 
 import Mybox.Display.Class
+import Mybox.Display.Ops
 import Mybox.Prelude
 
 data MDisplay
@@ -27,7 +27,7 @@ data instance Banner MDisplay = MBanner
 
 instance TerminalShow (Banner MDisplay) where
   terminalShow width banner =
-    wrapLines width $
+    tiWrapLines width $
       catMaybes
         [ bannerPart Magenta "checking" banner.checking
         , bannerPart Blue "installing" banner.installing
@@ -45,24 +45,10 @@ bannerPart color label set
           : intersperse tiComma (map tiMk (toList set))
 
 progressPart :: Maybe Int -> Banner MDisplay -> Maybe TerminalLine
-progressPart width banner = makeProgressBar width finishedCount totalCount
+progressPart width banner = tiProgressBar width finishedCount totalCount
  where
   totalCount = Set.size banner.all
   finishedCount = Set.size banner.unchanged + Set.size banner.modified
-
-makeProgressBar :: Maybe Int -> Int -> Int -> Maybe TerminalLine
-makeProgressBar width progress total
-  | total == 0 = Nothing
-  | progress >= total = Nothing
-  | otherwise = Just [tiMk $ filledPart <> emptyPart, tiSpace, tiNumber progress, tiMk "/", tiNumber total]
- where
-  -- Reserve space for the numbers
-  availableWidth = max 10 (fromMaybe 80 width - 10)
-  filledChars = (progress * availableWidth) `div` total
-  emptyChars = availableWidth - filledChars
-  filledPart = Text.replicate filledChars "#"
-  emptyPart = Text.replicate emptyChars " "
-  tiNumber = tiMk . Text.pack . show
 
 bannerPending :: Text -> Banner MDisplay
 bannerPending text = mempty{all = Set.singleton text}

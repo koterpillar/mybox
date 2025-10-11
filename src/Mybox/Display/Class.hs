@@ -7,18 +7,13 @@ module Mybox.Display.Class (
   TerminalItem (..),
   TerminalLine,
   tiMk,
-  tiSplitAt,
-  tiSpace,
-  tiComma,
   TerminalShow (..),
   displayLog,
   displayBanner,
   displayBannerWhile,
-  wrapLines,
 ) where
 
 import Data.Kind
-import Data.Text qualified as Text
 import Effectful.Dispatch.Dynamic
 import System.Console.ANSI
 import Prelude hiding (log)
@@ -65,15 +60,6 @@ data TerminalItem = TerminalItem
 tiMk :: Text -> TerminalItem
 tiMk text = TerminalItem{foreground = Nothing, text}
 
-tiSplitAt :: Int -> TerminalItem -> (TerminalItem, TerminalItem)
-tiSplitAt n t = (t{text = Text.take n (text t)}, t{text = Text.drop n (text t)})
-
-tiComma :: TerminalItem
-tiComma = tiMk ","
-
-tiSpace :: TerminalItem
-tiSpace = tiMk " "
-
 type TerminalLine = [TerminalItem]
 
 class TerminalShow a where
@@ -81,21 +67,3 @@ class TerminalShow a where
 
 instance TerminalShow () where
   terminalShow _ () = []
-
-wrapLine :: Int -> TerminalLine -> [TerminalLine]
-wrapLine maxWidth = fillLines []
- where
-  fillLines acc [] = reverse acc
-  fillLines acc items = let (line, rest) = go 0 [] items in fillLines (line : acc) rest
-  go _ acc [] = (reverse acc, [])
-  go w acc (x : xs)
-    | lw x > maxWidth =
-        let (x1, x2) = tiSplitAt (pred maxWidth - w) x
-         in (reverse (x1 : acc), (x2 : xs)) -- single too long item
-    | w + lw x > maxWidth = (reverse acc, x : xs) -- current item doesn't fit
-    | otherwise = go (w + lw x) (x : acc) xs
-  lw item = Text.length item.text
-
-wrapLines :: Maybe Int -> [TerminalLine] -> [TerminalLine]
-wrapLines Nothing = id
-wrapLines (Just width) = concatMap $ wrapLine width

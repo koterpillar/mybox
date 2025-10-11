@@ -28,6 +28,7 @@ library
       Mybox.Display.ANSI
       Mybox.Display.Class
       Mybox.Display.Data
+      Mybox.Display.Ops
       Mybox.Display.Print
       Mybox.Display.Simple
       Mybox.Driver
