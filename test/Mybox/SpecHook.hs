@@ -13,12 +13,14 @@ import Mybox.Stores
 hook :: Spec -> Hspec.Spec
 hook spec = do
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
-  afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $ effSpec (dispatch statVar) spec
+  driverLock <- runIO $ runEff $ runConcurrent $ newMVar ()
+  afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $
+    effSpec (dispatch statVar driverLock) spec
 
-dispatch :: MVar DriverStats -> Eff BaseEff r -> Eff '[IOE] r
-dispatch statVar act =
+dispatch :: MVar DriverStats -> MVar () -> Eff BaseEff r -> Eff '[IOE] r
+dispatch statVar driverLock act =
   runConcurrent $
     noDisplay $
       runStores $
-        testDriver $
+        testDriver driverLock $
           driverStats statVar act

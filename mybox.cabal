@@ -22,6 +22,7 @@ library
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
       Mybox.Compute.URL
+      Mybox.Concurrent
       Mybox.Config
       Mybox.Config.Match
       Mybox.Display
