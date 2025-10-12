@@ -69,12 +69,12 @@ iCombineLatestInstalled latest installed =
 
 iInstall :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iInstall i package = do
-  install_ i package
+  iLocked i $ install_ i package
   iInvalidate i package
 
 iUpgrade :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iUpgrade i package = do
-  upgrade_ i package
+  iLocked i $ upgrade_ i package
   iInvalidate i package
 
 iInstalledVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)
