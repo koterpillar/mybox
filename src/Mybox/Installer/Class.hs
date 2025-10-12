@@ -29,7 +29,7 @@ instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) wh
   getField i = Store{key = "installer-" <> i.storeKey <> "-packages", iso = jsonIso, def = Map.empty}
 
 iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
-iLocked i act = storeModifyM s $ \() -> (,) <$> act <*> pure ()
+iLocked i act = storeVar s >>= (`atomicMVar` act)
  where
   s = Store{key = "installer-" <> i.storeKey <> "-lock", iso = jsonIso, def = ()}
 
@@ -69,12 +69,12 @@ iCombineLatestInstalled latest installed =
 
 iInstall :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iInstall i package = do
-  install_ i package
+  iLocked i $ install_ i package
   iInvalidate i package
 
 iUpgrade :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iUpgrade i package = do
-  upgrade_ i package
+  iLocked i $ upgrade_ i package
   iInvalidate i package
 
 iInstalledVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)

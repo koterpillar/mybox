@@ -8,6 +8,7 @@ module Mybox.Prelude (
   module Effectful.Concurrent.MVar,
   module Effectful.Exception,
   module GHC.Generics,
+  module Mybox.Concurrent,
   module Mybox.Path,
   (<|>),
   (&),
@@ -30,7 +31,6 @@ module Mybox.Prelude (
   fromMaybeOrM,
   fromMaybeOrMM,
   throwLeft,
-  modifyMVarPure,
 ) where
 
 import Control.Applicative ((<|>))
@@ -56,6 +56,7 @@ import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
 import System.Exit (ExitCode (..))
 
+import Mybox.Concurrent
 import Mybox.Path
 
 terror :: HasCallStack => Text -> a
@@ -73,6 +74,3 @@ infixr 9 `fromMaybeOrMM`
 
 throwLeft :: MonadThrow m => Either String a -> m a
 throwLeft = either throwString pure
-
-modifyMVarPure :: Concurrent :> es => MVar a -> (a -> a) -> Eff es ()
-modifyMVarPure v f = modifyMVar_ v $ pure . f
