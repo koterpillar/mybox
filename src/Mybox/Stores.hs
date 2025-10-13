@@ -1,7 +1,4 @@
 module Mybox.Stores (
-  Iso,
-  textIso,
-  jsonIso,
   Store (..),
   Stores,
   storeVar,
@@ -13,67 +10,54 @@ module Mybox.Stores (
   runStores,
 ) where
 
+import Data.Dynamic hiding (Dynamic)
+import Data.Dynamic qualified
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
 
-import Mybox.Aeson
 import Mybox.Prelude
-
-data Iso a b = Iso
-  { serialize :: a -> b
-  , deserialize :: b -> a
-  }
 
 data Store v = Store
   { key :: Text
-  , iso :: Iso v Text
   , def :: v
   }
 
-textIso :: Iso Text Text
-textIso = Iso{serialize = id, deserialize = id}
+type DDynamic = Data.Dynamic.Dynamic
 
-jsonIso :: (FromJSON v, ToJSON v) => Iso v Text
-jsonIso =
-  Iso
-    { serialize = jsonEncode
-    , deserialize = either (error . show) id . jsonDecode "iso"
-    }
-
-type MegaStore = Map Text (MVar Text)
+type MegaStore = Map Text (MVar DDynamic)
 
 data Stores :: Effect where
-  StoreGet :: Store v -> Stores m (MVar Text)
+  StoreGet :: Typeable v => Store v -> Stores m (MVar DDynamic)
 
 type instance DispatchOf Stores = Dynamic
 
-storeVar :: Stores :> es => Store v -> Eff es (MVar Text)
+storeVar :: (Stores :> es, Typeable v) => Store v -> Eff es (MVar DDynamic)
 storeVar store = send $ StoreGet store
 
-storeGet :: (Concurrent :> es, Stores :> es) => Store v -> Eff es v
+storeGet :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> Eff es v
 storeGet store = do
   v <- storeVar store
-  vText <- readMVar v
-  pure $ store.iso.deserialize vText
+  dv <- readMVar v
+  pure $ fromDyn dv store.def
 
-storeSet :: (Concurrent :> es, Stores :> es) => Store v -> v -> Eff es ()
+storeSet :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> v -> Eff es ()
 storeSet store = storeModify store . const
 
-storeModify :: (Concurrent :> es, Stores :> es) => Store v -> (v -> v) -> Eff es ()
+storeModify :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> (v -> v) -> Eff es ()
 storeModify store = storeModifyM_ store . ((.) pure)
 
-storeModifyM_ :: (Concurrent :> es, Stores :> es) => Store v -> (v -> Eff es v) -> Eff es ()
+storeModifyM_ :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> (v -> Eff es v) -> Eff es ()
 storeModifyM_ store f = storeModifyM store $ \v -> (,) () <$> f v
 
-storeModifyM :: (Concurrent :> es, Stores :> es) => Store v -> (v -> Eff es (r, v)) -> Eff es r
+storeModifyM :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> (v -> Eff es (r, v)) -> Eff es r
 storeModifyM store f = do
   vv <- storeVar store
-  modifyMVar vv $ \vText -> do
-    let v = store.iso.deserialize vText
+  modifyMVar vv $ \dv -> do
+    let v = fromDyn dv store.def
     (r, v') <- f v
-    let vText' = store.iso.serialize v'
-    pure (vText', r)
+    let dv' = toDyn v'
+    pure (dv', r)
 
 runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
 runStores = reinterpret_
@@ -82,6 +66,6 @@ runStores = reinterpret_
     StoreGet store -> stateM $ \m -> case Map.lookup store.key m of
       Just v -> pure (v, m)
       Nothing -> do
-        v <- newMVar $ store.iso.serialize store.def
+        v <- newMVar $ toDyn store.def
         let m' = Map.insert store.key v m
         pure (v, m')
