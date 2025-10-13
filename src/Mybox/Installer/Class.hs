@@ -26,12 +26,12 @@ data Installer = Installer
   }
 
 instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) where
-  getField i = Store{key = "installer-" <> i.storeKey <> "-packages", iso = jsonIso, def = Map.empty}
+  getField i = Store{key = "installer-" <> i.storeKey <> "-packages", def = Map.empty}
 
 iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
 iLocked i act = storeVar s >>= (`atomicMVar` act)
  where
-  s = Store{key = "installer-" <> i.storeKey <> "-lock", iso = jsonIso, def = ()}
+  s = Store{key = "installer-" <> i.storeKey <> "-lock", def = ()}
 
 iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
@@ -44,7 +44,7 @@ iInitLocked i act = storeModifyM_ s $ \case
   True -> pure True
   False -> act *> pure True
  where
-  s = Store{key = "installer-" <> i.storeKey <> "-global", iso = jsonIso, def = False}
+  s = Store{key = "installer-" <> i.storeKey <> "-global", def = False}
 
 iPackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do

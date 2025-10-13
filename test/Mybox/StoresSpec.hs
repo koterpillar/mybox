@@ -6,7 +6,7 @@ import Mybox.Stores
 
 spec :: Spec
 spec = withEff runStores $ do
-  let store = Store{key = "test-store", iso = jsonIso @Int, def = 0}
+  let store = Store{key = "test-store", def = 0 :: Int}
 
   it "returns value after set" $ do
     storeSet store 123
