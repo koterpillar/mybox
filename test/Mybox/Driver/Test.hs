@@ -67,10 +67,9 @@ testHostDriver act = localDriver $ do
                 let np = home <//> path
                 drvMkdir op
                 drvLink op np
-          linkedDirectories <-
-            drvOS >>= \case
-              Linux _ -> pure [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
-              MacOS -> pure [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
+          linkedDirectories <- flip fmap drvOS $ \case
+            Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
+            MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
           for_ linkedDirectories linkToOriginalHome
           act
 

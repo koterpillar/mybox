@@ -79,9 +79,9 @@ paths p = do
 
   let only_ = map (src <//>) <$> p.only
 
-  case only_ of
-    Nothing -> pure pp
-    Just only -> pure $ Set.filter (`elem` only) pp
+  pure $ case only_ of
+    Nothing -> pp
+    Just only -> Set.filter (`elem` only) pp
 
 lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
 lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
