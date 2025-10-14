@@ -14,13 +14,14 @@ hook :: Spec -> Hspec.Spec
 hook spec = do
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
   driverLock <- runIO $ runEff $ runConcurrent $ newMVar ()
+  stores <- runIO $ runEff $ runConcurrent $ newMVar emptyStoreData
   afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $
-    effSpec (dispatch statVar driverLock) spec
+    effSpec (dispatch statVar driverLock stores) spec
 
-dispatch :: MVar DriverStats -> MVar () -> Eff BaseEff r -> Eff '[IOE] r
-dispatch statVar driverLock act =
+dispatch :: MVar DriverStats -> MVar () -> MVar StoreData -> Eff BaseEff r -> Eff '[IOE] r
+dispatch statVar driverLock stores act =
   runConcurrent $
     noDisplay $
-      runStores $
+      runStoresWith stores $
         testDriver driverLock $
-          driverStats statVar act
+          driverStats statVar act <* storeReset

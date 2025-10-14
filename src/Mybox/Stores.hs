@@ -1,5 +1,7 @@
 module Mybox.Stores (
   Store (..),
+  StoreData,
+  emptyStoreData,
   Stores,
   storeGet,
   storeSet,
@@ -9,13 +11,13 @@ module Mybox.Stores (
   storeLock,
   storeReset,
   runStores,
+  runStoresWith,
 ) where
 
 import Data.Dynamic hiding (Dynamic)
 import Data.Dynamic qualified
 import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Shared
 
 import Mybox.Prelude
 
@@ -73,20 +75,24 @@ storeModifyM store f = do
 storeReset :: Stores :> es => Eff es ()
 storeReset = send Reset
 
-runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
-runStores = reinterpret_
-  (evalState emptyStoreData)
-  $ \case
-    GetLock key -> stateM $ \m -> case Map.lookup key m.locks of
-      Just v -> pure (v, m)
+runStores :: Concurrent :> es => Eff (Stores : es) a -> Eff es a
+runStores act = do
+  s <- newMVar emptyStoreData
+  runStoresWith s act
+
+runStoresWith :: Concurrent :> es => MVar StoreData -> Eff (Stores : es) a -> Eff es a
+runStoresWith s = interpret_ $
+  \case
+    GetLock key -> modifyMVar s $ \m -> case Map.lookup key m.locks of
+      Just v -> pure (m, v)
       Nothing -> do
         v <- newMVar ()
         let m' = m{locks = Map.insert key v m.locks}
-        pure (v, m')
-    GetStore store -> stateM $ \m -> case Map.lookup store.key m.stores of
-      Just v -> pure (v, m)
+        pure (m', v)
+    GetStore store -> modifyMVar s $ \m -> case Map.lookup store.key m.stores of
+      Just v -> pure (m, v)
       Nothing -> do
         v <- newMVar $ toDyn store.def
         let m' = m{stores = Map.insert store.key v m.stores}
-        pure (v, m')
-    Reset -> modify $ \m -> m{stores = Map.empty}
+        pure (m', v)
+    Reset -> modifyMVarPure s $ \m -> m{stores = Map.empty}
