@@ -29,9 +29,7 @@ instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) wh
   getField i = Store{key = "installer-" <> i.storeKey <> "-packages", def = Map.empty}
 
 iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
-iLocked i act = storeVar s >>= (`atomicMVar` act)
- where
-  s = Store{key = "installer-" <> i.storeKey <> "-lock", def = ()}
+iLocked i = storeLock $ "installer-" <> i.storeKey <> "-lock"
 
 iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
