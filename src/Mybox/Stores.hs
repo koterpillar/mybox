@@ -7,6 +7,7 @@ module Mybox.Stores (
   storeModifyM_,
   storeModifyM,
   storeLock,
+  storeReset,
   runStores,
 ) where
 
@@ -36,6 +37,7 @@ emptyStoreData = StoreData{locks = Map.empty, stores = Map.empty}
 data Stores :: Effect where
   GetLock :: Text -> Stores m (MVar ())
   GetStore :: Typeable v => Store v -> Stores m (MVar DDynamic)
+  Reset :: Stores m ()
 
 type instance DispatchOf Stores = Dynamic
 
@@ -68,6 +70,9 @@ storeModifyM store f = do
     let dv' = toDyn v'
     pure (dv', r)
 
+storeReset :: Stores :> es => Eff es ()
+storeReset = send Reset
+
 runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
 runStores = reinterpret_
   (evalState emptyStoreData)
@@ -84,3 +89,4 @@ runStores = reinterpret_
         v <- newMVar $ toDyn store.def
         let m' = m{stores = Map.insert store.key v m.stores}
         pure (v, m')
+    Reset -> modify $ \m -> m{stores = Map.empty}
