@@ -7,7 +7,6 @@ module Mybox.Driver.Test (
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
-import System.Environment
 
 import Mybox.Driver.Class
 import Mybox.Driver.IO
@@ -41,37 +40,29 @@ rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
     RunOutputHide -> ()
     RunOutputReturn -> Text.encodeUtf8 result
 
-withEnv :: IOE :> es => Text -> (Text -> Text) -> Eff es a -> Eff es a
-withEnv key fn action = do
-  originalValue <- fromMaybe "" <$> localDriver (drvEnv key)
-  let newValue = fn originalValue
-  bracket_
-    (liftIO $ setEnv (Text.unpack key) $ Text.unpack newValue)
-    (liftIO $ setEnv (Text.unpack key) $ Text.unpack originalValue)
-    action
-
-withAddedPath :: IOE :> es => Path Abs -> Eff es a -> Eff es a
-withAddedPath addPath = withEnv "PATH" $ \originalPath -> addPath.text <> ":" <> originalPath
-
 testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
 testHostDriver act = localDriver $ do
   githubToken <- drvGithubToken
   originalHome <- drvHome
+  originalPath <- fromMaybe "" <$> drvEnv "PATH"
   bracket (drvTemp_ True) drvRm $ \home -> do
-    withAddedPath (home </> ".local" </> "bin") $
-      withEnv "HOME" (const home.text) $
-        withEnv "GITHUB_TOKEN" (const githubToken) $ do
-          let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
-              linkToOriginalHome path = do
-                let op = originalHome <//> path
-                let np = home <//> path
-                drvMkdir op
-                drvLink op np
-          linkedDirectories <- flip fmap drvOS $ \case
-            Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
-            MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
-          for_ linkedDirectories linkToOriginalHome
-          act
+    let newLocalBin = home </> ".local" </> "bin"
+    let envOverrides =
+          [ ("GITHUB_TOKEN", githubToken)
+          , ("PATH", newLocalBin.text <> ":" <> originalPath)
+          , ("HOME", home.text)
+          ]
+    let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
+        linkToOriginalHome path = do
+          let op = originalHome <//> path
+          let np = home <//> path
+          drvMkdir op
+          drvLink op np
+    linkedDirectories <- flip fmap drvOS $ \case
+      Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
+      MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
+    for_ linkedDirectories linkToOriginalHome
+    modifyDriver (env envOverrides) act
 
 containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
 containerDriver container = modifyDriver transformArgs
