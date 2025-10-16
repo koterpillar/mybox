@@ -18,7 +18,7 @@ spec = do
     it "displays banner" $ do
       output <- run $ displayBanner $ bannerChecking "check" <> bannerInstalling "install"
 
-      output `shouldBe` colourString "<magenta>checking<reset> check\n<blue>installing<reset> install"
+      output `shouldBe` colourString "<blue>installing<reset> install\n<magenta>checking<reset> check"
 
     it "displays progress when some packages are already checked" $ do
       output <-
@@ -33,7 +33,7 @@ spec = do
               , bannerModified "two"
               ]
       let expectedBar = Text.replicate 38 "█" <> Text.replicate 38 " "
-      output `shouldBe` colourString (expectedBar <> " 2/4\n<green>installed<reset> two")
+      output `shouldBe` colourString ("<green>installed<reset> two\n" <> expectedBar <> " 2/4")
 
     it "displays final banner when all packages checked" $ do
       output <-

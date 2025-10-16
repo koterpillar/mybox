@@ -29,10 +29,10 @@ instance TerminalShow (Banner MDisplay) where
   terminalShow width banner =
     tiWrapLines width $
       catMaybes
-        [ bannerPart Magenta "checking" banner.checking
-        , bannerPart Blue "installing" banner.installing
+        [ bannerPart Green "installed" banner.modified
         , progressPart width banner
-        , bannerPart Green "installed" banner.modified
+        , bannerPart Blue "installing" banner.installing
+        , bannerPart Magenta "checking" banner.checking
         ]
 
 bannerPart :: Color -> Text -> Set Text -> Maybe TerminalLine
