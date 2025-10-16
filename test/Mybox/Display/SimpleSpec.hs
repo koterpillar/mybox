@@ -38,6 +38,6 @@ spec = do
           , "installing one"
           , "inside"
           , "world"
-          , "checking two"
           , "installing four,three"
+          , "checking two"
           ]
