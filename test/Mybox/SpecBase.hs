@@ -8,6 +8,7 @@ module Mybox.SpecBase (
   effSpec,
   withEff,
   before,
+  after,
   onlyIf,
   onlyIfOS,
   skipIf,
@@ -28,7 +29,7 @@ module Mybox.SpecBase (
 
 import Data.Text qualified as Text
 import System.Environment (lookupEnv)
-import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
+import Test.Hspec hiding (Spec, SpecWith, after, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 
 import Mybox.Aeson
@@ -56,7 +57,10 @@ withEff :: (forall a. Eff es' a -> Eff es a) -> EffSpec es' -> EffSpec es
 withEff dispatch = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ dispatch test
 
 before :: Eff es () -> EffSpec es -> EffSpec es
-before act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ act >> test
+before act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ act *> test
+
+after :: Eff es () -> EffSpec es -> EffSpec es
+after act = mapSubject $ \(RunEff unlift) -> RunEff $ \test -> unlift $ test <* act
 
 it :: String -> Eff es () -> EffSpec es
 it name act = Hspec.it name $ \(RunEff unlift) -> unlift act

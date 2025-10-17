@@ -65,6 +65,9 @@ tests:
       - zlib
     build-tools:
       - hspec-discover
+    ghc-options:
+      - -rtsopts
+      - -with-rtsopts=-N
 executables:
   mybox:
     main: Main.hs
