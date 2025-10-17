@@ -6,9 +6,14 @@ module Mybox.Spec.Utils (
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Effectful
+import Effectful.Exception
 import System.Random
 
 import Mybox.Spec.Uncovered.Utils
 
 randomText :: IOE :> es => Text -> Eff es Text
 randomText prefix = (("mybox-" <> prefix <> "-") <>) <$> Text.pack . show <$> liftIO (randomIO @Word)
+
+errorCallContains :: [Text] -> ErrorCall -> Bool
+errorCallContains expected (ErrorCall msg) =
+  all (`Text.isInfixOf` Text.pack msg) expected

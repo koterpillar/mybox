@@ -27,7 +27,7 @@ module Mybox.SpecBase (
 ) where
 
 import Data.Text qualified as Text
-import System.Environment
+import System.Environment (lookupEnv)
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
 

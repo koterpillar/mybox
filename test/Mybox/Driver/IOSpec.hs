@@ -6,6 +6,7 @@ import Data.Text qualified as Text
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 
 spec :: Spec
@@ -27,13 +28,12 @@ spec = do
   it "trims whitespace from output" $ do
     result <- drvRunOutput $ "echo" :| ["  trimmed  "]
     result `shouldBe` "trimmed"
-  skipIf "Running in Docker modifies commands run" inDocker $ do
-    it "reports an error" $
-      drvRun ("false" :| []) `shouldThrow` errorCall "Process false failed with exit code 1"
-    it "includes error in failure message" $
-      shouldThrow
-        (drvRun $ shellRaw "echo fail; echo err >&2; false")
-        (errorCall "Process /bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err")
+  it "reports an error" $
+    drvRun ("false" :| []) `shouldThrow` errorCallContains ["false failed with exit code 1"]
+  it "includes error in failure message" $
+    shouldThrow
+      (drvRun $ shellRaw "echo fail; echo err >&2; false")
+      (errorCallContains ["/bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
   it "writes and reads files" $ do
     let testFile = pRoot </> "tmp" </> "test.txt"
     drvWriteFile testFile "Hello World"
@@ -69,9 +69,7 @@ spec = do
     it "errors on non-200 status"
       $ shouldThrow
         (drvHttpGet page404)
-      $ \(ErrorCall msg') ->
-        let msg = Text.pack msg'
-         in Text.isPrefixOf "HTTP URL http://deb.debian.org/nonexistent returned 404: <!DOCTYPE" msg
+      $ errorCallContains ["HTTP URL http://deb.debian.org/nonexistent returned 404: <!DOCTYPE"]
     it "returns status and contents" $ do
       (status, result) <- drvHttpGetStatus page
       status `shouldBe` 200
