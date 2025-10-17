@@ -12,10 +12,9 @@ module Mybox.Stores (
 
 import Data.Dynamic hiding (Dynamic)
 import Data.Dynamic qualified
-import Data.Map.Strict qualified as Map
 import Effectful.Dispatch.Dynamic
-import Effectful.State.Static.Shared
 
+import Mybox.LockMap
 import Mybox.Prelude
 
 data Store v = Store
@@ -24,14 +23,6 @@ data Store v = Store
   }
 
 type DDynamic = Data.Dynamic.Dynamic
-
-data StoreData = StoreData
-  { locks :: Map Text (MVar ())
-  , stores :: Map Text (MVar DDynamic)
-  }
-
-emptyStoreData :: StoreData
-emptyStoreData = StoreData{locks = Map.empty, stores = Map.empty}
 
 data Stores :: Effect where
   GetLock :: Text -> Stores m (MVar ())
@@ -69,18 +60,10 @@ storeModifyM store f = do
     pure (dv', r)
 
 runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
-runStores = reinterpret_
-  (evalState emptyStoreData)
-  $ \case
-    GetLock key -> stateM $ \m -> case Map.lookup key m.locks of
-      Just v -> pure (v, m)
-      Nothing -> do
-        v <- newMVar ()
-        let m' = m{locks = Map.insert key v m.locks}
-        pure (v, m')
-    GetStore store -> stateM $ \m -> case Map.lookup store.key m.stores of
-      Just v -> pure (v, m)
-      Nothing -> do
-        v <- newMVar $ toDyn store.def
-        let m' = m{stores = Map.insert store.key v m.stores}
-        pure (v, m')
+runStores act = do
+  locks <- newLockMap @_ @Text @()
+  stores <- newLockMap @_ @Text @DDynamic
+  interpretWith_ act $
+    \case
+      GetLock key -> lockMapGet locks key ()
+      GetStore store -> lockMapGet stores store.key $ toDyn store.def
