@@ -68,6 +68,9 @@ prerequisites p = do
     queueInstall $
       mkSystemPackage "git"
 
+pipx :: (Concurrent :> es, Driver :> es) => (Args -> Eff es a) -> [Text] -> Eff es a
+pipx run args = drvAtomic "pipx" $ run $ "pipx" :| args
+
 data PipxInstalledPackage = PipxInstalledPackage
   { name :: Text
   , canonicalName :: Text
@@ -86,13 +89,13 @@ instance FromJSON PipxInstalledPackage where
     binaries <- mainPackage .: "app_paths" >>= traverse (.: "__Path__")
     pure $ PipxInstalledPackage{..}
 
-getInstalled :: Driver :> es => PipxPackage -> Eff es (Maybe PipxInstalledPackage)
+getInstalled :: (Concurrent :> es, Driver :> es) => PipxPackage -> Eff es (Maybe PipxInstalledPackage)
 getInstalled p = do
-  pipxListOutput <- drvRunOutput $ "pipx" :| ["list", "--json"]
+  pipxListOutput <- pipx drvRunOutput ["list", "--json"]
   allMetadata <- jsonDecode @PipxList "pipx output" pipxListOutput
   pure $ find (\pkg -> pkg.name == p.package) allMetadata.packages
 
-localVersionPipx :: Driver :> es => PipxPackage -> Eff es (Maybe Text)
+localVersionPipx :: (Concurrent :> es, Driver :> es) => PipxPackage -> Eff es (Maybe Text)
 localVersionPipx p = do
   if isRepo p
     then manualVersion p -- pipx doesn't store Git commit, just the version field from the package
@@ -113,13 +116,13 @@ remoteVersionPipx p = do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-venvsPath :: Driver :> es => Eff es (Path Abs)
-venvsPath = fmap mkPath $ drvRunOutput $ "pipx" :| ["environment", "--value", "PIPX_LOCAL_VENVS"]
+venvsPath :: (Concurrent :> es, Driver :> es) => Eff es (Path Abs)
+venvsPath = mkPath <$> pipx drvRunOutput ["environment", "--value", "PIPX_LOCAL_VENVS"]
 
 pipxInstall :: App es => PipxPackage -> Eff es ()
 pipxInstall p = do
   prerequisites p
-  drvRun $ "pipx" :| ((if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package])
+  pipx drvRun $ (if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package]
   metadata_ <- getInstalled p
   local <- drvLocal
   for_ metadata_ $ \metadata -> do
