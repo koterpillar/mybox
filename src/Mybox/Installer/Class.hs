@@ -28,8 +28,8 @@ data Installer = Installer
 instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) where
   getField i = Store{key = "installer-" <> i.storeKey <> "-packages", def = Map.empty}
 
-iLocked :: (Concurrent :> es, Stores :> es) => Installer -> Eff es a -> Eff es a
-iLocked i = storeLock $ "installer-" <> i.storeKey <> "-lock"
+iLocked :: (Concurrent :> es, Driver :> es) => Installer -> Eff es a -> Eff es a
+iLocked i = drvAtomic $ "installer-" <> i.storeKey
 
 iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do

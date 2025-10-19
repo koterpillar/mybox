@@ -2,6 +2,7 @@ module Mybox.Driver.IOSpec where
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Effectful.Concurrent (threadDelay)
 
 import Mybox.Driver.Class
 import Mybox.Driver.Ops
@@ -74,3 +75,12 @@ spec = do
       (status, result) <- drvHttpGetStatus page
       status `shouldBe` 200
       result `shouldSatisfy` expectedPage
+  describe "drvAtomic" $ do
+    it "orders effects atomically" $ do
+      counter <- newMVar (0 :: Int)
+      concurrently_ 1000 $ drvAtomic "test" $ do
+        -- unsafe without outer lock
+        val <- readMVar counter
+        threadDelay 10
+        modifyMVarPure counter $ const $ succ val
+      takeMVar counter >>= (`shouldBe` 1000)
