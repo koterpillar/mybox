@@ -110,7 +110,7 @@ testDockerDriver driverLock baseImage act =
            , "--rm"
            , "--detach"
            , "--name"
-           , "mybox-test-" <> containerName
+           , containerName
            , "--env"
            , "GITHUB_TOKEN=" <> githubToken
            , "--volume"
