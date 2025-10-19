@@ -6,12 +6,11 @@ module Mybox.Stores (
   storeModify,
   storeModifyM_,
   storeModifyM,
-  storeLock,
   runStores,
 ) where
 
 import Data.Dynamic hiding (Dynamic)
-import Data.Dynamic qualified
+import Data.Dynamic qualified as D
 import Effectful.Dispatch.Dynamic
 
 import Mybox.LockMap
@@ -22,18 +21,10 @@ data Store v = Store
   , def :: v
   }
 
-type DDynamic = Data.Dynamic.Dynamic
-
 data Stores :: Effect where
-  GetLock :: Text -> Stores m (MVar ())
-  GetStore :: Typeable v => Store v -> Stores m (MVar DDynamic)
+  GetStore :: Typeable v => Store v -> Stores m (MVar D.Dynamic)
 
 type instance DispatchOf Stores = Dynamic
-
-storeLock :: (Concurrent :> es, Stores :> es) => Text -> Eff es r -> Eff es r
-storeLock key act = do
-  v <- send $ GetLock key
-  atomicMVar v act
 
 storeGet :: (Concurrent :> es, Stores :> es, Typeable v) => Store v -> Eff es v
 storeGet store = do
@@ -61,9 +52,7 @@ storeModifyM store f = do
 
 runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
 runStores act = do
-  locks <- newLockMap @_ @Text @()
-  stores <- newLockMap @_ @Text @DDynamic
+  stores <- newLockMap @_ @Text @D.Dynamic
   interpretWith_ act $
     \case
-      GetLock key -> lockMapGet locks key ()
       GetStore store -> lockMapGet stores store.key $ toDyn store.def

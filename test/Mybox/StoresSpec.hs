@@ -1,8 +1,5 @@
 module Mybox.StoresSpec where
 
-import Effectful.Concurrent (threadDelay)
-
-import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Stores
@@ -21,13 +18,3 @@ spec = withEff runStores $ do
   it "modifies values atomically" $ do
     concurrently_ 1000 $ storeModify store succ
     storeGet store >>= (`shouldBe` 1000)
-
-  describe "storeLock" $
-    it "orders effects atomically" $ do
-      counter <- newMVar (0 :: Int)
-      concurrently_ 1000 $ storeLock "test" $ do
-        -- unsafe without outer lock
-        val <- readMVar counter
-        threadDelay 10
-        modifyMVarPure counter $ const $ succ val
-      takeMVar counter >>= (`shouldBe` 1000)

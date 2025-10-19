@@ -22,12 +22,14 @@ pureDriver run = interpret_ $ \case
       rrSuccess exitBehavior outputBehavior $
         requireJust ("pureDriver: unexpected command " <> show args) $
           run args
+  DrvLock _ -> error "pureDriver: locks not supported"
 
 stubDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a
 stubDriver run = interpose_ $ \case
   DrvRun exitBehaviour outputBehaviour args -> case run args of
     Nothing -> send $ DrvRun exitBehaviour outputBehaviour args
     Just result -> pure $ rrSuccess exitBehaviour outputBehaviour result
+  DrvLock key -> send $ DrvLock key
 
 rrSuccess :: RunExit e -> RunOutput o -> Text -> RunResult e o
 rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
@@ -40,7 +42,7 @@ rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
     RunOutputHide -> ()
     RunOutputReturn -> Text.encodeUtf8 result
 
-testHostDriver :: IOE :> es => Eff (Driver : es) a -> Eff es a
+testHostDriver :: (Concurrent :> es, IOE :> es) => Eff (Driver : es) a -> Eff es a
 testHostDriver act = localDriver $ do
   githubToken <- drvGithubToken
   originalHome <- drvHome

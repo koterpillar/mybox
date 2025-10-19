@@ -51,6 +51,10 @@ data Driver :: Effect where
     -- | Command and arguments
     Args ->
     Driver m (RunResult e o)
+  DrvLock ::
+    -- | Lock key
+    [Text] ->
+    Driver m (MVar ())
 
 type instance DispatchOf Driver = Dynamic
 
@@ -81,3 +85,14 @@ drvRunOutputExit = fmap (rrMap Text.decodeUtf8) . drvRunOutputExitBinary
 modifyDriver :: Driver :> es => (Args -> Args) -> Eff es a -> Eff es a
 modifyDriver transformArgs = interpose_ $ \case
   DrvRun e o args -> send $ DrvRun e o $ transformArgs args
+  DrvLock key -> send $ DrvLock key
+
+drvAtomic :: (Concurrent :> es, Driver :> es) => Text -> Eff es a -> Eff es a
+drvAtomic key act = do
+  v <- send $ DrvLock [key]
+  atomicMVar v act
+
+modifyLockKey :: Driver :> es => Text -> Eff es a -> Eff es a
+modifyLockKey addKey = interpose_ $ \case
+  DrvRun e o args -> send $ DrvRun e o args
+  DrvLock keys -> send $ DrvLock $ addKey : keys

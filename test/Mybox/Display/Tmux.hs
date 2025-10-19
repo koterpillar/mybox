@@ -13,7 +13,7 @@ import Mybox.Prelude
 import Mybox.Spec.Utils
 
 runTmux ::
-  IOE :> es =>
+  (Concurrent :> es, IOE :> es) =>
   Eff (Print : es) r ->
   Eff es (r, ByteString)
 runTmux act =
