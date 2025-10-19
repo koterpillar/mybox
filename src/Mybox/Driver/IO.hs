@@ -1,4 +1,4 @@
-module Mybox.Driver.IO (localDriver) where
+module Mybox.Driver.IO (localDriver, DriverLockMap, newLockMap, localDriverWith) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
@@ -38,10 +38,16 @@ bsStrip = BS.dropWhileEnd whitespace . BS.dropWhile whitespace
   whitespace 0x0D = True -- carriage return
   whitespace _ = False
 
+type DriverLockMap = LockMap [Text] ()
+
 localDriver :: (Concurrent :> es, IOE :> es) => Eff (Driver : es) a -> Eff es a
 localDriver act = do
   lm <- newLockMap @_ @[Text] @()
-  interpretWith_ act $ \case
+  localDriverWith lm act
+
+localDriverWith :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
+localDriverWith lm = do
+  interpret_ $ \case
     DrvRun exitBehavior outputBehavior args_ -> do
       let (cmd :| args) = Text.unpack <$> args_
       let process = proc cmd args

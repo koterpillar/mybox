@@ -42,8 +42,8 @@ rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
     RunOutputHide -> ()
     RunOutputReturn -> Text.encodeUtf8 result
 
-testHostDriver :: (Concurrent :> es, IOE :> es) => Eff (Driver : es) a -> Eff es a
-testHostDriver act = localDriver $ do
+testHostDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
+testHostDriver driverLock act = localDriverWith driverLock $ do
   githubToken <- drvGithubToken
   originalHome <- drvHome
   originalPath <- fromMaybe "" <$> drvEnv "PATH"
@@ -68,7 +68,7 @@ testHostDriver act = localDriver $ do
     modifyDriver (env envOverrides) act
 
 containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
-containerDriver container = modifyDriver transformArgs
+containerDriver container = modifyLockKey container . modifyDriver transformArgs
  where
   transformArgs :: Args -> Args
   transformArgs ("sudo" :| args') = dockerExec "root" args'
@@ -84,15 +84,15 @@ containerDriver container = modifyDriver transformArgs
          ]
       <> args
 
-testDockerDriver :: (Concurrent :> es, IOE :> es) => MVar () -> Text -> Eff (Driver : es) a -> Eff es a
-testDockerDriver lock baseImage act =
-  localDriver $
+testDockerDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Text -> Eff (Driver : es) a -> Eff es a
+testDockerDriver driverLock baseImage act =
+  localDriverWith driverLock $ do
     bracket mkContainer rmContainer $ \container ->
       containerDriver container act
  where
   mkImage :: (Concurrent :> es, Driver :> es) => Eff es Text
   mkImage =
-    atomicMVar lock $
+    drvAtomic "mkImage" $
       drvTempDir $ \tempDir -> do
         drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
@@ -145,8 +145,8 @@ dockerUser = "regular_user"
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
 
-testDriver :: (Concurrent :> es, IOE :> es) => MVar () -> Eff (Driver : es) a -> Eff es a
-testDriver lock act =
-  localDriver (drvEnv "DOCKER_IMAGE") >>= \case
-    Nothing -> testHostDriver act
-    Just image -> testDockerDriver lock image act
+testDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
+testDriver driverLock act =
+  localDriverWith driverLock (drvEnv "DOCKER_IMAGE") >>= \case
+    Nothing -> testHostDriver driverLock act
+    Just image -> testDockerDriver driverLock image act
