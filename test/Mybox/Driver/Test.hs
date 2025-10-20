@@ -45,7 +45,8 @@ testHostDriver act = localDriver $ do
   githubToken <- drvGithubToken
   originalHome <- drvHome
   originalPath <- fromMaybe "" <$> drvEnv "PATH"
-  bracket (drvTemp_ True) drvRm $ \home -> do
+  drvTempDir $ \home' -> do
+    home <- drvRealPath home'
     let newLocalBin = home </> ".local" </> "bin"
     let envOverrides =
           [ ("GITHUB_TOKEN", githubToken)

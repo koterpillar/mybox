@@ -8,7 +8,7 @@ module Mybox.Package.SpecBase (
   preinstall,
   cleanup,
   preinstallPackage,
-  ignorePath,
+  ignorePaths,
   packageSpec,
   packageSpecGen,
 ) where
@@ -82,8 +82,8 @@ checkInstalledCommandOutput :: Args -> Text -> MPS a
 checkInstalledCommandOutput cmd expectedOutput =
   checkInstalled $ commandHasOutput cmd expectedOutput
 
-ignorePath :: Path Rel -> MPS a
-ignorePath path s = s{ignoredPaths_ = Set.insert path s.ignoredPaths_}
+ignorePaths :: Foldable t => t (Path Rel) -> MPS a
+ignorePaths paths s = s{ignoredPaths_ = Set.union (Set.fromList $ toList paths) s.ignoredPaths_}
 
 preinstall :: (forall es. App es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
@@ -133,7 +133,8 @@ checkAllTracked s preexisting ts = do
   let new = Set.difference current preexisting
   let tracked = Map.keys ts
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
-  missing `shouldBe` Set.empty
+  let sample = Set.take 10 missing
+  sample `shouldBe` Set.empty
 
 checkVersionMatches :: (App es, IOE :> es, Package p) => p -> Eff es ()
 checkVersionMatches p = do

@@ -22,7 +22,7 @@ spec = do
           "ripgrep"
     packageSpec $
       ps (mkSystemPackage "alacritty")
-        & ignorePath ".terminfo"
+        & ignorePaths [".terminfo"]
         & checkInstalledCommandOutput
           ("alacritty" :| ["--version"])
           "alacritty 0"
