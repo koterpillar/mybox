@@ -98,6 +98,9 @@ drvCopy source target = do
   drvRm target
   drvRun $ "cp" :| ["-R", "-f", source.text, target.text]
 
+drvRealPath :: (Anchor a, Driver :> es) => Path a -> Eff es (Path Abs)
+drvRealPath path = mkPath <$> drvRunOutput ("realpath" :| [path.text])
+
 drvTemp_ :: Driver :> es => Bool -> Eff es (Path Abs)
 drvTemp_ isDirectory = fmap mkPath $ drvRunOutput $ "mktemp" :| ["-d" | isDirectory]
 
