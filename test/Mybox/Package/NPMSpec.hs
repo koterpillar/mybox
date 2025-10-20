@@ -30,4 +30,4 @@ spec = do
       & checkInstalledCommandOutput
         ("express" :| ["--help"])
         "engine support"
-      & ignorePath ".npm"
+      & ignorePaths [".npm"]

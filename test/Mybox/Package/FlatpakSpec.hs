@@ -20,4 +20,4 @@ spec = do
             & checkInstalledCommandOutput
               ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
               "VLC version"
-            & ignorePath (mkPath ".local/share/flatpak")
+            & ignorePaths [mkPath ".local/share/flatpak"]
