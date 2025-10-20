@@ -18,6 +18,7 @@ driverStats statVar =
     DrvRun e o args -> do
       modifyMVarPure statVar $ Map.insertWith (+) args 1
       send $ DrvRun e o args
+    DrvLock key -> send $ DrvLock key
 
 printStats :: (Concurrent :> es, IOE :> es) => MVar DriverStats -> Int -> Eff es ()
 printStats statVar n = do

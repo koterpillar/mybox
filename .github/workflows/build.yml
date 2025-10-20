@@ -36,19 +36,21 @@ jobs:
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
       - name: Configure host system
-        if: matrix.host && matrix.host != 'macos'
+        if: matrix.host
         run: |
-          sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
-            polkit.addRule(function(action, subject) {
-              if (
-                action.id == "org.freedesktop.Flatpak.app-install" ||
-                action.id == "org.freedesktop.Flatpak.modify-repo"
-              ) {
-                return polkit.Result.YES;
-              }
-              return polkit.Result.NOT_HANDLED;
-            });
+          if [ -d /etc/polkit-1 ]; then
+            sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
+              polkit.addRule(function(action, subject) {
+                if (
+                  action.id == "org.freedesktop.Flatpak.app-install" ||
+                  action.id == "org.freedesktop.Flatpak.modify-repo"
+                ) {
+                  return polkit.Result.YES;
+                }
+                return polkit.Result.NOT_HANDLED;
+              });
           EOF
+          fi
           command -v apt >/dev/null && sudo apt update || true
       - id: test
         name: Test
