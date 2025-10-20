@@ -133,7 +133,8 @@ checkAllTracked s preexisting ts = do
   let new = Set.difference current preexisting
   let tracked = Map.keys ts
   let missing = Set.filter (\path -> not $ any (`pUnder` path) tracked) new
-  missing `shouldBe` Set.empty
+  let sample = Set.take 10 missing
+  sample `shouldBe` Set.empty
 
 checkVersionMatches :: (App es, IOE :> es, Package p) => p -> Eff es ()
 checkVersionMatches p = do
