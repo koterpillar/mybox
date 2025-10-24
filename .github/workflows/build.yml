@@ -64,7 +64,7 @@ jobs:
       - name: Rename coverage
         run: cp ${{ steps.test.outputs.local-hpc-root }}/mybox/tests/tests.tix ${{ strategy.job-index }}.tix
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-${{ strategy.job-index }}
           path: '*.tix'
@@ -89,7 +89,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: 'coverage-*'
           merge-multiple: true
@@ -147,7 +147,7 @@ jobs:
       - name: Move executable
         run: cp ${{ steps.compile.outputs.local-install-root }}/bin/mybox ./mybox-$(uname)-$(uname -m)
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: executable-${{ matrix.os }}-${{ matrix.arch || 'default' }}
           path: mybox-*
@@ -171,7 +171,7 @@ jobs:
       - name: Install dependencies
         run: ./bin/install-dev --no-lint --no-haskell
       - name: Download executables
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: 'executable-*'
           merge-multiple: true
