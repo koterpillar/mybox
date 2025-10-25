@@ -129,14 +129,13 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
-  onlyIf "hindent-build only provides x86_64 binaries" ((\case X86_64 -> True; _ -> False) <$> drvArchitecture) $
-    packageSpec $
-      ps
-        ( (mkGithubPackage "koterpillar/hindent-build")
-            { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
-            }
-        )
-        & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
+  packageSpec $
+    ps
+      ( (mkGithubPackage "koterpillar/hindent-build")
+          { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
+          }
+      )
+      & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
 
   onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
     packageSpec $
