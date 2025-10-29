@@ -88,12 +88,13 @@ instance ToJSON TrackerStateFile where
 
 -- FIXME: store whether files were created with sudo?
 rmWithRoot :: Driver :> es => Path Abs -> Eff es ()
-rmWithRoot p = modifyDriver m $ drvRm p
- where
-  m
-    | pUnder (pRoot </> "root") p = sudo
-    | pUnder (pRoot </> "var" </> "root") p = sudo -- macOS root home
-    | otherwise = id
+rmWithRoot p = do
+  sudo' <- mkSudo
+  let m
+        | pUnder (pRoot </> "root") p = sudo'
+        | pUnder (pRoot </> "var" </> "root") p = sudo' -- macOS root home
+        | otherwise = id
+  modifyDriver m $ drvRm p
 
 drvTracker :: (Anchor a, Concurrent :> es, Driver :> es) => Path a -> Eff (Tracker : es) r -> Eff es r
 drvTracker stateFile act = do

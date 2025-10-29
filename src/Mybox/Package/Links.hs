@@ -91,11 +91,12 @@ lpInstall p = do
   destination <- destinationPath p
   pp <- paths p
   src <- source p
+  sudo' <- mkSudo
   for_ (Set.toList pp) $ \path_ -> do
     let path = pRelativeTo_ src path_
     let pathDot = (if p.dot then mkPath $ "." <> path.text else path)
     let pathDest = destination <//> pathDot
-    modifyDriver (if p.root then sudo else id) $ drvLink path_ pathDest
+    modifyDriver (if p.root then sudo' else id) $ drvLink path_ pathDest
     trkAdd p pathDest
 
 instance Package LinksPackage where

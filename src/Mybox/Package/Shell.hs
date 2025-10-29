@@ -82,10 +82,11 @@ shellInstall p = do
   unlessM (drvIsFile p.shell) $ terror $ p.shell.text <> " does not exist."
   unlessM (drvIsExecutable p.shell) $ terror $ p.shell.text <> " is not executable."
   shells <- allShells
+  sudo' <- mkSudo
   unless (p.shell `elem` shells) $ do
-    drvRun $ sudo $ shellRaw $ "echo " <> shellQuote p.shell.text <> " >> " <> shellQuote shellsFile.text
+    drvRun $ sudo' $ shellRaw $ "echo " <> shellQuote p.shell.text <> " >> " <> shellQuote shellsFile.text
 
-  drvRun $ (if p.root then sudo else id) $ "chsh" :| ["-s", p.shell.text]
+  drvRun $ (if p.root then sudo' else id) $ "chsh" :| ["-s", p.shell.text]
 
 instance Package ShellPackage where
   localVersion = shellLocalVersion

@@ -8,9 +8,10 @@ import Mybox.Installer.Class
 import Mybox.Prelude
 
 aptInstall :: Driver :> es => Text -> Eff es ()
-aptInstall package =
+aptInstall package = do
+  sudo' <- mkSudo
   drvRunSilent $
-    sudo $
+    sudo' $
       env [("DEBIAN_FRONTEND", "noninteractive")] $
         "apt" :| ["install", "-y", package]
 

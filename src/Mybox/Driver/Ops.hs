@@ -268,6 +268,11 @@ shellQuote t
   q = "'"
   safe c = isAlphaNum c || c == '_' || c == '/'
 
+mkSudo :: Driver :> es => Eff es (Args -> Args)
+mkSudo = do
+  isRoot <- (== "0") <$> drvRunOutput ("id" :| ["-u"])
+  pure $ if isRoot then id else sudo
+
 sudo :: Args -> Args
 sudo args = "sudo" :| toList args
 
