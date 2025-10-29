@@ -62,7 +62,7 @@ systemInstall p = do
     Nothing -> do
       alreadyInstalled <- isJust <$> systemLocalVersion p
       (if alreadyInstalled then iUpgrade else iInstall) installer p.name
-    Just url -> manualVersionInstall (\_ -> iInstall installer url) p
+    Just url -> manualVersionInstall (\_ -> iInstallURL installer url) p
 
 instance Package SystemPackage where
   localVersion = systemLocalVersion

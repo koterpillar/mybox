@@ -192,6 +192,11 @@ drvHttpGetStatusArgs args url = do
   let (result, status) = Text.breakOnEnd "\n" fullResult
   pure (read $ Text.unpack status, Text.dropEnd 1 result)
 
+drvTempDownload :: Driver :> es => Text -> (Path Abs -> Eff es a) -> Eff es a
+drvTempDownload url act = drvTempFile $ \path -> do
+  drvRun $ curl ["-o", path.text] url
+  act path
+
 drvRedirectLocation :: Driver :> es => Text -> Eff es Text
 drvRedirectLocation = drvUrlProperty "%{url_effective}"
 

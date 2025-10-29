@@ -80,6 +80,7 @@ brew =
   Installer
     { storeKey = "brew"
     , install_ = brewInstall "install"
+    , installURL = iURLNotImplemented
     , upgrade_ = brewInstall "upgrade"
     , getPackageInfo = brewPackageInfo
     }

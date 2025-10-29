@@ -3,6 +3,7 @@ module Mybox.Installer (
   iLatestVersion,
   iInstalledVersion,
   iInstall,
+  iInstallURL,
   iUpgrade,
 ) where
 

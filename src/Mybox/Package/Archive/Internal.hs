@@ -85,8 +85,7 @@ aExtractRaw p url archiveFile filename = do
 archiveInstall :: (App es, ArchivePackage p) => p -> Eff es ()
 archiveInstall p = do
   url <- archiveUrl p
-  drvTempFile $ \archiveFile -> do
-    drvRun $ curl ["-o", archiveFile.text] url
+  drvTempDownload url $ \archiveFile -> do
     target <- aDirectory p
     trkAdd p target
     aExtract p url archiveFile
