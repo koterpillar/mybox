@@ -171,8 +171,12 @@ drvEnv name = do
       then Just result.output
       else Nothing
 
-drvGithubToken :: Driver :> es => Eff es Text
-drvGithubToken = drvEnv "GITHUB_TOKEN" `fromMaybeOrMM` drvRunOutput ("gh" :| ["auth", "token"])
+drvGithubToken :: Driver :> es => Eff es (Maybe Text)
+drvGithubToken = drvEnv "GITHUB_TOKEN" `orMaybeM` (getGhAuth <$> drvRunOutputExit ("gh" :| ["auth", "token"]))
+ where
+  getGhAuth result
+    | result.exit == ExitSuccess = Just result.output
+    | otherwise = Nothing
 
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"

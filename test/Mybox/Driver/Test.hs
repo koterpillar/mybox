@@ -42,9 +42,12 @@ rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
     RunOutputHide -> ()
     RunOutputReturn -> Text.encodeUtf8 result
 
+requireGithubToken :: Driver :> es => Eff es Text
+requireGithubToken = requireJust "GITHUB_TOKEN not set" <$> drvGithubToken
+
 testHostDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
 testHostDriver driverLock act = localDriverWith driverLock $ do
-  githubToken <- drvGithubToken
+  githubToken <- requireGithubToken
   originalHome <- drvHome
   originalPath <- fromMaybe "" <$> drvEnv "PATH"
   drvTempDir $ \home' -> do
@@ -103,7 +106,7 @@ testDockerDriver driverLock baseImage act =
   mkContainer = do
     image <- mkImage
     containerName <- randomText "tests"
-    githubToken <- drvGithubToken
+    githubToken <- requireGithubToken
     drvRunOutput $
       "docker"
         :| [ "run"

@@ -56,7 +56,10 @@ instance ToJSON GithubPackage where
 api :: Driver :> es => Text -> Eff es (Either (Int, Text) Text)
 api url = do
   token <- drvGithubToken
-  (status, result) <- drvHttpGetStatusArgs ["-H", "Authorization: token " <> token] ("https://api.github.com/" <> url)
+  let headers = case token of
+        Just t -> ["-H", "Authorization: token " <> t]
+        Nothing -> []
+  (status, result) <- drvHttpGetStatusArgs headers ("https://api.github.com/" <> url)
   pure $
     if status == 200
       then Right result
