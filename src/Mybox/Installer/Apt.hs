@@ -14,6 +14,14 @@ aptInstall package =
       env [("DEBIAN_FRONTEND", "noninteractive")] $
         "apt" :| ["install", "-y", package]
 
+aptInstallURL :: Driver :> es => Text -> Eff es ()
+aptInstallURL url = drvTempDownload url $ \path ->
+  drvTempDir $ \tdir -> do
+    -- Apt requires a .deb extension
+    let debFile = tdir </> "package.deb"
+    drvRun $ "mv" :| [path.text, debFile.text]
+    aptInstall debFile.text
+
 parseAptCacheOutput :: Text -> Maybe Text
 parseAptCacheOutput output = listToMaybe $ do
   line <- Text.lines output
@@ -52,7 +60,7 @@ apt =
   Installer
     { storeKey = "apt"
     , install_ = aptInstall
-    , installURL = undefined
+    , installURL = aptInstallURL
     , upgrade_ = aptInstall
     , getPackageInfo = aptPackageInfo
     }
