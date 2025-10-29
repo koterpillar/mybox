@@ -8,9 +8,10 @@ import Mybox.Installer.Class
 import Mybox.Prelude
 
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
-dnfInstall action package =
+dnfInstall action package = do
+  sudo' <- mkSudo
   drvRun $
-    sudo $
+    sudo' $
       "dnf"
         :| [ action
            , "-y"

@@ -61,13 +61,15 @@ writeRepoFile p = do
                )
 
   let repoPath = pRoot </> "etc" </> "yum.repos.d" </> (p.name_ <> ".repo")
-  drvRun $ sudo $ shellRaw $ "echo " <> shellQuote repoConfig <> " > " <> repoPath.text
-  drvRun $ sudo $ "chmod" :| ["a+r", repoPath.text]
+  sudo' <- mkSudo
+  drvRun $ sudo' $ shellRaw $ "echo " <> shellQuote repoConfig <> " > " <> repoPath.text
+  drvRun $ sudo' $ "chmod" :| ["a+r", repoPath.text]
   trkAdd p repoPath
 
 importGpgKey :: Driver :> es => YumRepo -> Eff es ()
-importGpgKey p = for_ p.gpgKey $ \key ->
-  drvRun $ sudo $ "rpm" :| ["--import", key]
+importGpgKey p = for_ p.gpgKey $ \key -> do
+  sudo' <- mkSudo
+  drvRun $ sudo' $ "rpm" :| ["--import", key]
 
 yumRepoInstall :: (Driver :> es, Tracker :> es) => YumRepo -> Eff es ()
 yumRepoInstall p = do
