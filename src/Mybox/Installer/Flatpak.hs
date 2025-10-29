@@ -58,6 +58,7 @@ flatpak =
   Installer
     { storeKey = "flatpak"
     , install_ = flatpakInstall
+    , installURL = iURLNotImplemented
     , upgrade_ = flatpakUpgrade
     , getPackageInfo = flatpakPackageInfo
     }

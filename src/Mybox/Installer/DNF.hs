@@ -88,6 +88,7 @@ dnf =
   Installer
     { storeKey = "dnf"
     , install_ = dnfInstall "install"
+    , installURL = dnfInstall "install"
     , upgrade_ = dnfInstall "upgrade"
     , getPackageInfo = dnfPackageInfo
     }

@@ -52,6 +52,7 @@ apt =
   Installer
     { storeKey = "apt"
     , install_ = aptInstall
+    , installURL = undefined
     , upgrade_ = aptInstall
     , getPackageInfo = aptPackageInfo
     }

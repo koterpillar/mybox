@@ -21,6 +21,7 @@ instance ToJSON PackageVersion where
 data Installer = Installer
   { storeKey :: Text
   , install_ :: forall es. Driver :> es => Text -> Eff es ()
+  , installURL :: forall es. Driver :> es => Text -> Eff es ()
   , upgrade_ :: forall es. Driver :> es => Text -> Eff es ()
   , getPackageInfo :: forall es. Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
   }
@@ -69,6 +70,12 @@ iInstall :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text 
 iInstall i package = do
   iLocked i $ install_ i package
   iInvalidate i package
+
+iInstallURL :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInstallURL i url = iLocked i $ installURL i url
+
+iURLNotImplemented :: Text -> Eff es ()
+iURLNotImplemented _ = terror "Installation from URL is not implemented for this installer."
 
 iUpgrade :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
 iUpgrade i package = do
