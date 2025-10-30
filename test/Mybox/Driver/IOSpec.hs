@@ -5,36 +5,52 @@ import Data.Text qualified as Text
 import Effectful.Concurrent (threadDelay)
 
 import Mybox.Driver.Class
+import Mybox.Driver.IO
 import Mybox.Driver.Ops
 import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.SpecBase
 
+shouldFail :: IOE :> es => Eff es ExitCode -> Eff es ()
+shouldFail action = action >>= (`shouldSatisfy` (\case ExitSuccess -> False; ExitFailure _ -> True))
+
 spec :: Spec
 spec = do
-  it "returns ExitSuccess for true command" $ do
-    result <- drvRunOk $ "true" :| []
-    result `shouldBe` ExitSuccess
-  it "returns ExitFailure for false command" $ do
-    result <- drvRunOk $ "false" :| []
-    result `shouldSatisfy` \case
-      ExitSuccess -> False
-      ExitFailure _ -> True
-  it "captures output from echo command" $ do
-    result <- drvRunOutput $ "echo" :| ["hello", "world"]
-    result `shouldBe` "hello world"
-  it "handles empty output correctly" $ do
-    result <- drvRunOutput $ "printf" :| [""]
-    result `shouldBe` ""
-  it "trims whitespace from output" $ do
-    result <- drvRunOutput $ "echo" :| ["  trimmed  "]
-    result `shouldBe` "trimmed"
-  it "reports an error" $
-    drvRun ("false" :| []) `shouldThrow` errorCallContains ["false failed with exit code 1"]
-  it "includes error in failure message" $
-    shouldThrow
-      (drvRun $ shellRaw "echo fail; echo err >&2; false")
-      (errorCallContains ["/bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
+  describe "running processes" $ do
+    describe "successful" $ do
+      it "returns ExitSuccess for true command" $ do
+        result <- drvRunOk $ "true" :| []
+        result `shouldBe` ExitSuccess
+      it "captures output from echo command" $ do
+        result <- drvRunOutput $ "echo" :| ["hello", "world"]
+        result `shouldBe` "hello world"
+      it "handles empty output correctly" $ do
+        result <- drvRunOutput $ "printf" :| [""]
+        result `shouldBe` ""
+      it "trims whitespace from output" $ do
+        result <- drvRunOutput $ "echo" :| ["  trimmed  "]
+        result `shouldBe` "trimmed"
+    describe "failing" $ do
+      it "returns ExitFailure for false command" $ do
+        shouldFail $ drvRunOk $ "false" :| []
+      it "reports an error" $
+        drvRun ("false" :| []) `shouldThrow` errorCallContains ["false failed with exit code 1"]
+      it "includes error in failure message" $
+        shouldThrow
+          (drvRun $ shellRaw "echo fail; echo err >&2; false")
+          (errorCallContains ["/bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
+    describe "nonexistent command" $ do
+      let nonExistentCommand = "nonexistent-command-xyz" :| []
+      -- default test driver wraps commands in 'env' and/or 'docker' which exist
+      it "returns ExitFailure" $ do
+        shouldFail $ localDriver $ drvRunOk nonExistentCommand
+        shouldFail $ fmap (.exit) $ localDriver $ drvRunOutputExit nonExistentCommand
+      it "reports error details" $ do
+        localDriver (drvRun nonExistentCommand)
+          `shouldThrow` errorCallContains
+            [ "Process 'nonexistent-command-xyz' failed with exit code 127"
+            , "No such file or directory"
+            ]
   it "writes and reads files" $ do
     let testFile = pRoot </> "tmp" </> "test.txt"
     drvWriteFile testFile "Hello World"
@@ -82,6 +98,8 @@ spec = do
         let fakeGh = home </> ".local" </> "bin" </> "gh"
         drvWriteFile fakeGh "#!/bin/sh\nexit 1"
         drvMakeExecutable fakeGh
+        drvGithubToken >>= (`shouldBe` Nothing)
+      it "returns Nothing when 'gh' is missing" $ unsetEnvToken $ do
         drvGithubToken >>= (`shouldBe` Nothing)
   describe "drvHttpGet" $ do
     let page = "http://deb.debian.org/"
