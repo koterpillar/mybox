@@ -60,6 +60,29 @@ spec = do
     it "errors when no executable found" $
       drvFindExecutable ["nonexistent-command"]
         `shouldThrow` errorCall "Neither of nonexistent-command found in PATH."
+  describe "drvGithubToken" $ do
+    let shouldHaveToken = do
+          token <- drvGithubToken
+          token
+            `shouldSatisfy` ( \case
+                                Just t -> Text.isPrefixOf "gh" t
+                                Nothing -> False
+                            )
+    it "returns token with an environment variable set" shouldHaveToken
+    describe "with no environment variable" $ do
+      let unsetEnvToken = modifyDriver $ env [("GITHUB_TOKEN", "")]
+      it "returns 'gh auth' result" $ unsetEnvToken $ do
+        home <- drvHome
+        let fakeGh = home </> ".local" </> "bin" </> "gh"
+        drvWriteFile fakeGh "#!/bin/sh\necho gho_fake_token"
+        drvMakeExecutable fakeGh
+        shouldHaveToken
+      it "returns Nothing when 'gh' fails" $ unsetEnvToken $ do
+        home <- drvHome
+        let fakeGh = home </> ".local" </> "bin" </> "gh"
+        drvWriteFile fakeGh "#!/bin/sh\nexit 1"
+        drvMakeExecutable fakeGh
+        drvGithubToken >>= (`shouldBe` Nothing)
   describe "drvHttpGet" $ do
     let page = "http://deb.debian.org/"
     let page404 = "http://deb.debian.org/nonexistent"

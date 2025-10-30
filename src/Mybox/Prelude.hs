@@ -30,6 +30,7 @@ module Mybox.Prelude (
   terror,
   fromMaybeOrM,
   fromMaybeOrMM,
+  orMaybeM,
   throwLeft,
 ) where
 
@@ -71,6 +72,14 @@ fromMaybeOrMM :: Monad m => m (Maybe a) -> m a -> m a
 fromMaybeOrMM action nothingAction = action >>= flip fromMaybeOrM nothingAction
 
 infixr 9 `fromMaybeOrMM`
+
+orMaybeM :: Monad m => m (Maybe a) -> m (Maybe a) -> m (Maybe a)
+orMaybeM action fallback =
+  action >>= \case
+    Just v -> pure (Just v)
+    Nothing -> fallback
+
+infixr 9 `orMaybeM`
 
 throwLeft :: MonadThrow m => Either String a -> m a
 throwLeft = either throwString pure
