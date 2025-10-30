@@ -6,6 +6,7 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
+import GHC.IO.Exception
 import System.Process.Typed
 
 import Mybox.Driver.Class
@@ -45,6 +46,14 @@ localDriver act = do
   lm <- newLockMap @_ @[Text] @()
   localDriverWith lm act
 
+catchNoSuchThing :: (LBS.ByteString -> a) -> Eff es a -> Eff es a
+catchNoSuchThing r act = catchIf matches act $ pure . r . errorString
+ where
+  matches :: IOException -> Bool
+  matches e = ioe_type e == NoSuchThing
+  errorString :: IOException -> LBS.ByteString
+  errorString = LBS.fromStrict . Text.encodeUtf8 . Text.pack . show
+
 localDriverWith :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
 localDriverWith lm = do
   interpret_ $ \case
@@ -54,12 +63,12 @@ localDriverWith lm = do
       (exitCode :: ExitCode, stdout_, stderr_) <-
         case outputBehavior of
           RunOutputShow -> do
-            (exitCode, stderr) <- liftIO $ readProcessStderr $ process & setStdout inherit
+            (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout inherit
             pure (exitCode, mempty, stderr)
           RunOutputHide -> do
-            (exitCode, stderr) <- liftIO $ readProcessStderr $ process & setStdout nullStream
+            (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout nullStream
             pure (exitCode, mempty, stderr)
-          RunOutputReturn -> liftIO $ readProcess process
+          RunOutputReturn -> catchNoSuchThing (ExitFailure 127,"",) $ liftIO $ readProcess process
       let stdout = bsStrip $ LBS.toStrict stdout_
       let stderr = bsStrip $ LBS.toStrict stderr_
       exit <-
