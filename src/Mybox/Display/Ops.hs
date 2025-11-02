@@ -16,7 +16,7 @@ import Mybox.Display.Class
 import Mybox.Prelude
 
 tiComma :: TerminalItem
-tiComma = tiMk ","
+tiComma = tiMk ", "
 
 tiSpace :: TerminalItem
 tiSpace = tiMk " "
