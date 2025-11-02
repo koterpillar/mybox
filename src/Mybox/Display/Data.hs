@@ -57,7 +57,7 @@ progressPart width banner = toList $ tiProgressBar width finishedCount totalCoun
 errorsPart :: [(Text, Text)] -> [TerminalLine]
 errorsPart = map $ uncurry errorPart
  where
-  errorPart pkg msg = [label, tiSpace, tiMk pkg, tiSpace, tiMk msg]
+  errorPart pkg msg = [label, tiSpace, tiMk pkg, tiColon, tiMk msg]
   label = (tiMk "error"){foreground = Just Red}
 
 bannerPending :: Text -> Banner MDisplay

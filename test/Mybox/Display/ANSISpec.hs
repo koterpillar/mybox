@@ -46,9 +46,10 @@ spec = do
               , bannerUnchanged "one"
               , bannerModified "two"
               , bannerModified "three"
+              , bannerFailed "five" $ toException (userError "fail")
               ]
 
-      output `shouldBe` colourString "<green>installed<reset> three, two"
+      output `shouldBe` colourString "<green>installed<reset> three, two\n<red>error<reset> five: user error (fail)"
 
     it "places cursor after banner at the end" $ do
       output <- fmap snd . runTmux $ do
