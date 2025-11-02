@@ -9,6 +9,7 @@ module Mybox.Display (
   bannerInstalling,
   bannerUnchanged,
   bannerModified,
+  bannerFailed,
   MDisplay,
   displayLogText,
 ) where

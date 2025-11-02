@@ -5,6 +5,7 @@ module Mybox.Package.Queue (
   runInstallQueue,
 ) where
 
+import Data.Functor.Identity
 import Data.Map qualified as Map
 import Effectful.Concurrent
 import Effectful.Dispatch.Dynamic
@@ -16,13 +17,15 @@ import Mybox.Package.Class
 import Mybox.Package.Queue.Effect
 import Mybox.Prelude
 
-queueInstallMany :: (App es, Package p) => [p] -> Eff es ()
-queueInstallMany pkgs = send $ Enqueue [(pkg.name, ensureInstalled pkg) | pkg <- pkgs]
+queueInstallMany :: (App es, Package p, Traversable f) => f p -> Eff es ()
+queueInstallMany pkgs = do
+  rs <- send $ Enqueue $ fmap (\pkg -> (pkg.name, ensureInstalled pkg)) pkgs
+  for_ rs $ either throwIO pure
 
 queueInstall :: (App es, Package p) => p -> Eff es ()
-queueInstall = queueInstallMany . pure
+queueInstall = queueInstallMany . Identity
 
-type QueueState = Map Text (MVar ())
+type QueueState = Map Text (MVar IQResult)
 
 runInstallQueue ::
   (AppDisplay :> es, Concurrent :> es) =>
@@ -45,6 +48,9 @@ runInstallQueue =
                 Left mv -> pure mv
                 Right mv -> localUnlift localEnv (ConcUnlift Persistent Unlimited) $
                   \unlift -> do
-                    void $ forkIO $ unlift action `finally` putMVar mv ()
+                    void $ forkIO $ flip withException (putMVar mv . Left) $ do
+                      unlift action
+                      putMVar mv $ Right ()
+
                     pure mv
-          traverse_ readMVar res
+          traverse readMVar res

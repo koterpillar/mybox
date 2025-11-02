@@ -46,9 +46,10 @@ spec = do
               , bannerUnchanged "one"
               , bannerModified "two"
               , bannerModified "three"
+              , bannerFailed "five" $ toException (userError "fail")
               ]
 
-      output `shouldBe` colourString "<green>installed<reset> three,two"
+      output `shouldBe` colourString "<green>installed<reset> three, two\n<red>error<reset> five: user error (fail)"
 
     it "places cursor after banner at the end" $ do
       output <- fmap snd . runTmux $ do
@@ -79,8 +80,8 @@ spec = do
         output
           `shouldBe` colourString
             ( Text.intercalate "\n" $
-                [ "<blue>installing<reset> " <> Text.intercalate "," (placeholder 0 5) <> ","
-                , Text.intercalate "," (placeholder 6 9)
+                [ "<blue>installing<reset> " <> Text.intercalate ", " (placeholder 0 4) <> ","
+                , Text.intercalate ", " (placeholder 5 9)
                 ]
             )
 
@@ -90,12 +91,12 @@ spec = do
         let three = "ccc"
         output <- run' [one, veryLong, three]
 
-        let cutoff = 79 - Text.length ("installing " <> one <> ",")
+        let cutoff = 79 - Text.length ("installing " <> one <> ", ")
 
         output
           `shouldBe` colourString
             ( Text.intercalate "\n" $
-                [ "<blue>installing<reset> " <> one <> "," <> Text.take cutoff veryLong
-                , Text.drop cutoff veryLong <> "," <> three
+                [ "<blue>installing<reset> " <> one <> ", " <> Text.take cutoff veryLong
+                , Text.drop cutoff veryLong <> ", " <> three
                 ]
             )

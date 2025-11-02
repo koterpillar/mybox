@@ -2,6 +2,7 @@ module Mybox.Display.Ops (
   tiShow,
   tiProgressBar,
   tiComma,
+  tiColon,
   tiSpace,
   tiSplitAt,
   tiMerge,
@@ -16,7 +17,10 @@ import Mybox.Display.Class
 import Mybox.Prelude
 
 tiComma :: TerminalItem
-tiComma = tiMk ","
+tiComma = tiMk ", "
+
+tiColon :: TerminalItem
+tiColon = tiMk ": "
 
 tiSpace :: TerminalItem
 tiSpace = tiMk " "

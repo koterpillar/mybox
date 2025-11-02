@@ -1,7 +1,9 @@
 module Mybox.Display.Data where
 
 import Data.List (intersperse)
+import Data.Map qualified as Map
 import Data.Set qualified as Set
+import Data.Text qualified as Text
 import Prelude hiding (log)
 
 import Mybox.Display.Class
@@ -21,6 +23,7 @@ data instance Banner MDisplay = MBanner
   , installing :: Set Text
   , unchanged :: Set Text
   , modified :: Set Text
+  , errors :: Map Text Text
   }
   deriving (Eq, Generic)
   deriving (Monoid, Semigroup) via Generically (Banner MDisplay)
@@ -28,27 +31,34 @@ data instance Banner MDisplay = MBanner
 instance TerminalShow (Banner MDisplay) where
   terminalShow width banner =
     tiWrapLines width $
-      catMaybes
+      join
         [ bannerPart Green "installed" banner.modified
         , progressPart width banner
         , bannerPart Blue "installing" banner.installing
         , bannerPart Magenta "checking" banner.checking
+        , errorsPart $ Map.toList banner.errors
         ]
 
-bannerPart :: Color -> Text -> Set Text -> Maybe TerminalLine
+bannerPart :: Color -> Text -> Set Text -> [TerminalLine]
 bannerPart color label set
-  | Set.null set = Nothing
+  | Set.null set = []
   | otherwise =
-      Just $
-        (tiMk label){foreground = Just color}
+      [ (tiMk label){foreground = Just color}
           : tiSpace
           : intersperse tiComma (map tiMk (toList set))
+      ]
 
-progressPart :: Maybe Int -> Banner MDisplay -> Maybe TerminalLine
-progressPart width banner = tiProgressBar width finishedCount totalCount
+progressPart :: Maybe Int -> Banner MDisplay -> [TerminalLine]
+progressPart width banner = toList $ tiProgressBar width finishedCount totalCount
  where
   totalCount = Set.size banner.all
   finishedCount = Set.size banner.unchanged + Set.size banner.modified
+
+errorsPart :: [(Text, Text)] -> [TerminalLine]
+errorsPart = map $ uncurry errorPart
+ where
+  errorPart pkg msg = [label, tiSpace, tiMk pkg, tiColon, tiMk msg]
+  label = (tiMk "error"){foreground = Just Red}
 
 bannerPending :: Text -> Banner MDisplay
 bannerPending text = mempty{all = Set.singleton text}
@@ -64,3 +74,7 @@ bannerUnchanged text = mempty{unchanged = Set.singleton text}
 
 bannerModified :: Text -> Banner MDisplay
 bannerModified text = mempty{modified = Set.singleton text}
+
+bannerFailed :: Text -> SomeException -> Banner MDisplay
+bannerFailed text err =
+  mempty{errors = Map.singleton text (Text.pack $ displayException err)}
