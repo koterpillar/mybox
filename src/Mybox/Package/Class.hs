@@ -41,5 +41,6 @@ ensureInstalled pkg = trkTry pkg $ do
       trkSkip pkg
     else do
       displayBannerWhile (bannerInstalling pkg.name) $
-        install pkg
-      displayBanner $ bannerModified pkg.name
+        flip withException (displayBanner . bannerFailed pkg.name) $ do
+          install pkg
+          displayBanner $ bannerModified pkg.name
