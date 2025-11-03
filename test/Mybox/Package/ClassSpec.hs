@@ -1,13 +1,18 @@
 module Mybox.Package.ClassSpec where
 
+import Data.List (isPrefixOf)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 
 import Mybox.Aeson
+import Mybox.Display
+import Mybox.Display.SpecUtils
+import Mybox.Driver
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Stores
 import Mybox.Tracker
 
 data TestPackage = TestPackage
@@ -40,34 +45,45 @@ instance Package TestPackage where
   localVersion p = pure $ if p.installed then Just "1" else Nothing
   install p = if p.error_ then throwString "Error" else trkAdd p $ pRoot </> "test-file-1"
 
+run_ ::
+  (AppDisplay :> es', Concurrent :> es, Concurrent :> es', Driver :> es', Stores :> es', Tracker :> es') =>
+  (Eff es' () -> Eff (Tracker : AppDisplay : es) ()) ->
+  TrackedFiles ->
+  TestPackage ->
+  Eff es (TrackResult, String)
+run_ fn initialSet =
+  fmap (\(((), trk), out) -> (trk, out))
+    . runSimpleDisplayPure
+    . stateTracker initialSet
+    . fn
+    . runInstallQueue
+    . ensureInstalled
+
 spec :: Spec
 spec = do
   describe "TestPackage" $
     jsonSpec @TestPackage [(Nothing, "{\"installed\": false, \"error\": false}")]
   describe "ensureInstalled" $ do
-    let run_ fn initialSet =
-          fmap snd
-            . stateTracker initialSet
-            . fn
-            . runInstallQueue
-            . ensureInstalled
-    let run = run_ id
     let mkTrk :: Text -> TrackedFiles
         mkTrk f = Map.singleton (pRoot </> f) $ Set.singleton "test"
     let initState = mkTrk "preexisting"
 
-    it "adds tracked files when installing a package" $ do
-      state <- run initState defTestPackage
+    it "adds tracked files and outputs progress when installing a package" $ do
+      (state, out) <- run_ id initState defTestPackage
       state.state `shouldBe` mkTrk "test-file-1"
+      out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
 
-    it "keeps existing files when already installed" $ do
-      state <- run initState $ defTestPackage{installed = True}
+    it "keeps existing files and outputs progress when already installed" $ do
+      (state, out) <- run_ id initState $ defTestPackage{installed = True}
       state.state `shouldBe` mkTrk "preexisting"
+      out `shouldBe` "checking test\n"
 
-    it "keeps existing files when install errors" $ do
-      state <-
+    it "keeps existing files and outputs progress when install errors" $ do
+      (state, out) <-
         run_
           (`catch` (\(_ :: StringException) -> pure ()))
           initState
           $ defTestPackage{error_ = True}
       state.state `shouldBe` mkTrk "preexisting"
+      shouldSatisfy out $
+        isPrefixOf "checking test\ninstalling test\nerror test: Control.Exception.Safe.throwString called with:\n\nError"
