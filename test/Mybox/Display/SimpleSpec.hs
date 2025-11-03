@@ -1,23 +1,16 @@
 module Mybox.Display.SimpleSpec where
 
 import Mybox.Display
-import Mybox.Display.Print (Print)
-import Mybox.Display.Print qualified as Print
-import Mybox.Display.Simple
+import Mybox.Display.SpecUtils
 import Mybox.Prelude
 import Mybox.SpecBase
+
+run :: Eff '[AppDisplay] () -> String
+run act = let ((), logs) = runPureEff $ runSimpleDisplayPure @MDisplay act in logs
 
 spec :: Spec
 spec = do
   describe "runSimpleDisplay" $ do
-    let run :: Eff '[AppDisplay] () -> String
-        run act =
-          let ((), logs) =
-                runPureEff $
-                  Print.runPure $
-                    runSimpleDisplay $
-                      inject @_ @(AppDisplay : Print : _) act
-           in logs
     it "displays logs" $ do
       let logs = run $ do
             displayLogText "hello"
