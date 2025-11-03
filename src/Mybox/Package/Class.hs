@@ -31,16 +31,13 @@ isInstalled pkg = do
       pure $ lv' == rv
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
-ensureInstalled pkg = trkTry pkg $ do
-  installed <-
-    displayBannerWhile (bannerChecking pkg.name) $
-      isInstalled pkg
-  if installed
-    then do
-      displayBanner $ bannerUnchanged pkg.name
-      trkSkip pkg
-    else do
-      displayBannerWhile (bannerInstalling pkg.name) $
-        flip withException (displayBanner . bannerFailed pkg.name) $ do
-          install pkg
-          displayBanner $ bannerModified pkg.name
+ensureInstalled pkg = trkTry pkg $
+  flip withException (displayBanner . bannerFailed pkg.name) $ do
+    installed <- displayBannerWhile (bannerChecking pkg.name) $ isInstalled pkg
+    if installed
+      then do
+        displayBanner $ bannerUnchanged pkg.name
+        trkSkip pkg
+      else do
+        displayBannerWhile (bannerInstalling pkg.name) $ install pkg
+        displayBanner $ bannerModified pkg.name
