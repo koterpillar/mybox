@@ -6,6 +6,7 @@ import Data.Map qualified as Map
 import Mybox.Aeson
 import Mybox.Compute.Base
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 
 spec :: Spec
@@ -25,7 +26,7 @@ spec = do
 
     it "throws error for object with multiple sigils" $ do
       let obj = mconcat ["$first" .= String "value1", "$second" .= String "value2"]
-      evaluate (findSigil obj) `shouldThrow` anyErrorCall
+      evaluate (findSigil obj) `shouldThrow` errorCallContains ["Multiple sigils found: $first, $second in"]
 
   describe "processSigils" $ do
     let testProcessor :: Monad m => Processor m
@@ -51,7 +52,7 @@ spec = do
 
       it "throws error for unknown sigil" $ do
         let input = object ["$unknown" .= String "value"]
-        evaluate (run input) `shouldThrow` anyErrorCall
+        evaluate (run input) `shouldThrow` errorCallContains ["Unknown sigil: unknown"]
 
     describe "for arrays" $ do
       it "processes arrays recursively" $ do

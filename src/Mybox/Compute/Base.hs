@@ -17,7 +17,7 @@ findSigil obj =
    in case sigils of
         [(s, v)] -> Just (Text.drop 1 s, v, KM.fromMapText $ Map.delete s m)
         [] -> Nothing
-        _ -> error $ "Multiple sigils found: " ++ show (map fst sigils) ++ " in " ++ show (KM.keys obj)
+        _ -> terror $ "Multiple sigils found: " <> Text.intercalate ", " (map fst sigils) <> " in " <> Text.pack (show $ KM.keys obj)
 
 processSigils :: Monad m => Map Text (Processor m) -> Value -> m Value
 processSigils sigils = fmap (fromMaybe Null) . processSigils_ sigils
