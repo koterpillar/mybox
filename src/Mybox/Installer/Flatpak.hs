@@ -4,7 +4,9 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Installer.Class
+import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
 
@@ -26,11 +28,15 @@ flatpakPackage =
           ]
     }
 
-flatpakInstall :: Driver :> es => Text -> Eff es ()
-flatpakInstall package = drvRun $ "flatpak" :| ["install", "-y", repoName, package]
+flatpakInstall :: App es => Text -> Eff es ()
+flatpakInstall package = do
+  queueInstall flatpakPackage
+  drvRun $ "flatpak" :| ["install", "-y", repoName, package]
 
-flatpakUpgrade :: Driver :> es => Text -> Eff es ()
-flatpakUpgrade package = drvRun $ "flatpak" :| ["upgrade", "-y", package]
+flatpakUpgrade :: App es => Text -> Eff es ()
+flatpakUpgrade package = do
+  queueInstall flatpakPackage
+  drvRun $ "flatpak" :| ["upgrade", "-y", package]
 
 parseFlatpakVersions :: Text -> Map Text Text
 parseFlatpakVersions output = Map.fromList $ do
@@ -50,8 +56,10 @@ flatpakGetLatest = do
   pure $ parseFlatpakVersions result
 
 -- FIXME: Cannot selectively query for only a single package
-flatpakPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
-flatpakPackageInfo _ = iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakGetInstalled
+flatpakPackageInfo :: App es => Maybe Text -> Eff es (Map Text PackageVersion)
+flatpakPackageInfo _ = do
+  queueInstall flatpakPackage
+  iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakGetInstalled
 
 flatpak :: Installer
 flatpak =
