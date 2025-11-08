@@ -6,6 +6,7 @@ import Mybox.Installer
 import Mybox.Installer.Flatpak
 import Mybox.Package.Class
 import Mybox.Package.Post
+import Mybox.Package.System
 import Mybox.Prelude
 
 data FlatpakPackage = FlatpakPackage
@@ -31,15 +32,15 @@ instance ToJSON FlatpakPackage where
         <> postToJSON p
 
 flatpakRemoteVersion :: App es => FlatpakPackage -> Eff es Text
-flatpakRemoteVersion p = iLatestVersion flatpak p.name
+flatpakRemoteVersion p = iLatestVersion (flatpak @SystemPackage) p.name
 
 flatpakLocalVersion :: App es => FlatpakPackage -> Eff es (Maybe Text)
-flatpakLocalVersion p = iInstalledVersion flatpak p.name
+flatpakLocalVersion p = iInstalledVersion (flatpak @SystemPackage) p.name
 
 flatpakInstall :: App es => FlatpakPackage -> Eff es ()
 flatpakInstall p = do
   alreadyInstalled <- isJust <$> flatpakLocalVersion p
-  (if alreadyInstalled then iUpgrade else iInstall) flatpak p.name
+  (if alreadyInstalled then iUpgrade else iInstall) (flatpak @SystemPackage) p.name
 
 instance Package FlatpakPackage where
   localVersion = flatpakLocalVersion

@@ -7,6 +7,7 @@ import Mybox.Installer.Class
 import Mybox.Installer.Flatpak
 import Mybox.Package.Class
 import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -21,9 +22,9 @@ spec = onlyIfOS "Flatpak installer tests are only available on Linux" (\case Lin
   skipIf "Flatpak installer tests cannot run in Docker" inDocker $
     withEff (nullTracker . runInstallQueue) $ do
       describe "flatpak" $
-        before (ensureInstalled flatpakPackage) $ do
+        before (ensureInstalled $ flatpakPackage @SystemPackage) $ do
           describe "iLatestVersion" $ do
             it "returns valid version for an existing package" $ do
-              iLatestVersion flatpak "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
+              iLatestVersion (flatpak @SystemPackage) "org.gnome.Shotwell" >>= (`shouldSatisfy` expectedFlatpakVersion)
             it "fails for non-existent package" $ do
-              iLatestVersion flatpak "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException
+              iLatestVersion (flatpak @SystemPackage) "org.gnome.Shotwell.NonExistent" `shouldThrow` anyException
