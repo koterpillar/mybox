@@ -4,6 +4,7 @@ import Data.Map.Strict qualified as Map
 
 import Mybox.Aeson
 import Mybox.Driver.Class
+import Mybox.Effects
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -20,10 +21,10 @@ instance ToJSON PackageVersion where
 
 data Installer = Installer
   { storeKey :: Text
-  , install_ :: forall es. Driver :> es => Text -> Eff es ()
-  , installURL :: forall es. Driver :> es => Text -> Eff es ()
-  , upgrade_ :: forall es. Driver :> es => Text -> Eff es ()
-  , getPackageInfo :: forall es. Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
+  , install_ :: forall es. App es => Text -> Eff es ()
+  , installURL :: forall es. App es => Text -> Eff es ()
+  , upgrade_ :: forall es. App es => Text -> Eff es ()
+  , getPackageInfo :: forall es. App es => Maybe Text -> Eff es (Map Text PackageVersion)
   }
 
 instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) where
@@ -32,7 +33,7 @@ instance HasField "storePackages" Installer (Store (Map Text PackageVersion)) wh
 iLocked :: (Concurrent :> es, Driver :> es) => Installer -> Eff es a -> Eff es a
 iLocked i = drvAtomic $ "installer-" <> i.storeKey
 
-iGetCachePackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
+iGetCachePackageInfo :: App es => Installer -> Maybe Text -> Eff es (Map Text PackageVersion)
 iGetCachePackageInfo i package = do
   results <- iLocked i $ getPackageInfo i package
   storeModify i.storePackages $ Map.union results
@@ -45,7 +46,7 @@ iInitLocked i act = storeModifyM_ s $ \case
  where
   s = Store{key = "installer-" <> i.storeKey <> "-global", def = False}
 
-iPackageInfo :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es PackageVersion
+iPackageInfo :: App es => Installer -> Text -> Eff es PackageVersion
 iPackageInfo i package = do
   iInitLocked i $ void $ iGetCachePackageInfo i Nothing
   (Map.lookup package <$> storeGet i.storePackages)
@@ -66,24 +67,24 @@ iCombineLatestInstalled latest installed =
     )
     latest
 
-iInstall :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInstall :: App es => Installer -> Text -> Eff es ()
 iInstall i package = do
   iLocked i $ install_ i package
   iInvalidate i package
 
-iInstallURL :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iInstallURL :: App es => Installer -> Text -> Eff es ()
 iInstallURL i url = iLocked i $ installURL i url
 
 iURLNotImplemented :: Text -> Eff es ()
 iURLNotImplemented _ = terror "Installation from URL is not implemented for this installer."
 
-iUpgrade :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es ()
+iUpgrade :: App es => Installer -> Text -> Eff es ()
 iUpgrade i package = do
   iLocked i $ upgrade_ i package
   iInvalidate i package
 
-iInstalledVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es (Maybe Text)
+iInstalledVersion :: App es => Installer -> Text -> Eff es (Maybe Text)
 iInstalledVersion i package = (.installed) <$> iPackageInfo i package
 
-iLatestVersion :: (Concurrent :> es, Driver :> es, Stores :> es) => Installer -> Text -> Eff es Text
+iLatestVersion :: App es => Installer -> Text -> Eff es Text
 iLatestVersion i package = (.latest) <$> iPackageInfo i package

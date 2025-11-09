@@ -6,7 +6,6 @@ import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.Daemon
-import Mybox.Package.Flatpak
 import Mybox.Package.Github
 import Mybox.Package.Links
 import Mybox.Package.NPM
@@ -37,11 +36,11 @@ spec = do
     roundtrip $ mkGithubPackage "test/repo"
     roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Right True}}
     roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Left "raw"}}
-    roundtrip $ mkFlatpakPackage "com.example.Test"
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkSystemPackage "ghc"
+    roundtrip $ (mkSystemPackage "com.example.Test"){installer = Just Flatpak}
     roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
 

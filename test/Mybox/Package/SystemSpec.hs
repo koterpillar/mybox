@@ -13,6 +13,7 @@ spec = do
     [ (Nothing, "{\"system\": \"test\"}")
     , (Just "URL", "{\"system\": \"test\", \"url\": \"test\"}")
     , (Just "auto update", "{\"system\": \"test\", \"auto_updates\": true}")
+    , (Just "flatpak installer", "{\"system\": \"org.example.Test\", \"installer\": \"flatpak\"}")
     ]
   onlyIf "System package tests require virtual system (Docker or CI)" virtualSystem $ do
     packageSpec $
@@ -50,3 +51,12 @@ spec = do
           & checkInstalledCommandOutput
             ("g++" :| ["--version"])
             "Free Software Foundation, Inc."
+  onlyIf "Flatpak package tests require CI environment" inCI $
+    skipIf "Flatpak package tests cannot run in Docker" inDocker $
+      onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
+        packageSpec $
+          ps ((mkSystemPackage "org.videolan.VLC"){installer = Just Flatpak})
+            & checkInstalledCommandOutput
+              ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
+              "VLC version"
+            & ignorePaths [mkPath ".local/share/flatpak"]

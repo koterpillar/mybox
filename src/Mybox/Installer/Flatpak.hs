@@ -1,11 +1,15 @@
-module Mybox.Installer.Flatpak (flatpak, flatpakPackage) where
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
+module Mybox.Installer.Flatpak (flatpak, IsSystemPackage (..), flatpakPackage) where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
 import Mybox.Driver
+import Mybox.Effects
 import Mybox.Installer.Class
-import Mybox.Package.System
+import Mybox.Package.Class
+import Mybox.Package.Queue
 import Mybox.Prelude
 
 repoName :: Text
@@ -14,23 +18,31 @@ repoName = "flathub"
 repoUrl :: Text
 repoUrl = "https://dl.flathub.org/repo/flathub.flatpakrepo"
 
-flatpakPackage :: SystemPackage
+-- System package depends on Flatpak installer. To avoid circular dependency,
+-- define a class for it.
+
+class Package s => IsSystemPackage s where
+  mkSystemPackage_ :: Text -> [Text] -> s
+
+flatpakPackage :: IsSystemPackage s => s
 flatpakPackage =
-  (mkSystemPackage "flatpak")
-    { post =
-        map
-          (shellJoin . sudo)
-          [ "systemctl" :| ["daemon-reload"]
-          , "systemctl" :| ["enable", "--now", "dbus"]
-          , "flatpak" :| ["remote-add", "--if-not-exists", repoName, repoUrl]
-          ]
-    }
+  mkSystemPackage_ "flatpak" $
+    map
+      (shellJoin . sudo)
+      [ "systemctl" :| ["daemon-reload"]
+      , "systemctl" :| ["enable", "--now", "dbus"]
+      , "flatpak" :| ["remote-add", "--if-not-exists", repoName, repoUrl]
+      ]
 
-flatpakInstall :: Driver :> es => Text -> Eff es ()
-flatpakInstall package = drvRun $ "flatpak" :| ["install", "-y", repoName, package]
+flatpakInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Eff es ()
+flatpakInstall package = do
+  queueInstall $ flatpakPackage @s
+  drvRun $ "flatpak" :| ["install", "-y", repoName, package]
 
-flatpakUpgrade :: Driver :> es => Text -> Eff es ()
-flatpakUpgrade package = drvRun $ "flatpak" :| ["upgrade", "-y", package]
+flatpakUpgrade :: forall s es. (App es, IsSystemPackage s) => Text -> Eff es ()
+flatpakUpgrade package = do
+  queueInstall $ flatpakPackage @s
+  drvRun $ "flatpak" :| ["upgrade", "-y", package]
 
 parseFlatpakVersions :: Text -> Map Text Text
 parseFlatpakVersions output = Map.fromList $ do
@@ -50,15 +62,17 @@ flatpakGetLatest = do
   pure $ parseFlatpakVersions result
 
 -- FIXME: Cannot selectively query for only a single package
-flatpakPackageInfo :: Driver :> es => Maybe Text -> Eff es (Map Text PackageVersion)
-flatpakPackageInfo _ = iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakGetInstalled
+flatpakPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
+flatpakPackageInfo _ = do
+  queueInstall $ flatpakPackage @s
+  iCombineLatestInstalled <$> flatpakGetLatest <*> flatpakGetInstalled
 
-flatpak :: Installer
+flatpak :: forall s. IsSystemPackage s => Installer
 flatpak =
   Installer
     { storeKey = "flatpak"
-    , install_ = flatpakInstall
+    , install_ = flatpakInstall @s
     , installURL = iURLNotImplemented
-    , upgrade_ = flatpakUpgrade
-    , getPackageInfo = flatpakPackageInfo
+    , upgrade_ = flatpakUpgrade @s
+    , getPackageInfo = flatpakPackageInfo @s
     }

@@ -1,4 +1,5 @@
 module Mybox.Installer (
+  Installer,
   mkInstaller,
   iLatestVersion,
   iInstalledVersion,
