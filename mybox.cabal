@@ -55,7 +55,6 @@ library
       Mybox.Package.Clone
       Mybox.Package.Daemon
       Mybox.Package.Destination
-      Mybox.Package.Flatpak
       Mybox.Package.Github
       Mybox.Package.Github.Internal
       Mybox.Package.Links
@@ -209,7 +208,6 @@ test-suite tests
       Mybox.Package.ClassSpec
       Mybox.Package.CloneSpec
       Mybox.Package.DaemonSpec
-      Mybox.Package.FlatpakSpec
       Mybox.Package.GithubSpec
       Mybox.Package.LinksSpec
       Mybox.Package.ManualVersionSpec
