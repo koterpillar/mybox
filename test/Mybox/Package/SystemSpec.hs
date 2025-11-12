@@ -60,3 +60,9 @@ spec = do
                 ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
                 "VLC version"
               & ignorePaths [mkPath ".local/share/flatpak"]
+    packageSpec $
+      ps ((mkSystemPackage "the_silver_searcher"){installer = Just Brew})
+        & preinstallEnableSudo
+        & checkInstalledCommandOutput
+          ("ag" :| ["--version"])
+          "ag version"

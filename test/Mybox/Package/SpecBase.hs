@@ -6,8 +6,10 @@ module Mybox.Package.SpecBase (
   checkInstalledCommandOutput,
   commandHasOutput,
   preinstall,
-  cleanup,
   preinstallPackage,
+  preinstallEnableSudo,
+  enableSudo,
+  cleanup,
   ignorePaths,
   packageSpec,
   packageSpecGen,
@@ -21,6 +23,7 @@ import Mybox.Driver
 import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Queue
+import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.SpecBase
@@ -88,11 +91,23 @@ ignorePaths paths s = s{ignoredPaths_ = Set.union (Set.fromList $ toList paths) 
 preinstall :: (forall es. App es => Eff es ()) -> MPS a
 preinstall f s = s{preinstall_ = preinstall_ s >> f}
 
-cleanup :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
-cleanup f s = s{cleanup_ = cleanup_ s >> f}
-
 preinstallPackage :: Package b => b -> MPS a
 preinstallPackage p = preinstall $ ensureInstalled p
+
+enableSudo :: App es => Eff es ()
+enableSudo = do
+  drvOS >>= \case
+    MacOS -> pure ()
+    Linux _ -> queueInstall $ mkSystemPackage "sudo"
+  user <- drvUsername
+  let line = user <> " ALL=(ALL) NOPASSWD: ALL"
+  modifyDriver sudo $ drvWriteFile (mkPath @Abs "/etc/sudoers.d/mybox") line
+
+preinstallEnableSudo :: MPS a
+preinstallEnableSudo = preinstall enableSudo
+
+cleanup :: (forall es. (Driver :> es, Stores :> es) => Eff es ()) -> MPS a
+cleanup f s = s{cleanup_ = cleanup_ s >> f}
 
 packageSpecGen :: Package a => String -> (PackageSpecArgs -> PackageSpec a) -> Spec
 packageSpecGen name makePS = do

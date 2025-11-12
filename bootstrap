@@ -31,6 +31,21 @@ ensure() {
 
   if ! command_exists "$COMMAND"
   then
+    if command_exists apt
+    then
+      INSTALLER='sudo_ apt install --yes'
+      if [ -z "$(ls -A /var/lib/apt/lists)" ]
+      then
+        sudo_ apt update
+      fi
+    elif command_exists dnf
+    then
+      INSTALLER='sudo_ dnf install --assumeyes'
+    else
+      echo "Cannot find a package manager." >&2
+      exit 1
+    fi
+
     $INSTALLER "$@"
   fi
 }
@@ -68,51 +83,12 @@ download() {
   fi
 }
 
-OS_KIND=$(uname -s)
-ARCH=$(uname -m)
-
-case "$OS_KIND" in
-  Darwin)
-    brew_env() {
-      if [ -d /opt/homebrew ]
-      then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-      fi
-    }
-    brew_env
-
-    if ! command_exists brew
-    then
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      brew_env
-    fi
-
-    INSTALLER='brew install'
-    ;;
-  Linux)
-    DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
-
-    case $DISTRO in
-      debian|ubuntu)
-        INSTALLER='sudo_ apt install --yes'
-        if [ -z "$(ls -A /var/lib/apt/lists)" ]
-        then
-          sudo_ apt update
-        fi
-        ;;
-      fedora)
-        INSTALLER='sudo_ dnf install --assumeyes'
-        ;;
-    esac
-
-    ensure curl
-    ensure sudo
-    ;;
-esac
+ensure curl
+ensure sudo
 
 if [ -z "$OPT_DEVELOPMENT" ]
 then
   download \
-    "https://github.com/koterpillar/mybox/releases/latest/download/mybox-${OS_KIND}-${ARCH}" \
+    "https://github.com/koterpillar/mybox/releases/latest/download/mybox-$(uname -s)-$(uname -m)" \
     "$HOME/.local/bin/mybox"
 fi
