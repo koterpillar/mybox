@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Mybox.Installer.Brew (brew) where
+module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 
@@ -12,7 +12,7 @@ import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
 
-data BrewBootstrap s = BrewBootstrap deriving (Show)
+data BrewBootstrap s = BrewBootstrap deriving (Eq, Show)
 
 instance HasField "name" (BrewBootstrap s) Text where
   getField _ = "homebrew"

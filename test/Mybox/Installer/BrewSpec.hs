@@ -1,7 +1,7 @@
 module Mybox.Installer.BrewSpec where
 
 import Mybox.Driver
-import Mybox.Installer.Brew qualified
+import Mybox.Installer.Brew qualified as Brew
 import Mybox.Installer.Class
 import Mybox.Installer.SpecBase
 import Mybox.Package.Queue
@@ -15,10 +15,11 @@ onlyMacOS :: (Driver :> es, IOE :> es) => EffSpec es -> EffSpec es
 onlyMacOS = onlyIfOS "Homebrew installer tests are only available on macOS" (\case MacOS -> True; _ -> False)
 
 brew :: Installer
-brew = Mybox.Installer.Brew.brew @SystemPackage
+brew = Brew.brew @SystemPackage
 
 spec :: Spec
 spec = do
+  jsonSpec @(Brew.BrewBootstrap ()) [(Nothing, "{}")]
   onlyMacOS $ installerSpec brew
   withEff (nullTracker . runInstallQueue) $ do
     it "returns formula version" $ do
