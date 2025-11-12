@@ -4,23 +4,10 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer
-import Mybox.Installer.Flatpak
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
-
-data InstallerKind = Flatpak
-  deriving (Eq, Generic, Show)
-
-instance FromJSON InstallerKind where
-  parseJSON = withText "InstallerKind" $ \case
-    "flatpak" -> pure Flatpak
-    other -> fail $ "Unknown installer kind: " <> show other
-
-instance ToJSON InstallerKind where
-  toJSON = \case
-    Flatpak -> "flatpak"
 
 data SystemPackage = SystemPackage
   { name :: Text
@@ -60,9 +47,7 @@ autoUpdateVersion :: SystemPackage -> Text -> Text
 autoUpdateVersion p = if p.autoUpdates then const "latest" else id
 
 systemInstaller :: Driver :> es => SystemPackage -> Eff es Installer
-systemInstaller p = case p.installer of
-  Nothing -> mkInstaller
-  Just Flatpak -> pure $ flatpak @SystemPackage
+systemInstaller p = mkInstaller @SystemPackage p.installer
 
 systemRemoteVersion :: App es => SystemPackage -> Eff es Text
 systemRemoteVersion p = case p.url of

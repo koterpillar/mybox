@@ -41,6 +41,7 @@ spec = do
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkSystemPackage "ghc"
     roundtrip $ (mkSystemPackage "com.example.Test"){installer = Just Flatpak}
+    roundtrip $ (mkSystemPackage "example"){installer = Just Brew}
     roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
 

@@ -41,6 +41,10 @@ case "$OSTYPE" in
     then
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
+    if [ -d /opt/homebrew ]
+    then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
 
     if [ -n "${OPT_LINT-}" ] && ! command_exists shellcheck
     then

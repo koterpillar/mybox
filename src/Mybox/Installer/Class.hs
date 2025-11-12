@@ -5,6 +5,7 @@ import Data.Map.Strict qualified as Map
 import Mybox.Aeson
 import Mybox.Driver.Class
 import Mybox.Effects
+import Mybox.Package.Class
 import Mybox.Prelude
 import Mybox.Stores
 
@@ -88,3 +89,9 @@ iInstalledVersion i package = (.installed) <$> iPackageInfo i package
 
 iLatestVersion :: App es => Installer -> Text -> Eff es Text
 iLatestVersion i package = (.latest) <$> iPackageInfo i package
+
+-- System package depends on installers. To avoid circular dependencies,
+-- define a class for it.
+
+class Package s => IsSystemPackage s where
+  mkSystemPackage_ :: Text -> [Text] -> s

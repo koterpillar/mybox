@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Mybox.Installer.Flatpak (flatpak, IsSystemPackage (..), flatpakPackage) where
+module Mybox.Installer.Flatpak (flatpak, flatpakPackage) where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -8,7 +8,6 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer.Class
-import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
 
@@ -17,12 +16,6 @@ repoName = "flathub"
 
 repoUrl :: Text
 repoUrl = "https://dl.flathub.org/repo/flathub.flatpakrepo"
-
--- System package depends on Flatpak installer. To avoid circular dependency,
--- define a class for it.
-
-class Package s => IsSystemPackage s where
-  mkSystemPackage_ :: Text -> [Text] -> s
 
 flatpakPackage :: IsSystemPackage s => s
 flatpakPackage =

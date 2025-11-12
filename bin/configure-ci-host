@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Configure the CI host system for running tests
+
+set -euo pipefail
+
+if [ -z "$CI" ]; then
+  echo "This script is intended to be run in a CI environment." >&2
+  exit 1
+fi
+
+# Configure polkit to allow Flatpak operations
+if [ -d /etc/polkit-1 ]; then
+  sudo tee /etc/polkit-1/rules.d/org.freedesktop.Flatpak.rules >/dev/null <<EOF
+polkit.addRule(function(action, subject) {
+  if (
+    action.id == "org.freedesktop.Flatpak.app-install" ||
+    action.id == "org.freedesktop.Flatpak.modify-repo"
+  ) {
+    return polkit.Result.YES;
+  }
+  return polkit.Result.NOT_HANDLED;
+});
+EOF
+fi
+
+# Update package lists on apt-based systems
+if command -v apt >/dev/null
+then
+  sudo apt update
+fi

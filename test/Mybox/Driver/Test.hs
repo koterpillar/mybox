@@ -55,7 +55,7 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
     let newLocalBin = home </> ".local" </> "bin"
     let envOverrides =
           [ ("GITHUB_TOKEN", githubToken)
-          , ("PATH", newLocalBin.text <> ":" <> originalPath)
+          , ("PATH", newLocalBin.text <> ":" <> linuxBrewBin.text <> ":" <> originalPath)
           , ("HOME", home.text)
           ]
     let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
@@ -134,7 +134,7 @@ dockerfile baseImage =
     , "WORKDIR /mybox"
     , "COPY bootstrap /bootstrap"
     , "RUN /bootstrap --development"
-    , "ENV PATH=" <> (pRoot </> "home" </> dockerUser).text <> "/.local/bin:$PATH"
+    , "ENV PATH=" <> localBin.text <> ":" <> linuxBrewBin.text <> ":$PATH"
     , -- download often-used apt packages to speed up tests
       "RUN if command -v apt >/dev/null; then apt install -y --download-only nodejs npm python3-pip python3-venv unzip xz-utils; fi"
     , "USER " <> dockerUser
@@ -144,6 +144,12 @@ dockerfile baseImage =
 
 dockerUser :: Text
 dockerUser = "regular_user"
+
+localBin :: Path Abs
+localBin = pRoot </> "home" </> dockerUser </> ".local" </> "bin"
+
+linuxBrewBin :: Path Abs
+linuxBrewBin = mkPath "/home/linuxbrew/.linuxbrew/bin"
 
 dockerImagePrefix :: Text
 dockerImagePrefix = "mybox-test-"
