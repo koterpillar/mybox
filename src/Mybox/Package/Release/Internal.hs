@@ -1,4 +1,4 @@
-module Mybox.Package.Github.Internal where
+module Mybox.Package.Release.Internal where
 
 import Control.Monad.Writer
 import Data.Text qualified as Text
@@ -12,7 +12,7 @@ import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
 
-data GithubPackage = GithubPackage
+data ReleasePackage = ReleasePackage
   { repo :: Text
   , skipReleases :: [Text]
   , archive :: ArchiveFields
@@ -21,9 +21,9 @@ data GithubPackage = GithubPackage
   }
   deriving (Eq, Show)
 
-mkGithubPackage :: Text -> GithubPackage
-mkGithubPackage repo =
-  GithubPackage
+mkReleasePackage :: Text -> ReleasePackage
+mkReleasePackage repo =
+  ReleasePackage
     { repo = repo
     , skipReleases = []
     , archive = emptyArchiveFields
@@ -31,19 +31,19 @@ mkGithubPackage repo =
     , post = []
     }
 
-instance HasField "name" GithubPackage Text where
+instance HasField "name" ReleasePackage Text where
   getField p = p.repo
 
-instance FromJSON GithubPackage where
-  parseJSON = withObjectTotal "GithubPackage" $ do
+instance FromJSON ReleasePackage where
+  parseJSON = withObjectTotal "ReleasePackage" $ do
     repo <- takeField "repo"
     skipReleases <- takeCollapsedList "skip_release"
     archive <- takeArchive
     filters <- takeFilter
     post <- takePost
-    pure GithubPackage{..}
+    pure ReleasePackage{..}
 
-instance ToJSON GithubPackage where
+instance ToJSON ReleasePackage where
   toJSON p =
     object $
       [ "repo" .= p.repo
@@ -53,13 +53,43 @@ instance ToJSON GithubPackage where
         <> filterToJSON p.filters
         <> postToJSON p
 
-api :: Driver :> es => Text -> Eff es (Either (Int, Text) Text)
-api url = do
-  token <- drvGithubToken
-  let headers = case token of
+data APIEndpoint = APIEndpoint
+  { baseUrl :: Text
+  , authToken :: Maybe Text
+  }
+
+apiEndpoint :: Driver :> es => ReleasePackage -> Eff es APIEndpoint
+apiEndpoint p = do
+  let parts = Text.splitOn "/" p.repo
+  case parts of
+    [owner, repo] -> githubApiEndpoint owner repo
+    [host, owner, repo] -> genericApiEndpoint host owner repo
+    [scheme, "", host, owner, repo] -> genericApiEndpoint (scheme <> "//" <> host) owner repo
+    _ -> error $ "Invalid repo format: " <> Text.unpack p.repo
+
+genericApiEndpoint :: Driver :> es => Text -> Text -> Text -> Eff es APIEndpoint
+genericApiEndpoint host owner repo = do
+  -- https://codeberg.org/api/swagger
+  -- https://gitea.com/api/swagger
+  -- API is compatible with GitHub, but the prefix is different
+  let authToken = Nothing
+  let start = if Text.isInfixOf ":" host then host else "https://" <> host
+  let baseUrl = start <> "/api/v1/repos/" <> owner <> "/" <> repo
+  pure APIEndpoint{..}
+
+githubApiEndpoint :: Driver :> es => Text -> Text -> Eff es APIEndpoint
+githubApiEndpoint owner repo = do
+  authToken <- drvGithubToken
+  let baseUrl = "https://api.github.com/repos/" <> owner <> "/" <> repo
+  pure APIEndpoint{..}
+
+api :: Driver :> es => ReleasePackage -> Text -> Eff es (Either (Int, Text) Text)
+api p url = do
+  endpoint <- apiEndpoint p
+  let headers = case endpoint.authToken of
         Just t -> ["-H", "Authorization: token " <> t]
         Nothing -> []
-  (status, result) <- drvHttpGetStatusArgs headers ("https://api.github.com/" <> url)
+  (status, result) <- drvHttpGetStatusArgs headers (endpoint.baseUrl <> url)
   pure $
     if status == 200
       then Right result
@@ -85,28 +115,28 @@ instance FromJSON Release
 
 handleAPIError :: Either (Int, Text) a -> Eff es a
 handleAPIError = \case
-  Left (status, err) -> error $ "Github API returned " <> show status <> ": " <> Text.unpack err
+  Left (status, err) -> error $ "Releases API returned " <> show status <> ": " <> Text.unpack err
   Right output -> pure output
 
-releases :: Driver :> es => GithubPackage -> Eff es [Release]
+releases :: Driver :> es => ReleasePackage -> Eff es [Release]
 releases p =
-  api ("repos/" <> p.repo <> "/releases")
+  api p "/releases"
     >>= handleAPIError
-    >>= jsonDecode "Github releases"
+    >>= jsonDecode "Releases"
 
-latestRelease :: Driver :> es => GithubPackage -> Eff es (Maybe Release)
+latestRelease :: Driver :> es => ReleasePackage -> Eff es (Maybe Release)
 latestRelease p =
-  api ("repos/" <> p.repo <> "/releases/latest") >>= \case
+  api p "/releases/latest" >>= \case
     Left (404, _) -> pure Nothing
-    r -> handleAPIError r >>= jsonDecode "Github release"
+    r -> handleAPIError r >>= jsonDecode "Release"
 
-wantRelease :: GithubPackage -> Release -> Bool
+wantRelease :: ReleasePackage -> Release -> Bool
 wantRelease p r
   | r.prerelease = False
   | r.tag_name `elem` p.skipReleases = False
   | otherwise = True
 
-release :: forall es. Driver :> es => GithubPackage -> Eff es Release
+release :: forall es. Driver :> es => ReleasePackage -> Eff es Release
 release p =
   findRelease (latestRelease p)
     `fromMaybeOrMM` findRelease (releases p)
@@ -127,22 +157,22 @@ environmentFilters arch os = execWriter $ do
       tell [excludes_ "musl"]
     _ -> pure ()
 
-ghFilters :: Driver :> es => GithubPackage -> Eff es [Text -> Bool]
+ghFilters :: Driver :> es => ReleasePackage -> Eff es [Text -> Bool]
 ghFilters p = do
   arch <- drvArchitecture
   os <- drvOS
   pure $ toFilters p.filters <> environmentFilters arch os
 
-artifact :: Driver :> es => GithubPackage -> Eff es ReleaseArtifact
+artifact :: Driver :> es => ReleasePackage -> Eff es ReleaseArtifact
 artifact p = do
   r <- release p
   fs <- ghFilters p
   throwLeft $ choose_ (map (. (.name)) fs) r.assets
 
-instance ArchivePackage GithubPackage where
+instance ArchivePackage ReleasePackage where
   archiveUrl p = (.browser_download_url) <$> artifact p
 
-instance Package GithubPackage where
+instance Package ReleasePackage where
   remoteVersion p = Text.pack . show . (.id) <$> release p
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

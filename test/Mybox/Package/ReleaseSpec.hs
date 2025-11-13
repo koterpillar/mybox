@@ -1,4 +1,4 @@
-module Mybox.Package.GithubSpec where
+module Mybox.Package.ReleaseSpec where
 
 import Data.List
 import Data.Map.Strict qualified as Map
@@ -7,7 +7,7 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Filters
 import Mybox.Package.Archive
-import Mybox.Package.Github.Internal hiding (id)
+import Mybox.Package.Release.Internal hiding (id)
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
@@ -55,11 +55,11 @@ iconPaths name = do
 
 spec :: Spec
 spec = do
-  jsonSpec @GithubPackage [(Nothing, "{\"repo\": \"example/example\"}")]
+  jsonSpec @ReleasePackage [(Nothing, "{\"repo\": \"example/example\"}")]
 
   packageSpecGen "neovim" $ \psa ->
     ps
-      ( (mkGithubPackage "neovim/neovim")
+      ( (mkReleasePackage "neovim/neovim")
           { archive =
               emptyArchiveFields
                 { binaries = ["nvim"]
@@ -78,11 +78,10 @@ spec = do
               _ -> pure ()
         )
 
-  -- Eza does not provide macOS binaries
   onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
     packageSpec $
       ps
-        ( (mkGithubPackage "eza-community/eza")
+        ( (mkReleasePackage "eza-community/eza")
             { archive =
                 emptyArchiveFields
                   { binaries = ["eza"]
@@ -97,7 +96,7 @@ spec = do
 
   packageSpecGen "Ammonite" $ \psa ->
     ps
-      ( (mkGithubPackage "com-lihaoyi/Ammonite")
+      ( (mkReleasePackage "com-lihaoyi/Ammonite")
           { archive =
               emptyArchiveFields
                 { binaries = ["amm"]
@@ -119,7 +118,7 @@ spec = do
 
   packageSpec $
     ps
-      ( (mkGithubPackage "jqlang/jq")
+      ( (mkReleasePackage "jqlang/jq")
           { archive =
               emptyArchiveFields
                 { binaries = ["jq"]
@@ -131,7 +130,7 @@ spec = do
 
   packageSpec $
     ps
-      ( (mkGithubPackage "koterpillar/hindent-build")
+      ( (mkReleasePackage "koterpillar/hindent-build")
           { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
           }
       )
@@ -140,24 +139,32 @@ spec = do
   onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
     packageSpec $
       ps
-        ( (mkGithubPackage "tonsky/FiraCode")
+        ( (mkReleasePackage "tonsky/FiraCode")
             { archive =
                 emptyArchiveFields{fonts = ["FiraCode-Regular"]}
             }
         )
         & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
 
+  packageSpec $
+    ps
+      ( (mkReleasePackage "codeberg.org/mergiraf/mergiraf")
+          { archive = emptyArchiveFields{binaries = ["mergiraf"]}
+          }
+      )
+      & checkInstalledCommandOutput ("mergiraf" :| ["--help"]) "A syntax-aware merge driver for Git"
+
   it "skips release" $ do
-    let keytar = (mkGithubPackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
+    let keytar = (mkReleasePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
     r <- release keytar
     r.tag_name `shouldBe` "v7.8.0"
 
   it "errors when no releases" $ do
-    let nixos = mkGithubPackage "NixOS/nixpkgs"
+    let nixos = mkReleasePackage "NixOS/nixpkgs"
     release nixos `shouldThrow` errorCall "No releases found for NixOS/nixpkgs"
 
   it "skips prereleases" $ do
-    let neovim = mkGithubPackage "neovim/neovim"
+    let neovim = mkReleasePackage "neovim/neovim"
     nvReleases <- filter (\r -> Text.isPrefixOf "v" r.tag_name) <$> releases neovim
     let (nvLatest, nvPrevious) = requireJust "Neovim has no releases" $ do
           (r1, nvr') <- uncons nvReleases
@@ -166,3 +173,11 @@ spec = do
     let neovimSkip = neovim{skipReleases = [nvLatest.tag_name, "stable"]}
     r <- release neovimSkip
     r.tag_name `shouldBe` nvPrevious.tag_name
+
+  it "fetches releases when full URL specified" $ do
+    let giteaRunner = mkReleasePackage "https://gitea.com/gitea/act_runner"
+    release giteaRunner >>= (`shouldSatisfy` \r -> r.prerelease == False)
+
+  it "errors on invalid repo format" $ do
+    let invalid = mkReleasePackage "invalid-repo-format"
+    release invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"
