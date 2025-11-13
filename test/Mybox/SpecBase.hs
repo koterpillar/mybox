@@ -123,6 +123,12 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE' = jsonDecode @a "example" json'
     let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
+  it "errors on a boolean value" $ do
+    let pkgE = jsonDecode @a "example" "true"
+    pkgE `shouldSatisfy` isLeft
+  it "errors on an unexpected object" $ do
+    let pkgE = jsonDecode @a "example" "{\"unexpected\": 123}"
+    pkgE `shouldSatisfy` isLeft
 
 stringException :: String -> Selector StringException
 stringException expected (StringException msg _) = msg == expected
