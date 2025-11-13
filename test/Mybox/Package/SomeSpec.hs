@@ -6,10 +6,10 @@ import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
 import Mybox.Package.Daemon
-import Mybox.Package.Github
 import Mybox.Package.Links
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
+import Mybox.Package.Release
 import Mybox.Package.Some
 import Mybox.Package.System
 import Mybox.Package.URL
@@ -33,12 +33,12 @@ spec = do
     roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []
-    roundtrip $ mkGithubPackage "test/repo"
-    roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Right True}}
-    roundtrip $ (mkGithubPackage "test/repo"){Mybox.Package.Github.archive = emptyArchiveFields{raw = Left "raw"}}
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
     roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
     roundtrip $ mkPipxPackage "pipx"
+    roundtrip $ mkReleasePackage "test/repo"
+    roundtrip $ (mkReleasePackage "test/repo"){Mybox.Package.Release.archive = emptyArchiveFields{raw = Right True}}
+    roundtrip $ (mkReleasePackage "test/repo"){Mybox.Package.Release.archive = emptyArchiveFields{raw = Left "raw"}}
     roundtrip $ mkSystemPackage "ghc"
     roundtrip $ (mkSystemPackage "com.example.Test"){installer = Just Flatpak}
     roundtrip $ (mkSystemPackage "example"){installer = Just Brew}
