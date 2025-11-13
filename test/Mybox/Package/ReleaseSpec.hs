@@ -78,7 +78,6 @@ spec = do
               _ -> pure ()
         )
 
-  -- Eza does not provide macOS binaries
   onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
     packageSpec $
       ps
@@ -147,6 +146,14 @@ spec = do
         )
         & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
 
+  packageSpec $
+    ps
+      ( (mkReleasePackage "codeberg.org/mergiraf/mergiraf")
+          { archive = emptyArchiveFields{binaries = ["mergiraf"]}
+          }
+      )
+      & checkInstalledCommandOutput ("mergiraf" :| ["--help"]) "A syntax-aware merge driver for Git"
+
   it "skips release" $ do
     let keytar = (mkReleasePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
     r <- release keytar
@@ -166,3 +173,11 @@ spec = do
     let neovimSkip = neovim{skipReleases = [nvLatest.tag_name, "stable"]}
     r <- release neovimSkip
     r.tag_name `shouldBe` nvPrevious.tag_name
+
+  it "fetches releases when full URL specified" $ do
+    let giteaRunner = mkReleasePackage "https://gitea.com/gitea/act_runner"
+    release giteaRunner >>= (`shouldSatisfy` \r -> r.prerelease == False)
+
+  it "errors on invalid repo format" $ do
+    let invalid = mkReleasePackage "invalid-repo-format"
+    release invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"

@@ -53,13 +53,43 @@ instance ToJSON ReleasePackage where
         <> filterToJSON p.filters
         <> postToJSON p
 
-api :: Driver :> es => Text -> Eff es (Either (Int, Text) Text)
-api url = do
-  token <- drvGithubToken
-  let headers = case token of
+data APIEndpoint = APIEndpoint
+  { baseUrl :: Text
+  , authToken :: Maybe Text
+  }
+
+apiEndpoint :: Driver :> es => ReleasePackage -> Eff es APIEndpoint
+apiEndpoint p = do
+  let parts = Text.splitOn "/" p.repo
+  case parts of
+    [owner, repo] -> githubApiEndpoint owner repo
+    [host, owner, repo] -> genericApiEndpoint host owner repo
+    [scheme, "", host, owner, repo] -> genericApiEndpoint (scheme <> "//" <> host) owner repo
+    _ -> error $ "Invalid repo format: " <> Text.unpack p.repo
+
+genericApiEndpoint :: Driver :> es => Text -> Text -> Text -> Eff es APIEndpoint
+genericApiEndpoint host owner repo = do
+  -- https://codeberg.org/api/swagger
+  -- https://gitea.com/api/swagger
+  -- API is compatible with GitHub, but the prefix is different
+  let authToken = Nothing
+  let start = if Text.isInfixOf ":" host then host else "https://" <> host
+  let baseUrl = start <> "/api/v1/repos/" <> owner <> "/" <> repo
+  pure APIEndpoint{..}
+
+githubApiEndpoint :: Driver :> es => Text -> Text -> Eff es APIEndpoint
+githubApiEndpoint owner repo = do
+  authToken <- drvGithubToken
+  let baseUrl = "https://api.github.com/repos/" <> owner <> "/" <> repo
+  pure APIEndpoint{..}
+
+api :: Driver :> es => ReleasePackage -> Text -> Eff es (Either (Int, Text) Text)
+api p url = do
+  endpoint <- apiEndpoint p
+  let headers = case endpoint.authToken of
         Just t -> ["-H", "Authorization: token " <> t]
         Nothing -> []
-  (status, result) <- drvHttpGetStatusArgs headers ("https://api.github.com/" <> url)
+  (status, result) <- drvHttpGetStatusArgs headers (endpoint.baseUrl <> url)
   pure $
     if status == 200
       then Right result
@@ -85,20 +115,20 @@ instance FromJSON Release
 
 handleAPIError :: Either (Int, Text) a -> Eff es a
 handleAPIError = \case
-  Left (status, err) -> error $ "Github API returned " <> show status <> ": " <> Text.unpack err
+  Left (status, err) -> error $ "Releases API returned " <> show status <> ": " <> Text.unpack err
   Right output -> pure output
 
 releases :: Driver :> es => ReleasePackage -> Eff es [Release]
 releases p =
-  api ("repos/" <> p.repo <> "/releases")
+  api p "/releases"
     >>= handleAPIError
-    >>= jsonDecode "Github releases"
+    >>= jsonDecode "Releases"
 
 latestRelease :: Driver :> es => ReleasePackage -> Eff es (Maybe Release)
 latestRelease p =
-  api ("repos/" <> p.repo <> "/releases/latest") >>= \case
+  api p "/releases/latest" >>= \case
     Left (404, _) -> pure Nothing
-    r -> handleAPIError r >>= jsonDecode "Github release"
+    r -> handleAPIError r >>= jsonDecode "Release"
 
 wantRelease :: ReleasePackage -> Release -> Bool
 wantRelease p r
