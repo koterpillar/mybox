@@ -4,8 +4,11 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Effects
+import Mybox.Installer.Brew
 import Mybox.Package.Class
 import Mybox.Package.Post
+import Mybox.Package.System
 import Mybox.Prelude
 
 data BrewRepo = BrewRepo
@@ -29,25 +32,16 @@ instance FromJSON BrewRepo where
 instance ToJSON BrewRepo where
   toJSON p = object $ ["brew_tap" .= p.name_] <> postToJSON p
 
-brewRepoLocalVersion :: Driver :> es => BrewRepo -> Eff es (Maybe Text)
+brewRepoLocalVersion :: App es => BrewRepo -> Eff es (Maybe Text)
 brewRepoLocalVersion p = do
-  os <- drvOS
-  case os of
-    MacOS -> do
-      tappedRepos <- drvRunOutput $ "brew" :| ["tap"]
-      pure $
-        if p.name_ `Text.isInfixOf` tappedRepos
-          then Just "installed"
-          else Nothing
-    Linux _ -> pure Nothing
+  tappedRepos <- brewRun @SystemPackage drvRunOutput ["tap"]
+  pure $
+    if p.name_ `Text.isInfixOf` tappedRepos
+      then Just "installed"
+      else Nothing
 
-brewRepoInstall :: Driver :> es => BrewRepo -> Eff es ()
-brewRepoInstall p = do
-  os <- drvOS
-  case os of
-    MacOS -> do
-      drvRun $ "brew" :| ["tap", p.name_]
-    Linux _ -> terror "BrewRepo is only supported on macOS" -- FIXME: technically also supported
+brewRepoInstall :: App es => BrewRepo -> Eff es ()
+brewRepoInstall p = brewRun @SystemPackage drvRun ["tap", p.name_]
 
 instance Package BrewRepo where
   remoteVersion = const $ pure "installed"
