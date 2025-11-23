@@ -43,10 +43,11 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
       drvRun $ installSh.text :| []
 
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
-brewRun act args = do
-  queueInstall $ BrewBootstrap @s
-  exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-  act $ exe.text :| args
+brewRun act args =
+  drvAtomic "brew-run" $ do
+    queueInstall $ BrewBootstrap @s
+    exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
+    act $ exe.text :| args
 
 brewInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Text -> Eff es ()
 brewInstall action package = brewRun @s drvRun [action, package]
