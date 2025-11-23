@@ -10,7 +10,7 @@ import Mybox.Prelude
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
 dnfInstall action package = do
   sudo' <- mkSudo
-  drvRun $
+  drvRunSilent $
     sudo' $
       "dnf"
         :| [ action
