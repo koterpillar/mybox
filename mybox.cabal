@@ -60,6 +60,7 @@ library
       Mybox.Package.Name
       Mybox.Package.NPM
       Mybox.Package.Pipx
+      Mybox.Package.Pipx.Internal
       Mybox.Package.Post
       Mybox.Package.Queue
       Mybox.Package.Queue.Effect
