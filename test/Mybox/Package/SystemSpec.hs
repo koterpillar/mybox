@@ -29,7 +29,7 @@ spec = do
           "alacritty 0"
     onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $
       packageSpec $
-        ps ((mkSystemPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm"})
+        ps ((mkSystemPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-43.noarch.rpm"})
           & checkInstalledCommandOutput
             ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
