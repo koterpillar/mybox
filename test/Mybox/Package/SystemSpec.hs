@@ -27,9 +27,10 @@ spec = do
         & checkInstalledCommandOutput
           ("alacritty" :| ["--version"])
           "alacritty 0"
-    onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $
+    onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $ do
+      let fedoraVersion = "43" -- renovate: datasource=endoflife-date depName=fedora versioning=loose
       packageSpec $
-        ps ((mkSystemPackage "rpmfusion-free-release"){url = Just "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-43.noarch.rpm"})
+        ps ((mkSystemPackage "rpmfusion-free-release"){url = Just ("https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-" <> fedoraVersion <> ".noarch.rpm")})
           & checkInstalledCommandOutput
             ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
