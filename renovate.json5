@@ -13,6 +13,14 @@
       matchStrings: ["--package (?<depName>@?[^@]+)@(?<currentValue>\\d+)"],
       datasourceTemplate: "npm",
     },
+    {
+      customType: "regex",
+      managerFilePatterns: ["**/*.hs"],
+      matchStrings: [
+        '= *"(?<currentValue>[0-9.]+)" *-- renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)( versioning=(?<versioning>.+?))?(\\s|$)',
+      ],
+      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}",
+    },
   ],
   packageRules: [
     {
