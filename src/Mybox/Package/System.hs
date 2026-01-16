@@ -29,7 +29,7 @@ instance FromJSON SystemPackage where
     name <- takeField "system"
     installer <- takeFieldMaybe "installer"
     url <- takeFieldMaybe "url"
-    autoUpdates <- fromMaybe True <$> takeFieldMaybe "auto_updates"
+    autoUpdates <- fromMaybe False <$> takeFieldMaybe "auto_updates"
     post <- takePost
     pure SystemPackage{..}
 
