@@ -76,10 +76,10 @@ instance FromJSON BrewFormula where
     name <- o .: "name"
     installedArr <- o .:? "installed"
     installed <-
-      fmap join $
+      fmap (join . fmap maximumMaybe) $
         for installedArr $
           withArray "BrewFormula.installed" $
-            traverse (withObject "BrewFormula.installed item" (.: "version")) . listToMaybe . toList
+            traverse (withObject "BrewFormula.installed item" (.: "version")) . toList
     latest <-
       o .: "versions"
         >>= \vo -> do
