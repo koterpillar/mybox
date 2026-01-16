@@ -61,6 +61,15 @@ spec = do
                 ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
                 "VLC version"
               & ignorePaths [mkPath ".local/share/flatpak"]
+    onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False) $
+      -- tup has a revision in Brew, check that it is correctly reported as
+      -- installed after installation
+      packageSpec $
+        ps ((mkSystemPackage "tup"){installer = Just Brew, autoUpdates = False})
+          & preinstallEnableSudo
+          & checkInstalledCommandOutput
+            ("tup" :| ["--version"])
+            "tup 0."
     packageSpec $
       ps ((mkSystemPackage "the_silver_searcher"){installer = Just Brew})
         & preinstallEnableSudo

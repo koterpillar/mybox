@@ -3,6 +3,7 @@
 module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
+import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -76,16 +77,16 @@ instance FromJSON BrewFormula where
     name <- o .: "name"
     installedArr <- o .:? "installed"
     installed <-
-      fmap join $
+      fmap (join . fmap maximumMaybe) $
         for installedArr $
           withArray "BrewFormula.installed" $
-            traverse (withObject "BrewFormula.installed item" (.: "version")) . listToMaybe . toList
-    latest <-
-      o .: "versions"
-        >>= \vo -> do
-          version <- vo .: "stable"
-          revision <- vo .:? "revision"
-          pure $ foldr (\acc v -> acc <> "-" <> v) version revision
+            traverse (withObject "BrewFormula.installed item" (.: "version")) . toList
+    latest <- do
+      stable <- o .: "versions" >>= (.: "stable")
+      revision_ <- o .:? "revision"
+      pure $ case (revision_ :: Maybe Int) of
+        Just revision | revision > 0 -> stable <> "_" <> Text.pack (show revision)
+        _ -> stable
     pure BrewFormula{..}
 
 parseFormula :: BrewFormula -> (Text, PackageVersion)

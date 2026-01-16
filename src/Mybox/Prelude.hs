@@ -28,6 +28,7 @@ module Mybox.Prelude (
   Set,
   Text,
   terror,
+  maximumMaybe,
   fromMaybeOrM,
   fromMaybeOrMM,
   orMaybeM,
@@ -62,6 +63,10 @@ import Mybox.Path
 
 terror :: HasCallStack => Text -> a
 terror !msg = error $ Text.unpack msg
+
+maximumMaybe :: Ord a => [a] -> Maybe a
+maximumMaybe [] = Nothing
+maximumMaybe xs = Just $ maximum xs
 
 fromMaybeOrM :: Applicative m => Maybe a -> m a -> m a
 fromMaybeOrM value nothingAction = maybe nothingAction pure value
