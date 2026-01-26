@@ -4,7 +4,7 @@ description: Manage the configuration and tools on your workstation without both
 author: Alexey Kotlyarov <a@koterpillar.com>
 maintainer: Alexey Kotlyarov <a@koterpillar.com>
 license: GPL-3.0-or-later
-language: GHC2021
+language: GHC2024
 default-extensions:
   - DerivingVia
   - FunctionalDependencies
@@ -14,15 +14,6 @@ default-extensions:
   - OverloadedRecordDot
   # FIXME: all in on record fields? NoFieldSelectors
   - TypeFamilies
-  # GHC2024
-  - DataKinds
-  - DerivingStrategies
-  - DisambiguateRecordFields
-  - ExplicitNamespaces
-  - GADTs
-  - LambdaCase
-  - MonoLocalBinds
-  - RoleAnnotations
 dependencies:
   - aeson
   - aeson-jsonpath

@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.38.1.
+-- This file has been generated from package.yaml by hpack version 0.39.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -92,14 +92,6 @@ library
       DuplicateRecordFields
       OverloadedRecordDot
       TypeFamilies
-      DataKinds
-      DerivingStrategies
-      DisambiguateRecordFields
-      ExplicitNamespaces
-      GADTs
-      LambdaCase
-      MonoLocalBinds
-      RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path
   build-depends:
       Glob
@@ -122,7 +114,7 @@ library
     , vector
     , witherable
     , yaml
-  default-language: GHC2021
+  default-language: GHC2024
 
 executable mybox
   main-is: Main.hs
@@ -140,14 +132,6 @@ executable mybox
       DuplicateRecordFields
       OverloadedRecordDot
       TypeFamilies
-      DataKinds
-      DerivingStrategies
-      DisambiguateRecordFields
-      ExplicitNamespaces
-      GADTs
-      LambdaCase
-      MonoLocalBinds
-      RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-depends:
       Glob
@@ -171,7 +155,7 @@ executable mybox
     , vector
     , witherable
     , yaml
-  default-language: GHC2021
+  default-language: GHC2024
 
 test-suite tests
   type: exitcode-stdio-1.0
@@ -243,14 +227,6 @@ test-suite tests
       DuplicateRecordFields
       OverloadedRecordDot
       TypeFamilies
-      DataKinds
-      DerivingStrategies
-      DisambiguateRecordFields
-      ExplicitNamespaces
-      GADTs
-      LambdaCase
-      MonoLocalBinds
-      RoleAnnotations
   ghc-options: -Wall -Werror -threaded -optP-Wno-nonportable-include-path -rtsopts -with-rtsopts=-N
   build-tool-depends:
       hspec-discover:hspec-discover
@@ -281,4 +257,4 @@ test-suite tests
     , yaml
     , zip-archive
     , zlib
-  default-language: GHC2021
+  default-language: GHC2024
