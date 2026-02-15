@@ -74,13 +74,13 @@ spec =
         extractor <- getExtractor "https://telegram.org/dl/desktop/linux"
         show extractor `shouldBe` "tar -J"
       it "raises an error with unknown format" $ do
-        getExtractor "https://example.com" `shouldThrow` anyException
+        getExtractor "http://example.com" `shouldThrow` errorCall "Unknown archive format"
     describe "getRawExtractor" $ do
       it "guesses raw extractor from a link" $ do
         extractor <- getRawExtractor "http://example.com/test.gz"
         show extractor `shouldBe` "gunzip"
       it "falls back to file copying" $ do
-        extractor <- getRawExtractor "https://example.com"
+        extractor <- getRawExtractor "http://example.com"
         show extractor `shouldBe` "move"
     describe "RawExtractor" $
       for_ [(compress GZip.compress, "gz"), (compress LZMA.compress, "xz"), (compress BZip.compress, "bz2")] $
