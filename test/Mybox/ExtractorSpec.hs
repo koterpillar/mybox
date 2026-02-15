@@ -14,6 +14,7 @@ import Mybox.Effects
 import Mybox.Extractor
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -64,7 +65,7 @@ spec =
           extractFileNames archive >>= (`shouldBe` Set.fromList ["bar"])
       it "raises an error with too much nesting" $ do
         temporaryZip [Text.intercalate "/" $ replicate 100 "foo"] $ \archive -> do
-          extractFileNames archive `shouldThrow` anyException
+          extractFileNames archive `shouldThrow` errorCallContains ["Too many nested directories:", "/foo/"]
     describe "getExtractor" $ do
       it "guesses extractor from a link" $ do
         extractor <- getExtractor "http://example.com/test.tar.gz"
@@ -73,13 +74,13 @@ spec =
         extractor <- getExtractor "https://telegram.org/dl/desktop/linux"
         show extractor `shouldBe` "tar -J"
       it "raises an error with unknown format" $ do
-        getExtractor "https://example.com" `shouldThrow` anyException
+        getExtractor "http://example.com" `shouldThrow` errorCall "Unknown archive format"
     describe "getRawExtractor" $ do
       it "guesses raw extractor from a link" $ do
         extractor <- getRawExtractor "http://example.com/test.gz"
         show extractor `shouldBe` "gunzip"
       it "falls back to file copying" $ do
-        extractor <- getRawExtractor "https://example.com"
+        extractor <- getRawExtractor "http://example.com"
         show extractor `shouldBe` "move"
     describe "RawExtractor" $
       for_ [(compress GZip.compress, "gz"), (compress LZMA.compress, "xz"), (compress BZip.compress, "bz2")] $

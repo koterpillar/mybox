@@ -28,7 +28,7 @@ instance Show Extractor where
 findContents :: Driver :> es => Path Abs -> Int -> Eff es (Path Abs, Set (Path Rel))
 findContents sourceDir maxDepth = do
   if maxDepth < 0
-    then terror $ "maxDepth must be positive, got " <> Text.pack (show maxDepth)
+    then terror $ "Too many nested directories: " <> sourceDir.text
     else do
       contents <- drvFind sourceDir (findOptions{maxDepth = Just 1})
       case Set.toList contents of
