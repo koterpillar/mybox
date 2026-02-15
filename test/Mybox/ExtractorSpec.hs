@@ -14,6 +14,7 @@ import Mybox.Effects
 import Mybox.Extractor
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -64,7 +65,7 @@ spec =
           extractFileNames archive >>= (`shouldBe` Set.fromList ["bar"])
       it "raises an error with too much nesting" $ do
         temporaryZip [Text.intercalate "/" $ replicate 100 "foo"] $ \archive -> do
-          extractFileNames archive `shouldThrow` anyException
+          extractFileNames archive `shouldThrow` errorCallContains ["Too many nested directories:", "/foo/"]
     describe "getExtractor" $ do
       it "guesses extractor from a link" $ do
         extractor <- getExtractor "http://example.com/test.tar.gz"
