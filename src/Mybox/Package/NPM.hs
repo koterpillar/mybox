@@ -64,11 +64,15 @@ npmInstall p = do
 
   -- Find the path where the binaries are installed
   npxPaths <- drvRunOutput $ npmExec $ shellRaw "echo $PATH"
-  let npxPath = find (Text.isInfixOf "_npx") $ Text.splitOn ":" npxPaths
+  let npxBin' = find (elem "_npx" . (.segments)) $ map (mkPath @Abs) $ Text.splitOn ":" npxPaths
 
-  case npxPath of
+  case npxBin' of
     Nothing -> terror $ "Could not find npx path in " <> npxPaths
-    Just path -> do
+    Just npxBin -> do
+      -- npxBin would be .../_npx/(hash)/node_modules/.bin, take the part up to
+      -- and including the hash
+      let npxPath = pParent npxBin >>= pParent
+      for_ npxPath $ trkAdd p
       local <- drvLocal
       let binDir = local </> "bin"
       drvMkdir binDir
@@ -78,7 +82,7 @@ npmInstall p = do
         let script =
               Text.unlines
                 [ "#!/bin/sh"
-                , "PATH=" <> shellQuote path <> ":$PATH"
+                , "PATH=" <> shellQuote npxBin.text <> ":$PATH"
                 , "exec \"" <> name <> "\" \"$@\""
                 ]
         drvWriteFile target script
