@@ -14,6 +14,7 @@ module Mybox.Path (
   pRelativeTo,
   pRelativeTo_,
   pUnder,
+  pParent,
   pRoot,
   pCurrent,
   pLocal,
@@ -168,6 +169,11 @@ pRelativeTo_ a b =
 
 pUnder :: Path Abs -> Path Abs -> Bool
 pUnder a b = isJust $ pRelativeTo a b
+
+pParent :: Anchor a => Path a -> Maybe (Path a)
+pParent (Path a s) = case unsnoc s of
+  Nothing -> Nothing
+  Just (s', _) -> Just $ Path a s'
 
 pRoot :: Path Abs
 pRoot = Path Abs_ []
