@@ -107,3 +107,22 @@ spec = do
       show (pSegment "usr") `shouldBe` "mkPath \"usr\""
     it "shows current directory for empty relative path" $
       show (pSegment "usr").dirname `shouldBe` "mkPath \".\""
+
+  describe "pParent" $ do
+    it "returns Nothing for root absolute path" $
+      pParent pRoot `shouldBe` Nothing
+    it "returns parent for single segment absolute path" $ do
+      let result = pParent (pRoot </> "usr")
+      result `shouldBe` Just pRoot
+    it "returns parent for single segment relative path" $ do
+      let result = pParent (pSegment "usr")
+      (result >>= \p -> Just p.segments) `shouldBe` Just ([] :: [Text])
+    it "returns parent for multi-segment absolute path" $ do
+      let result = pParent (pRoot </> "usr" </> "local" </> "bin")
+      result `shouldBe` Just (pRoot </> "usr" </> "local")
+    it "returns parent for multi-segment relative path" $ do
+      let result = pParent (pSegment "usr" </> "local" </> "bin")
+      result `shouldBe` Just (pSegment "usr" </> "local")
+    it "returns parent for two-segment relative path" $ do
+      let result = pParent (pSegment "usr" </> "local")
+      (result >>= \p -> Just p.segments) `shouldBe` Just (["usr"] :: [Text])

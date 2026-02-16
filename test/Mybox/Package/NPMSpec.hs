@@ -30,4 +30,4 @@ spec = do
       & checkInstalledCommandOutput
         ("express" :| ["--help"])
         "engine support"
-      & ignorePaths [".npm"]
+      & ignorePaths [".npm" </> "_cacache", ".npm" </> "_logs", ".npm" </> "_update-notifier-last-checked"]
