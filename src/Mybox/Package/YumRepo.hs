@@ -69,7 +69,7 @@ writeRepoFile p = do
 importGpgKey :: Driver :> es => YumRepo -> Eff es ()
 importGpgKey p = for_ p.gpgKey $ \key -> do
   sudo' <- mkSudo
-  drvRun $ sudo' $ "rpm" :| ["--import", key]
+  drvRun $ sudo' $ "rpmkeys" :| ["--import", key]
 
 yumRepoInstall :: (Driver :> es, Tracker :> es) => YumRepo -> Eff es ()
 yumRepoInstall p = do
