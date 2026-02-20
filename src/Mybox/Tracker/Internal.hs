@@ -91,6 +91,7 @@ rmWithRoot :: Driver :> es => Path Abs -> Eff es ()
 rmWithRoot p = do
   sudo' <- mkSudo
   let m
+        | pUnder (pRoot </> "etc") p = sudo'
         | pUnder (pRoot </> "root") p = sudo'
         | pUnder (pRoot </> "var" </> "root") p = sudo' -- macOS root home
         | otherwise = id
