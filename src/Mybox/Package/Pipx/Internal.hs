@@ -106,7 +106,7 @@ getInstalled p = do
   allMetadata <- jsonDecode @PipxList "pipx output" pipxListOutput
   pure $ find (\pkg -> pkg.name == p.package) allMetadata.packages
 
-localVersionPipx :: (Concurrent :> es, Driver :> es) => PipxPackage -> Eff es (Maybe Text)
+localVersionPipx :: (Concurrent :> es, Driver :> es, Tracker :> es) => PipxPackage -> Eff es (Maybe Text)
 localVersionPipx p = do
   if isRepo p
     then manualVersion p -- pipx doesn't store Git commit, just the version field from the package

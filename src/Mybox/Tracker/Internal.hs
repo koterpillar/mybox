@@ -26,6 +26,9 @@ trkAdd pkg file = send $ TrkAdd pkg file
 
 type TrackedFiles = Map (Path Abs) (Set Text)
 
+tfAdd :: PackageName p => p -> Path Abs -> TrackedFiles -> TrackedFiles
+tfAdd pkg f = Map.insertWith Set.union f (Set.singleton pkg.name)
+
 data TrackerState = TrackerState
   { added :: !TrackedFiles
   , skipped :: !(Set Text)
@@ -35,7 +38,7 @@ tsSkip :: PackageName p => p -> TrackerState -> TrackerState
 tsSkip pkg ts = ts{skipped = Set.insert pkg.name ts.skipped}
 
 tsAdd :: PackageName p => p -> Path Abs -> TrackerState -> TrackerState
-tsAdd pkg f ts = ts{added = Map.insertWith Set.union f (Set.singleton pkg.name) ts.added}
+tsAdd pkg f ts = ts{added = tfAdd pkg f ts.added}
 
 data TrackResult = TrackResult
   { deleted :: Set (Path Abs)

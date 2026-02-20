@@ -9,6 +9,7 @@ module Mybox.Package.Class (
 import Mybox.Aeson
 import Mybox.Display
 import Mybox.Effects
+import Mybox.Package.Hash
 import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Tracker
@@ -23,12 +24,16 @@ class
 
 isInstalled :: (App es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
-  lv <- localVersion pkg
-  case lv of
-    Nothing -> pure False
-    Just lv' -> do
-      rv <- remoteVersion pkg
-      pure $ lv' == rv
+  lh <- localHash pkg
+  if lh /= Just (pkgHash pkg)
+    then pure False
+    else do
+      lv <- localVersion pkg
+      case lv of
+        Nothing -> pure False
+        Just lv' -> do
+          rv <- remoteVersion pkg
+          pure $ lv' == rv
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = trkTry pkg $
@@ -39,5 +44,7 @@ ensureInstalled pkg = trkTry pkg $
         displayBanner $ bannerUnchanged pkg.name
         trkSkip pkg
       else do
-        displayBannerWhile (bannerInstalling pkg.name) $ install pkg
+        displayBannerWhile (bannerInstalling pkg.name) $ do
+          install pkg
+          writeHash pkg
         displayBanner $ bannerModified pkg.name
