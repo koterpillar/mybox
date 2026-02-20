@@ -82,15 +82,18 @@ spec = do
     onlyIf "Root tests pollute real /root and require a virtual system" virtualSystem $
       it "removes root-installed files with sudo" $
         drvTempDir $ \dir -> do
-          -- Write a file as root
+          -- Write files as root
           rootHome <- drvHome_ "root"
-          testFile <- (rootHome </>) <$> randomText "file"
-          modifyDriver sudo $ drvWriteFile testFile "content"
+          rootFile <- (rootHome </>) <$> randomText "file"
+          etcFile <- (pRoot </> "etc" </>) <$> randomText "file"
+          modifyDriver sudo $ drvWriteFile rootFile "content"
+          modifyDriver sudo $ drvWriteFile etcFile "content"
           -- Record the file as tracked from a previous run
           let state = dir </> "state.json"
-          drvWriteFile state $ "{\"trackedFiles\":{\"" <> testFile.text <> "\":[\"pkg1\"]}}"
+          drvWriteFile state $ "{\"trackedFiles\":{\"" <> rootFile.text <> "\":[\"pkg1\"],\"" <> etcFile.text <> "\":[\"pkg1\"]}}"
           -- Record no files
           drvTracker state $ pure ()
-          -- Test file should be deleted (checking with root as the regular user
-          -- won't see it)
-          modifyDriver sudo (drvIsFile testFile) >>= (`shouldBe` False)
+          -- Test files should be deleted (checking /root with root as the
+          -- regular user won't see it)
+          modifyDriver sudo (drvIsFile rootFile) >>= (`shouldBe` False)
+          drvIsFile etcFile >>= (`shouldBe` False)
