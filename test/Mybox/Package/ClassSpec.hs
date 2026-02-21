@@ -1,28 +1,29 @@
 module Mybox.Package.ClassSpec where
 
 import Data.List (isPrefixOf)
-import Data.Map qualified as Map
-import Data.Set qualified as Set
 
 import Mybox.Aeson
 import Mybox.Display
 import Mybox.Display.SpecUtils
 import Mybox.Driver
 import Mybox.Package.Class
+import Mybox.Package.Hash
 import Mybox.Package.Queue
 import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Stores
 import Mybox.Tracker
+import Mybox.Tracker.Internal (tfAdd)
 
 data TestPackage = TestPackage
   { installed :: Bool
   , error_ :: Bool
+  , flavour :: Text
   }
   deriving (Eq, Show)
 
 defTestPackage :: TestPackage
-defTestPackage = TestPackage{installed = False, error_ = False}
+defTestPackage = TestPackage{installed = False, error_ = False, flavour = "vanilla"}
 
 instance HasField "name" TestPackage Text where
   getField = const "test"
@@ -31,6 +32,7 @@ instance FromJSON TestPackage where
   parseJSON = withObject "TestPackage" $ \o -> do
     installed <- o .: "installed"
     error_ <- o .: "error"
+    flavour <- o .: "flavour"
     pure TestPackage{..}
 
 instance ToJSON TestPackage where
@@ -38,6 +40,7 @@ instance ToJSON TestPackage where
     object
       [ "installed" .= p.installed
       , "error" .= p.error_
+      , "flavour" .= p.flavour
       ]
 
 instance Package TestPackage where
@@ -62,20 +65,35 @@ run_ fn initialSet =
 spec :: Spec
 spec = do
   describe "TestPackage" $
-    jsonSpec @TestPackage [(Nothing, "{\"installed\": false, \"error\": false}")]
+    jsonSpec @TestPackage [(Nothing, "{\"installed\": false, \"error\": false, \"flavour\": \"vanilla\"}")]
+  describe "PackageHash" $
+    jsonSpec @PackageHash [(Nothing, "{\"hash\": \"test\"}")]
   describe "ensureInstalled" $ do
-    let mkTrk :: Text -> TrackedFiles
-        mkTrk f = Map.singleton (pRoot </> f) $ Set.singleton "test"
-    let initState = mkTrk "preexisting"
+    let mkTrk' :: Path Abs -> TrackedFiles -> TrackedFiles
+        mkTrk' = tfAdd defTestPackage
+    let mkTrk :: Text -> TrackedFiles -> TrackedFiles
+        mkTrk f = mkTrk' (pRoot </> f)
+    let initState = mempty & mkTrk "preexisting"
+    let testHashFile :: Driver :> es => Eff es (Path Abs)
+        testHashFile = (\h -> h </> "hashes" </> "test.json") <$> drvMyboxState
 
     it "adds tracked files and outputs progress when installing a package" $ do
+      hf <- testHashFile
       (state, out) <- run_ id initState defTestPackage
-      state.state `shouldBe` mkTrk "test-file-1"
+      state.state `shouldBe` (mempty & mkTrk "test-file-1" & mkTrk' hf)
+      out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
+
+    it "outputs progress when definition changes" $ do
+      hf <- testHashFile
+      (state, out) <- run_ id initState defTestPackage{flavour = "chocolate"}
+      state.state `shouldBe` (mempty & mkTrk "test-file-1" & mkTrk' hf)
       out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
 
     it "keeps existing files and outputs progress when already installed" $ do
+      hf <- testHashFile
+      _ <- run_ id initState defTestPackage{installed = True}
       (state, out) <- run_ id initState $ defTestPackage{installed = True}
-      state.state `shouldBe` mkTrk "preexisting"
+      state.state `shouldBe` (initState & mkTrk' hf)
       out `shouldBe` "checking test\n"
 
     it "keeps existing files and outputs progress when install errors" $ do
@@ -84,6 +102,6 @@ spec = do
           (`catch` (\(_ :: StringException) -> pure ()))
           initState
           $ defTestPackage{error_ = True}
-      state.state `shouldBe` mkTrk "preexisting"
+      state.state `shouldBe` (mempty & mkTrk "preexisting")
       shouldSatisfy out $
         isPrefixOf "checking test\ninstalling test\nerror test: Control.Exception.Safe.throwString called with:\n\nError"

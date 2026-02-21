@@ -55,8 +55,10 @@ library
       Mybox.Package.Clone
       Mybox.Package.Daemon
       Mybox.Package.Destination
+      Mybox.Package.Hash
       Mybox.Package.Links
       Mybox.Package.ManualVersion
+      Mybox.Package.ManualVersion.Internal
       Mybox.Package.Name
       Mybox.Package.NPM
       Mybox.Package.Pipx
