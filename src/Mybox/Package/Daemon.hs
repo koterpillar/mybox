@@ -144,10 +144,10 @@ daemonLocalVersion :: Driver :> es => DaemonPackage -> Eff es (Maybe Text)
 daemonLocalVersion p = do
   path <- serviceFilePath p
   exists <- drvIsFile path
-  pure $ if exists then Just (cmd p) else Nothing
+  pure $ if exists then Just "daemon" else Nothing
 
 daemonRemoteVersion :: Driver :> es => DaemonPackage -> Eff es Text
-daemonRemoteVersion p = pure $ cmd p
+daemonRemoteVersion _ = pure "daemon"
 
 instance Package DaemonPackage where
   localVersion = daemonLocalVersion
