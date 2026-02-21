@@ -20,12 +20,10 @@ repoUrl = "https://dl.flathub.org/repo/flathub.flatpakrepo"
 flatpakPackage :: IsSystemPackage s => s
 flatpakPackage =
   mkSystemPackage_ "flatpak" $
-    map
-      (shellJoin . sudo)
-      [ "systemctl" :| ["daemon-reload"]
-      , "systemctl" :| ["enable", "--now", "dbus"]
-      , "flatpak" :| ["remote-add", "--if-not-exists", repoName, repoUrl]
-      ]
+    [ "sudo systemctl daemon-reload"
+    , "sudo systemctl is-enabled dbus >/dev/null 2>&1 || sudo systemctl enable --now dbus"
+    , shellJoin ["sudo", "flatpak", "remote-add", "--if-not-exists", repoName, repoUrl]
+    ]
 
 flatpakInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Eff es ()
 flatpakInstall package = do
