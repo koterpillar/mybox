@@ -270,7 +270,7 @@ shellQuote t
   | otherwise = q <> Text.intercalate "'\"'\"'" (Text.splitOn q t) <> q
  where
   q = "'"
-  safe c = isAlphaNum c || c == '_' || c == '/'
+  safe c = isAlphaNum c || elem c ['_', '-', '/', '.']
 
 mkSudo :: Driver :> es => Eff es (Args -> Args)
 mkSudo = do

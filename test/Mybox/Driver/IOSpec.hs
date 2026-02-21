@@ -38,7 +38,7 @@ spec = do
       it "includes error in failure message" $
         shouldThrow
           (drvRun $ shellRaw "echo fail; echo err >&2; false")
-          (errorCallContains ["/bin/sh '-c' 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
+          (errorCallContains ["/bin/sh -c 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
     describe "nonexistent command" $ do
       let nonExistentCommand = "nonexistent-command-xyz" :| []
       -- default test driver wraps commands in 'env' and/or 'docker' which exist
@@ -48,7 +48,7 @@ spec = do
       it "reports error details" $ do
         localDriver (drvRun nonExistentCommand)
           `shouldThrow` errorCallContains
-            [ "Process 'nonexistent-command-xyz' failed with exit code 127"
+            [ "Process nonexistent-command-xyz failed with exit code 127"
             , "No such file or directory"
             ]
   it "writes and reads files" $ do
