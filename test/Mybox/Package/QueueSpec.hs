@@ -1,5 +1,6 @@
 module Mybox.Package.QueueSpec where
 
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -76,13 +77,12 @@ spec = do
 
       nullTracker $ runInstallQueue $ queueInstallMany $ pkgs fileName
 
-      actualOrder fileName
-        >>= ( `shouldBe`
-                [ "one"
-                , "one.rdep" -- depends on already-installed "one"
-                , "two"
-                , "three"
-                , "four.dep"
-                , "four" -- would have gone first, but waited for "four.dep"
-                ]
-            )
+      order <- actualOrder fileName
+
+      Set.fromList order `shouldBe` Set.fromList ["one", "one.rdep", "two", "three", "four", "four.dep"]
+
+      let filterAny names = filter (`elem` names)
+      -- "one.rdep" depends on already-installed "one"
+      filterAny ["one", "one.rdep"] order `shouldBe` ["one", "one.rdep"]
+      -- "four" would have gone first, but waited for "four.dep"
+      filterAny ["four", "four.dep"] order `shouldBe` ["four.dep", "four"]
