@@ -41,6 +41,9 @@ ensure() {
     elif command_exists dnf
     then
       INSTALLER='sudo_ dnf install --assumeyes'
+    elif command_exists apk
+    then
+      INSTALLER='sudo_ apk add --no-cache'
     else
       echo "Cannot find a package manager." >&2
       exit 1
