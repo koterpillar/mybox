@@ -27,6 +27,7 @@ jobs:
           - docker: ubuntu
             arch: arm
           - docker: fedora
+          - docker: alpine
           - host: ubuntu
           - host: macos
     runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-24.04-{0}', matrix.arch) || 'ubuntu-latest' }}
