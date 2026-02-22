@@ -129,6 +129,7 @@ dockerfile :: Text -> Text
 dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage
+    , "RUN if command -v apk >/dev/null; then apk add --no-cache shadow; fi"
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "RUN mkdir /mybox"
     , "WORKDIR /mybox"
