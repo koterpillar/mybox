@@ -111,6 +111,7 @@ library
     , random
     , safe-exceptions
     , scalpel
+    , terminal-size
     , text
     , typed-process
     , vector
@@ -152,6 +153,7 @@ executable mybox
     , random
     , safe-exceptions
     , scalpel
+    , terminal-size
     , text
     , typed-process
     , vector
@@ -252,6 +254,7 @@ test-suite tests
     , random
     , safe-exceptions
     , scalpel
+    , terminal-size
     , text
     , typed-process
     , vector

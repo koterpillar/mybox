@@ -35,6 +35,7 @@ dependencies:
   - vector
   - witherable
   - yaml
+  - terminal-size
 ghc-options:
   - -Wall
   - -Werror

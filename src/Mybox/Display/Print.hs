@@ -11,7 +11,7 @@ module Mybox.Display.Print (
 
 import Effectful.Dispatch.Dynamic
 import Effectful.State.Static.Shared
-import System.Console.ANSI
+import System.Console.Terminal.Size (Window (..), hSize)
 import System.IO hiding (print)
 import Prelude hiding (print)
 
@@ -29,7 +29,7 @@ run h = interpret_ $
   \case
     Print str -> liftIO $ hPutStr h str
     Flush -> liftIO $ hFlush h
-    TerminalSize -> liftIO $ hGetTerminalSize h
+    TerminalSize -> fmap (fmap $ \w -> (w.height, w.width)) $ liftIO $ hSize h
 
 runPure :: Eff (Print : es) r -> Eff es (r, String)
 runPure act = do
