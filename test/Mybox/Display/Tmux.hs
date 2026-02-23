@@ -26,7 +26,7 @@ catViaTmux :: (Driver :> es, IOE :> es) => String -> Eff es ByteString
 catViaTmux contents = do
   tmux <- drvRunOutput $ "which" :| ["tmux"]
   socketName <- randomText "tmux"
-  let sendTmux arg = tmux <> " -L " <> socketName <> " " <> arg
+  let sendTmux args = shellJoin $ [tmux, "-L", socketName] ++ args
   drvTempFile $ \input -> do
     drvWriteFile input $ Text.pack contents
     drvTempFile $ \out -> do
@@ -34,10 +34,10 @@ catViaTmux contents = do
         drvWriteFile script $
           Text.unlines
             [ "#!/bin/sh"
-            , "cat " <> input.text
-            , sendTmux "capture-pane -e"
-            , sendTmux $ "save-buffer " <> out.text
-            , sendTmux "kill-server"
+            , shellJoin ["cat", input.text]
+            , sendTmux ["capture-pane", "-e"]
+            , sendTmux ["save-buffer", out.text]
+            , sendTmux ["kill-server"]
             ]
         drvMakeExecutable script
         drvRunSilent $ tmux :| ["-C", "-L", socketName, "new-session", script.text]
