@@ -44,4 +44,5 @@ osInstaller :: forall s es. (Driver :> es, IsSystemPackage s) => Eff es Installe
 osInstaller = flip fmap drvOS $ \case
   Linux (Debian _) -> apt
   Linux Fedora -> dnf
+  Linux (Generic d) -> terror $ "No installer available for generic Linux: " <> d
   MacOS -> brew @s
