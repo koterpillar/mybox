@@ -54,9 +54,16 @@ instance FromJSON Architecture where
 architectureFilters :: Architecture -> [Text -> Bool]
 architectureFilters = fromSynonyms allArchSynonyms . architectureString
 
-data Distribution = Debian {variant :: Text} | Fedora deriving (Eq, Ord, Show)
+data Distribution
+  = Debian {variant :: Text}
+  | Fedora
+  | Generic {distribution :: Text}
+  deriving (Eq, Ord, Show)
 
-data OS = Linux {distribution :: Distribution} | MacOS deriving (Eq, Ord, Show)
+data OS
+  = Linux {distribution :: Distribution}
+  | MacOS
+  deriving (Eq, Ord, Show)
 
 osSynonyms :: Map Text [Text]
 osSynonyms =

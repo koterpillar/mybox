@@ -238,7 +238,7 @@ drvOS = do
         "debian" -> pure $ Debian "debian"
         "ubuntu" -> pure $ Debian "ubuntu"
         "fedora" -> pure Fedora
-        _ -> terror $ "Unsupported Linux distribution: " <> distributionStr
+        _ -> pure $ Generic distributionStr
       pure $ Linux distribution
      where
       parseOsRelease :: Text -> Text

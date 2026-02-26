@@ -38,13 +38,11 @@ instance ToJSON NPMPackage where
 
 prerequisites :: App es => Eff es ()
 prerequisites = do
-  os <- drvOS
-  let packages = case os of
-        Linux d ->
-          "nodejs" : case d of
-            Debian _ -> ["npm"]
-            Fedora -> ["nodejs-npm"]
-        MacOS -> ["node"]
+  packages <- flip fmap drvOS $ \case
+    Linux (Debian _) -> ["nodejs", "npm"]
+    Linux Fedora -> ["nodejs", "nodejs-npm"]
+    Linux (Generic d) -> terror $ "Cannot install npm on generic Linux: " <> d
+    MacOS -> ["node"]
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
 
