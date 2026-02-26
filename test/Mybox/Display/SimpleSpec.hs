@@ -1,5 +1,7 @@
 module Mybox.Display.SimpleSpec where
 
+import Data.Version
+
 import Mybox.Display
 import Mybox.Display.SpecUtils
 import Mybox.Prelude
@@ -16,6 +18,9 @@ spec = do
             displayLogText "hello"
             displayLogText "world"
       logs `shouldBe` "hello\nworld\n"
+    it "displays version" $ do
+      let logs = run $ displayVersion $ makeVersion [1, 2, 3]
+      logs `shouldBe` "mybox 1.2.3\n"
     it "displays and updates the banner" $ do
       let logs = run $ do
             displayLogText "hello"

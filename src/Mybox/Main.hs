@@ -2,8 +2,6 @@ module Mybox.Main (
   main,
 ) where
 
-import Data.Text qualified as Text
-import Data.Version
 import Effectful.Concurrent
 import System.IO (stdout)
 
@@ -17,15 +15,20 @@ import Mybox.Tracker
 import Paths_mybox (version)
 
 main :: IO ()
-main =
-  runEff $
-    runConcurrent $
-      runDisplay stdout $ do
-        displayLogText $ "mybox " <> Text.pack (showVersion version)
-        runStores $
-          localDriver $ do
-            config <- readConfig
-            state <- drvMyboxState
-            drvTracker (state </> "files.json") $
-              runInstallQueue $
-                queueInstallMany config.packages
+main = runEff $
+  runConcurrent $
+    runDisplay stdout $
+      do
+        options <- parseArgs
+        mainOpt options
+
+mainOpt :: (AppDisplay :> es, Concurrent :> es, IOE :> es) => CommandLine -> Eff es ()
+mainOpt CLVersion = displayVersion version
+mainOpt commandLine =
+  runStores $
+    localDriver $ do
+      config <- readConfig commandLine
+      state <- drvMyboxState
+      drvTracker (state </> "files.json") $
+        runInstallQueue $
+          queueInstallMany config.packages
