@@ -45,7 +45,7 @@ ensure() {
     then
       INSTALLER='sudo_ apk add --no-cache'
     else
-      echo "Cannot find a package manager." >&2
+      echo "Cannot find a package manager to install $COMMAND." >&2
       exit 1
     fi
 
