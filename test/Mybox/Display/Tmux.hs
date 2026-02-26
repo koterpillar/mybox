@@ -6,10 +6,11 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Concurrent (threadDelay)
 import Effectful.Concurrent.Async
-import System.IO
+import System.IO (IOMode (..))
 
 import Mybox.Display.Print (Print)
 import Mybox.Display.Print qualified as Print
+import Mybox.Display.SpecUtils
 import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Spec.Utils
@@ -44,10 +45,7 @@ runTmux act = localDriver $ do
         _ <- async $ drvRunSilent $ tmux $ "-C" :| ["new-session", script.text]
         whileMDelay $ not <$> tmuxRunning
         tty <- drvRunOutput $ tmux $ "display-message" :| ["-p", "#{pane_tty}"]
-        bracket
-          (liftIO $ openFile (Text.unpack tty) ReadWriteMode)
-          (liftIO . hClose)
-          $ \hTty -> Print.run hTty $ inject act
+        withFile (Text.unpack tty) ReadWriteMode $ \hTty -> Print.run hTty $ inject act
       whileMDelay tmuxRunning
       output <- drvRunOutputBinary $ "cat" :| [out.text]
       pure (r, BS.dropWhileEnd (== 10) output)
