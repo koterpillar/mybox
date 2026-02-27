@@ -48,6 +48,7 @@ library
       Mybox.Installer.Class
       Mybox.Installer.DNF
       Mybox.Installer.Flatpak
+      Mybox.Installer.Mas
       Mybox.LockMap
       Mybox.Main
       Mybox.Package.Archive
@@ -195,6 +196,7 @@ test-suite tests
       Mybox.Installer.BrewSpec
       Mybox.Installer.DNFSpec
       Mybox.Installer.FlatpakSpec
+      Mybox.Installer.MasSpec
       Mybox.Installer.SpecBase
       Mybox.LockMapSpec
       Mybox.Package.ArchiveSpec
