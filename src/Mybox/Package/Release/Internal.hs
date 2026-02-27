@@ -152,6 +152,7 @@ environmentFilters arch os = execWriter $ do
   tell $ osFilters os
   tell $ architectureFilters arch
   case os of
+    Linux (Generic "alpine") -> tell [includes_ "musl"]
     Linux _ -> do
       tell [includes_ "gnu"]
       tell [excludes_ "musl"]
