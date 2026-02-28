@@ -15,7 +15,7 @@ data URLPackage = URLPackage
   , archive :: ArchiveFields
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance FromJSON URLPackage where
   parseJSON = withObjectTotal "URLPackage" $ do
@@ -48,6 +48,9 @@ maybeModify f x = fromMaybe x $ f x
 
 instance HasField "name" URLPackage Text where
   getField = urlName
+
+instance PackageName URLPackage where
+  withoutName = genericWithoutName' ["url"]
 
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url

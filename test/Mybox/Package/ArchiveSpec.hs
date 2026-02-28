@@ -2,11 +2,15 @@ module Mybox.Package.ArchiveSpec where
 
 import Mybox.Driver
 import Mybox.Package.Archive.Internal
+import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.SpecBase
 
 data DummyPackage = DummyPackage {name :: Text, archive :: ArchiveFields}
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
+
+instance PackageName DummyPackage where
+  withoutName = genericWithoutName
 
 instance ArchivePackage DummyPackage where
   archiveUrl _ = pure "dummy"

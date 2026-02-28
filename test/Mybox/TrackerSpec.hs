@@ -4,6 +4,7 @@ import Data.Map qualified as Map
 import Data.Set qualified as Set
 
 import Mybox.Driver
+import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.SpecBase
@@ -11,6 +12,10 @@ import Mybox.Tracker.Internal
 
 newtype DummyPackage
   = DummyPackage {name :: Text}
+  deriving (Generic)
+
+instance PackageName DummyPackage where
+  withoutName = genericWithoutName
 
 spec :: Spec
 spec = do

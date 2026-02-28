@@ -53,6 +53,13 @@ instance ToJSON SomePackage where
 instance Eq SomePackage where
   (==) = (==) `on` toJSON
 
+instance PackageName SomePackage where
+  -- Existential `p` cannot escape the argument scope, pattern match on a
+  -- boolean instead.
+  withoutName (SomePackage f) = case f (isJust . withoutName) of
+    False -> Nothing
+    True -> Just $ SomePackage $ \g -> f $ g . fromJust . withoutName
+
 instance Package SomePackage where
   remoteVersion (SomePackage f) = f remoteVersion
   localVersion (SomePackage f) = f localVersion

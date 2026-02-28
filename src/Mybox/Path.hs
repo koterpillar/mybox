@@ -31,6 +31,8 @@ import Data.Text qualified as Text
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
 
+import Mybox.HasEmpty
+
 data Abs = Abs_ deriving (Eq, Ord, Show)
 
 data Rel = Rel_ deriving (Eq, Ord, Show)
@@ -98,6 +100,9 @@ instance Anchor a => FromJSONKey (Path a) where
 
 instance Anchor a => FromJSON (Path a) where
   parseJSON v = parseJSON v >>= parseJSONText
+
+instance Anchor anchor => HasEmpty (Path anchor) where
+  emptyValue = mkPath ""
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p

@@ -16,13 +16,16 @@ data YumRepo = YumRepo
   , gpgKey :: Maybe Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkYumRepo :: Text -> Text -> YumRepo
 mkYumRepo name url = YumRepo{name_ = name, url, gpgKey = Nothing, post = []}
 
 instance HasField "name" YumRepo Text where
   getField p = "yum-" <> p.name_
+
+instance PackageName YumRepo where
+  withoutName = genericWithoutName' ["name_"]
 
 instance FromJSON YumRepo where
   parseJSON = withObjectTotal "YumRepo" $ do

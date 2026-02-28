@@ -18,13 +18,16 @@ data NPMPackage = NPMPackage
   , binaries :: [Text]
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkNPMPackage :: Text -> NPMPackage
 mkNPMPackage package = NPMPackage{package, binaries = [], post = []}
 
 instance HasField "name" NPMPackage Text where
   getField p = p.package
+
+instance PackageName NPMPackage where
+  withoutName = genericWithoutName' ["package"]
 
 instance FromJSON NPMPackage where
   parseJSON = withObjectTotal "NPMPackage" $ do

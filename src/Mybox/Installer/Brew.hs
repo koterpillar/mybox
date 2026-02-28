@@ -18,6 +18,9 @@ data BrewBootstrap s = BrewBootstrap deriving (Eq, Show)
 instance HasField "name" (BrewBootstrap s) Text where
   getField _ = "homebrew"
 
+instance PackageName (BrewBootstrap s) where
+  withoutName _ = Nothing
+
 instance FromJSON (BrewBootstrap s) where
   parseJSON = withObjectTotal "BrewBootstrap" $ pure BrewBootstrap
 

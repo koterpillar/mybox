@@ -20,13 +20,16 @@ data TestPackage = TestPackage
   , error_ :: Bool
   , flavour :: Text
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 defTestPackage :: TestPackage
 defTestPackage = TestPackage{installed = False, error_ = False, flavour = "vanilla"}
 
 instance HasField "name" TestPackage Text where
   getField = const "test"
+
+instance PackageName TestPackage where
+  withoutName = genericWithoutName' []
 
 instance FromJSON TestPackage where
   parseJSON = withObject "TestPackage" $ \o -> do

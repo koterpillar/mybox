@@ -13,7 +13,8 @@ instance ToJSON PackageHash where
 
 instance FromJSON PackageHash
 
-pkgHash :: ToJSON p => p -> PackageHash
+-- FIXME: use `withoutName`
+pkgHash :: (PackageName p, ToJSON p) => p -> PackageHash
 pkgHash = PackageHash . jsonEncode
 
 hashFile :: (Driver :> es, PackageName p) => p -> Eff es (Path Abs)

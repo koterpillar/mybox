@@ -19,7 +19,7 @@ data ClonePackage = ClonePackage
   , branch :: Maybe Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance HasField "root" ClonePackage Bool where
   getField _ = False
@@ -34,7 +34,10 @@ mkClonePackage repo destination =
     }
 
 instance HasField "name" ClonePackage Text where
-  getField p = Text.intercalate "#" $ p.repo : toList p.branch
+  getField p = Text.intercalate "#" [p.repo, p.destination.text]
+
+instance PackageName ClonePackage where
+  withoutName = genericWithoutName' ["repo", "destination"]
 
 instance FromJSON ClonePackage where
   parseJSON = withObjectTotal "ClonePackage" $ do

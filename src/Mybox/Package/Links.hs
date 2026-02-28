@@ -24,7 +24,7 @@ data LinksPackage = LinksPackage
   , root :: Bool
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkLinksPackage :: Path AnyAnchor -> Path AnyAnchor -> LinksPackage
 mkLinksPackage src dest =
@@ -39,7 +39,17 @@ mkLinksPackage src dest =
     }
 
 instance HasField "name" LinksPackage Text where
-  getField p = Text.intercalate "-" ["links", p.source_.text, p.destination.text, Text.pack (show p.dot)]
+  getField p =
+    Text.intercalate
+      "-"
+      [ "links"
+      , p.source_.text
+      , p.destination.text
+      , Text.pack (show p.dot)
+      ]
+
+instance PackageName LinksPackage where
+  withoutName = genericWithoutName' ["source_", "destination", "dot"]
 
 instance FromJSON LinksPackage where
   parseJSON = withObjectTotal "LinksPackage" $ do
