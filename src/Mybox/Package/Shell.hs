@@ -17,7 +17,7 @@ data ShellPackage = ShellPackage
   , root :: Bool
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
@@ -35,6 +35,9 @@ instance ToJSON ShellPackage where
 
 instance HasField "name" ShellPackage Text where
   getField p = "_shell" <> (if p.root then "_root" else "")
+
+instance PackageName ShellPackage where
+  withoutName = genericWithoutName' ["shell", "root"]
 
 shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"

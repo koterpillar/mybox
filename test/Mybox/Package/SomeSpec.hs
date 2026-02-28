@@ -60,3 +60,15 @@ spec = do
       let pkg1 = mkSomePackage $ mkSystemPackage "ghc"
       let pkg2 = mkSomePackage $ mkSystemPackage "ghc"
       pkg1 `shouldBe` pkg2
+
+  describe "withoutName" $ do
+    let ghc = (mkSystemPackage "ghc"){autoUpdates = False}
+    it "returns Nothing for packages fully determined by name" $ do
+      let pkg = mkSomePackage ghc
+      withoutName pkg `shouldBe` Nothing
+
+    it "returns Just package with empty name for packages not fully determined by name" $ do
+      let pkg = mkSomePackage $ ghc{installer = Just Flatpak}
+      withoutName pkg `shouldSatisfy` isJust
+      let pkgWithoutName = fromJust $ withoutName pkg
+      pkgWithoutName.name `shouldBe` ""

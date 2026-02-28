@@ -21,7 +21,7 @@ data DaemonPackage = DaemonPackage
   , nameOverride :: Maybe Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkDaemonPackage :: NonEmpty Text -> DaemonPackage
 mkDaemonPackage daemon = DaemonPackage{daemon, nameOverride = Nothing, post = []}
@@ -43,6 +43,9 @@ instance ToJSON DaemonPackage where
 
 instance HasField "name" DaemonPackage Text where
   getField p = fromMaybe (cmd p) p.nameOverride
+
+instance PackageName DaemonPackage where
+  withoutName = error "FIXME: name overrides"
 
 cmd :: DaemonPackage -> Text
 cmd p = shellJoin p.daemon

@@ -1,6 +1,8 @@
 module Mybox.Package.Class (
   Package (..),
-  PackageName,
+  PackageName (..),
+  genericWithoutName,
+  genericWithoutName',
   pathname,
   isInstalled,
   ensureInstalled,

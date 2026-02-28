@@ -9,13 +9,15 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-data DummyPackage
-  = DummyPackage {name :: Text}
+newtype DummyPackage = DummyPackage {name :: Text}
   deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON DummyPackage
 
 instance ToJSON DummyPackage
+
+instance PackageName DummyPackage where
+  withoutName = genericWithoutName
 
 dummyVersionFile :: Path Rel
 dummyVersionFile = "dummy-package-version.txt"
