@@ -12,7 +12,7 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec @PipxPackage [(Nothing, "{\"pipx\": \"django\"}")]
+  metaSpec @PipxPackage [(Nothing, "{\"pipx\": \"django\"}")]
   describe "repo parsing" $ do
     let pkgRepo = repo . mkPipxPackage
     it "is Nothing for normal package" $ do

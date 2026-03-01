@@ -1,5 +1,6 @@
 module Mybox.Package.NameSpec where
 
+import Mybox.Aeson
 import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.SpecBase
@@ -15,6 +16,11 @@ data GenericNamePackage = GenericNamePackage
 instance PackageName GenericNamePackage where
   withoutName = genericWithoutName
 
+instance FromJSON GenericNamePackage
+
+instance ToJSON GenericNamePackage where
+  toEncoding = genericToEncoding defaultOptions
+
 data GenericTransferPackage = GenericTransferPackage
   { from :: Text
   , to :: Text
@@ -28,8 +34,25 @@ instance HasField "name" GenericTransferPackage Text where
 instance PackageName GenericTransferPackage where
   withoutName = genericWithoutName' ["from", "to"]
 
+instance FromJSON GenericTransferPackage
+
+instance ToJSON GenericTransferPackage where
+  toEncoding = genericToEncoding defaultOptions
+
 spec :: Spec
-spec =
+spec = do
+  metaSpec @GenericNamePackage
+    [
+      ( Nothing
+      , "{\"name\": \"tool\", \"version\": \"1.2.3\", \"funny\": false, \"binaries\": [\"tool\"]}"
+      )
+    ]
+  metaSpec @GenericTransferPackage
+    [
+      ( Nothing
+      , "{\"from\": \"here\", \"to\": \"there\", \"param\": \"quickly\"}"
+      )
+    ]
   describe "genericWithoutName" $ do
     describe "single-field name" $ do
       let basePackage = GenericNamePackage{name = "tool", version = "", funny = False, binaries = []}

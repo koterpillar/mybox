@@ -101,8 +101,14 @@ instance Anchor a => FromJSONKey (Path a) where
 instance Anchor a => FromJSON (Path a) where
   parseJSON v = parseJSON v >>= parseJSONText
 
-instance Anchor anchor => HasEmpty (Path anchor) where
-  emptyValue = mkPath ""
+instance HasEmpty (Path Abs) where
+  emptyValue = pRoot
+
+instance HasEmpty (Path Rel) where
+  emptyValue = pCurrent
+
+instance HasEmpty (Path AnyAnchor) where
+  emptyValue = pWiden @Rel emptyValue
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p

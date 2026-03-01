@@ -10,7 +10,7 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @NPMPackage
     [ (Nothing, "{\"npm\": \"test\"}")
     , (Just "single binary", "{\"npm\": \"test\", \"binary\": \"test\"}")

@@ -45,7 +45,13 @@ instance HasField "name" DaemonPackage Text where
   getField p = fromMaybe (cmd p) p.nameOverride
 
 instance PackageName DaemonPackage where
-  withoutName = error "FIXME: name overrides"
+  withoutName p = case p.nameOverride of
+    Nothing ->
+      let emptyCmd = "" :| []
+       in if p == mkDaemonPackage p.daemon
+            then Nothing
+            else Just p{daemon = emptyCmd}
+    Just _ -> Just p{nameOverride = Just ""}
 
 cmd :: DaemonPackage -> Text
 cmd p = shellJoin p.daemon

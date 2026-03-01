@@ -24,6 +24,7 @@ module Mybox.SpecBase (
   inDocker,
   virtualSystem,
   jsonSpec,
+  metaSpec,
 ) where
 
 import Data.Text qualified as Text
@@ -34,6 +35,7 @@ import Test.Hspec qualified as Hspec
 import Mybox.Aeson
 import Mybox.Display
 import Mybox.Driver
+import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Spec.Utils
 import Mybox.Stores
@@ -123,6 +125,19 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE' = jsonDecode @a "example" json'
     let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
+
+metaSpec ::
+  forall a.
+  (Eq a, FromJSON a, PackageName a, Show a, ToJSON a) =>
+  [(Maybe Text, Text)] ->
+  Spec
+metaSpec examples = do
+  jsonSpec @a examples
+  describe "PackageName" $ for_ examples $ \(name, json) -> do
+    it ("omits name stably" <> Text.unpack (maybe mempty (" from " <>) name)) $ do
+      let pkg = requireRight $ jsonDecode @a "example" json
+      for_ (withoutName pkg) $ \pkg' -> do
+        withoutName pkg' `shouldBe` Just pkg'
 
 stringException :: String -> Selector StringException
 stringException expected (StringException msg _) = msg == expected
