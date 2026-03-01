@@ -37,13 +37,7 @@ instance (GWithoutName left, GWithoutName right) => GWithoutName (left :*: right
   allDefault nameFields (left :*: right) =
     allDefault nameFields left && allDefault nameFields right
 
-instance (GWithoutName left, GWithoutName right) => GWithoutName (left :+: right) where
-  gWithoutName nameFields = \case
-    L1 left -> L1 $ gWithoutName nameFields left
-    R1 right -> R1 $ gWithoutName nameFields right
-  allDefault nameFields = \case
-    L1 left -> allDefault nameFields left
-    R1 right -> allDefault nameFields right
+-- No instance for sums (:+:) since there is only a single default
 
 instance GWithoutName inner => GWithoutName (M1 D meta inner) where
   gWithoutName nameFields (M1 inner) = M1 $ gWithoutName nameFields inner
