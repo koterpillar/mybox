@@ -10,7 +10,7 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @BrewRepo
     [ (Nothing, "{\"brew_tap\": \"easysoft/tap\"}")
     ]

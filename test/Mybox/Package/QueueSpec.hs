@@ -55,7 +55,7 @@ instance Package ActionPackage where
 
 spec :: Spec
 spec = do
-  describe "ActionPackage" $ jsonSpec @ActionPackage [(Nothing, "{\"name\":\"test\",\"destination\":\"test\",\"delayS\":\"1\",\"deps\":[]}")]
+  describe "ActionPackage" $ metaSpec @ActionPackage [(Nothing, "{\"name\":\"test\",\"destination\":\"test\",\"delayS\":\"1\",\"deps\":[]}")]
   describe "runInstallQueue" $ do
     let pkgs :: Path AnyAnchor -> [ActionPackage]
         pkgs fileName =

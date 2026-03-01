@@ -49,7 +49,7 @@ spec = do
   describe "ManualVersion" $
     jsonSpec @ManualVersion [(Nothing, "{\"version\": \"test\"}")]
   describe "DummyPackage" $
-    jsonSpec @DummyPackage [(Nothing, "{\"name\": \"test\"}")]
+    metaSpec @DummyPackage [(Nothing, "{\"name\": \"test\"}")]
   withEff (nullTracker . runInstallQueue) $ do
     let pkg = DummyPackage "dummy"
     it "is not reported installed initially" $ do

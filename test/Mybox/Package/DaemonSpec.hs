@@ -13,10 +13,11 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @DaemonPackage
     [ (Nothing, "{\"daemon\": [\"echo\", \"hello\"]}")
     , (Just "single command", "{\"daemon\": \"true\"}")
+    , (Just "with post", "{\"daemon\": [\"echo\", \"hello\"], \"post\": [\"echo done\"]}")
     , (Just "with name override", "{\"daemon\": [\"sleep\", \"3600\"], \"name\": \"my-sleep\"}")
     ]
 

@@ -79,7 +79,7 @@ run_ fn initialSet =
 spec :: Spec
 spec = do
   describe "TestPackage" $
-    jsonSpec @TestPackage [(Nothing, "{\"error\": false, \"flavour\": \"vanilla\"}")]
+    metaSpec @TestPackage [(Nothing, "{\"error\": false, \"flavour\": \"vanilla\"}")]
   describe "PackageHash" $
     jsonSpec @PackageHash [(Nothing, "{\"hash\": \"test\"}")]
   describe "ensureInstalled" $ do
