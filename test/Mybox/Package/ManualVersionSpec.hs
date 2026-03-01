@@ -9,13 +9,15 @@ import Mybox.Prelude
 import Mybox.SpecBase
 import Mybox.Tracker
 
-data DummyPackage
-  = DummyPackage {name :: Text}
+newtype DummyPackage = DummyPackage {name :: Text}
   deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON DummyPackage
 
 instance ToJSON DummyPackage
+
+instance PackageName DummyPackage where
+  withoutName = genericWithoutName
 
 dummyVersionFile :: Path Rel
 dummyVersionFile = "dummy-package-version.txt"
@@ -47,7 +49,7 @@ spec = do
   describe "ManualVersion" $
     jsonSpec @ManualVersion [(Nothing, "{\"version\": \"test\"}")]
   describe "DummyPackage" $
-    jsonSpec @DummyPackage [(Nothing, "{\"name\": \"test\"}")]
+    metaSpec @DummyPackage [(Nothing, "{\"name\": \"test\"}")]
   withEff (nullTracker . runInstallQueue) $ do
     let pkg = DummyPackage "dummy"
     it "is not reported installed initially" $ do

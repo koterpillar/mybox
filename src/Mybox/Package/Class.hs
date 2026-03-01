@@ -1,6 +1,8 @@
 module Mybox.Package.Class (
   Package (..),
-  PackageName,
+  PackageName (..),
+  genericWithoutName,
+  genericWithoutName',
   pathname,
   isInstalled,
   ensureInstalled,
@@ -25,7 +27,7 @@ class
 isInstalled :: (App es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
   lh <- localHash pkg
-  if lh /= Just (pkgHash pkg)
+  if lh /= pkgHash pkg
     then pure False
     else do
       lv <- localVersion pkg

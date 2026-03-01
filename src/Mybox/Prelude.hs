@@ -22,6 +22,7 @@ module Mybox.Prelude (
   whileM,
   ExitCode (..),
   HasCallStack,
+  HasEmpty (..),
   HasField (..),
   Map,
   NonEmpty (..),
@@ -59,6 +60,7 @@ import GHC.Stack (HasCallStack)
 import System.Exit (ExitCode (..))
 
 import Mybox.Concurrent
+import Mybox.HasEmpty (HasEmpty (..))
 import Mybox.Path
 
 terror :: HasCallStack => Text -> a

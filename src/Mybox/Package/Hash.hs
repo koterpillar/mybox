@@ -13,8 +13,8 @@ instance ToJSON PackageHash where
 
 instance FromJSON PackageHash
 
-pkgHash :: ToJSON p => p -> PackageHash
-pkgHash = PackageHash . jsonEncode
+pkgHash :: (PackageName p, ToJSON p) => p -> Maybe PackageHash
+pkgHash = fmap (PackageHash . jsonEncode) . withoutName
 
 hashFile :: (Driver :> es, PackageName p) => p -> Eff es (Path Abs)
 hashFile p =
@@ -35,5 +35,7 @@ localHash p = do
 writeHash :: (Driver :> es, PackageName p, ToJSON p, Tracker :> es) => p -> Eff es ()
 writeHash p = do
   hf <- hashFile p
-  drvWriteBinaryFile hf $ encode $ pkgHash p
+  case pkgHash p of
+    Nothing -> drvRm hf
+    Just h -> drvWriteBinaryFile hf $ encode h
   trkAdd p hf

@@ -19,7 +19,7 @@ preinstallNode = do
 
 spec :: Spec
 spec = do
-  jsonSpec @URLPackage [(Nothing, "{\"url\": \"https://example.com/package.tar.gz\"}")]
+  metaSpec @URLPackage [(Nothing, "{\"url\": \"https://example.com/package.tar.gz\"}")]
   describe "name" $ do
     it "uses URL to derive name" $ do
       let package = mkURLPackage "https://example.com/package.tar.gz"

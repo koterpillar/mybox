@@ -16,21 +16,22 @@ import Mybox.Tracker
 import Mybox.Tracker.Internal (tfAdd)
 
 data TestPackage = TestPackage
-  { installed :: Bool
-  , error_ :: Bool
+  { error_ :: Bool
   , flavour :: Text
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 defTestPackage :: TestPackage
-defTestPackage = TestPackage{installed = False, error_ = False, flavour = "vanilla"}
+defTestPackage = TestPackage{error_ = False, flavour = ""}
 
 instance HasField "name" TestPackage Text where
   getField = const "test"
 
+instance PackageName TestPackage where
+  withoutName = genericWithoutName' []
+
 instance FromJSON TestPackage where
   parseJSON = withObject "TestPackage" $ \o -> do
-    installed <- o .: "installed"
     error_ <- o .: "error"
     flavour <- o .: "flavour"
     pure TestPackage{..}
@@ -38,15 +39,28 @@ instance FromJSON TestPackage where
 instance ToJSON TestPackage where
   toJSON p =
     object
-      [ "installed" .= p.installed
-      , "error" .= p.error_
+      [ "error" .= p.error_
       , "flavour" .= p.flavour
       ]
 
+testFile :: Driver :> es => Eff es (Path Abs)
+testFile = do
+  home <- drvHome
+  pure $ home </> "test-file-1"
+
 instance Package TestPackage where
-  remoteVersion _ = pure "1"
-  localVersion p = pure $ if p.installed then Just "1" else Nothing
-  install p = if p.error_ then throwString "Error" else trkAdd p $ pRoot </> "test-file-1"
+  remoteVersion p = pure p.flavour
+  localVersion _ = do
+    tf <- testFile
+    drvIsFile tf >>= \case
+      False -> pure Nothing
+      True -> Just <$> drvReadFile tf
+  install p
+    | p.error_ = throwString "Error"
+    | otherwise = do
+        tf <- testFile
+        drvWriteFile tf p.flavour
+        trkAdd p tf
 
 run_ ::
   (AppDisplay :> es', Concurrent :> es, Concurrent :> es', Driver :> es', Stores :> es', Tracker :> es') =>
@@ -65,35 +79,49 @@ run_ fn initialSet =
 spec :: Spec
 spec = do
   describe "TestPackage" $
-    jsonSpec @TestPackage [(Nothing, "{\"installed\": false, \"error\": false, \"flavour\": \"vanilla\"}")]
+    metaSpec @TestPackage [(Nothing, "{\"error\": false, \"flavour\": \"vanilla\"}")]
   describe "PackageHash" $
     jsonSpec @PackageHash [(Nothing, "{\"hash\": \"test\"}")]
   describe "ensureInstalled" $ do
-    let mkTrk' :: Path Abs -> TrackedFiles -> TrackedFiles
-        mkTrk' = tfAdd defTestPackage
-    let mkTrk :: Text -> TrackedFiles -> TrackedFiles
-        mkTrk f = mkTrk' (pRoot </> f)
-    let initState = mempty & mkTrk "preexisting"
+    let mkTrk :: Path Abs -> TrackedFiles -> TrackedFiles
+        mkTrk = tfAdd defTestPackage
+    let preexistingFile = pRoot </> "preexisting"
+    let initState = mempty & mkTrk preexistingFile
     let testHashFile :: Driver :> es => Eff es (Path Abs)
         testHashFile = (\h -> h </> "hashes" </> "test.json") <$> drvMyboxState
 
     it "adds tracked files and outputs progress when installing a package" $ do
+      tf <- testFile
       hf <- testHashFile
       (state, out) <- run_ id initState defTestPackage
-      state.state `shouldBe` (mempty & mkTrk "test-file-1" & mkTrk' hf)
+      state.state `shouldBe` (mempty & mkTrk tf & mkTrk hf)
       out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
 
-    it "outputs progress when definition changes" $ do
-      hf <- testHashFile
-      (state, out) <- run_ id initState defTestPackage{flavour = "chocolate"}
-      state.state `shouldBe` (mempty & mkTrk "test-file-1" & mkTrk' hf)
-      out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
+    it "considers default package installed without hash" $ do
+      tf <- testFile
+      drvWriteFile tf ""
+      (state, out) <- run_ id initState $ defTestPackage
+      state.state `shouldBe` initState
+      out `shouldBe` "checking test\n"
 
-    it "keeps existing files and outputs progress when already installed" $ do
+    let customizedPackage = defTestPackage{flavour = "chocolate"}
+
+    it "reinstalls when definition changes" $ do
+      tf <- testFile
+      drvWriteFile tf ""
       hf <- testHashFile
-      _ <- run_ id initState defTestPackage{installed = True}
-      (state, out) <- run_ id initState $ defTestPackage{installed = True}
-      state.state `shouldBe` (initState & mkTrk' hf)
+      (state, out) <- run_ id initState customizedPackage
+      state.state `shouldBe` (mempty & mkTrk tf & mkTrk hf)
+      out `shouldBe` "checking test\ninstalling test\ninstalled test\n"
+      drvReadFile tf >>= (`shouldBe` "chocolate")
+
+    it "considers customized package installed with correct hash" $ do
+      tf <- testFile
+      drvWriteFile tf "chocolate"
+      hf <- testHashFile
+      drvWriteBinaryFile hf $ encode $ pkgHash customizedPackage
+      (state, out) <- run_ id initState customizedPackage
+      state.state `shouldBe` (mempty & mkTrk preexistingFile & mkTrk hf)
       out `shouldBe` "checking test\n"
 
     it "keeps existing files and outputs progress when install errors" $ do
@@ -102,6 +130,6 @@ spec = do
           (`catch` (\(_ :: StringException) -> pure ()))
           initState
           $ defTestPackage{error_ = True}
-      state.state `shouldBe` (mempty & mkTrk "preexisting")
+      state.state `shouldBe` (mempty & mkTrk preexistingFile)
       shouldSatisfy out $
         isPrefixOf "checking test\ninstalling test\nerror test: Control.Exception.Safe.throwString called with:\n\nError"

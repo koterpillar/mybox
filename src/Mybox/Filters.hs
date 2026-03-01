@@ -46,6 +46,9 @@ data FilterFields = FilterFields
   deriving (Eq, Generic, Ord, Show)
   deriving (Monoid, Semigroup) via Generically FilterFields
 
+instance HasEmpty FilterFields where
+  emptyValue = mempty
+
 takeFilter :: ObjectParser FilterFields
 takeFilter = do
   prefixes <- takeCollapsedList "prefix"

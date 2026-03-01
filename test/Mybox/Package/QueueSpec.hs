@@ -16,13 +16,16 @@ import Mybox.Tracker
 data ActionPackage = ActionPackage
   { name :: Text
   , destination :: Path AnyAnchor
-  , delayS :: Int
+  , delayS :: Text -- Really Int, but genericWithoutName doesn't support it
   , deps :: [ActionPackage]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance HasField "root" ActionPackage Bool where
   getField = const False
+
+instance PackageName ActionPackage where
+  withoutName = genericWithoutName
 
 instance FromJSON ActionPackage where
   parseJSON = withObjectTotal "ActionPackage" $ do
@@ -47,12 +50,12 @@ instance Package ActionPackage where
   install p = do
     queueInstallMany p.deps
     d <- destinationPath p
-    drvRun $ "sleep" :| [Text.pack $ show $ fromIntegral p.delayS / (2 :: Double)]
+    drvRun $ "sleep" :| [p.delayS]
     drvRun $ shellRaw $ "echo " <> p.name <> " >> " <> d.text
 
 spec :: Spec
 spec = do
-  describe "ActionPackage" $ jsonSpec @ActionPackage [(Nothing, "{\"name\":\"test\",\"destination\":\"test\",\"delayS\":1,\"deps\":[]}")]
+  describe "ActionPackage" $ metaSpec @ActionPackage [(Nothing, "{\"name\":\"test\",\"destination\":\"test\",\"delayS\":\"1\",\"deps\":[]}")]
   describe "runInstallQueue" $ do
     let pkgs :: Path AnyAnchor -> [ActionPackage]
         pkgs fileName =
@@ -63,7 +66,9 @@ spec = do
           , mkPkg "three" 3 []
           ]
          where
-          mkPkg name delayS deps = ActionPackage{destination = fileName, ..}
+          mkPkg name delay deps = ActionPackage{destination = fileName, ..}
+           where
+            delayS = Text.pack $ show (delay :: Int)
           one = mkPkg "one" 1 []
 
     let actualOrder :: Driver :> es => Path AnyAnchor -> Eff es [Text]
