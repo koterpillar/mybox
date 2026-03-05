@@ -20,13 +20,13 @@ data PipxPackage = PipxPackage
   { package :: Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkPipxPackage :: Text -> PipxPackage
 mkPipxPackage package = PipxPackage{package, post = []}
 
-instance HasField "name" PipxPackage Text where
-  getField p = Text.toLower p.package
+instance PackageName PipxPackage where
+  splitName = genericSplitName' Nothing $ Proxy @'["package"]
 
 instance FromJSON PipxPackage where
   parseJSON = withObjectTotal "PipxPackage" $ do

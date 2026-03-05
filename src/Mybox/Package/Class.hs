@@ -1,6 +1,10 @@
 module Mybox.Package.Class (
   Package (..),
-  PackageName,
+  PackageName (..),
+  getName,
+  withoutName,
+  genericSplitName,
+  genericSplitName',
   pathname,
   isInstalled,
   ensureInstalled,
@@ -25,7 +29,7 @@ class
 isInstalled :: (App es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
   lh <- localHash pkg
-  if lh /= Just (pkgHash pkg)
+  if lh /= pkgHash pkg
     then pure False
     else do
       lv <- localVersion pkg
@@ -37,14 +41,14 @@ isInstalled pkg = do
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = trkTry pkg $
-  flip withException (displayBanner . bannerFailed pkg.name) $ do
-    installed <- displayBannerWhile (bannerChecking pkg.name) $ isInstalled pkg
+  flip withException (displayBanner . bannerFailed (getName pkg)) $ do
+    installed <- displayBannerWhile (bannerChecking $ getName pkg) $ isInstalled pkg
     if installed
       then do
-        displayBanner $ bannerUnchanged pkg.name
+        displayBanner $ bannerUnchanged $ getName pkg
         trkSkip pkg
       else do
-        displayBannerWhile (bannerInstalling pkg.name) $ do
+        displayBannerWhile (bannerInstalling $ getName pkg) $ do
           install pkg
           writeHash pkg
-        displayBanner $ bannerModified pkg.name
+        displayBanner $ bannerModified $ getName pkg

@@ -13,21 +13,22 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @DaemonPackage
     [ (Nothing, "{\"daemon\": [\"echo\", \"hello\"]}")
     , (Just "single command", "{\"daemon\": \"true\"}")
+    , (Just "with post", "{\"daemon\": [\"echo\", \"hello\"], \"post\": [\"echo done\"]}")
     , (Just "with name override", "{\"daemon\": [\"sleep\", \"3600\"], \"name\": \"my-sleep\"}")
     ]
 
   describe "name generation" $ do
     it "uses command for default name" $ do
       let pkg = mkDaemonPackage ("echo" :| ["hello", "world"])
-      pkg.name `shouldBe` "echo hello world"
+      getName pkg `shouldBe` "echo hello world"
 
     it "uses name override when provided" $ do
       let pkg = (mkDaemonPackage ("sleep" :| ["60"])){nameOverride = Just "my-sleep"}
-      pkg.name `shouldBe` "my-sleep"
+      getName pkg `shouldBe` "my-sleep"
 
   describe "daemon names" $ do
     let pkg = mkDaemonPackage $ "echo" :| ["multiple words", "привет мир", "/etc/passwd"]

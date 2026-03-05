@@ -19,11 +19,11 @@ preinstallNode = do
 
 spec :: Spec
 spec = do
-  jsonSpec @URLPackage [(Nothing, "{\"url\": \"https://example.com/package.tar.gz\"}")]
+  metaSpec @URLPackage [(Nothing, "{\"url\": \"https://example.com/package.tar.gz\"}")]
   describe "name" $ do
     it "uses URL to derive name" $ do
       let package = mkURLPackage "https://example.com/package.tar.gz"
-      package.name `shouldBe` "example.com/package"
+      getName package `shouldBe` "example.com/package"
   packageSpec $
     ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){archive = emptyArchiveFields{binaries = ["yarn"], binaryWrapper = True}})
       & preinstall preinstallNode

@@ -1,7 +1,6 @@
 module Mybox.Compute.JSONPath where
 
 import Data.Aeson.JSONPath
-import Data.Bifunctor (first)
 import Data.Text qualified as Text
 
 import Mybox.Aeson

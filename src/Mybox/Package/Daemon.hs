@@ -21,7 +21,7 @@ data DaemonPackage = DaemonPackage
   , nameOverride :: Maybe Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkDaemonPackage :: NonEmpty Text -> DaemonPackage
 mkDaemonPackage daemon = DaemonPackage{daemon, nameOverride = Nothing, post = []}
@@ -41,8 +41,15 @@ instance ToJSON DaemonPackage where
         <> maybe [] (\n -> ["name" .= n]) p.nameOverride
         <> postToJSON p
 
-instance HasField "name" DaemonPackage Text where
-  getField p = fromMaybe (cmd p) p.nameOverride
+instance PackageName DaemonPackage where
+  splitName p = case p.nameOverride of
+    Nothing ->
+      let emptyCmd = "" :| []
+          rest
+            | p == mkDaemonPackage p.daemon = Nothing
+            | otherwise = Just p{daemon = emptyCmd}
+       in (cmd p, rest)
+    Just override -> (override, Just p{nameOverride = Just ""})
 
 cmd :: DaemonPackage -> Text
 cmd p = shellJoin p.daemon
@@ -56,7 +63,7 @@ daemonName p = "com.koterpillar.mybox." <> clean (cmd p)
     | otherwise = '_'
 
 daemonDescription :: DaemonPackage -> Text
-daemonDescription p = "Mybox: " <> p.name
+daemonDescription p = "Mybox: " <> getName p
 
 serviceFileLinux :: DaemonPackage -> Text
 serviceFileLinux p =

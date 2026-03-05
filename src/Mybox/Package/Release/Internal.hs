@@ -19,7 +19,7 @@ data ReleasePackage = ReleasePackage
   , filters :: FilterFields
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkReleasePackage :: Text -> ReleasePackage
 mkReleasePackage repo =
@@ -31,8 +31,8 @@ mkReleasePackage repo =
     , post = []
     }
 
-instance HasField "name" ReleasePackage Text where
-  getField p = p.repo
+instance PackageName ReleasePackage where
+  splitName = genericSplitName' Nothing $ Proxy @'["repo"]
 
 instance FromJSON ReleasePackage where
   parseJSON = withObjectTotal "ReleasePackage" $ do
