@@ -31,7 +31,7 @@ import Data.Text qualified as Text
 import GHC.Records (HasField (..))
 import GHC.Stack (HasCallStack)
 
-import Mybox.HasEmpty
+import Mybox.RecValue
 
 data Abs = Abs_ deriving (Eq, Ord, Show)
 
@@ -101,14 +101,17 @@ instance Anchor a => FromJSONKey (Path a) where
 instance Anchor a => FromJSON (Path a) where
   parseJSON v = parseJSON v >>= parseJSONText
 
-instance HasEmpty (Path Abs) where
-  emptyValue = pRoot
+instance RecValue (Path Abs) where
+  rvEmpty = pRoot
+  rvText = Just . (.text)
 
-instance HasEmpty (Path Rel) where
-  emptyValue = pCurrent
+instance RecValue (Path Rel) where
+  rvEmpty = pCurrent
+  rvText = Just . (.text)
 
-instance HasEmpty (Path AnyAnchor) where
-  emptyValue = pWiden @Rel emptyValue
+instance RecValue (Path AnyAnchor) where
+  rvEmpty = pWiden @Rel rvEmpty
+  rvText = Just . (.text)
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
 pAbs p

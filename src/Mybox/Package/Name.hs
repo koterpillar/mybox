@@ -1,6 +1,7 @@
 module Mybox.Package.Name where
 
 import Data.Text qualified as Text
+import Data.Type.Equality hiding (inner)
 import GHC.Generics
 import GHC.TypeLits
 
@@ -23,7 +24,7 @@ pathname :: PackageName p => p -> Text
 pathname p = Text.replace "/" "--" (getName p)
 
 joinName :: Maybe Text -> [Text] -> Text
-joinName prefix parts = Text.intercalate "#" $ maybe id (:) prefix parts
+joinName prefix parts = Text.intercalate "#" $ maybe id (:) prefix $ filter (not . Text.null) parts
 
 genericSplitName :: (GHasName '["name"] (Rep a), Generic a) => a -> (Text, Maybe a)
 genericSplitName = genericSplitName' Nothing (Proxy @'["name"])
@@ -62,20 +63,24 @@ instance GHasName names inner => GHasName names (M1 D meta inner) where
 instance GHasName names inner => GHasName names (M1 C meta inner) where
   gSplitName names (M1 inner) = M1 <$> gSplitName names inner
 
-class NameIfMember (names :: [Symbol]) (name :: Symbol) where
-  nameIfMember :: proxy1 names -> proxy2 name -> Text -> Maybe Text
+class KnownSymbols (as :: [Symbol]) where
+  memberSymbol :: forall b proxy1 proxy2. KnownSymbol b => proxy1 as -> proxy2 b -> Bool
 
-instance NameIfMember (name ': names) name where
-  nameIfMember _ _ value = Just value
+instance KnownSymbols '[] where
+  memberSymbol _ _ = False
 
-instance {-# OVERLAPPABLE #-} NameIfMember names name => NameIfMember (other ': names) name where
-  nameIfMember _ _ _ = Nothing
+instance (KnownSymbol a, KnownSymbols as) => KnownSymbols (a ': as) where
+  memberSymbol _ pb = case sameSymbol (Proxy @a) pb of
+    Just Refl -> True
+    Nothing -> memberSymbol (Proxy @as) pb
 
-instance NameIfMember '[] name where
-  nameIfMember _ _ _ = Nothing
-
-instance {-# OVERLAPPING #-} (KnownSymbol name, NameIfMember names name) => GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index Text)) where
-  gSplitName _ (M1 (K1 value)) = NameParts [value] (M1 $ K1 "") False
-
-instance (HasEmpty value, Selector selector) => GHasName names (M1 S selector (K1 index value)) where
-  gSplitName _ (M1 (K1 value)) = NameParts [] (M1 $ K1 value) (value == emptyValue)
+instance
+  {-# OVERLAPPING #-}
+  (KnownSymbol name, KnownSymbols names, RecValue value) =>
+  GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index value))
+  where
+  gSplitName pNames (M1 (K1 value))
+    | memberSymbol pNames (Proxy @name) = case rvText value of
+        Just name -> NameParts [name] (M1 $ K1 rvEmpty) True
+        Nothing -> error $ "name field " <> symbolVal (Proxy @name) <> " is not text"
+    | otherwise = NameParts [] (M1 $ K1 value) (rvNull value)

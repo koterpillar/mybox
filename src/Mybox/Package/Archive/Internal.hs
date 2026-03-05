@@ -25,8 +25,8 @@ data ArchiveFields = ArchiveFields
   }
   deriving (Eq, Ord, Show)
 
-instance HasEmpty ArchiveFields where
-  emptyValue = emptyArchiveFields
+instance RecValue ArchiveFields where
+  rvEmpty = emptyArchiveFields
 
 emptyArchiveFields :: ArchiveFields
 emptyArchiveFields =

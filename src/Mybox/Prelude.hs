@@ -12,6 +12,7 @@ module Mybox.Prelude (
   module Mybox.Concurrent,
   module Mybox.Path,
   (<|>),
+  ($>),
   (&),
   for,
   on,
@@ -23,12 +24,12 @@ module Mybox.Prelude (
   whileM,
   ExitCode (..),
   HasCallStack,
-  HasEmpty (..),
   HasField (..),
   Map,
   NonEmpty (..),
   Set,
   Text,
+  RecValue (..),
   terror,
   maximumMaybe,
   fromMaybeOrM,
@@ -44,6 +45,7 @@ import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
+import Data.Functor (($>))
 import Data.List (uncons, unsnoc)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
@@ -62,8 +64,8 @@ import GHC.Stack (HasCallStack)
 import System.Exit (ExitCode (..))
 
 import Mybox.Concurrent
-import Mybox.HasEmpty (HasEmpty (..))
 import Mybox.Path
+import Mybox.RecValue
 
 terror :: HasCallStack => Text -> a
 terror !msg = error $ Text.unpack msg
