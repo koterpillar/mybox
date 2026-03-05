@@ -35,10 +35,10 @@ mkURLPackage url =
     , post = []
     }
 
-urlName :: URLPackage -> Text
-urlName p = domain <> "/" <> dropExtension (lastPathSegment url)
+urlName :: Text -> Text
+urlName u = domain <> "/" <> dropExtension (lastPathSegment url)
  where
-  url = maybeModify (Text.stripPrefix "https://") $ maybeModify (Text.stripPrefix "http://") $ p.url
+  url = maybeModify (Text.stripPrefix "https://") $ maybeModify (Text.stripPrefix "http://") u
   domain = Text.takeWhile (/= '/') url
   lastPathSegment = Text.takeWhileEnd (/= '/')
   dropExtension = Text.takeWhile (/= '.')
@@ -46,12 +46,8 @@ urlName p = domain <> "/" <> dropExtension (lastPathSegment url)
 maybeModify :: (a -> Maybe a) -> a -> a
 maybeModify f x = fromMaybe x $ f x
 
--- FIXME: update the logic for genericSplitName
-instance HasField "name" URLPackage Text where
-  getField = urlName
-
 instance PackageName URLPackage where
-  splitName = genericSplitName' Nothing $ Proxy @'["url"]
+  splitName = first urlName . genericSplitName' Nothing (Proxy @'["url"])
 
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url

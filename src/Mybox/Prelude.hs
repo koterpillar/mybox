@@ -1,6 +1,7 @@
 module Mybox.Prelude (
   module Control.Exception.Safe,
   module Control.Monad,
+  module Data.Bifunctor,
   module Data.Either,
   module Data.Foldable,
   module Data.Maybe,
@@ -42,6 +43,7 @@ import Control.Applicative ((<|>))
 import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
 import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
+import Data.Bifunctor (first)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
