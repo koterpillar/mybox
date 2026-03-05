@@ -78,7 +78,7 @@ yumRepoInstall p = do
     Linux Fedora -> do
       writeRepoFile p
       importGpgKey p
-    Linux (Debian _) -> terror "YumRepo is only supported on Fedora"
+    Linux _ -> terror "YumRepo is only supported on Fedora"
     MacOS -> terror "YumRepo is only supported on Linux"
 
 instance Package YumRepo where

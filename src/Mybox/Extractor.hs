@@ -121,6 +121,7 @@ ensureXz = unlessExecutableExists "xzcat" $ do
   prerequisite <- flip fmap drvOS $ \case
     Linux Fedora -> "xz"
     Linux (Debian _) -> "xz-utils"
+    Linux (Generic d) -> terror $ "Cannot install xz on generic Linux: " <> d
     MacOS -> "xz"
   ensureInstalled $ mkSystemPackage prerequisite
 
@@ -132,7 +133,9 @@ xz = mkRawExtractor "xz" $ \archive target -> do
 ensureBunzip2 :: App es => Eff es ()
 ensureBunzip2 = unlessExecutableExists "bunzip2" $ do
   prerequisite <- flip fmap drvOS $ \case
-    Linux _ -> Just "bzip2"
+    Linux Fedora -> Just "bzip2"
+    Linux (Debian _) -> Just "bzip2"
+    Linux (Generic d) -> terror $ "Cannot install bzip2 on generic Linux: " <> d
     MacOS -> Nothing
   forM_ prerequisite $ ensureInstalled . mkSystemPackage
 
