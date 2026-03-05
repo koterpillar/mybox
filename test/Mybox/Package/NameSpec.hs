@@ -14,7 +14,7 @@ data GenericNamePackage = GenericNamePackage
   deriving (Eq, Generic, Show)
 
 instance PackageName GenericNamePackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 instance FromJSON GenericNamePackage
 
@@ -32,7 +32,7 @@ instance HasField "name" GenericTransferPackage Text where
   getField p = p.from <> "->" <> p.to
 
 instance PackageName GenericTransferPackage where
-  withoutName = genericWithoutName' ["from", "to"]
+  splitName = genericSplitName' (Just "transfer") $ Proxy @'["from", "to"]
 
 instance FromJSON GenericTransferPackage
 
@@ -53,7 +53,7 @@ spec = do
       , "{\"from\": \"here\", \"to\": \"there\", \"param\": \"quickly\"}"
       )
     ]
-  describe "genericWithoutName" $ do
+  describe "genericSplitName" $ do
     describe "single-field name" $ do
       let basePackage = GenericNamePackage{name = "tool", version = "", funny = False, binaries = []}
       it "blanks name when there is identifying information in other fields" $ do

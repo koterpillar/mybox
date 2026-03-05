@@ -128,7 +128,7 @@ packageSpecGen name makePS = do
         checkInstalled_ s
 
 packageSpec :: Package a => PackageSpec a -> Spec
-packageSpec s = packageSpecGen (Text.unpack $ s.package.name) (const s)
+packageSpec s = packageSpecGen (Text.unpack $ getName s.package) (const s)
 
 trackableFiles :: Driver :> es => PackageSpec a -> Eff es (Set (Path Abs))
 trackableFiles s = do

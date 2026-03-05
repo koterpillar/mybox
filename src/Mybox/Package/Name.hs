@@ -2,55 +2,80 @@ module Mybox.Package.Name where
 
 import Data.Text qualified as Text
 import GHC.Generics
+import GHC.TypeLits
 
 import Mybox.Prelude
 
-class HasField "name" a Text => PackageName a where
-  -- | Return the same package value with an empty 'name' field.
+class PackageName a where
+  -- | Name lens. Returns the name and the rest of the package value (if any).
   --
-  -- Returns 'Nothing' when the package is fully determined by its name.
-  withoutName :: a -> Maybe a
+  -- If the package is fully determined by its name, the second element of the
+  -- tuple will be 'Nothing'.
+  splitName :: a -> (Text, Maybe a)
+
+getName :: PackageName a => a -> Text
+getName = fst . splitName
+
+withoutName :: PackageName a => a -> Maybe a
+withoutName = snd . splitName
 
 pathname :: PackageName p => p -> Text
-pathname p = Text.replace "/" "--" p.name
+pathname p = Text.replace "/" "--" (getName p)
 
-genericWithoutName :: (GWithoutName (Rep a), Generic a) => a -> Maybe a
-genericWithoutName = genericWithoutName' ["name"]
+joinName :: Maybe Text -> [Text] -> Text
+joinName prefix parts = Text.intercalate "#" $ maybe id (:) prefix parts
 
-genericWithoutName' :: (GWithoutName (Rep a), Generic a) => [String] -> a -> Maybe a
-genericWithoutName' nameFields value =
-  let repWithoutName = gWithoutName nameFields $ from value
-      valueWithoutName = to repWithoutName
-   in if allDefault nameFields repWithoutName
-        then Nothing
-        else Just valueWithoutName
+genericSplitName :: (GHasName '["name"] (Rep a), Generic a) => a -> (Text, Maybe a)
+genericSplitName = genericSplitName' Nothing (Proxy @'["name"])
 
-class GWithoutName f where
-  gWithoutName :: [String] -> f p -> f p
-  allDefault :: [String] -> f p -> Bool
+genericSplitName' :: (GHasName names (Rep a), Generic a) => Maybe Text -> proxy names -> a -> (Text, Maybe a)
+genericSplitName' prefix names value =
+  let r = gSplitName names $ from value
+      name = joinName prefix r.parts
+   in if r.allDefault
+        then (name, Nothing)
+        else (name, Just $ to r.rest)
+
+data NameParts p = NameParts {parts :: [Text], rest :: p, allDefault :: Bool}
+  deriving (Functor)
+
+liftNameParts :: (a -> b -> c) -> NameParts a -> NameParts b -> NameParts c
+liftNameParts f (NameParts partsL restL allDefL) (NameParts partsR restR allDefR) =
+  NameParts (partsL <> partsR) (f restL restR) (allDefL && allDefR)
+
+class GHasName (names :: [Symbol]) f where
+  gSplitName :: proxy names -> f p -> NameParts (f p)
 
 -- No instance for U1 since there must be at least one field for the package name
 
-instance (GWithoutName left, GWithoutName right) => GWithoutName (left :*: right) where
-  gWithoutName nameFields (left :*: right) =
-    gWithoutName nameFields left :*: gWithoutName nameFields right
-  allDefault nameFields (left :*: right) =
-    allDefault nameFields left && allDefault nameFields right
+instance (GHasName names left, GHasName names right) => GHasName names (left :*: right) where
+  gSplitName names (left :*: right) =
+    let namePartsL = gSplitName names left
+        namePartsR = gSplitName names right
+     in liftNameParts (:*:) namePartsL namePartsR
 
 -- No instance for sums (:+:) since there is only a single default
 
-instance GWithoutName inner => GWithoutName (M1 D meta inner) where
-  gWithoutName nameFields (M1 inner) = M1 $ gWithoutName nameFields inner
-  allDefault nameFields (M1 inner) = allDefault nameFields inner
+instance GHasName names inner => GHasName names (M1 D meta inner) where
+  gSplitName names (M1 inner) = M1 <$> gSplitName names inner
 
-instance GWithoutName inner => GWithoutName (M1 C meta inner) where
-  gWithoutName nameFields (M1 inner) = M1 $ gWithoutName nameFields inner
-  allDefault nameFields (M1 inner) = allDefault nameFields inner
+instance GHasName names inner => GHasName names (M1 C meta inner) where
+  gSplitName names (M1 inner) = M1 <$> gSplitName names inner
 
-instance (HasEmpty value, Selector selector) => GWithoutName (M1 S selector (K1 index value)) where
-  gWithoutName nameFields field@(M1 (K1 value))
-    | selName field `elem` nameFields = M1 $ K1 emptyValue
-    | otherwise = M1 $ K1 value
-  allDefault nameFields field@(M1 (K1 value))
-    | selName field `elem` nameFields = True
-    | otherwise = value == emptyValue
+class NameIfMember (names :: [Symbol]) (name :: Symbol) where
+  nameIfMember :: proxy1 names -> proxy2 name -> Text -> Maybe Text
+
+instance NameIfMember (name ': names) name where
+  nameIfMember _ _ value = Just value
+
+instance {-# OVERLAPPABLE #-} NameIfMember names name => NameIfMember (other ': names) name where
+  nameIfMember _ _ _ = Nothing
+
+instance NameIfMember '[] name where
+  nameIfMember _ _ _ = Nothing
+
+instance {-# OVERLAPPING #-} (KnownSymbol name, NameIfMember names name) => GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index Text)) where
+  gSplitName _ (M1 (K1 value)) = NameParts [value] (M1 $ K1 "") False
+
+instance (HasEmpty value, Selector selector) => GHasName names (M1 S selector (K1 index value)) where
+  gSplitName _ (M1 (K1 value)) = NameParts [] (M1 $ K1 value) (value == emptyValue)

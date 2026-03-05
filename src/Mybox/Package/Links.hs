@@ -49,7 +49,7 @@ instance HasField "name" LinksPackage Text where
       ]
 
 instance PackageName LinksPackage where
-  withoutName = genericWithoutName' ["source_", "destination", "dot"]
+  splitName = genericSplitName' (Just "links") $ Proxy @["source_", "destination", "dot"]
 
 instance FromJSON LinksPackage where
   parseJSON = withObjectTotal "LinksPackage" $ do

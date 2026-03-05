@@ -50,7 +50,7 @@ instance HasField "name" URLPackage Text where
   getField = urlName
 
 instance PackageName URLPackage where
-  withoutName = genericWithoutName' ["url"]
+  splitName = genericSplitName' Nothing $ Proxy @'["url"]
 
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url

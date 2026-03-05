@@ -16,7 +16,7 @@ import Mybox.Tracker
 data ActionPackage = ActionPackage
   { name :: Text
   , destination :: Path AnyAnchor
-  , delayS :: Text -- Really Int, but genericWithoutName doesn't support it
+  , delayS :: Text -- Really Int, but genericSplitName doesn't support it
   , deps :: [ActionPackage]
   }
   deriving (Eq, Generic, Show)
@@ -25,7 +25,7 @@ instance HasField "root" ActionPackage Bool where
   getField = const False
 
 instance PackageName ActionPackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 instance FromJSON ActionPackage where
   parseJSON = withObjectTotal "ActionPackage" $ do

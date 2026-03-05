@@ -24,7 +24,7 @@ instance HasField "name" BrewRepo Text where
   getField p = "brew-" <> p.name_
 
 instance PackageName BrewRepo where
-  withoutName = genericWithoutName' ["name_"]
+  splitName = genericSplitName' (Just "brew") $ Proxy @'["name_"]
 
 instance FromJSON BrewRepo where
   parseJSON = withObjectTotal "BrewRepo" $ do

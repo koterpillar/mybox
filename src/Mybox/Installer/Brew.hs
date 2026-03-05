@@ -19,7 +19,7 @@ instance HasField "name" (BrewBootstrap s) Text where
   getField _ = "homebrew"
 
 instance PackageName (BrewBootstrap s) where
-  withoutName _ = Nothing
+  splitName _ = ("homebrew", Nothing)
 
 instance FromJSON (BrewBootstrap s) where
   parseJSON = withObjectTotal "BrewBootstrap" $ pure BrewBootstrap

@@ -25,7 +25,7 @@ instance HasField "name" YumRepo Text where
   getField p = "yum-" <> p.name_
 
 instance PackageName YumRepo where
-  withoutName = genericWithoutName' ["name_"]
+  splitName = genericSplitName' (Just "yum") $ Proxy @'["name_"]
 
 instance FromJSON YumRepo where
   parseJSON = withObjectTotal "YumRepo" $ do

@@ -15,7 +15,7 @@ newtype DummyPackage
   deriving (Generic)
 
 instance PackageName DummyPackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 spec :: Spec
 spec = do

@@ -19,7 +19,7 @@ data SystemPackage = SystemPackage
   deriving (Eq, Generic, Show)
 
 instance PackageName SystemPackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 mkSystemPackage :: Text -> SystemPackage
 mkSystemPackage name = SystemPackage{name, installer = Nothing, url = Nothing, autoUpdates = True, post = []}

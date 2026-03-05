@@ -24,7 +24,7 @@ mkSomePackageF :: (Functor f, Package p) => f p -> f SomePackage
 mkSomePackageF = fmap mkSomePackage
 
 instance HasField "name" SomePackage Text where
-  getField (SomePackage f) = f (.name)
+  getField (SomePackage f) = f getName
 
 instance Show SomePackage where
   show (SomePackage f) = "SomePackage " <> f show
@@ -56,9 +56,11 @@ instance Eq SomePackage where
 instance PackageName SomePackage where
   -- Existential `p` cannot escape the argument scope, pattern match on a
   -- boolean instead.
-  withoutName (SomePackage f) = case f (isJust . withoutName) of
-    False -> Nothing
-    True -> Just $ SomePackage $ \g -> f $ g . fromJust . withoutName
+  splitName (SomePackage f) = (f (fst . splitName), rest)
+   where
+    rest = case f (isJust . snd . splitName) of
+      False -> Nothing
+      True -> Just $ SomePackage $ \g -> f $ g . fromJust . snd . splitName
 
 instance Package SomePackage where
   remoteVersion (SomePackage f) = f remoteVersion

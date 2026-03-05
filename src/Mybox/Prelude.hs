@@ -4,6 +4,7 @@ module Mybox.Prelude (
   module Data.Either,
   module Data.Foldable,
   module Data.Maybe,
+  module Data.Proxy,
   module Effectful,
   module Effectful.Concurrent.MVar,
   module Effectful.Exception,
@@ -47,6 +48,7 @@ import Data.List (uncons, unsnoc)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Maybe
+import Data.Proxy
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Text qualified as Text

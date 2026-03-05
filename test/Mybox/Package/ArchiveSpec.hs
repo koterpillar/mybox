@@ -10,7 +10,7 @@ data DummyPackage = DummyPackage {name :: Text, archive :: ArchiveFields}
   deriving (Eq, Generic, Ord, Show)
 
 instance PackageName DummyPackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 instance ArchivePackage DummyPackage where
   archiveUrl _ = pure "dummy"

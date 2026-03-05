@@ -28,7 +28,7 @@ instance HasField "name" TestPackage Text where
   getField = const "test"
 
 instance PackageName TestPackage where
-  withoutName = genericWithoutName' []
+  splitName = genericSplitName' Nothing $ Proxy @'[]
 
 instance FromJSON TestPackage where
   parseJSON = withObject "TestPackage" $ \o -> do

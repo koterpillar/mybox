@@ -29,7 +29,7 @@ instance HasField "name" PipxPackage Text where
   getField p = Text.toLower p.package
 
 instance PackageName PipxPackage where
-  withoutName = genericWithoutName' ["package"]
+  splitName = genericSplitName' Nothing $ Proxy @'["package"]
 
 instance FromJSON PipxPackage where
   parseJSON = withObjectTotal "PipxPackage" $ do

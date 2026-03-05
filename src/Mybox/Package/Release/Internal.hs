@@ -35,7 +35,7 @@ instance HasField "name" ReleasePackage Text where
   getField p = p.repo
 
 instance PackageName ReleasePackage where
-  withoutName = genericWithoutName' ["repo"]
+  splitName = genericSplitName' Nothing $ Proxy @'["repo"]
 
 instance FromJSON ReleasePackage where
   parseJSON = withObjectTotal "ReleasePackage" $ do

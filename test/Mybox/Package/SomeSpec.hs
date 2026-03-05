@@ -26,7 +26,7 @@ spec = do
           let some = jsonDecode @SomePackage "SomePackage" pkgJson
           some `shouldSatisfy` isRight
           some' <- either (error . show) pure some
-          some'.name `shouldBe` pkg.name
+          getName some' `shouldBe` getName pkg
           show some' `shouldBe` ("SomePackage " <> show pkg)
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson
@@ -65,10 +65,12 @@ spec = do
     let ghc = (mkSystemPackage "ghc"){autoUpdates = False}
     it "returns Nothing for packages fully determined by name" $ do
       let pkg = mkSomePackage ghc
-      withoutName pkg `shouldBe` Nothing
+      splitName pkg `shouldBe` ("ghc", Nothing)
 
     it "returns Just package with empty name for packages not fully determined by name" $ do
       let pkg = mkSomePackage $ ghc{installer = Just Flatpak}
-      withoutName pkg `shouldSatisfy` isJust
-      let pkgWithoutName = fromJust $ withoutName pkg
-      pkgWithoutName.name `shouldBe` ""
+      let (name, rest) = splitName pkg
+      name `shouldBe` "ghc"
+      rest `shouldSatisfy` isJust
+      let pkgWithoutName = fromJust rest
+      getName pkgWithoutName `shouldBe` ""

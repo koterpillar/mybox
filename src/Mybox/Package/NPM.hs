@@ -27,7 +27,7 @@ instance HasField "name" NPMPackage Text where
   getField p = p.package
 
 instance PackageName NPMPackage where
-  withoutName = genericWithoutName' ["package"]
+  splitName = genericSplitName' Nothing $ Proxy @'["package"]
 
 instance FromJSON NPMPackage where
   parseJSON = withObjectTotal "NPMPackage" $ do

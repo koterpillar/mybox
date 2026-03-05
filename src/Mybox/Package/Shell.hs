@@ -37,7 +37,7 @@ instance HasField "name" ShellPackage Text where
   getField p = "_shell" <> (if p.root then "_root" else "")
 
 instance PackageName ShellPackage where
-  withoutName = genericWithoutName' ["shell", "root"]
+  splitName = genericSplitName' (Just "shell") $ Proxy @'["shell", "root"]
 
 shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"

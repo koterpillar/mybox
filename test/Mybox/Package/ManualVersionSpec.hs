@@ -17,7 +17,7 @@ instance FromJSON DummyPackage
 instance ToJSON DummyPackage
 
 instance PackageName DummyPackage where
-  withoutName = genericWithoutName
+  splitName = genericSplitName
 
 dummyVersionFile :: Path Rel
 dummyVersionFile = "dummy-package-version.txt"
