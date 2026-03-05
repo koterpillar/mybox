@@ -33,9 +33,6 @@ mkClonePackage repo destination =
     , post = []
     }
 
-instance HasField "name" ClonePackage Text where
-  getField p = Text.intercalate "#" [p.repo, p.destination.text]
-
 instance PackageName ClonePackage where
   splitName = genericSplitName' Nothing $ Proxy @["repo", "destination"]
 

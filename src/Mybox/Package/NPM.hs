@@ -23,9 +23,6 @@ data NPMPackage = NPMPackage
 mkNPMPackage :: Text -> NPMPackage
 mkNPMPackage package = NPMPackage{package, binaries = [], post = []}
 
-instance HasField "name" NPMPackage Text where
-  getField p = p.package
-
 instance PackageName NPMPackage where
   splitName = genericSplitName' Nothing $ Proxy @'["package"]
 

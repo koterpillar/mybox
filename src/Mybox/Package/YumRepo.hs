@@ -21,9 +21,6 @@ data YumRepo = YumRepo
 mkYumRepo :: Text -> Text -> YumRepo
 mkYumRepo name url = YumRepo{name_ = name, url, gpgKey = Nothing, post = []}
 
-instance HasField "name" YumRepo Text where
-  getField p = "yum-" <> p.name_
-
 instance PackageName YumRepo where
   splitName = genericSplitName' (Just "yum") $ Proxy @'["name_"]
 

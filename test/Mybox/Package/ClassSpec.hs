@@ -16,22 +16,21 @@ import Mybox.Tracker
 import Mybox.Tracker.Internal (tfAdd)
 
 data TestPackage = TestPackage
-  { error_ :: Bool
+  { name :: Text
+  , error_ :: Bool
   , flavour :: Text
   }
   deriving (Eq, Generic, Show)
 
 defTestPackage :: TestPackage
-defTestPackage = TestPackage{error_ = False, flavour = ""}
-
-instance HasField "name" TestPackage Text where
-  getField = const "test"
+defTestPackage = TestPackage{name = "test", error_ = False, flavour = ""}
 
 instance PackageName TestPackage where
-  splitName = genericSplitName' Nothing $ Proxy @'[]
+  splitName = genericSplitName
 
 instance FromJSON TestPackage where
   parseJSON = withObject "TestPackage" $ \o -> do
+    name <- o .: "name"
     error_ <- o .: "error"
     flavour <- o .: "flavour"
     pure TestPackage{..}
@@ -39,7 +38,8 @@ instance FromJSON TestPackage where
 instance ToJSON TestPackage where
   toJSON p =
     object
-      [ "error" .= p.error_
+      [ "name" .= p.name
+      , "error" .= p.error_
       , "flavour" .= p.flavour
       ]
 
@@ -79,7 +79,7 @@ run_ fn initialSet =
 spec :: Spec
 spec = do
   describe "TestPackage" $
-    metaSpec @TestPackage [(Nothing, "{\"error\": false, \"flavour\": \"vanilla\"}")]
+    metaSpec @TestPackage [(Nothing, "{\"name\": \"test\", \"error\": false, \"flavour\": \"vanilla\"}")]
   describe "PackageHash" $
     jsonSpec @PackageHash [(Nothing, "{\"hash\": \"test\"}")]
   describe "ensureInstalled" $ do

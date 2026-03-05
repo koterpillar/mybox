@@ -33,9 +33,6 @@ instance ToJSON ShellPackage where
   toJSON p =
     object $ ["shell" .= p.shell, "root" .= p.root] <> postToJSON p
 
-instance HasField "name" ShellPackage Text where
-  getField p = "_shell" <> (if p.root then "_root" else "")
-
 instance PackageName ShellPackage where
   splitName = genericSplitName' (Just "shell") $ Proxy @'["shell", "root"]
 

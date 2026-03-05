@@ -31,9 +31,6 @@ mkReleasePackage repo =
     , post = []
     }
 
-instance HasField "name" ReleasePackage Text where
-  getField p = p.repo
-
 instance PackageName ReleasePackage where
   splitName = genericSplitName' Nothing $ Proxy @'["repo"]
 

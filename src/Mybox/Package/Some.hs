@@ -23,9 +23,6 @@ mkSomePackage p = SomePackage $ \f -> f p
 mkSomePackageF :: (Functor f, Package p) => f p -> f SomePackage
 mkSomePackageF = fmap mkSomePackage
 
-instance HasField "name" SomePackage Text where
-  getField (SomePackage f) = f getName
-
 instance Show SomePackage where
   show (SomePackage f) = "SomePackage " <> f show
 

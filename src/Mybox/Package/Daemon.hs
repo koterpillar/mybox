@@ -41,9 +41,6 @@ instance ToJSON DaemonPackage where
         <> maybe [] (\n -> ["name" .= n]) p.nameOverride
         <> postToJSON p
 
-instance HasField "name" DaemonPackage Text where
-  getField p = fromMaybe (cmd p) p.nameOverride
-
 instance PackageName DaemonPackage where
   splitName p = case p.nameOverride of
     Nothing ->
@@ -66,7 +63,7 @@ daemonName p = "com.koterpillar.mybox." <> clean (cmd p)
     | otherwise = '_'
 
 daemonDescription :: DaemonPackage -> Text
-daemonDescription p = "Mybox: " <> p.name
+daemonDescription p = "Mybox: " <> getName p
 
 serviceFileLinux :: DaemonPackage -> Text
 serviceFileLinux p =

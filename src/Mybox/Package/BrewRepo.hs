@@ -20,9 +20,6 @@ data BrewRepo = BrewRepo
 mkBrewRepo :: Text -> BrewRepo
 mkBrewRepo name_ = BrewRepo{name_, post = []}
 
-instance HasField "name" BrewRepo Text where
-  getField p = "brew-" <> p.name_
-
 instance PackageName BrewRepo where
   splitName = genericSplitName' (Just "brew") $ Proxy @'["name_"]
 

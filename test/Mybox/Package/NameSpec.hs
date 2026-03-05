@@ -28,9 +28,6 @@ data GenericTransferPackage = GenericTransferPackage
   }
   deriving (Eq, Generic, Show)
 
-instance HasField "name" GenericTransferPackage Text where
-  getField p = p.from <> "->" <> p.to
-
 instance PackageName GenericTransferPackage where
   splitName = genericSplitName' (Just "transfer") $ Proxy @'["from", "to"]
 

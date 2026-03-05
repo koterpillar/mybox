@@ -38,16 +38,6 @@ mkLinksPackage src dest =
     , post = []
     }
 
-instance HasField "name" LinksPackage Text where
-  getField p =
-    Text.intercalate
-      "-"
-      [ "links"
-      , p.source_.text
-      , p.destination.text
-      , Text.pack (show p.dot)
-      ]
-
 instance PackageName LinksPackage where
   splitName = genericSplitName' (Just "links") $ Proxy @["source_", "destination", "dot"]
 

@@ -46,6 +46,7 @@ urlName p = domain <> "/" <> dropExtension (lastPathSegment url)
 maybeModify :: (a -> Maybe a) -> a -> a
 maybeModify f x = fromMaybe x $ f x
 
+-- FIXME: update the logic for genericSplitName
 instance HasField "name" URLPackage Text where
   getField = urlName
 
