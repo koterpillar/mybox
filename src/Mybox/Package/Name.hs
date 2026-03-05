@@ -75,7 +75,6 @@ instance (KnownSymbol a, KnownSymbols as) => KnownSymbols (a ': as) where
     Nothing -> memberSymbol (Proxy @as) pb
 
 instance
-  {-# OVERLAPPING #-}
   (KnownSymbol name, KnownSymbols names, RecValue value) =>
   GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index value))
   where
