@@ -53,6 +53,11 @@ spec = do
   describe "genericSplitName" $ do
     describe "single-field name" $ do
       let basePackage = GenericNamePackage{name = "tool", version = "", funny = False, binaries = []}
+      it "has accessors" $ do
+        basePackage.name `shouldBe` "tool"
+        basePackage.version `shouldBe` ""
+        basePackage.funny `shouldBe` False
+        basePackage.binaries `shouldBe` []
       it "gets name" $ getName basePackage `shouldBe` "tool"
       it "blanks name when there is something left in other fields" $ do
         let package = basePackage{version = "1.2.3", binaries = ["tool"]}
@@ -63,6 +68,10 @@ spec = do
 
     describe "multi-field name" $ do
       let baseTransfer = GenericTransferPackage{from = "here", to = "there", param = ""}
+      it "has accessors" $ do
+        baseTransfer.from `shouldBe` "here"
+        baseTransfer.to `shouldBe` "there"
+        baseTransfer.param `shouldBe` ""
       it "gets name" $ getName baseTransfer `shouldBe` "transfer#here#there"
       it "blanks all configured name-like fields" $ do
         let package = (baseTransfer{param = "quickly"} :: GenericTransferPackage)

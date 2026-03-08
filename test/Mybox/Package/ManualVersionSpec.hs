@@ -48,7 +48,10 @@ spec :: Spec
 spec = do
   describe "ManualVersion" $
     jsonSpec @ManualVersion [(Nothing, "{\"version\": \"test\"}")]
-  describe "DummyPackage" $
+  describe "DummyPackage" $ do
+    it "has name" $ do
+      let pkg = DummyPackage "dummy"
+      pkg.name `shouldBe` "dummy"
     metaSpec @DummyPackage [(Nothing, "{\"name\": \"test\"}")]
   withEff (nullTracker . runInstallQueue) $ do
     let pkg = DummyPackage "dummy"
