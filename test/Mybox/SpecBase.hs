@@ -125,6 +125,11 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE' = jsonDecode @a "example" json'
     let pkg' = requireRight pkgE'
     pkg' `shouldBe` pkg
+    -- test toJSON vs. toEncoding
+    let json'' = jsonEncode (toJSON pkg)
+    let pkgE'' = jsonDecode @a "example" json''
+    let pkg'' = requireRight pkgE''
+    pkg'' `shouldBe` pkg
 
 metaSpec ::
   forall a.
