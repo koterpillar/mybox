@@ -105,12 +105,8 @@ instance RecValue (Path Abs) where
   rvEmpty = pRoot
   rvText = Just . (.text)
 
-instance RecValue (Path Rel) where
-  rvEmpty = pCurrent
-  rvText = Just . (.text)
-
 instance RecValue (Path AnyAnchor) where
-  rvEmpty = pWiden @Rel rvEmpty
+  rvEmpty = pWiden @Rel pCurrent
   rvText = Just . (.text)
 
 pAbs :: Anchor a => Path a -> Maybe (Path Abs)
