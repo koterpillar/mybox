@@ -35,9 +35,8 @@ genericSplitName' :: forall (prefix :: [Symbol]) names a. (GHasName names (Rep a
 genericSplitName' value =
   let r = gSplitName (Proxy @names) $ from value
       name = joinName (Text.pack <$> symbolValMaybe (Proxy @prefix)) r.parts
-   in if r.allDefault
-        then (name, Nothing)
-        else (name, Just $ to r.rest)
+      rest = if r.allDefault then Nothing else Just $ to r.rest
+   in (name, rest)
 
 data NameParts p = NameParts {parts :: [Text], rest :: p, allDefault :: Bool}
   deriving (Functor)
