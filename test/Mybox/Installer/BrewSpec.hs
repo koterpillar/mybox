@@ -21,12 +21,13 @@ spec :: Spec
 spec = do
   metaSpec @(Brew.BrewBootstrap ()) [(Nothing, "{}")]
   onlyMacOS $ installerSpec brew
-  withEff (nullTracker . runInstallQueue) $ do
-    it "returns formula version" $ do
-      enableSudo
-      iLatestVersion brew "the_silver_searcher" >>= (`shouldSatisfy` (\v -> v >= "2.2.0" && v < "99"))
-    onlyMacOS $ do
-      it "returns cask version" $
-        iLatestVersion brew "alacritty" >>= (`shouldSatisfy` (\v -> v >= "0.13.2" && v < "99"))
-      it "fails for non-tapped cask" $
-        iInstalledVersion brew "homebrew/cask-zzzzzzz/yyyyyyy" `shouldThrow` anyException
+  onlyIf "Bash is required for Homebrew installer tests" (drvExecutableExists "bash") $
+    withEff (nullTracker . runInstallQueue) $ do
+      it "returns formula version" $ do
+        enableSudo
+        iLatestVersion brew "the_silver_searcher" >>= (`shouldSatisfy` (\v -> v >= "2.2.0" && v < "99"))
+      onlyMacOS $ do
+        it "returns cask version" $
+          iLatestVersion brew "alacritty" >>= (`shouldSatisfy` (\v -> v >= "0.13.2" && v < "99"))
+        it "fails for non-tapped cask" $
+          iInstalledVersion brew "homebrew/cask-zzzzzzz/yyyyyyy" `shouldThrow` anyException

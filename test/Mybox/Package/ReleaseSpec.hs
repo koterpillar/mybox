@@ -92,27 +92,28 @@ spec = do
         )
         & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
 
-  packageSpecGen "Ammonite" $ \psa ->
-    ps
-      ( (mkReleasePackage "com-lihaoyi/Ammonite")
-          { archive =
-              emptyArchiveFields
-                { binaries = ["amm"]
-                , raw = Left "amm"
-                }
-          , filters =
-              mempty
-                { prefixes = ["3.6-"]
-                , suffixes = ["-bootstrap"]
-                }
-          }
-      )
-      & ( case psa.os of
-            Linux Fedora -> preinstallPackage $ mkSystemPackage "java-latest-openjdk"
-            Linux (Debian _) -> preinstallPackage $ mkSystemPackage "default-jre"
-            _ -> id
+  skipGenericLinux "Java installer unavailable on generic Linux" $
+    packageSpecGen "Ammonite" $ \psa ->
+      ps
+        ( (mkReleasePackage "com-lihaoyi/Ammonite")
+            { archive =
+                emptyArchiveFields
+                  { binaries = ["amm"]
+                  , raw = Left "amm"
+                  }
+            , filters =
+                mempty
+                  { prefixes = ["3.6-"]
+                  , suffixes = ["-bootstrap"]
+                  }
+            }
         )
-      & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
+        & ( case psa.os of
+              Linux Fedora -> preinstallPackage $ mkSystemPackage "java-latest-openjdk"
+              Linux (Debian _) -> preinstallPackage $ mkSystemPackage "default-jre"
+              _ -> id
+          )
+        & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
 
   packageSpec $
     ps
