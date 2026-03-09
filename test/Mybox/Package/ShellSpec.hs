@@ -33,7 +33,7 @@ spec = do
 
   let checkWhoamiShell root = do
         username <- if root then pure "root" else drvUsername
-        whoamiResult <- drvRunOutput $ (if root then sudo else id) $ "su" :| [username]
+        whoamiResult <- drvRunOutput $ sudo $ "su" :| [username]
         whoamiResult `shouldBe` username
 
   onlyIf "Shell package tests require virtual system (Docker or CI)" virtualSystem $ do
@@ -61,6 +61,7 @@ spec = do
       it "fails on unexpected output" $ do
         let brokenGetShell :: Args -> Maybe Text
             brokenGetShell ("getent" :| _) = Just "unexpected output"
+            brokenGetShell ("cat" :| "/etc/passwd" : _) = Just "unexpected output"
             brokenGetShell ("dscl" :| _) = Just "unexpected output"
             brokenGetShell _ = Nothing
         stubDriver brokenGetShell $
