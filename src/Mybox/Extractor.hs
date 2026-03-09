@@ -159,6 +159,3 @@ guessRawExtractor url = go
 
 getRawExtractor :: Driver :> es => Text -> Eff es RawExtractor
 getRawExtractor = withRedirect guessRawExtractor $ pure move
-
-unlessExecutableExists :: Driver :> es => Text -> Eff es () -> Eff es ()
-unlessExecutableExists command act = drvExecutableExists command >>= (`unless` act)
