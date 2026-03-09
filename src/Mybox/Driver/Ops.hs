@@ -44,6 +44,9 @@ drvExecutableExists exe = do
   result <- drvRunOutputExit $ shell $ "command" :| ["-v", exe]
   pure (result.exit == ExitSuccess)
 
+unlessExecutableExists :: Driver :> es => Text -> Eff es () -> Eff es ()
+unlessExecutableExists command act = drvExecutableExists command >>= (`unless` act)
+
 drvFindExecutable :: Driver :> es => [Text] -> Eff es Text
 drvFindExecutable candidates = go candidates
  where
@@ -238,7 +241,7 @@ drvOS = do
         "debian" -> pure $ Debian "debian"
         "ubuntu" -> pure $ Debian "ubuntu"
         "fedora" -> pure Fedora
-        _ -> terror $ "Unsupported Linux distribution: " <> distributionStr
+        _ -> pure $ Generic distributionStr
       pure $ Linux distribution
      where
       parseOsRelease :: Text -> Text

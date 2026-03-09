@@ -96,9 +96,10 @@ preinstallPackage p = preinstall $ ensureInstalled p
 
 enableSudo :: App es => Eff es ()
 enableSudo = do
-  drvOS >>= \case
-    MacOS -> pure ()
-    Linux _ -> queueInstall $ mkSystemPackage "sudo"
+  unlessExecutableExists "sudo" $
+    drvOS >>= \case
+      MacOS -> pure ()
+      Linux _ -> queueInstall $ mkSystemPackage "sudo"
   user <- drvUsername
   let line = user <> " ALL=(ALL) NOPASSWD: ALL"
   modifyDriver sudo $ drvWriteFile (mkPath @Abs "/etc/sudoers.d/mybox") line

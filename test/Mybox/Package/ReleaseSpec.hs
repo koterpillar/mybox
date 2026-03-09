@@ -51,6 +51,15 @@ iconPaths name = do
     _ -> terror $ "Unexpected icon extension: " <> ext
   pure $ "hicolor" </> size </> "apps" </> (base <> "." <> ext)
 
+libraryExists :: Text -> Driver :> es => Eff es Bool
+libraryExists lib = do
+  os <- drvOS
+  case os of
+    MacOS -> pure True
+    Linux _ -> do
+      libraries <- drvRunOutput $ "ldconfig" :| ["-p"]
+      pure $ any (Text.isInfixOf lib) (Text.lines libraries)
+
 spec :: Spec
 spec = do
   metaSpec @ReleasePackage [(Nothing, "{\"repo\": \"example/example\"}")]
@@ -92,27 +101,28 @@ spec = do
         )
         & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
 
-  packageSpecGen "Ammonite" $ \psa ->
-    ps
-      ( (mkReleasePackage "com-lihaoyi/Ammonite")
-          { archive =
-              emptyArchiveFields
-                { binaries = ["amm"]
-                , raw = Left "amm"
-                }
-          , filters =
-              mempty
-                { prefixes = ["3.6-"]
-                , suffixes = ["-bootstrap"]
-                }
-          }
-      )
-      & ( case psa.os of
-            Linux Fedora -> preinstallPackage $ mkSystemPackage "java-latest-openjdk"
-            Linux (Debian _) -> preinstallPackage $ mkSystemPackage "default-jre"
-            _ -> id
+  skipGenericLinux "Java installer unavailable on generic Linux" $
+    packageSpecGen "Ammonite" $ \psa ->
+      ps
+        ( (mkReleasePackage "com-lihaoyi/Ammonite")
+            { archive =
+                emptyArchiveFields
+                  { binaries = ["amm"]
+                  , raw = Left "amm"
+                  }
+            , filters =
+                mempty
+                  { prefixes = ["3.6-"]
+                  , suffixes = ["-bootstrap"]
+                  }
+            }
         )
-      & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
+        & ( case psa.os of
+              Linux Fedora -> preinstallPackage $ mkSystemPackage "java-latest-openjdk"
+              Linux (Debian _) -> preinstallPackage $ mkSystemPackage "default-jre"
+              _ -> id
+          )
+        & checkInstalledCommandOutput ("amm" :| ["--version"]) "Ammonite REPL"
 
   packageSpec $
     ps
@@ -126,23 +136,25 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
-  packageSpec $
-    ps
-      ( (mkReleasePackage "koterpillar/hindent-build")
-          { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
-          }
-      )
-      & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
-
-  onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
+  onlyIf "libgmp required to run hindent" (libraryExists "libgmp") $
     packageSpec $
       ps
-        ( (mkReleasePackage "tonsky/FiraCode")
-            { archive =
-                emptyArchiveFields{fonts = ["FiraCode-Regular"]}
+        ( (mkReleasePackage "koterpillar/hindent-build")
+            { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
             }
         )
-        & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
+        & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
+
+  onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
+    skipGenericLinux "Default installer is unavailable on generic Linux" $
+      packageSpec $
+        ps
+          ( (mkReleasePackage "tonsky/FiraCode")
+              { archive =
+                  emptyArchiveFields{fonts = ["FiraCode-Regular"]}
+              }
+          )
+          & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
 
   packageSpec $
     ps

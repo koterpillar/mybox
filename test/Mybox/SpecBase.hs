@@ -11,6 +11,8 @@ module Mybox.SpecBase (
   onlyIf,
   onlyIfOS,
   skipIf,
+  skipIfOS,
+  skipGenericLinux,
   expectationFailure,
   it,
   xit,
@@ -95,6 +97,14 @@ onlyIf !reason cond =
 
 onlyIfOS :: (Driver :> es, IOE :> es) => String -> (OS -> Bool) -> EffSpec es -> EffSpec es
 onlyIfOS reason cond = onlyIf reason $ cond <$> drvOS
+
+skipIfOS :: (Driver :> es, IOE :> es) => String -> (OS -> Bool) -> EffSpec es -> EffSpec es
+skipIfOS reason cond = skipIf reason $ cond <$> drvOS
+
+skipGenericLinux :: (Driver :> es, IOE :> es) => String -> EffSpec es -> EffSpec es
+skipGenericLinux reason = skipIfOS reason $ \case
+  Linux (Generic _) -> True
+  _ -> False
 
 skipIf :: IOE :> es => String -> Eff es Bool -> EffSpec es -> EffSpec es
 skipIf reason cond = onlyIf reason $ fmap not cond

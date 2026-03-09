@@ -27,21 +27,24 @@ spec = do
       pkgRepo "git+ssh://git@github.com/django/django.git@release-1.9" `shouldBe` Just ("ssh://git@github.com/django/django.git", Just "release-1.9")
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue) $ do
-      it "gets version for existing package" $ do
-        let package = mkPipxPackage "black"
-        version <- remoteVersion package
-        version `shouldSatisfy` (>= "25.0.0")
-        version `shouldSatisfy` (<= "999.0.0")
+      skipGenericLinux "Default installer is unavailable on generic Linux" $
+        it "gets version for existing package" $ do
+          let package = mkPipxPackage "black"
+          version <- remoteVersion package
+          version `shouldSatisfy` (>= "25.0.0")
+          version `shouldSatisfy` (<= "999.0.0")
       it "fails for non-existent package" $ do
         let package = mkPipxPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException
       let isGitHash v = Text.length v == 40
-      it "returns a Git commit hash for a git package" $ do
-        let package = mkPipxPackage "git+https://github.com/django/django.git"
-        remoteVersion package >>= (`shouldSatisfy` isGitHash)
-      it "returns a Git commit hash for a git package with ref" $ do
-        let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
-        remoteVersion package >>= (`shouldSatisfy` isGitHash)
+      skipGenericLinux "Default installer is unavailable on generic Linux" $
+        it "returns a Git commit hash for a git package" $ do
+          let package = mkPipxPackage "git+https://github.com/django/django.git"
+          remoteVersion package >>= (`shouldSatisfy` isGitHash)
+      skipGenericLinux "Default installer is unavailable on generic Linux" $
+        it "returns a Git commit hash for a git package with ref" $ do
+          let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
+          remoteVersion package >>= (`shouldSatisfy` isGitHash)
   let psPython =
         ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]
           . ignorePaths
@@ -57,11 +60,12 @@ spec = do
             ("tqdm" :| ["--help"])
             "Usage:\n  tqdm"
           & psPython
-  packageSpec $ tqdmPackage "tqdm"
-  packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
-  packageSpec $
-    ps (mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9")
-      & checkInstalledCommandOutput
-        ("mypy" :| ["--version"])
-        "mypy 1.9."
-      & psPython
+  skipGenericLinux "Default installer is unavailable on generic Linux" $ do
+    packageSpec $ tqdmPackage "tqdm"
+    packageSpec $ tqdmPackage "git+https://github.com/tqdm/tqdm.git"
+    packageSpec $
+      ps (mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9")
+        & checkInstalledCommandOutput
+          ("mypy" :| ["--version"])
+          "mypy 1.9."
+        & psPython

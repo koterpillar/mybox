@@ -24,10 +24,11 @@ spec = do
     it "uses URL to derive name" $ do
       let package = mkURLPackage "https://example.com/package.tar.gz"
       getName package `shouldBe` "example.com/package"
-  packageSpec $
-    ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){archive = emptyArchiveFields{binaries = ["yarn"], binaryWrapper = True}})
-      & preinstall preinstallNode
-      & checkInstalledCommandOutput ("yarn" :| ["--help"]) "Usage: yarn"
+  skipGenericLinux "Default installer is unavailable on generic Linux" $
+    packageSpec $
+      ps ((mkURLPackage "https://yarnpkg.com/latest.tar.gz"){archive = emptyArchiveFields{binaries = ["yarn"], binaryWrapper = True}})
+        & preinstall preinstallNode
+        & checkInstalledCommandOutput ("yarn" :| ["--help"]) "Usage: yarn"
   packageSpec $
     ps ((mkURLPackage "https://ftp.debian.org/debian/README"){archive = emptyArchiveFields{raw = Right True}})
       & checkInstalledCommandOutput

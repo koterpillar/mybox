@@ -16,17 +16,18 @@ spec = do
     , (Just "flatpak installer", "{\"system\": \"org.example.Test\", \"installer\": \"flatpak\"}")
     ]
   onlyIf "System package tests require virtual system (Docker or CI)" virtualSystem $ do
-    packageSpec $
-      ps (mkSystemPackage "ripgrep")
-        & checkInstalledCommandOutput
-          ("rg" :| ["--help"])
-          "ripgrep"
-    packageSpec $
-      ps (mkSystemPackage "alacritty")
-        & ignorePaths [".terminfo"]
-        & checkInstalledCommandOutput
-          ("alacritty" :| ["--version"])
-          "alacritty 0"
+    skipGenericLinux "Default installer is unavailable on generic Linux" $ do
+      packageSpec $
+        ps (mkSystemPackage "ripgrep")
+          & checkInstalledCommandOutput
+            ("rg" :| ["--help"])
+            "ripgrep"
+      packageSpec $
+        ps (mkSystemPackage "alacritty")
+          & ignorePaths [".terminfo"]
+          & checkInstalledCommandOutput
+            ("alacritty" :| ["--version"])
+            "alacritty 0"
     onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $ do
       let fedoraVersion = "43" -- renovate: datasource=endoflife-date depName=fedora versioning=loose
       packageSpec $
@@ -46,12 +47,13 @@ spec = do
           & checkInstalledCommandOutput
             ("cat" :| ["/usr/share/doc/tzdata/copyright"])
             "Internet Assigned Numbers Authority"
-    onlyIfOS "GCC package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
-      packageSpec $
-        ps (mkSystemPackage "g++")
-          & checkInstalledCommandOutput
-            ("g++" :| ["--version"])
-            "Free Software Foundation, Inc."
+    skipGenericLinux "GCC package tests are skipped on generic Linux" $
+      onlyIfOS "GCC package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
+        packageSpec $
+          ps (mkSystemPackage "g++")
+            & checkInstalledCommandOutput
+              ("g++" :| ["--version"])
+              "Free Software Foundation, Inc."
     onlyIf "Flatpak package tests require CI environment" inCI $
       skipIf "Flatpak package tests cannot run in Docker" inDocker $
         onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
@@ -61,18 +63,19 @@ spec = do
                 ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
                 "VLC version"
               & ignorePaths [mkPath ".local/share/flatpak"]
-    onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False) $
-      -- tup has a revision in Brew, check that it is correctly reported as
-      -- installed after installation
+    skipGenericLinux "Brew system package tests are skipped on generic Linux" $ do
+      onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False) $
+        -- tup has a revision in Brew, check that it is correctly reported as
+        -- installed after installation
+        packageSpec $
+          ps ((mkSystemPackage "tup"){installer = Just Brew, autoUpdates = False})
+            & preinstallEnableSudo
+            & checkInstalledCommandOutput
+              ("tup" :| ["--version"])
+              "tup 0."
       packageSpec $
-        ps ((mkSystemPackage "tup"){installer = Just Brew, autoUpdates = False})
+        ps ((mkSystemPackage "the_silver_searcher"){installer = Just Brew})
           & preinstallEnableSudo
           & checkInstalledCommandOutput
-            ("tup" :| ["--version"])
-            "tup 0."
-    packageSpec $
-      ps ((mkSystemPackage "the_silver_searcher"){installer = Just Brew})
-        & preinstallEnableSudo
-        & checkInstalledCommandOutput
-          ("ag" :| ["--version"])
-          "ag version"
+            ("ag" :| ["--version"])
+            "ag version"

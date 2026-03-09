@@ -47,28 +47,45 @@ allShells = map mkPath . filter content . Text.lines <$> drvReadFile shellsFile
     | Text.isPrefixOf "#" line = False
     | otherwise = True
 
-getShellLinux :: Driver :> es => ShellPackage -> Eff es Text
-getShellLinux p = do
-  username <- if p.root then pure "root" else drvUsername
-  passwdEntry <- drvRunOutput $ "getent" :| ["passwd", username]
-  let fields = Text.splitOn ":" passwdEntry
-  case drop 6 fields of
-    (shellPath : _) -> pure shellPath
-    [] -> terror $ "Failed to parse passwd entry: " <> passwdEntry
+data PasswdEntry = PasswdEntry
+  { username :: Text
+  , shellPath :: Text
+  }
 
-getShellMacOS :: Driver :> es => ShellPackage -> Eff es Text
-getShellMacOS p = do
-  username <- if p.root then pure "root" else drvUsername
+parsePasswdEntry :: Text -> Maybe PasswdEntry
+parsePasswdEntry line = case Text.splitOn ":" line of
+  (username : _ : _ : _ : _ : _ : shellPath : _) -> Just PasswdEntry{..}
+  _ -> Nothing
+
+getShellLinux :: Driver :> es => Text -> Eff es Text
+getShellLinux username = do
+  hasGetent <- drvExecutableExists "getent"
+  passwdEntry <-
+    if hasGetent
+      then fmap parsePasswdEntry $ drvRunOutput $ "getent" :| ["passwd", username]
+      else do
+        passwd <- drvReadFile $ pRoot </> "etc" </> "passwd"
+        let entries = catMaybes $ map parsePasswdEntry $ Text.lines passwd
+        pure $ find (\e -> e.username == username) entries
+  case passwdEntry of
+    Just entry -> pure entry.shellPath
+    Nothing -> terror $ "Failed to find passwd entry for user: " <> username
+
+getShellMacOS :: Driver :> es => Text -> Eff es Text
+getShellMacOS username = do
   result <- drvRunOutput $ "dscl" :| [".", "-read", "/Users/" <> username, "UserShell"]
   case Text.splitOn ": " result of
     [_, shellPath] -> pure $ Text.strip shellPath
     _ -> terror $ "Failed to parse dscl output: " <> result
 
 shellLocalVersion :: Driver :> es => ShellPackage -> Eff es (Maybe Text)
-shellLocalVersion p =
-  drvOS >>= \case
-    Linux _ -> Just <$> getShellLinux p
-    MacOS -> Just <$> getShellMacOS p
+shellLocalVersion p = do
+  username <- if p.root then pure "root" else drvUsername
+  os <- drvOS
+  shellPath <- case os of
+    Linux _ -> getShellLinux username
+    MacOS -> getShellMacOS username
+  pure $ Just shellPath
 
 shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es Text
 shellRemoteVersion p = pure p.shell.text

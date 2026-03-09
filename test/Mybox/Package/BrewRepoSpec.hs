@@ -15,11 +15,12 @@ spec = do
     [ (Nothing, "{\"brew_tap\": \"easysoft/tap\"}")
     ]
   onlyIf "Homebrew repository tests require virtual system (Docker or CI)" virtualSystem $ do
-    withEff (nullTracker . runInstallQueue) $ do
-      it "reports not installed when not tapped" $ do
-        enableSudo
-        localVersion (mkBrewRepo "denji/nginx") >>= (`shouldBe` Nothing)
-    packageSpec $
-      ps (mkBrewRepo "easysoft/tap")
-        & preinstallEnableSudo
-        & checkInstalledCommandOutput ("brew" :| ["info", "qcadmin"]) "qcadmin is an open-source lightweight cli tool for managing quickon"
+    skipGenericLinux "Default installer is unavailable on generic Linux" $ do
+      withEff (nullTracker . runInstallQueue) $ do
+        it "reports not installed when not tapped" $ do
+          enableSudo
+          localVersion (mkBrewRepo "denji/nginx") >>= (`shouldBe` Nothing)
+      packageSpec $
+        ps (mkBrewRepo "easysoft/tap")
+          & preinstallEnableSudo
+          & checkInstalledCommandOutput ("brew" :| ["info", "qcadmin"]) "qcadmin is an open-source lightweight cli tool for managing quickon"
