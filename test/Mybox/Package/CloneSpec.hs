@@ -19,19 +19,20 @@ spec = do
           & checkInstalledCommandOutput
             ("cat" :| [(psa.directory </> "templates" </> "zshrc.zsh-template").text])
             "alias ohmyzsh"
-  packageSpecGen "ohmyzsh" baseClone
-  packageSpecGen "branch switch" $ \psa ->
-    baseClone psa
-      & preinstallPackage (mkSystemPackage "git")
-      & preinstall (checkoutEarlierCommit psa)
-  packageSpecGen "empty directory" $ \psa ->
-    baseClone psa
-      & preinstall (createEmptyDirectory psa)
-  packageSpecGen "node-fetch" $ \psa ->
-    ps ((mkClonePackage "node-fetch/node-fetch" $ pWiden psa.directory){branch = Just "2.x"})
-      & checkInstalledCommandOutput
-        ("cat" :| [(psa.directory </> "package.json").text])
-        "\"version\": \"2"
+  skipGenericLinux "Default installer is unavailable on generic Linux" $ do
+    packageSpecGen "ohmyzsh" baseClone
+    packageSpecGen "branch switch" $ \psa ->
+      baseClone psa
+        & preinstallPackage (mkSystemPackage "git")
+        & preinstall (checkoutEarlierCommit psa)
+    packageSpecGen "empty directory" $ \psa ->
+      baseClone psa
+        & preinstall (createEmptyDirectory psa)
+    packageSpecGen "node-fetch" $ \psa ->
+      ps ((mkClonePackage "node-fetch/node-fetch" $ pWiden psa.directory){branch = Just "2.x"})
+        & checkInstalledCommandOutput
+          ("cat" :| [(psa.directory </> "package.json").text])
+          "\"version\": \"2"
 
 createEmptyDirectory :: Driver :> es => PackageSpecArgs -> Eff es ()
 createEmptyDirectory psa = drvMkdir psa.directory

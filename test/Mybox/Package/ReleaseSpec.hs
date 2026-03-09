@@ -135,14 +135,15 @@ spec = do
       & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
 
   onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
-    packageSpec $
-      ps
-        ( (mkReleasePackage "tonsky/FiraCode")
-            { archive =
-                emptyArchiveFields{fonts = ["FiraCode-Regular"]}
-            }
-        )
-        & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
+    skipGenericLinux "Default installer is unavailable on generic Linux" $
+      packageSpec $
+        ps
+          ( (mkReleasePackage "tonsky/FiraCode")
+              { archive =
+                  emptyArchiveFields{fonts = ["FiraCode-Regular"]}
+              }
+          )
+          & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
 
   packageSpec $
     ps
