@@ -51,6 +51,15 @@ iconPaths name = do
     _ -> terror $ "Unexpected icon extension: " <> ext
   pure $ "hicolor" </> size </> "apps" </> (base <> "." <> ext)
 
+libraryExists :: Text -> Driver :> es => Eff es Bool
+libraryExists lib = do
+  os <- drvOS
+  case os of
+    MacOS -> pure True
+    Linux _ -> do
+      libraries <- drvRunOutput $ "ldconfig" :| ["-p"]
+      pure $ any (Text.isInfixOf lib) (Text.lines libraries)
+
 spec :: Spec
 spec = do
   metaSpec @ReleasePackage [(Nothing, "{\"repo\": \"example/example\"}")]
@@ -127,13 +136,14 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
-  packageSpec $
-    ps
-      ( (mkReleasePackage "koterpillar/hindent-build")
-          { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
-          }
-      )
-      & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
+  onlyIf "libgmp required to run hindent" (libraryExists "libgmp") $
+    packageSpec $
+      ps
+        ( (mkReleasePackage "koterpillar/hindent-build")
+            { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
+            }
+        )
+        & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
 
   onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
     skipGenericLinux "Default installer is unavailable on generic Linux" $
