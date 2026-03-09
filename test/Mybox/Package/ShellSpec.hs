@@ -24,7 +24,7 @@ forRoot = for_ [(False, "normal user"), (True, "root")]
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @ShellPackage
     [ (Nothing, "{\"shell\": \"/bin/bash\"}")
     , (Just "with root", "{\"shell\": \"/bin/zsh\", \"root\": true}")

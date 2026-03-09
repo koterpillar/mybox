@@ -19,7 +19,7 @@ brew = Brew.brew @SystemPackage
 
 spec :: Spec
 spec = do
-  jsonSpec @(Brew.BrewBootstrap ()) [(Nothing, "{}")]
+  metaSpec @(Brew.BrewBootstrap ()) [(Nothing, "{}")]
   onlyMacOS $ installerSpec brew
   withEff (nullTracker . runInstallQueue) $ do
     it "returns formula version" $ do

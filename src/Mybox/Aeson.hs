@@ -24,7 +24,6 @@ import Control.Monad.State.Strict
 import Data.Aeson hiding (Options)
 import Data.Aeson.KeyMap qualified as KM
 import Data.Aeson.Types
-import Data.Bifunctor (first)
 import Data.ByteString.Lazy qualified as LBS
 import Data.List (intercalate)
 import Data.String (IsString (..))

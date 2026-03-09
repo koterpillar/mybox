@@ -16,7 +16,10 @@ data SystemPackage = SystemPackage
   , autoUpdates :: Bool
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
+
+instance PackageName SystemPackage where
+  splitName = genericSplitName
 
 mkSystemPackage :: Text -> SystemPackage
 mkSystemPackage name = SystemPackage{name, installer = Nothing, url = Nothing, autoUpdates = True, post = []}

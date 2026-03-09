@@ -8,7 +8,7 @@ import Mybox.SpecBase
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @SystemPackage
     [ (Nothing, "{\"system\": \"test\"}")
     , (Just "URL", "{\"system\": \"test\", \"url\": \"test\"}")

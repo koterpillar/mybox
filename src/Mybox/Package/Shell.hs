@@ -17,7 +17,7 @@ data ShellPackage = ShellPackage
   , root :: Bool
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
@@ -33,8 +33,8 @@ instance ToJSON ShellPackage where
   toJSON p =
     object $ ["shell" .= p.shell, "root" .= p.root] <> postToJSON p
 
-instance HasField "name" ShellPackage Text where
-  getField p = "_shell" <> (if p.root then "_root" else "")
+instance PackageName ShellPackage where
+  splitName = genericSplitName' @'["shell"] @'["shell", "root"]
 
 shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"

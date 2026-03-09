@@ -19,7 +19,7 @@ import Mybox.Prelude
 
 queueInstallMany :: (App es, Package p, Traversable f) => f p -> Eff es ()
 queueInstallMany pkgs = do
-  rs <- send $ Enqueue $ fmap (\pkg -> (pkg.name, ensureInstalled pkg)) pkgs
+  rs <- send $ Enqueue $ fmap (\pkg -> (getName pkg, ensureInstalled pkg)) pkgs
   for_ rs $ either throwIO pure
 
 queueInstall :: (App es, Package p) => p -> Eff es ()

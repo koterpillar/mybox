@@ -37,7 +37,7 @@ defTest =
 
 spec :: Spec
 spec = do
-  jsonSpec
+  metaSpec
     @LinksPackage
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"only\": [\"only1\", \"only2\"], \"root\": true}")

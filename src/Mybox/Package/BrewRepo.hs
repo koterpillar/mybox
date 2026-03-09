@@ -15,13 +15,13 @@ data BrewRepo = BrewRepo
   { name_ :: Text
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 mkBrewRepo :: Text -> BrewRepo
 mkBrewRepo name_ = BrewRepo{name_, post = []}
 
-instance HasField "name" BrewRepo Text where
-  getField p = "brew-" <> p.name_
+instance PackageName BrewRepo where
+  splitName = genericSplitName' @'["brew"] @'["name_"]
 
 instance FromJSON BrewRepo where
   parseJSON = withObjectTotal "BrewRepo" $ do

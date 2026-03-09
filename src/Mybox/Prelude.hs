@@ -1,9 +1,11 @@
 module Mybox.Prelude (
   module Control.Exception.Safe,
   module Control.Monad,
+  module Data.Bifunctor,
   module Data.Either,
   module Data.Foldable,
   module Data.Maybe,
+  module Data.Proxy,
   module Effectful,
   module Effectful.Concurrent.MVar,
   module Effectful.Exception,
@@ -11,6 +13,7 @@ module Mybox.Prelude (
   module Mybox.Concurrent,
   module Mybox.Path,
   (<|>),
+  ($>),
   (&),
   for,
   on,
@@ -27,6 +30,7 @@ module Mybox.Prelude (
   NonEmpty (..),
   Set,
   Text,
+  RecValue (..),
   terror,
   maximumMaybe,
   fromMaybeOrM,
@@ -39,13 +43,16 @@ import Control.Applicative ((<|>))
 import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
 import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
+import Data.Bifunctor (first)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
+import Data.Functor (($>))
 import Data.List (uncons, unsnoc)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Maybe
+import Data.Proxy
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -60,6 +67,7 @@ import System.Exit (ExitCode (..))
 
 import Mybox.Concurrent
 import Mybox.Path
+import Mybox.RecValue
 
 terror :: HasCallStack => Text -> a
 terror !msg = error $ Text.unpack msg

@@ -15,7 +15,7 @@ data URLPackage = URLPackage
   , archive :: ArchiveFields
   , post :: [Text]
   }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance FromJSON URLPackage where
   parseJSON = withObjectTotal "URLPackage" $ do
@@ -35,10 +35,10 @@ mkURLPackage url =
     , post = []
     }
 
-urlName :: URLPackage -> Text
-urlName p = domain <> "/" <> dropExtension (lastPathSegment url)
+urlName :: Text -> Text
+urlName u = domain <> "/" <> dropExtension (lastPathSegment url)
  where
-  url = maybeModify (Text.stripPrefix "https://") $ maybeModify (Text.stripPrefix "http://") $ p.url
+  url = maybeModify (Text.stripPrefix "https://") $ maybeModify (Text.stripPrefix "http://") u
   domain = Text.takeWhile (/= '/') url
   lastPathSegment = Text.takeWhileEnd (/= '/')
   dropExtension = Text.takeWhile (/= '.')
@@ -46,8 +46,8 @@ urlName p = domain <> "/" <> dropExtension (lastPathSegment url)
 maybeModify :: (a -> Maybe a) -> a -> a
 maybeModify f x = fromMaybe x $ f x
 
-instance HasField "name" URLPackage Text where
-  getField = urlName
+instance PackageName URLPackage where
+  splitName = first urlName . genericSplitName' @'[] @'["url"]
 
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url
