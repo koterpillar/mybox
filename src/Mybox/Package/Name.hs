@@ -33,8 +33,8 @@ genericSplitName = genericSplitName' @'[] @'["name"]
 
 genericSplitName' :: forall (prefix :: [Symbol]) names a. (GHasName names (Rep a), Generic a, KnownMaybeSymbol prefix) => a -> (Text, Maybe a)
 genericSplitName' value =
-  let r = gSplitName (Proxy @names) $ from value
-      name = joinName (Text.pack <$> symbolValMaybe (Proxy @prefix)) r.parts
+  let r = gSplitName @names $ from value
+      name = joinName (Text.pack <$> symbolValMaybe @prefix) r.parts
       rest = if r.allDefault then Nothing else Just $ to r.rest
    in (name, rest)
 
@@ -46,30 +46,30 @@ liftNameParts f (NameParts partsL restL allDefL) (NameParts partsR restR allDefR
   NameParts (partsL <> partsR) (f restL restR) (allDefL && allDefR)
 
 class GHasName (names :: [Symbol]) f where
-  gSplitName :: proxy names -> f p -> NameParts (f p)
+  gSplitName :: f p -> NameParts (f p)
 
 -- No instance for U1 since there must be at least one field for the package name
 
 instance (GHasName names left, GHasName names right) => GHasName names (left :*: right) where
-  gSplitName names (left :*: right) =
-    let namePartsL = gSplitName names left
-        namePartsR = gSplitName names right
+  gSplitName (left :*: right) =
+    let namePartsL = gSplitName @names left
+        namePartsR = gSplitName @names right
      in liftNameParts (:*:) namePartsL namePartsR
 
 -- No instance for sums (:+:) since there is only a single default
 
 instance GHasName names inner => GHasName names (M1 D meta inner) where
-  gSplitName names (M1 inner) = M1 <$> gSplitName names inner
+  gSplitName (M1 inner) = M1 <$> gSplitName @names inner
 
 instance GHasName names inner => GHasName names (M1 C meta inner) where
-  gSplitName names (M1 inner) = M1 <$> gSplitName names inner
+  gSplitName (M1 inner) = M1 <$> gSplitName @names inner
 
 instance
   (KnownSymbol name, KnownSymbols names, RecValue value) =>
   GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index value))
   where
-  gSplitName pNames (M1 (K1 value))
-    | memberSymbol pNames (Proxy @name) = case rvText value of
+  gSplitName (M1 (K1 value))
+    | memberSymbol (Proxy @names) (Proxy @name) = case rvText value of
         Just name -> NameParts [name] (M1 $ K1 rvEmpty) True
         Nothing -> error $ "name field " <> symbolVal (Proxy @name) <> " is not text"
     | otherwise = NameParts [] (M1 $ K1 value) (rvNull value)
@@ -86,10 +86,10 @@ instance (KnownSymbol a, KnownSymbols as) => KnownSymbols (a ': as) where
     Nothing -> memberSymbol (Proxy @as) pb
 
 class KnownMaybeSymbol (a :: [Symbol]) where
-  symbolValMaybe :: proxy a -> Maybe String
+  symbolValMaybe :: Maybe String
 
 instance KnownMaybeSymbol '[] where
-  symbolValMaybe _ = Nothing
+  symbolValMaybe = Nothing
 
 instance KnownSymbol a => KnownMaybeSymbol '[a] where
-  symbolValMaybe _ = Just (symbolVal (Proxy @a))
+  symbolValMaybe = Just (symbolVal (Proxy @a))
