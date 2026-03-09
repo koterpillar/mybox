@@ -26,7 +26,7 @@ mkPipxPackage :: Text -> PipxPackage
 mkPipxPackage package = PipxPackage{package, post = []}
 
 instance PackageName PipxPackage where
-  splitName = genericSplitName' Nothing $ Proxy @'["package"]
+  splitName = genericSplitName' @'[] @'["package"]
 
 instance FromJSON PipxPackage where
   parseJSON = withObjectTotal "PipxPackage" $ do

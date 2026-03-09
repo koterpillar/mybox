@@ -34,7 +34,7 @@ mkClonePackage repo destination =
     }
 
 instance PackageName ClonePackage where
-  splitName = genericSplitName' Nothing $ Proxy @["repo", "destination"]
+  splitName = genericSplitName' @'[] @'["repo", "destination"]
 
 instance FromJSON ClonePackage where
   parseJSON = withObjectTotal "ClonePackage" $ do

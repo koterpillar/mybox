@@ -47,7 +47,7 @@ maybeModify :: (a -> Maybe a) -> a -> a
 maybeModify f x = fromMaybe x $ f x
 
 instance PackageName URLPackage where
-  splitName = first urlName . genericSplitName' Nothing (Proxy @'["url"])
+  splitName = first urlName . genericSplitName' @'[] @'["url"]
 
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url

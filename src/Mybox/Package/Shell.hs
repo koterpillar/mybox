@@ -34,7 +34,7 @@ instance ToJSON ShellPackage where
     object $ ["shell" .= p.shell, "root" .= p.root] <> postToJSON p
 
 instance PackageName ShellPackage where
-  splitName = genericSplitName' (Just "shell") $ Proxy @'["shell", "root"]
+  splitName = genericSplitName' @'["shell"] @'["shell", "root"]
 
 shellsFile :: Path Abs
 shellsFile = pRoot </> "etc" </> "shells"

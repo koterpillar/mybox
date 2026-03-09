@@ -39,7 +39,7 @@ mkLinksPackage src dest =
     }
 
 instance PackageName LinksPackage where
-  splitName = genericSplitName' (Just "links") $ Proxy @["source_", "destination", "dot"]
+  splitName = genericSplitName' @'["links"] @'["source_", "destination", "dot"]
 
 instance FromJSON LinksPackage where
   parseJSON = withObjectTotal "LinksPackage" $ do

@@ -21,7 +21,7 @@ mkBrewRepo :: Text -> BrewRepo
 mkBrewRepo name_ = BrewRepo{name_, post = []}
 
 instance PackageName BrewRepo where
-  splitName = genericSplitName' (Just "brew") $ Proxy @'["name_"]
+  splitName = genericSplitName' @'["brew"] @'["name_"]
 
 instance FromJSON BrewRepo where
   parseJSON = withObjectTotal "BrewRepo" $ do

@@ -32,7 +32,7 @@ mkReleasePackage repo =
     }
 
 instance PackageName ReleasePackage where
-  splitName = genericSplitName' Nothing $ Proxy @'["repo"]
+  splitName = genericSplitName' @'[] @'["repo"]
 
 instance FromJSON ReleasePackage where
   parseJSON = withObjectTotal "ReleasePackage" $ do

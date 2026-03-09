@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Mybox.Package.Name where
 
 import Data.Text qualified as Text
@@ -27,12 +29,12 @@ joinName :: Maybe Text -> [Text] -> Text
 joinName prefix parts = Text.intercalate "#" $ maybe id (:) prefix $ filter (not . Text.null) parts
 
 genericSplitName :: (GHasName '["name"] (Rep a), Generic a) => a -> (Text, Maybe a)
-genericSplitName = genericSplitName' Nothing (Proxy @'["name"])
+genericSplitName = genericSplitName' @'[] @'["name"]
 
-genericSplitName' :: (GHasName names (Rep a), Generic a) => Maybe Text -> proxy names -> a -> (Text, Maybe a)
-genericSplitName' prefix names value =
-  let r = gSplitName names $ from value
-      name = joinName prefix r.parts
+genericSplitName' :: forall (prefix :: [Symbol]) names a. (GHasName names (Rep a), Generic a, KnownMaybeSymbol prefix) => a -> (Text, Maybe a)
+genericSplitName' value =
+  let r = gSplitName (Proxy @names) $ from value
+      name = joinName (Text.pack <$> symbolValMaybe (Proxy @prefix)) r.parts
    in if r.allDefault
         then (name, Nothing)
         else (name, Just $ to r.rest)
@@ -63,6 +65,16 @@ instance GHasName names inner => GHasName names (M1 D meta inner) where
 instance GHasName names inner => GHasName names (M1 C meta inner) where
   gSplitName names (M1 inner) = M1 <$> gSplitName names inner
 
+instance
+  (KnownSymbol name, KnownSymbols names, RecValue value) =>
+  GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index value))
+  where
+  gSplitName pNames (M1 (K1 value))
+    | memberSymbol pNames (Proxy @name) = case rvText value of
+        Just name -> NameParts [name] (M1 $ K1 rvEmpty) True
+        Nothing -> error $ "name field " <> symbolVal (Proxy @name) <> " is not text"
+    | otherwise = NameParts [] (M1 $ K1 value) (rvNull value)
+
 class KnownSymbols (as :: [Symbol]) where
   memberSymbol :: forall b proxy1 proxy2. KnownSymbol b => proxy1 as -> proxy2 b -> Bool
 
@@ -74,12 +86,11 @@ instance (KnownSymbol a, KnownSymbols as) => KnownSymbols (a ': as) where
     Just Refl -> True
     Nothing -> memberSymbol (Proxy @as) pb
 
-instance
-  (KnownSymbol name, KnownSymbols names, RecValue value) =>
-  GHasName names (M1 S ('MetaSel ('Just name) su ss ds) (K1 index value))
-  where
-  gSplitName pNames (M1 (K1 value))
-    | memberSymbol pNames (Proxy @name) = case rvText value of
-        Just name -> NameParts [name] (M1 $ K1 rvEmpty) True
-        Nothing -> error $ "name field " <> symbolVal (Proxy @name) <> " is not text"
-    | otherwise = NameParts [] (M1 $ K1 value) (rvNull value)
+class KnownMaybeSymbol (a :: [Symbol]) where
+  symbolValMaybe :: proxy a -> Maybe String
+
+instance KnownMaybeSymbol '[] where
+  symbolValMaybe _ = Nothing
+
+instance KnownSymbol a => KnownMaybeSymbol '[a] where
+  symbolValMaybe _ = Just (symbolVal (Proxy @a))

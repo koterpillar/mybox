@@ -24,7 +24,7 @@ mkNPMPackage :: Text -> NPMPackage
 mkNPMPackage package = NPMPackage{package, binaries = [], post = []}
 
 instance PackageName NPMPackage where
-  splitName = genericSplitName' Nothing $ Proxy @'["package"]
+  splitName = genericSplitName' @'[] @'["package"]
 
 instance FromJSON NPMPackage where
   parseJSON = withObjectTotal "NPMPackage" $ do

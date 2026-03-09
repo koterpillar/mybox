@@ -29,7 +29,7 @@ data GenericTransferPackage = GenericTransferPackage
   deriving (Eq, Generic, Show)
 
 instance PackageName GenericTransferPackage where
-  splitName = genericSplitName' (Just "transfer") $ Proxy @'["from", "to"]
+  splitName = genericSplitName' @'["transfer"] @'["from", "to"]
 
 instance FromJSON GenericTransferPackage
 
