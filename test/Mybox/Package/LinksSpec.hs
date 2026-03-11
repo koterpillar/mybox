@@ -1,6 +1,7 @@
 module Mybox.Package.LinksSpec where
 
 import Mybox.Driver
+import Mybox.Filters
 import Mybox.Package.Links
 import Mybox.Package.SpecBase
 import Mybox.Prelude
@@ -40,7 +41,7 @@ spec = do
   metaSpec
     @LinksPackage
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
-    , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"only\": [\"only1\", \"only2\"], \"root\": true}")
+    , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"include\": [\"foo\"], \"root\": true}")
     ]
   packageSpecGen "links" $ baseLinks defTest
   packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{shallow = True}}
@@ -53,7 +54,7 @@ spec = do
   packageSpecGen "only links" $
     baseLinks $
       defTest
-        { modifyPkg = \p -> p{only = Just [mkPath "myfile"]}
+        { modifyPkg = \p -> p{filters = mempty{includes = ["myfile"]}}
         , expectedFiles = ["myfile"]
         , content = "Linked file"
         }

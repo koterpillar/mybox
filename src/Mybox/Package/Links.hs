@@ -8,6 +8,7 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.Filters
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.ManualVersion
@@ -20,7 +21,7 @@ data LinksPackage = LinksPackage
   , destination :: Path AnyAnchor
   , dot :: Bool
   , shallow :: Bool
-  , only :: Maybe [Path AnyAnchor]
+  , filters :: FilterFields
   , root :: Bool
   , post :: [Text]
   }
@@ -33,7 +34,7 @@ mkLinksPackage src dest =
     , destination = dest
     , dot = False
     , shallow = False
-    , only = Nothing
+    , filters = mempty
     , root = False
     , post = []
     }
@@ -47,7 +48,7 @@ instance FromJSON LinksPackage where
     destination <- takeField "destination"
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
     shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
-    only <- takeCollapsedListMaybe "only"
+    filters <- takeFilter
     root <- fromMaybe False <$> takeFieldMaybe "root"
     post <- takePost
     pure LinksPackage{..}
@@ -59,9 +60,9 @@ instance ToJSON LinksPackage where
       , "destination" .= p.destination
       , "dot" .= p.dot
       , "shallow" .= p.shallow
-      , "only" .= p.only
       , "root" .= p.root
       ]
+        <> filterToJSON p.filters
         <> postToJSON p
 
 source :: Driver :> es => LinksPackage -> Eff es (Path Abs)
@@ -77,11 +78,9 @@ paths p = do
   src <- source p
   pp <- drvFind src opt
 
-  let only_ = map (src <//>) <$> p.only
+  let fs = toFilters p.filters
 
-  pure $ case only_ of
-    Nothing -> pp
-    Just only -> Set.filter (`elem` only) pp
+  pure $ Set.filter (\path_ -> all ($ (pRelativeTo_ src path_).text) fs) pp
 
 lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
 lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
