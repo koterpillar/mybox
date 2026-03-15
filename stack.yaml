@@ -1,3 +1,3 @@
-resolver: lts-24.33
+resolver: lts-24.34
 packages:
 - '.'
