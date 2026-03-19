@@ -36,27 +36,28 @@ instance ToJSON BrewRepo where
 tapName :: BrewRepo -> Text
 tapName p
   | isGithubShortcut p.name_ = p.name_
-  | otherwise = Text.intercalate "/" ["mybox", simplifiedUrl]
+  | otherwise = twoSegments
  where
-  simplifiedUrl =
+  twoSegments =
     p.name_
       & dropProtocol
       & dropUsername
       & dropGitExtension
       & replaceColon
-      & replaceSlash
-  dropGitExtension t =
-    if ".git" `Text.isSuffixOf` t
-      then Text.dropEnd 4 t
-      else t
-  dropProtocol t = case Text.breakOn "://" t of
+      & leaveTwoSegments
+  dropGitExtension t = fromMaybe t $ Text.stripSuffix ".git" t
+  stripUntil_ prefix t = case Text.breakOn prefix t of
     (_, "") -> t
-    (_, rest) -> Text.drop 3 rest
-  dropUsername t = case Text.breakOn "@" t of
-    (_, "") -> t
-    (_, rest) -> Text.drop 1 rest
-  replaceColon = Text.replace ":" "_"
-  replaceSlash = Text.replace "/" "_"
+    (_, rest) -> Text.drop (Text.length prefix) rest
+  dropProtocol = stripUntil_ "://"
+  dropUsername = stripUntil_ "@"
+  replaceColon = Text.replace ":" "/"
+  leaveTwoSegments t = Text.intercalate "/" $
+    case reverse $ filter (not . Text.null) $ Text.splitOn "/" t of
+      [] -> error "empty Brew tap URL"
+      [""] -> error "empty Brew tap URL"
+      [s] -> [s, "_"]
+      (s : ss) -> [Text.intercalate "_" $ reverse ss, s]
 
 brewRepoLocalVersion :: App es => BrewRepo -> Eff es (Maybe Text)
 brewRepoLocalVersion p = do

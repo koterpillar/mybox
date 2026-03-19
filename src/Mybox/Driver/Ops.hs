@@ -218,7 +218,7 @@ drvRepoBranchVersion ::
   Maybe Text ->
   Eff es Text
 drvRepoBranchVersion repo_ branch_ = do
-  let repo = fromMaybe repo_ $ Text.stripPrefix "git+" repo_
+  let repo = stripPrefix_ "git+" repo_
   let branch = fromMaybe "HEAD" branch_
   output <- drvRunOutput $ "git" :| ["ls-remote", repo, branch]
   case Text.words output of
