@@ -12,6 +12,7 @@ import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
+import Mybox.Utils
 
 data ClonePackage = ClonePackage
   { repo :: Text
@@ -57,12 +58,7 @@ prerequisites :: App es => Eff es ()
 prerequisites = queueInstall $ mkSystemPackage "git"
 
 cpRemote :: ClonePackage -> Text
-cpRemote p
-  | Text.isPrefixOf "https://" r = r
-  | Text.isInfixOf "@" r = r
-  | otherwise = "https://github.com/" <> r <> ".git"
- where
-  r = p.repo
+cpRemote p = normalizeGitRepoUrl p.repo
 
 cpGitArgs :: Driver :> es => [Text] -> ClonePackage -> Eff es (NonEmpty Text)
 cpGitArgs args p = do

@@ -53,6 +53,7 @@ library
       Mybox.Package.Archive
       Mybox.Package.Archive.Internal
       Mybox.Package.BrewRepo
+      Mybox.Package.BrewRepo.Internal
       Mybox.Package.Class
       Mybox.Package.Clone
       Mybox.Package.Daemon

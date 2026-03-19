@@ -1,6 +1,7 @@
 module Mybox.Package.BrewRepoSpec where
 
 import Mybox.Package.BrewRepo
+import Mybox.Package.BrewRepo.Internal (tapName)
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.SpecBase
@@ -10,6 +11,15 @@ import Mybox.Tracker
 
 spec :: Spec
 spec = do
+  describe "tapName" $ do
+    it "returns GitHub shortcut as-is for owner/repo format" $
+      tapName (mkBrewRepo "owner/repo") `shouldBe` "owner/repo"
+    it "strips https:// protocol from full URL" $
+      tapName (mkBrewRepo "https://github.com/owner/repo.git") `shouldBe` "mybox/github.com_owner_repo"
+    it "strips git@ username and replaces : with _" $
+      tapName (mkBrewRepo "git@github.com:owner/repo.git") `shouldBe` "mybox/github.com_owner_repo"
+    it "strips ssh:// protocol, username, and replaces : with _" $
+      tapName (mkBrewRepo "ssh://git@gitlab.com:owner/repo.git") `shouldBe` "mybox/gitlab.com_owner_repo"
   metaSpec
     @BrewRepo
     [ (Nothing, "{\"brew_tap\": \"easysoft/tap\"}")
