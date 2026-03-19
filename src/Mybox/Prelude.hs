@@ -37,6 +37,7 @@ module Mybox.Prelude (
   fromMaybeOrMM,
   orMaybeM,
   throwLeft,
+  stripPrefix_,
 ) where
 
 import Control.Applicative ((<|>))
@@ -96,3 +97,6 @@ infixr 9 `orMaybeM`
 
 throwLeft :: MonadThrow m => Either String a -> m a
 throwLeft = either throwString pure
+
+stripPrefix_ :: Text -> Text -> Text
+stripPrefix_ prefix text = fromMaybe text (Text.stripPrefix prefix text)

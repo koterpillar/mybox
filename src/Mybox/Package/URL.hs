@@ -38,13 +38,10 @@ mkURLPackage url =
 urlName :: Text -> Text
 urlName u = domain <> "/" <> dropExtension (lastPathSegment url)
  where
-  url = maybeModify (Text.stripPrefix "https://") $ maybeModify (Text.stripPrefix "http://") u
+  url = stripPrefix_ "https://" $ stripPrefix_ "http://" u
   domain = Text.takeWhile (/= '/') url
   lastPathSegment = Text.takeWhileEnd (/= '/')
   dropExtension = Text.takeWhile (/= '.')
-
-maybeModify :: (a -> Maybe a) -> a -> a
-maybeModify f x = fromMaybe x $ f x
 
 instance PackageName URLPackage where
   splitName = first urlName . genericSplitName' @'[] @'["url"]
