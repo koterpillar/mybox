@@ -16,15 +16,15 @@ choose :: Show a => [a -> Bool] -> [a] -> Either [a] a
 choose _ [] = Left []
 choose _ [x] = Right x
 choose [] vs = Left vs
-choose (f : fs) vs = case filter f vs of
-  [] -> choose fs vs
-  vs' -> choose fs vs'
+choose (f : fs) vs = choose fs $ case filter f vs of
+  [] -> vs
+  vs' -> vs'
 
 includes_ :: Text -> Text -> Bool
-includes_ x y = Text.isInfixOf x $ Text.toLower y
+includes_ x y = Text.isInfixOf (Text.toLower x) $ Text.toLower y
 
 excludes_ :: Text -> Text -> Bool
-excludes_ x y = not $ Text.isInfixOf x $ Text.toLower y
+excludes_ x y = not $ Text.isInfixOf (Text.toLower x) $ Text.toLower y
 
 fromSynonyms :: Ord k => Map k [Text] -> k -> [Text -> Bool]
 fromSynonyms synonyms key = positive <> negative
