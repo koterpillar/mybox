@@ -8,6 +8,7 @@ import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Package.Queue
+import Mybox.Package.Root
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Stores
@@ -25,7 +26,7 @@ mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = 
 instance FromJSON ShellPackage where
   parseJSON = withObjectTotal "ShellPackage" $ do
     shellPath <- takeField "shell"
-    root <- fromMaybe False <$> takeFieldMaybe "root"
+    root <- takeRoot
     post <- takePost
     pure ShellPackage{shell = shellPath, ..}
 
