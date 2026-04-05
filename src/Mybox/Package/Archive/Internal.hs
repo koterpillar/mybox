@@ -11,6 +11,7 @@ import Mybox.Effects
 import Mybox.Extractor
 import Mybox.Package.Name
 import Mybox.Package.Queue
+import Mybox.Package.Root
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
@@ -22,6 +23,7 @@ data ArchiveFields = ArchiveFields
   , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
+  , root :: Bool
   }
   deriving (Eq, Ord, Show)
 
@@ -37,6 +39,7 @@ emptyArchiveFields =
     , binaryPaths = []
     , apps = []
     , fonts = []
+    , root = False
     }
 
 takeArchive :: ObjectParser ArchiveFields
@@ -47,6 +50,7 @@ takeArchive = do
   binaryPaths <- takeCollapsedList "binary_path"
   apps <- takeCollapsedList "app"
   fonts <- takeCollapsedList "font"
+  root <- takeRoot
   pure ArchiveFields{..}
 
 archiveToJSON :: ArchiveFields -> [Pair]
@@ -57,6 +61,7 @@ archiveToJSON p =
   , "binary_path" .= p.binaryPaths
   , "app" .= p.apps
   , "font" .= p.fonts
+  , "root" .= p.root
   ]
 
 class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p where
@@ -64,7 +69,7 @@ class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p wh
 
 aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   return $ local </> "mybox" </> pathname p
 
 aExtract :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Eff es ()
@@ -127,7 +132,7 @@ findBinary p = aFind p binaryFind{paths = p.archive.binaryPaths <> binaryFind.pa
 installBinary :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installBinary p binary = do
   binaryPath <- findBinary p binary
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let target = local </> "bin" </> binary
   if p.archive.binaryWrapper
     then do
@@ -152,7 +157,7 @@ installApp p app = do
     os -> error $ "Installing apps on " <> show os <> " is not implemented."
   let appDesktop = app <> ".desktop"
   appPath <- aFind p freedesktopAppFind appDesktop
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let appsTarget = local </> "share" </> "applications"
   let desktopTarget = appsTarget </> appDesktop
   drvLink appPath desktopTarget
@@ -181,7 +186,7 @@ installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installIcon p icon = do
   directory <- aDirectory p
   iconPaths <- drvFind directory $ findOptions{names = Just $ withExtensions iconExtensions icon}
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
     let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
@@ -211,7 +216,7 @@ installFont :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installFont p font = do
   fontDir <-
     drvOS >>= \case
-      Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal
+      Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal p.archive.root
       MacOS -> (\h -> h </> "Library" </> "Fonts") <$> drvHome
   directory <- aDirectory p
   fontPaths <- drvFind directory $ findOptions{names = Just $ withExtensions fontExtensions font}

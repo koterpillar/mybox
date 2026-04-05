@@ -73,8 +73,11 @@ drvHome_ :: Driver :> es => Text -> Eff es (Path Abs)
 drvHome_ user = fmap mkPath $ drvRunOutput $ shell $ "eval" :| ["echo", "~" <> user]
 
 -- | Get the local directory for the user.
-drvLocal :: Driver :> es => Eff es (Path Abs)
-drvLocal = fmap (<//> pLocal) drvHome
+drvLocal :: Driver :> es => Bool -> Eff es (Path Abs)
+drvLocal root =
+  if root
+    then pure $ mkPath "/usr/local"
+    else fmap (<//> pLocal) drvHome
 
 drvMyboxState :: Driver :> es => Eff es (Path Abs)
 drvMyboxState = fmap (<//> pMyboxState) drvHome

@@ -14,7 +14,7 @@ assertAnyFileExists ::
   [Path Rel] ->
   Eff es ()
 assertAnyFileExists !name dir' paths = do
-  local <- drvLocal
+  local <- drvLocal False
   let dir = local <//> dir'
 
   drvIsDir dir >>= (`shouldBe` True)

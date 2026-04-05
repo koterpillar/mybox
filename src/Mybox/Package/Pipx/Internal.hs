@@ -135,7 +135,7 @@ pipxInstall p = do
   prerequisites p
   pipx drvRun $ (if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package]
   metadata_ <- getInstalled p
-  local <- drvLocal
+  local <- drvLocal False
   for_ metadata_ $ \metadata -> do
     -- track virtual environment
     venvs <- venvsPath
