@@ -71,7 +71,7 @@ npmInstall p = do
       -- and including the hash
       let npxPath = pParent npxBin >>= pParent
       for_ npxPath $ trkAdd p
-      local <- drvLocal
+      local <- drvLocal False
       let binDir = local </> "bin"
       drvMkdir binDir
 

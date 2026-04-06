@@ -60,7 +60,7 @@ spec = do
 
 cleanupLinux :: Driver :> es => Eff es ()
 cleanupLinux = do
-  local <- drvLocal
+  local <- drvLocal False
   let serviceFile = local </> "share" </> "systemd" </> "user" </> "com.koterpillar.mybox.sleep_3600.service"
   drvRm serviceFile
   drvRun $ "systemctl" :| ["--user", "daemon-reload"]

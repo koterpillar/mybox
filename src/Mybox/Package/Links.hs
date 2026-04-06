@@ -13,6 +13,7 @@ import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
+import Mybox.Package.Root
 import Mybox.Prelude
 import Mybox.Tracker
 
@@ -49,7 +50,7 @@ instance FromJSON LinksPackage where
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
     shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
     filters <- takeFilter
-    root <- fromMaybe False <$> takeFieldMaybe "root"
+    root <- takeRoot
     post <- takePost
     pure LinksPackage{..}
 

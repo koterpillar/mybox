@@ -16,9 +16,9 @@ import Mybox.SpecBase
 -- | Assert that a desktop file exists with the given name and optional executable
 assertDesktopFileExists ::
   (Driver :> es, IOE :> es) =>
-  Text -> Text -> Maybe Text -> Eff es ()
-assertDesktopFileExists fileName expectedName expectedExecutable = do
-  local <- drvLocal
+  Bool -> Text -> Text -> Maybe Text -> Eff es ()
+assertDesktopFileExists root fileName expectedName expectedExecutable = do
+  local <- drvLocal root
   let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
   desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
 
@@ -60,30 +60,37 @@ libraryExists lib = do
       libraries <- drvRunOutput $ "ldconfig" :| ["-p"]
       pure $ any (Text.isInfixOf lib) (Text.lines libraries)
 
+neovimPackage :: Bool -> PackageSpecArgs -> PackageSpec ReleasePackage
+neovimPackage root psa =
+  ps
+    ( (mkReleasePackage "neovim/neovim")
+        { archive =
+            emptyArchiveFields
+              { binaries = ["nvim"]
+              , apps = case psa.os of
+                  Linux _ -> ["nvim"]
+                  _ -> []
+              , root = root
+              }
+        }
+    )
+    & (if root then preinstallEnableSudo else id)
+    & checkInstalled
+      ( do
+          let nvimCmd = if root then "/usr/local/bin/nvim" else "nvim"
+          commandHasOutput (nvimCmd :| ["--version"]) "NVIM"
+          case psa.os of
+            Linux _ -> do
+              assertDesktopFileExists root "nvim" "Neovim" (Just "nvim")
+            _ -> pure ()
+      )
+
 spec :: Spec
 spec = do
   metaSpec @ReleasePackage [(Nothing, "{\"repo\": \"example/example\"}")]
 
-  packageSpecGen "neovim" $ \psa ->
-    ps
-      ( (mkReleasePackage "neovim/neovim")
-          { archive =
-              emptyArchiveFields
-                { binaries = ["nvim"]
-                , apps = case psa.os of
-                    Linux _ -> ["nvim"]
-                    _ -> []
-                }
-          }
-      )
-      & checkInstalled
-        ( do
-            commandHasOutput ("nvim" :| ["--version"]) "NVIM"
-            case psa.os of
-              Linux _ -> do
-                assertDesktopFileExists "nvim" "Neovim" (Just "nvim")
-              _ -> pure ()
-        )
+  packageSpecGen "neovim" $ neovimPackage False
+  packageSpecGen "neovim with root" $ neovimPackage True
 
   onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
     packageSpec $

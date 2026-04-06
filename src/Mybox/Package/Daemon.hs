@@ -118,7 +118,7 @@ serviceFilePath p = do
   os <- drvOS
   case os of
     Linux _ -> do
-      local <- drvLocal
+      local <- drvLocal False
       pure $ local </> "share" </> "systemd" </> "user" </> (daemonName p <> ".service")
     MacOS -> do
       home <- drvHome

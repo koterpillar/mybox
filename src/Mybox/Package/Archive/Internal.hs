@@ -11,6 +11,7 @@ import Mybox.Effects
 import Mybox.Extractor
 import Mybox.Package.Name
 import Mybox.Package.Queue
+import Mybox.Package.Root
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
@@ -22,6 +23,7 @@ data ArchiveFields = ArchiveFields
   , binaryPaths :: [Path Rel]
   , apps :: [Text]
   , fonts :: [Text]
+  , root :: Bool
   }
   deriving (Eq, Ord, Show)
 
@@ -37,16 +39,18 @@ emptyArchiveFields =
     , binaryPaths = []
     , apps = []
     , fonts = []
+    , root = False
     }
 
 takeArchive :: ObjectParser ArchiveFields
 takeArchive = do
-  raw <- fromMaybe (Right False) . fmap getCollapsedEither <$> takeFieldMaybe "raw"
+  raw <- maybe (Right False) getCollapsedEither <$> takeFieldMaybe "raw"
   binaries <- takeCollapsedList "binary"
   binaryWrapper <- fromMaybe False <$> takeFieldMaybe "binary_wrapper"
   binaryPaths <- takeCollapsedList "binary_path"
   apps <- takeCollapsedList "app"
   fonts <- takeCollapsedList "font"
+  root <- takeRoot
   pure ArchiveFields{..}
 
 archiveToJSON :: ArchiveFields -> [Pair]
@@ -57,6 +61,7 @@ archiveToJSON p =
   , "binary_path" .= p.binaryPaths
   , "app" .= p.apps
   , "font" .= p.fonts
+  , "root" .= p.root
   ]
 
 class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p where
@@ -64,7 +69,7 @@ class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p wh
 
 aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   return $ local </> "mybox" </> pathname p
 
 aExtract :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Eff es ()
@@ -74,16 +79,17 @@ aExtract p url archiveFile = case p.archive.raw of
   Right False -> do
     extractor <- getExtractor url
     target <- aDirectory p
-    extract extractor archiveFile target
+    withRoot p.archive $ extract extractor archiveFile target
 
 aExtractRaw :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
-  drvMkdir target
-  let targetPath = target </> filename
-  extractRaw extractor archiveFile targetPath
-  when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
+  withRoot p.archive $ do
+    drvMkdir target
+    let targetPath = target </> filename
+    extractRaw extractor archiveFile targetPath
+    when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
 
 archiveInstall :: (App es, ArchivePackage p) => p -> Eff es ()
 archiveInstall p = do
@@ -127,14 +133,15 @@ findBinary p = aFind p binaryFind{paths = p.archive.binaryPaths <> binaryFind.pa
 installBinary :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installBinary p binary = do
   binaryPath <- findBinary p binary
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let target = local </> "bin" </> binary
-  if p.archive.binaryWrapper
-    then do
-      drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
-      drvMakeExecutable target
-    else
-      drvLink binaryPath target
+  withRoot p.archive $
+    if p.archive.binaryWrapper
+      then do
+        drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
+        drvMakeExecutable target
+      else
+        drvLink binaryPath target
   trkAdd p target
 
 freedesktopAppFind :: AFindOptions
@@ -152,10 +159,10 @@ installApp p app = do
     os -> error $ "Installing apps on " <> show os <> " is not implemented."
   let appDesktop = app <> ".desktop"
   appPath <- aFind p freedesktopAppFind appDesktop
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let appsTarget = local </> "share" </> "applications"
   let desktopTarget = appsTarget </> appDesktop
-  drvLink appPath desktopTarget
+  withRoot p.archive $ drvLink appPath desktopTarget
   trkAdd p desktopTarget
   appProperties <- parseDesktopFile <$> drvReadFile desktopTarget
   for_ (Map.lookup "Icon" appProperties) $ installIcon p
@@ -181,11 +188,11 @@ installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installIcon p icon = do
   directory <- aDirectory p
   iconPaths <- drvFind directory $ findOptions{names = Just $ withExtensions iconExtensions icon}
-  local <- drvLocal
+  local <- drvLocal p.archive.root
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
     let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
-    drvLink iconSrcPath iconTargetPath
+    withRoot p.archive $ drvLink iconSrcPath iconTargetPath
     trkAdd p iconTargetPath
 
 iconPath :: Anchor a => Path a -> Path Rel
@@ -211,7 +218,7 @@ installFont :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
 installFont p font = do
   fontDir <-
     drvOS >>= \case
-      Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal
+      Linux _ -> (\l -> l </> "share" </> "fonts") <$> drvLocal p.archive.root
       MacOS -> (\h -> h </> "Library" </> "Fonts") <$> drvHome
   directory <- aDirectory p
   fontPaths <- drvFind directory $ findOptions{names = Just $ withExtensions fontExtensions font}
@@ -220,7 +227,7 @@ installFont p font = do
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory.text
     _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory.text
   let targetPath = fontDir </> fontPath.basename
-  drvCopy fontPath targetPath
+  withRoot p.archive $ drvCopy fontPath targetPath
   trkAdd p targetPath
   queueInstall $ mkSystemPackage "fontconfig"
-  drvRun $ "fc-cache" :| ["-f", fontDir.text]
+  withRoot p.archive $ drvRun $ "fc-cache" :| ["-f", fontDir.text]

@@ -4,9 +4,10 @@ module Mybox.Package.Destination (
 ) where
 
 import Mybox.Driver
+import Mybox.Package.Root
 import Mybox.Prelude
 
-type PackageDestination a = (HasField "destination" a (Path AnyAnchor), HasField "root" a Bool)
+type PackageDestination a = (HasField "destination" a (Path AnyAnchor), PackageRoot a)
 
 destinationPath :: (Driver :> es, PackageDestination p) => p -> Eff es (Path Abs)
 destinationPath p = do
