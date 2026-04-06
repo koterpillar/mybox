@@ -44,7 +44,7 @@ emptyArchiveFields =
 
 takeArchive :: ObjectParser ArchiveFields
 takeArchive = do
-  raw <- fromMaybe (Right False) . fmap getCollapsedEither <$> takeFieldMaybe "raw"
+  raw <- maybe (Right False) getCollapsedEither <$> takeFieldMaybe "raw"
   binaries <- takeCollapsedList "binary"
   binaryWrapper <- fromMaybe False <$> takeFieldMaybe "binary_wrapper"
   binaryPaths <- takeCollapsedList "binary_path"
@@ -79,16 +79,17 @@ aExtract p url archiveFile = case p.archive.raw of
   Right False -> do
     extractor <- getExtractor url
     target <- aDirectory p
-    extract extractor archiveFile target
+    withRoot p.archive $ extract extractor archiveFile target
 
 aExtractRaw :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Text -> Eff es ()
 aExtractRaw p url archiveFile filename = do
   extractor <- getRawExtractor url
   target <- aDirectory p
-  drvMkdir target
-  let targetPath = target </> filename
-  extractRaw extractor archiveFile targetPath
-  when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
+  withRoot p.archive $ do
+    drvMkdir target
+    let targetPath = target </> filename
+    extractRaw extractor archiveFile targetPath
+    when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
 
 archiveInstall :: (App es, ArchivePackage p) => p -> Eff es ()
 archiveInstall p = do
@@ -134,12 +135,13 @@ installBinary p binary = do
   binaryPath <- findBinary p binary
   local <- drvLocal p.archive.root
   let target = local </> "bin" </> binary
-  if p.archive.binaryWrapper
-    then do
-      drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
-      drvMakeExecutable target
-    else
-      drvLink binaryPath target
+  withRoot p.archive $
+    if p.archive.binaryWrapper
+      then do
+        drvWriteFile target $ Text.unlines ["#!/bin/sh", "exec " <> shellQuote binaryPath.text <> " \"$@\""]
+        drvMakeExecutable target
+      else
+        drvLink binaryPath target
   trkAdd p target
 
 freedesktopAppFind :: AFindOptions
@@ -160,7 +162,7 @@ installApp p app = do
   local <- drvLocal p.archive.root
   let appsTarget = local </> "share" </> "applications"
   let desktopTarget = appsTarget </> appDesktop
-  drvLink appPath desktopTarget
+  withRoot p.archive $ drvLink appPath desktopTarget
   trkAdd p desktopTarget
   appProperties <- parseDesktopFile <$> drvReadFile desktopTarget
   for_ (Map.lookup "Icon" appProperties) $ installIcon p
@@ -190,7 +192,7 @@ installIcon p icon = do
   let iconsTarget = local </> "share" </> "icons"
   for_ iconPaths $ \iconSrcPath -> do
     let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
-    drvLink iconSrcPath iconTargetPath
+    withRoot p.archive $ drvLink iconSrcPath iconTargetPath
     trkAdd p iconTargetPath
 
 iconPath :: Anchor a => Path a -> Path Rel
@@ -225,7 +227,7 @@ installFont p font = do
     [] -> terror $ "Cannot find font '" <> font <> "' in " <> directory.text
     _ -> terror $ "Multiple fonts found for '" <> font <> "' in " <> directory.text
   let targetPath = fontDir </> fontPath.basename
-  drvCopy fontPath targetPath
+  withRoot p.archive $ drvCopy fontPath targetPath
   trkAdd p targetPath
   queueInstall $ mkSystemPackage "fontconfig"
-  drvRun $ "fc-cache" :| ["-f", fontDir.text]
+  withRoot p.archive $ drvRun $ "fc-cache" :| ["-f", fontDir.text]
