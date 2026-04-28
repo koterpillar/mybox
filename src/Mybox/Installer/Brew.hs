@@ -48,7 +48,7 @@ brewRun act args = do
   drvRun $ "echo" :| ["Waiting for brew lock"]
   drvAtomic "brew-run" $ do
     drvRun $ "echo" :| ["got lock"]
-    void $ drvRunOk $ "pgrep" :| ["-la", "brew"]
+    void $ drvRunOk $ "sh" :| ["-c", "ps aux | grep brew.rb"]
     queueInstall $ BrewBootstrap @s
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
     act $ exe.text :| args
