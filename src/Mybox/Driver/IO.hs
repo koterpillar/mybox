@@ -43,7 +43,7 @@ type DriverLockMap = LockMap [Text] ()
 
 localDriver :: (Concurrent :> es, IOE :> es) => Eff (Driver : es) a -> Eff es a
 localDriver act = do
-  lm <- newLockMap @_ @[Text] @()
+  lm <- newLockMap @_ @[Text] @() "Driver.IO.localDriver"
   localDriverWith lm act
 
 catchNoSuchThing :: (LBS.ByteString -> a) -> Eff es a -> Eff es a

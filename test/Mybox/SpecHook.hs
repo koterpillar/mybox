@@ -19,7 +19,7 @@ hook spec = do
   runIO $ unsetEnv "PIPX_HOME"
   runIO $ unsetEnv "PIPX_BIN_DIR"
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
-  driverLock <- runIO $ runEff $ runConcurrent $ newLockMap
+  driverLock <- runIO $ runEff $ runConcurrent $ newLockMap "SpecHook.driverLock"
   afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $
     parallel $
       effSpec (dispatch statVar driverLock) spec

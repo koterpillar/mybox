@@ -4,6 +4,7 @@ module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
+import Debug.Trace
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -45,10 +46,9 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
 
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
 brewRun act args = do
-  drvRun $ "echo" :| ["Waiting for brew lock"]
-  drvAtomic "brew-run" $ do
-    drvRun $ "echo" :| ["got lock"]
-    void $ drvRunOk $ "pgrep" :| ["-la", "brew"]
+  traceM "BREW LOCK: waiting"
+  flip finally (traceM "BREW LOCK: released") $ (drvAtomic "brew-run") $ do
+    traceM "BREW LOCK: acquired"
     queueInstall $ BrewBootstrap @s
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
     act $ exe.text :| args
@@ -59,7 +59,7 @@ brewInstall action package = brewRun @s drvRun [action, package]
 brewPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
   when (isNothing package_) $
-    brewRun @s drvRunSilent ["update"]
+    brewRun @s drvRun ["update"]
   info <- brewRun @s drvRunOutput ["info", "--json=v2", fromMaybe "--installed" package_]
   parseVersions <$> jsonDecode "brew info" info
 
