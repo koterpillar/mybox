@@ -1,5 +1,7 @@
 module Mybox.Package.ShellSpec where
 
+import Data.Text qualified as Text
+
 import Mybox.Driver
 import Mybox.Driver.Test
 import Mybox.Package.Class
@@ -57,7 +59,8 @@ spec = do
           let package = shPackage{root}
           version <- localVersion package
           version `shouldSatisfy` isJust
-          fromJust version `shouldContainText` "sh"
+          -- root shell might be disabled
+          fromJust version `shouldSatisfy` (\v -> "sh" `Text.isInfixOf` v || "false" `Text.isInfixOf` v)
       it "fails on unexpected output" $ do
         let brokenGetShell :: Args -> Maybe Text
             brokenGetShell ("getent" :| _) = Just "unexpected output"
