@@ -44,8 +44,11 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
       drvRun $ installSh.text :| []
 
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
-brewRun act args =
+brewRun act args = do
+  drvRun $ "echo" :| ["Waiting for brew lock"]
   drvAtomic "brew-run" $ do
+    drvRun $ "echo" :| ["got lock"]
+    void $ drvRunOk $ "sh" :| ["-c", "ps aux | grep brew.rb"]
     queueInstall $ BrewBootstrap @s
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
     act $ exe.text :| args
