@@ -62,8 +62,8 @@ brewRun act args = do
     if args == ["update"]
       then do
         let ps = do
-          drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
-          drvRun $ shellRaw "ps aux | grep 'lock.sh' | grep -v grep || echo no-update-process"
+              drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
+              drvRun $ shellRaw "ps aux | grep 'lock.sh' | grep -v grep || echo no-update-process"
         tr "before"
         ps
         r <- act $ exe.text :| args
