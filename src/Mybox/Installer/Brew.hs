@@ -59,7 +59,16 @@ brewRun act args = do
   flip finally (tr "released") $ (drvAtomic "brew-run") $ do
     tr "acquired"
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-    act $ exe.text :| args
+    if args == ["update"]
+      then do
+        let ps = drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
+        tr "before"
+        ps
+        r <- act $ exe.text :| args
+        tr "after"
+        ps
+        pure r
+      else act $ exe.text :| args
 
 brewInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Text -> Eff es ()
 brewInstall action package = brewRun @s drvRun [action, package]
