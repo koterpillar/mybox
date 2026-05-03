@@ -47,9 +47,11 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
 brewRun act args = do
   queueInstall $ BrewBootstrap @s
-  traceM "BREW LOCK: waiting"
-  flip finally (traceM "BREW LOCK: released") $ (drvAtomic "brew-run") $ do
-    traceM "BREW LOCK: acquired"
+  rid <- randomText "brewRun"
+  let tr msg = traceM $ Text.unpack $ rid <> ": " <> msg
+  tr "waiting"
+  flip finally (tr "released") $ (drvAtomic "brew-run") $ do
+    tr "acquired"
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
     act $ exe.text :| args
 
