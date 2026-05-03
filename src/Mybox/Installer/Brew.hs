@@ -4,7 +4,8 @@ module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
-import Debug.Trace
+import System.Random
+import System.IO.Unsafe (unsafePerformIO)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -44,11 +45,16 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
       drvMakeExecutable installSh
       drvRun $ installSh.text :| []
 
+randomText :: Text -> Text
+randomText prefix = unsafePerformIO $ do
+  rnd <- randomIO @Word
+  pure $ prefix <> "-" <> Text.pack (show rnd)
+
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
 brewRun act args = do
   queueInstall $ BrewBootstrap @s
-  rid <- randomText "brewRun"
-  let tr msg = traceM $ Text.unpack $ rid <> ": " <> msg
+  let rid = randomText "brewRun"
+  let tr msg = drvRun $ "echo" :| [rid, ":", msg]
   tr "waiting"
   flip finally (tr "released") $ (drvAtomic "brew-run") $ do
     tr "acquired"
