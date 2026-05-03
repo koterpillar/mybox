@@ -58,15 +58,18 @@ brewRun act args = do
   tr "waiting"
   flip finally (tr "released") $ (drvAtomic "brew-run") $ do
     tr "acquired"
-    exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
+    dir <- homebrewDirectory
+    let exe = dir </> "bin" </> "brew"
     if listToMaybe args == Just "update"
       then do
+        let updateSh = dir </> "Library" </> "Homebrew" </> "cmd" </> "update.sh"
+        drvRun $ "sed" :| ["-i", "", "1s/^/set -x\\n/", updateSh.text]
         let ps = do
               drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
               drvRun $ shellRaw "ps aux | grep 'lock.sh' | grep -v grep || echo no-lock-process"
         tr "before"
         ps
-        r <- act $ "/bin/bash" :| ["-pux", exe.text, "update"]
+        r <- act $ exe.text :| ["update"]
         tr "after"
         ps
         pure r
