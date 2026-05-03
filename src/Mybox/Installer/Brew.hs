@@ -59,7 +59,7 @@ brewRun act args = do
   flip finally (tr "released") $ (drvAtomic "brew-run") $ do
     tr "acquired"
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-    if args == ["update"]
+    if listToMaybe args == Just "update"
       then do
         let ps = do
               drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
@@ -78,7 +78,7 @@ brewInstall action package = brewRun @s drvRun [action, package]
 brewPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
   when (isNothing package_) $
-    brewRun @s drvRun ["update"]
+    brewRun @s drvRun ["update", "--debug"]
   info <- brewRun @s drvRunOutput ["info", "--json=v2", fromMaybe "--installed" package_]
   parseVersions <$> jsonDecode "brew info" info
 
