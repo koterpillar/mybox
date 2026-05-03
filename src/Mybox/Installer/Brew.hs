@@ -4,8 +4,8 @@ module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
-import System.Random
 import System.IO.Unsafe (unsafePerformIO)
+import System.Random
 
 import Mybox.Aeson
 import Mybox.Driver
