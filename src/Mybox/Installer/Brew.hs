@@ -4,6 +4,8 @@ module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
+import System.IO.Unsafe (unsafePerformIO)
+import System.Random
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -43,12 +45,40 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
       drvMakeExecutable installSh
       drvRun $ installSh.text :| []
 
+randomText :: Text -> Text
+randomText prefix = unsafePerformIO $ do
+  rnd <- randomIO @Word
+  pure $ prefix <> "-" <> Text.pack (show rnd)
+
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
-brewRun act args =
-  drvAtomic "brew-run" $ do
-    queueInstall $ BrewBootstrap @s
-    exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-    act $ exe.text :| args
+brewRun act args = do
+  queueInstall $ BrewBootstrap @s
+  let rid = randomText "brewRun"
+  let tr msg = drvRun $ "echo" :| [rid, ":", msg]
+  tr "waiting"
+  flip finally (tr "released") $ (drvAtomic "brew-run") $ do
+    tr "acquired"
+    dir <- homebrewDirectory
+    let exe = dir </> "bin" </> "brew"
+    if listToMaybe args == Just "update"
+      then do
+        let updateSh = dir </> "Library" </> "Homebrew" </> "cmd" </> "update.sh"
+        drvRun $ "sed" :| ["-i", "", "1s/^/set -x\\n/", updateSh.text]
+        let ps = do
+              drvRun $ shellRaw "ps aux | grep 'rew.sh update' | grep -v grep || echo no-update-process"
+        tr "before"
+        ps
+        _ <- act $ exe.text :| ["update"]
+        tr "inside"
+        ps
+        _ <- act $ exe.text :| ["update"]
+        tr "again"
+        ps
+        r <- act $ exe.text :| ["update"]
+        tr "after"
+        ps
+        pure r
+      else act $ exe.text :| args
 
 brewInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Text -> Eff es ()
 brewInstall action package = brewRun @s drvRun [action, package]
@@ -56,7 +86,7 @@ brewInstall action package = brewRun @s drvRun [action, package]
 brewPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
   when (isNothing package_) $
-    brewRun @s drvRunSilent ["update"]
+    brewRun @s drvRun ["update", "--debug"]
   info <- brewRun @s drvRunOutput ["info", "--json=v2", fromMaybe "--installed" package_]
   parseVersions <$> jsonDecode "brew info" info
 

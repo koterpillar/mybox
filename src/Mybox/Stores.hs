@@ -50,9 +50,9 @@ storeModifyM store f = do
     let dv' = toDyn v'
     pure (dv', r)
 
-runStores :: forall es a. Concurrent :> es => Eff (Stores : es) a -> Eff es a
+runStores :: forall es a. (Concurrent :> es, IOE :> es) => Eff (Stores : es) a -> Eff es a
 runStores act = do
-  stores <- newLockMap @_ @Text @D.Dynamic
+  stores <- newLockMap @_ @Text @D.Dynamic "Stores"
   interpretWith_ act $
     \case
       GetStore store -> lockMapGet stores store.key $ toDyn store.def

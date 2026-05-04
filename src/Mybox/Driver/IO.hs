@@ -43,7 +43,7 @@ type DriverLockMap = LockMap [Text] ()
 
 localDriver :: (Concurrent :> es, IOE :> es) => Eff (Driver : es) a -> Eff es a
 localDriver act = do
-  lm <- newLockMap @_ @[Text] @()
+  lm <- newLockMap @_ @[Text] @() "Driver.IO.localDriver"
   localDriverWith lm act
 
 catchNoSuchThing :: (LBS.ByteString -> a) -> Eff es a -> Eff es a
@@ -63,8 +63,8 @@ localDriverWith lm = do
       (exitCode :: ExitCode, stdout_, stderr_) <-
         case outputBehavior of
           RunOutputShow -> do
-            (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout inherit
-            pure (exitCode, mempty, stderr)
+            exitCode <- liftIO $ runProcess process
+            pure (exitCode, mempty, mempty)
           RunOutputHide -> do
             (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout nullStream
             pure (exitCode, mempty, stderr)

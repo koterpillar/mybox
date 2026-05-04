@@ -147,7 +147,7 @@ release p =
 
 environmentFilters :: Architecture -> OS -> [Text -> Bool]
 environmentFilters arch os = execWriter $ do
-  tell $ map excludes_ [".asc", ".sig", "sha256", "sha512", ".yml"]
+  tell $ map excludes_ [".asc", ".sig", "sha256", "sha512", "sbom", ".yml"]
   tell $ map excludes_ [".deb", ".rpm", ".dmg", ".exe", ".appimage"]
   tell $ osFilters os
   tell $ architectureFilters arch

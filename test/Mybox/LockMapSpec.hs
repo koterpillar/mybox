@@ -11,7 +11,7 @@ spec :: Spec
 spec = do
   describe "LockMap" $ do
     it "returns the same MVar for the same key" $ do
-      lockMap <- newLockMap @_ @Text @Int
+      lockMap <- newLockMap @_ @Text @Int "LockMapSpec"
       mvar1 <- lockMapGet lockMap "test" 42
       mvar2 <- lockMapGet lockMap "test" 99
       -- The MVars should be identical (same reference)
@@ -20,7 +20,7 @@ spec = do
       readMVar mvar1 >>= (`shouldBe` 42)
 
     it "returns different MVars for different keys" $ do
-      lockMap <- newLockMap @_ @Text @Int
+      lockMap <- newLockMap @_ @Text @Int "LockMapSpec"
       mvar1 <- lockMapGet lockMap "key1" 10
       mvar2 <- lockMapGet lockMap "key2" 20
       -- The MVars should be different
@@ -30,7 +30,7 @@ spec = do
       readMVar mvar2 >>= (`shouldBe` 20)
 
     it "is thread-safe when creating MVars concurrently" $ do
-      lockMap <- newLockMap @_ @Int @Text
+      lockMap <- newLockMap @_ @Int @Text "LockMapSpec"
       mvarsVar <- newMVar ([] :: [MVar Text])
 
       -- Launch 100 concurrent operations trying to get the same key
@@ -45,7 +45,7 @@ spec = do
       uniqueMVars `shouldBe` 1
 
     it "correctly handles modifications to different keys concurrently" $ do
-      lockMap <- newLockMap @_ @Int @Int
+      lockMap <- newLockMap @_ @Int @Int "LockMapSpec"
 
       -- Create MVars for different keys and modify them concurrently
       concurrently 100 $ \keyNum -> do
@@ -59,7 +59,7 @@ spec = do
         readMVar mvar >>= (`shouldBe` 10)
 
     it "maintains consistency under heavy concurrent access to same key" $ do
-      lockMap <- newLockMap @_ @Text @Int
+      lockMap <- newLockMap @_ @Text @Int "LockMapSpec"
 
       -- 50 threads all incrementing the same counter
       concurrently_ 100 $ do
