@@ -65,7 +65,7 @@ brewRun act args = do
         let updateSh = dir </> "Library" </> "Homebrew" </> "cmd" </> "update.sh"
         drvRun $ "sed" :| ["-i", "", "1s/^/set -x\\n/", updateSh.text]
         let ps = do
-              drvRun $ shellRaw "ps aux | grep 'rew update' | grep -v grep || echo no-update-process"
+              drvRun $ shellRaw "ps aux | grep 'rew.sh update' | grep -v grep || echo no-update-process"
               drvRun $ shellRaw "ps aux | grep 'lock' | grep -v grep || echo no-lock-process"
         tr "before"
         ps
