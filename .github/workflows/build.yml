@@ -37,7 +37,7 @@ jobs:
         uses: freckle/stack-action@v5
         with:
           cache-prefix: test
-          stack-build-arguments: --fast --lock-file error-on-write --coverage --ta "--match Mybox.Installer.Brew.i"
+          stack-build-arguments: --fast --lock-file error-on-write --coverage --ta '--match "/Mybox.Installer.Brew/iInstalledVersion/returns cURL version/"'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_IMAGE: ${{ matrix.docker }}
