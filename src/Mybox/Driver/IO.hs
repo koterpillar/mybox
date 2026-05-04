@@ -63,8 +63,8 @@ localDriverWith lm = do
       (exitCode :: ExitCode, stdout_, stderr_) <-
         case outputBehavior of
           RunOutputShow -> do
-            (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout inherit & setStderr inherit
-            pure (exitCode, mempty, stderr)
+            exitCode <- liftIO $ runProcess process
+            pure (exitCode, mempty, mempty)
           RunOutputHide -> do
             (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout nullStream
             pure (exitCode, mempty, stderr)
