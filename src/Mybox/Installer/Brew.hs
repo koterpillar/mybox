@@ -69,6 +69,11 @@ brewRun act args = do
         tr "before"
         ps
         _ <- act $ exe.text :| ["update"]
+        tr "inside"
+        ps
+        _ <- act $ exe.text :| ["update"]
+        tr "again"
+        ps
         r <- act $ exe.text :| ["update"]
         tr "after"
         ps
