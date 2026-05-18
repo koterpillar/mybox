@@ -156,4 +156,4 @@ checkVersionMatches :: (App es, IOE :> es, Package p) => p -> Eff es ()
 checkVersionMatches p = do
   remote <- remoteVersion p
   local <- localVersion p
-  local `shouldBe` Just remote
+  local `shouldBe` Just remote.version

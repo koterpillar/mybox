@@ -174,6 +174,6 @@ instance ArchivePackage ReleasePackage where
   archiveUrl p = (.browser_download_url) <$> artifact p
 
 instance Package ReleasePackage where
-  remoteVersion p = Text.pack . show . (.id) <$> release p
+  remoteVersion p = (\r -> RemoteRelease{version = Text.pack . show $ r.id, timestamp = Nothing}) <$> release p
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

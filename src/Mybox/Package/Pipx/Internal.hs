@@ -114,10 +114,10 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: App es => PipxPackage -> Eff es Text
+remoteVersionPipx :: App es => PipxPackage -> Eff es RemoteRelease
 remoteVersionPipx p = do
   prerequisites p
-  case repo p of
+  version <- case repo p of
     Just (r, b) -> drvRepoBranchVersion r b
     Nothing -> do
       result <-
@@ -126,6 +126,7 @@ remoteVersionPipx p = do
       maybe (terror "Cannot parse pip output") pure $ do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
+  pure RemoteRelease{version, timestamp = Nothing}
 
 venvsPath :: (Concurrent :> es, Driver :> es) => Eff es (Path Abs)
 venvsPath = mkPath <$> pipx drvRunOutput ["environment", "--value", "PIPX_LOCAL_VENVS"]

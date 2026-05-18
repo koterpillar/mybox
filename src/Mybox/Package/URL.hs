@@ -50,6 +50,6 @@ instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url
 
 instance Package URLPackage where
-  remoteVersion p = drvUrlEtag p.url
+  remoteVersion p = (\version -> RemoteRelease{version, timestamp = Nothing}) <$> drvUrlEtag p.url
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

@@ -46,10 +46,11 @@ prerequisites = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
 
-viewVersion :: App es => NPMPackage -> Eff es Text
+viewVersion :: App es => NPMPackage -> Eff es RemoteRelease
 viewVersion p = do
   prerequisites
-  drvRunOutput $ "npm" :| ["view", p.package, "version"]
+  version <- drvRunOutput $ "npm" :| ["view", p.package, "version"]
+  pure RemoteRelease{version, timestamp = Nothing}
 
 npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do

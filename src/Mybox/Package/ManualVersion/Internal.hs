@@ -32,8 +32,8 @@ manualVersion p = do
 
 manualVersionInstall :: (App es, Package p) => (p -> Eff es ()) -> p -> Eff es ()
 manualVersionInstall installAct p = do
-  v <- remoteVersion p
+  rv <- remoteVersion p
   installAct p
   vf <- versionFile p
-  drvWriteBinaryFile vf $ encode $ ManualVersion{version = v}
+  drvWriteBinaryFile vf $ encode $ ManualVersion{version = rv.version}
   trkAdd p vf
