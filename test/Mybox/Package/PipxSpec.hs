@@ -33,6 +33,7 @@ spec = do
           version <- remoteVersion package
           version.version `shouldSatisfy` (>= "25.0.0")
           version.version `shouldSatisfy` (<= "999.0.0")
+          version.timestamp `shouldSatisfy` isJust
       it "fails for non-existent package" $ do
         let package = mkPipxPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException
@@ -40,11 +41,15 @@ spec = do
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package" $ do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
-          remoteVersion package >>= (`shouldSatisfy` (isGitHash . (.version)))
+          version <- remoteVersion package
+          version.version `shouldSatisfy` isGitHash
+          version.timestamp `shouldSatisfy` isNothing
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package with ref" $ do
           let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
-          remoteVersion package >>= (`shouldSatisfy` (isGitHash . (.version)))
+          version <- remoteVersion package
+          version.version `shouldSatisfy` isGitHash
+          version.timestamp `shouldSatisfy` isNothing
   let psPython =
         ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]
           . ignorePaths

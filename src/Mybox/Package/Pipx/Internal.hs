@@ -2,6 +2,8 @@ module Mybox.Package.Pipx.Internal where
 
 import Data.Char (isAlphaNum)
 import Data.Text qualified as Text
+import Data.Time (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -114,19 +116,43 @@ localVersionPipx p = do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
+newtype PyPIRelease = PyPIRelease {urls :: [PyPIUrl]} deriving (Generic, Show)
+
+instance FromJSON PyPIRelease where
+  parseJSON = withObject "PyPIRelease" $ \obj ->
+    PyPIRelease <$> obj .: "urls"
+
+newtype PyPIUrl = PyPIUrl {upload_time_iso_8601 :: Text} deriving (Generic, Show)
+
+instance FromJSON PyPIUrl
+
+pypiTimestamp :: App es => Text -> Text -> Eff es (Maybe UTCTime)
+pypiTimestamp package version = do
+  let url = "https://pypi.org/pypi/" <> package <> "/" <> version <> "/json"
+  (status, body) <- drvHttpGetStatus url
+  pure $ case status of
+    200 -> do
+      release <- either (const Nothing) Just $ eitherDecodeStrictText @PyPIRelease body
+      uploadTime <- listToMaybe release.urls
+      iso8601ParseM . Text.unpack $ uploadTime.upload_time_iso_8601
+    _ -> Nothing
+
 remoteVersionPipx :: App es => PipxPackage -> Eff es RemoteRelease
 remoteVersionPipx p = do
   prerequisites p
-  version <- case repo p of
-    Just (r, b) -> drvRepoBranchVersion r b
+  case repo p of
+    Just (r, b) -> do
+      version <- drvRepoBranchVersion r b
+      pure RemoteRelease{version, timestamp = Nothing}
     Nothing -> do
       result <-
         drvRunOutput $
           "python3" :| ["-m", "pip", "index", "versions", p.package]
-      maybe (terror "Cannot parse pip output") pure $ do
+      version <- maybe (terror "Cannot parse pip output") pure $ do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
-  pure RemoteRelease{version, timestamp = Nothing}
+      timestamp <- pypiTimestamp p.package version
+      pure RemoteRelease{version, timestamp}
 
 venvsPath :: (Concurrent :> es, Driver :> es) => Eff es (Path Abs)
 venvsPath = mkPath <$> pipx drvRunOutput ["environment", "--value", "PIPX_LOCAL_VENVS"]

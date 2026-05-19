@@ -1,6 +1,8 @@
 module Mybox.Package.NPM (NPMPackage (..), mkNPMPackage) where
 
 import Data.Text qualified as Text
+import Data.Time (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -46,11 +48,19 @@ prerequisites = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
 
+npmTimestamp :: App es => Text -> Text -> Eff es (Maybe UTCTime)
+npmTimestamp package version = do
+  result <- drvRunOutputExit $ "npm" :| ["view", package, "time." <> version]
+  pure $ case result.exit of
+    ExitSuccess -> iso8601ParseM . Text.unpack $ result.output
+    _ -> Nothing
+
 viewVersion :: App es => NPMPackage -> Eff es RemoteRelease
 viewVersion p = do
   prerequisites
   version <- drvRunOutput $ "npm" :| ["view", p.package, "version"]
-  pure RemoteRelease{version, timestamp = Nothing}
+  timestamp <- npmTimestamp p.package version
+  pure RemoteRelease{version, timestamp}
 
 npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do
