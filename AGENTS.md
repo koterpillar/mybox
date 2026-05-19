@@ -32,17 +32,9 @@ After building (`stack build`), in the directory with package definitions, run:
 $(cd ..path/to/mybox; stack path --local-install-root)/bin/mybox
 ```
 
-## Releasing
+## Commits, branches and pull requests
 
-Releases are done using Semantic Release, see [build.yml](.github/workflows/build.yml).
-
-Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format,
-e.g. `feat: add remote release timestamp`, `fix: correct version comparison`, `chore: update deps`.
-This is required for Semantic Release to correctly determine the next version.
-
-## Branches and pull requests
-
-Branch names have no prefix — use a short descriptive name, e.g. `release-time`.
+Branch names have no prefix - use a short descriptive name, e.g. `release-time`.
 
 Use `gh pr create` to create pull requests. Push the branch first, then run:
 
@@ -71,3 +63,11 @@ gh pr create --title "TITLE" --body "DESCRIPTION" --draft
 - Use the `App` type alias to define the effect stack and make dependencies explicit.
 - Organize code into highly modular components, each in its own module.
 - Emphasize composability and testability via effects and typeclasses.
+
+# Releasing
+
+Releases are done using Semantic Release, see [build.yml](.github/workflows/build.yml).
+
+Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format,
+e.g. `feat: add remote release timestamp`, `fix: correct version comparison`, `chore: update deps`.
+This is required for Semantic Release to correctly determine the next version.
