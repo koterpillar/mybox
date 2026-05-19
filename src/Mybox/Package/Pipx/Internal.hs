@@ -143,7 +143,8 @@ remoteVersionPipx p = do
   case repo p of
     Just (r, b) -> do
       version <- drvRepoBranchVersion r b
-      pure RemoteRelease{version, timestamp = Nothing}
+      timestamp <- drvRepoCommitTimestamp r version
+      pure RemoteRelease{version, timestamp}
     Nothing -> do
       result <-
         drvRunOutput $

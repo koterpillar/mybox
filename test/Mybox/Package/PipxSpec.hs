@@ -43,13 +43,13 @@ spec = do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
           version <- remoteVersion package
           version.version `shouldSatisfy` isGitHash
-          version.timestamp `shouldSatisfy` isNothing
+          version.timestamp `shouldSatisfy` isJust
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package with ref" $ do
           let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
           version <- remoteVersion package
           version.version `shouldSatisfy` isGitHash
-          version.timestamp `shouldSatisfy` isNothing
+          version.timestamp `shouldSatisfy` isJust
   let psPython =
         ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]
           . ignorePaths

@@ -93,7 +93,8 @@ cpRemoteVersion :: App es => ClonePackage -> Eff es RemoteRelease
 cpRemoteVersion p = do
   prerequisites
   version <- drvRepoBranchVersion (cpRemote p) p.branch
-  pure RemoteRelease{version, timestamp = Nothing}
+  timestamp <- drvRepoCommitTimestamp (cpRemote p) version
+  pure RemoteRelease{version, timestamp}
 
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"
