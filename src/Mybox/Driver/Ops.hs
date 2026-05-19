@@ -187,6 +187,11 @@ drvGithubToken = drvEnv "GITHUB_TOKEN" `orMaybeM` (getGhAuth <$> drvRunOutputExi
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
 
+drvUrlLastModified :: Driver :> es => Text -> Eff es (Maybe Text)
+drvUrlLastModified url = do
+  result <- drvUrlProperty "%header{last-modified}" url
+  pure $ if Text.null result then Nothing else Just result
+
 drvHttpGet :: Driver :> es => Text -> Eff es Text
 drvHttpGet url =
   drvHttpGetStatus url >>= \case

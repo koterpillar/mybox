@@ -1,6 +1,8 @@
 module Mybox.Package.URL (URLPackage (..), mkURLPackage) where
 
 import Data.Text qualified as Text
+import Data.Time (UTCTime)
+import Data.Time.Format (defaultTimeLocale, parseTimeM, rfc822DateFormat)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -49,7 +51,14 @@ instance PackageName URLPackage where
 instance ArchivePackage URLPackage where
   archiveUrl p = pure p.url
 
+parseLastModified :: Text -> Maybe UTCTime
+parseLastModified = parseTimeM True defaultTimeLocale rfc822DateFormat . Text.unpack
+
 instance Package URLPackage where
-  remoteVersion p = (\version -> RemoteRelease{version, timestamp = Nothing}) <$> drvUrlEtag p.url
+  remoteVersion p = do
+    version <- drvUrlEtag p.url
+    lastModified <- drvUrlLastModified p.url
+    let timestamp = lastModified >>= parseLastModified
+    pure RemoteRelease{version, timestamp}
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall
