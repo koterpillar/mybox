@@ -41,8 +41,8 @@ instance ToJSON YumRepo where
       ]
         <> postToJSON p
 
-yumRepoRemoteVersion :: YumRepo -> Text
-yumRepoRemoteVersion = jsonEncode
+yumRepoRemoteVersion :: YumRepo -> RemoteRelease
+yumRepoRemoteVersion p = RemoteRelease{version = jsonEncode p, timestamp = Nothing}
 
 writeRepoFile :: (Driver :> es, Tracker :> es) => YumRepo -> Eff es ()
 writeRepoFile p = do

@@ -76,6 +76,6 @@ brewRepoInstall p =
     False -> [tapName p, p.name_]
 
 instance Package BrewRepo where
-  remoteVersion = const $ pure "installed"
+  remoteVersion = const $ pure RemoteRelease{version = "installed", timestamp = Nothing}
   localVersion = brewRepoLocalVersion
   install = installWithPost brewRepoInstall
