@@ -59,6 +59,10 @@ case "$OSTYPE" in
     DISTRO=$(grep '^ID=' /etc/os-release | cut -d = -f 2)
     case $DISTRO in
       debian|ubuntu)
+        if [ -n "${CI-}" ]
+        then
+          sudo_ apt update
+        fi
         sudo_ apt install --yes liblzma-dev libbz2-dev
         if ! command_exists tmux
         then
