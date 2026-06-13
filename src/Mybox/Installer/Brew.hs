@@ -50,8 +50,14 @@ brewRun act args =
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
     act $ exe.text :| args
 
+brewIsThirdParty :: Text -> Bool
+brewIsThirdParty package = Text.count "/" package >= 2
+
 brewInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Text -> Eff es ()
-brewInstall action package = brewRun @s drvRun [action, package]
+brewInstall action package = do
+  when (action == "install" && brewIsThirdParty package) $
+    brewRun @s drvRun ["trust", package]
+  brewRun @s drvRun [action, package]
 
 brewPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
