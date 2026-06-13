@@ -1,5 +1,6 @@
 module Mybox.Package.BrewRepoSpec where
 
+import Mybox.Driver
 import Mybox.Package.BrewRepo
 import Mybox.Package.BrewRepo.Internal (tapName)
 import Mybox.Package.Class
@@ -39,4 +40,6 @@ spec = do
       packageSpec $
         ps (mkBrewRepo "easysoft/tap")
           & preinstallEnableSudo
-          & checkInstalledCommandOutput ("brew" :| ["info", "qcadmin"]) "qcadmin is an open-source lightweight cli tool for managing quickon"
+          & checkInstalledCommandOutput
+            (shellRaw "brew trust --formula easysoft/tap/qcadmin >/dev/null && brew info qcadmin")
+            "qcadmin is an open-source lightweight cli tool for managing quickon"

@@ -53,20 +53,24 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
   drvTempDir $ \home' -> do
     home <- drvRealPath home'
     let newLocalBin = home </> ".local" </> "bin"
+    os <- drvOS
     let envOverrides =
           [ ("GITHUB_TOKEN", githubToken)
           , ("PATH", newLocalBin.text <> ":" <> linuxBrewBin.text <> ":" <> originalPath)
           , ("HOME", home.text)
           ]
+            <> case os of
+              MacOS -> [("HOMEBREW_REQUIRE_TAP_TRUST", "1")]
+              _ -> []
     let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
         linkToOriginalHome path = do
           let op = originalHome <//> path
           let np = home <//> path
           drvMkdir op
           drvLink op np
-    linkedDirectories <- flip fmap drvOS $ \case
-      Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
-      MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
+    let linkedDirectories = case os of
+          Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
+          MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
     for_ linkedDirectories linkToOriginalHome
     modifyDriver (env envOverrides) act
 
