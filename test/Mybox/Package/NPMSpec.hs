@@ -22,7 +22,8 @@ spec = do
         it "gets version for existing package" $ do
           let package = mkNPMPackage "express"
           version <- remoteVersion package
-          version `shouldSatisfy` (>= "4.18.2")
+          version.version `shouldSatisfy` (>= "4.18.2")
+          version.timestamp `shouldSatisfy` isJust
       it "fails for non-existent package" $ do
         let package = mkNPMPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException

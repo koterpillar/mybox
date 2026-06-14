@@ -198,3 +198,8 @@ spec = do
   it "errors on invalid repo format" $ do
     let invalid = mkReleasePackage "invalid-repo-format"
     release invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"
+
+  it "release includes a timestamp" $ do
+    let package = mkReleasePackage "jqlang/jq"
+    r <- release package
+    releaseTimestamp r `shouldSatisfy` isJust

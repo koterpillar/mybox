@@ -45,7 +45,7 @@ instance ToJSON ActionPackage where
       ]
 
 instance Package ActionPackage where
-  remoteVersion _ = pure "1"
+  remoteVersion _ = pure RemoteRelease{version = "1", timestamp = Nothing}
   localVersion _ = pure Nothing
   install p = do
     queueInstallMany p.deps
