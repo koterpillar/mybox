@@ -90,7 +90,7 @@ fi
 
 if [ -n "${OPT_LINT-}" ] && [ -n "${OPT_HASKELL-}" ] && ! command_exists fourmolu
 then
-  OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/osx/;s/linux.+/linux/')
+  OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/darwin/;s/linux.+/linux/')
   ARCH=$(uname -m | sed 's/aarch64/arm64/')
 
   FILENAME=$(
@@ -107,6 +107,22 @@ then
 
   mkdir -p ~/.local/bin
   FOURMOLU_URL="https://github.com/fourmolu/fourmolu/releases/latest/download/${FILENAME}"
-  "${GH_CURL[@]}" "$FOURMOLU_URL" -o ~/.local/bin/fourmolu
-  chmod +x ~/.local/bin/fourmolu
+  FOURMOLU_DOWNLOAD="$(mktemp)"
+  FOURMOLU_EXTRACT_DIR="$(mktemp -d)"
+  cleanup_fourmolu() {
+    rm -f "$FOURMOLU_DOWNLOAD"
+    rm -rf "$FOURMOLU_EXTRACT_DIR"
+  }
+  trap cleanup_fourmolu EXIT
+  "${GH_CURL[@]}" "$FOURMOLU_URL" -o "$FOURMOLU_DOWNLOAD"
+  unzip -q "$FOURMOLU_DOWNLOAD" -d "$FOURMOLU_EXTRACT_DIR"
+
+  FOURMOLU_PATH=$(find "$FOURMOLU_EXTRACT_DIR" -type f -name fourmolu | head -n 1)
+  if [ -z "$FOURMOLU_PATH" ]
+  then
+    echo "Error: could not find fourmolu in zip archive" >&2
+    exit 1
+  fi
+  chmod +x "$FOURMOLU_PATH"
+  mv "$FOURMOLU_PATH" ~/.local/bin/fourmolu
 fi
