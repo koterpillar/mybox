@@ -34,3 +34,7 @@ spec = do
       & checkInstalledCommandOutput
         (shellRaw "cat ~/.local/mybox/ftp.debian.org--README/README")
         "Debian GNU/Linux"
+
+  it "remoteVersion includes a timestamp" $ do
+    lastModified <- drvUrlLastModified "https://ftp.debian.org/debian/README"
+    lastModified `shouldSatisfy` isJust

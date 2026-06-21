@@ -1,11 +1,14 @@
 module Mybox.Package.CloneSpec where
 
 import Mybox.Driver
+import Mybox.Package.Class
 import Mybox.Package.Clone
+import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Tracker
 
 spec :: Spec
 spec = do
@@ -14,6 +17,13 @@ spec = do
     [ (Nothing, "{\"clone\": \"test/test\", \"destination\": \"test\"}")
     , (Just "branch", "{\"clone\": \"test/test\", \"branch\": \"test\", \"destination\": \"test\"}")
     ]
+  describe "remote version" $ do
+    withEff (nullTracker . runInstallQueue) $
+      skipGenericLinux "Default installer is unavailable on generic Linux" $
+        it "includes a timestamp for GitHub repos" $ do
+          let package = mkClonePackage "https://github.com/ohmyzsh/ohmyzsh.git" $ mkPath "~/.local/mybox/ohmyzsh"
+          rv <- remoteVersion package
+          rv.timestamp `shouldSatisfy` isJust
   let baseClone psa =
         ps (mkClonePackage "ohmyzsh/ohmyzsh" $ pWiden psa.directory)
           & checkInstalledCommandOutput

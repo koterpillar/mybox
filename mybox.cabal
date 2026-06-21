@@ -120,6 +120,7 @@ library
     , scalpel
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable
@@ -164,6 +165,7 @@ executable mybox
     , scalpel
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable
@@ -269,6 +271,7 @@ test-suite tests
     , scalpel
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable

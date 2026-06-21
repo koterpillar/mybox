@@ -1,5 +1,6 @@
 module Mybox.Driver.Ops where
 
+import Data.Aeson (FromJSON, eitherDecodeStrictText)
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)
@@ -7,6 +8,8 @@ import Data.List (intercalate)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Data.Time (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
 
 import Mybox.Driver.Class
 import Mybox.Platform
@@ -187,6 +190,11 @@ drvGithubToken = drvEnv "GITHUB_TOKEN" `orMaybeM` (getGhAuth <$> drvRunOutputExi
 drvUrlEtag :: Driver :> es => Text -> Eff es Text
 drvUrlEtag = drvUrlProperty "%header{etag}"
 
+drvUrlLastModified :: Driver :> es => Text -> Eff es (Maybe Text)
+drvUrlLastModified url = do
+  result <- drvUrlProperty "%header{last-modified}" url
+  pure $ if Text.null result then Nothing else Just result
+
 drvHttpGet :: Driver :> es => Text -> Eff es Text
 drvHttpGet url =
   drvHttpGetStatus url >>= \case
@@ -227,6 +235,55 @@ drvRepoBranchVersion repo_ branch_ = do
   case Text.words output of
     [ref, _] -> pure ref
     _ -> terror $ "Failed to parse git ls-remote output: " <> output
+
+-- | Parse a GitHub or Gitea HTTPS URL into (apiBase, owner, repo).
+parseGitApiUrl :: Text -> Maybe (Text, Text, Text)
+parseGitApiUrl url = do
+  noPrefix <- Text.stripPrefix "https://" (stripPrefix_ "git+" url)
+  let parts = Text.splitOn "/" noPrefix
+  case parts of
+    (host : owner : repoRaw : _) -> do
+      let repo = fromMaybe repoRaw (Text.stripSuffix ".git" repoRaw)
+      let apiBase
+            | host == "github.com" = "https://api.github.com/repos/" <> owner <> "/" <> repo
+            | otherwise = "https://" <> host <> "/api/v1/repos/" <> owner <> "/" <> repo
+      pure (apiBase, owner, repo)
+    _ -> Nothing
+
+newtype GitCommit = GitCommit {commit :: GitCommitDetail} deriving (Generic)
+
+instance FromJSON GitCommit
+
+newtype GitCommitDetail = GitCommitDetail {committer :: GitCommitUser} deriving (Generic)
+
+instance FromJSON GitCommitDetail
+
+newtype GitCommitUser = GitCommitUser {date :: Text} deriving (Generic)
+
+instance FromJSON GitCommitUser
+
+-- | Fetch the committer timestamp for a commit hash from the GitHub/Gitea API.
+-- Returns Nothing for non-HTTPS or non-GitHub/Gitea URLs.
+drvRepoCommitTimestamp ::
+  Driver :> es =>
+  -- | Repository URL
+  Text ->
+  -- | Commit hash
+  Text ->
+  Eff es (Maybe UTCTime)
+drvRepoCommitTimestamp repo_ hash = case parseGitApiUrl repo_ of
+  Nothing -> pure Nothing
+  Just (apiBase, _, _) -> do
+    token <- drvGithubToken
+    let headers = case token of
+          Just t -> ["-H", "Authorization: token " <> t]
+          Nothing -> []
+    (status, body) <- drvHttpGetStatusArgs headers (apiBase <> "/commits/" <> hash)
+    pure $ case status of
+      200 -> do
+        gc <- either (const Nothing) Just $ eitherDecodeStrictText @GitCommit body
+        iso8601ParseM . Text.unpack $ gc.commit.committer.date
+      _ -> Nothing
 
 drvArchitecture :: Driver :> es => Eff es Architecture
 drvArchitecture = drvRunOutput ("uname" :| ["-m"]) >>= either throwString pure . parseArchitecture

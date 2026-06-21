@@ -2,6 +2,8 @@ module Mybox.Package.Release.Internal where
 
 import Control.Monad.Writer
 import Data.Text qualified as Text
+import Data.Time (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -107,11 +109,15 @@ data Release = Release
   { id :: Int
   , tag_name :: Text
   , prerelease :: Bool
+  , published_at :: Maybe Text
   , assets :: [ReleaseArtifact]
   }
   deriving (Generic, Show)
 
 instance FromJSON Release
+
+releaseTimestamp :: Release -> Maybe UTCTime
+releaseTimestamp r = r.published_at >>= iso8601ParseM . Text.unpack
 
 handleAPIError :: Either (Int, Text) a -> Eff es a
 handleAPIError = \case
@@ -174,6 +180,6 @@ instance ArchivePackage ReleasePackage where
   archiveUrl p = (.browser_download_url) <$> artifact p
 
 instance Package ReleasePackage where
-  remoteVersion p = Text.pack . show . (.id) <$> release p
+  remoteVersion p = (\r -> RemoteRelease{version = Text.pack . show $ r.id, timestamp = releaseTimestamp r}) <$> release p
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall
