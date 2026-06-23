@@ -133,12 +133,13 @@ dockerfile :: Text -> Text
 dockerfile baseImage =
   Text.unlines
     [ "FROM " <> baseImage
-    , "RUN if command -v apk >/dev/null; then apk add --no-cache shadow; fi"
+    , -- required packages that are installed on desktop systems anyway
+      "RUN if command -v apk >/dev/null; then apk add --no-cache curl shadow sudo; fi"
+    , "RUN if command -v dnf >/dev/null; then dnf install --assumeyes curl sudo; fi"
+    , "RUN if command -v apt >/dev/null; then apt update; apt install --yes curl sudo; fi"
     , "RUN useradd --create-home --password '' " <> dockerUser
     , "RUN mkdir /mybox"
     , "WORKDIR /mybox"
-    , "COPY bootstrap /bootstrap"
-    , "RUN /bootstrap --development"
     , "ENV PATH=" <> localBin.text <> ":" <> linuxBrewBin.text <> ":$PATH"
     , -- download often-used apt packages to speed up tests
       "RUN if command -v apt >/dev/null; then apt install -y --download-only nodejs npm python3-pip python3-venv unzip xz-utils; fi"
