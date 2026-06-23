@@ -2,96 +2,24 @@
 
 set -eu
 
-OPT_DEVELOPMENT=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --development)
-      OPT_DEVELOPMENT="true"
-      shift
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      exit 1
-      ;;
-  esac
-done
+URL="https://github.com/koterpillar/mybox/releases/latest/download/mybox-$(uname -s)-$(uname -m)"
+DESTINATION="$HOME/.local/bin/mybox"
 
-command_exists() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-ensure() {
-  COMMAND="$1"
-  if [ "$#" -gt 1 ]
-  then
-    # ensure COMMAND PACKAGE1 PACKAGE2 ...
-    shift
-  fi
-  # else: ensure COMMAND (package is the same as COMMAND)
-
-  if ! command_exists "$COMMAND"
-  then
-    if command_exists apt
-    then
-      INSTALLER='sudo_ apt install --yes'
-      if [ -z "$(ls -A /var/lib/apt/lists)" ]
-      then
-        sudo_ apt update
-      fi
-    elif command_exists dnf
-    then
-      INSTALLER='sudo_ dnf install --assumeyes'
-    elif command_exists apk
-    then
-      INSTALLER='sudo_ apk add --no-cache'
-    else
-      echo "Cannot find a package manager to install $COMMAND." >&2
-      exit 1
-    fi
-
-    $INSTALLER "$@"
-  fi
-}
-
-sudo_() {
-  if [ "$(id -u)" -eq 0 ]
-  then
-    "$@"
-  else
-    sudo "$@"
-  fi
-}
-
-download() {
-  URL="$1"
-  DESTINATION="$2"
-
-  if [ -L "$DESTINATION" ]
-  then
-    rm "$DESTINATION"
-  fi
-  if ! [ -f "$DESTINATION" ]
-  then
-    mkdir -p "$(dirname "$DESTINATION")"
-    touch -t 200001010000 "$DESTINATION"
-  fi
-
-  TEMP_FILE=$(mktemp)
-  trap 'rm -f "$TEMP_FILE"' EXIT
-  curl -fsSL "$URL" -z "$DESTINATION" -o "$TEMP_FILE"
-  if [ -s "$TEMP_FILE" ]
-  then
-    mv "$TEMP_FILE" "$DESTINATION"
-    chmod +rx "$DESTINATION"
-  fi
-}
-
-ensure curl
-ensure sudo
-
-if [ -z "$OPT_DEVELOPMENT" ]
+if [ -L "$DESTINATION" ]
 then
-  download \
-    "https://github.com/koterpillar/mybox/releases/latest/download/mybox-$(uname -s)-$(uname -m)" \
-    "$HOME/.local/bin/mybox"
+  rm "$DESTINATION"
+fi
+if ! [ -f "$DESTINATION" ]
+then
+  mkdir -p "$(dirname "$DESTINATION")"
+  touch -t 200001010000 "$DESTINATION"
+fi
+
+TEMP_FILE=$(mktemp)
+trap 'rm -f "$TEMP_FILE"' EXIT
+curl -fsSL "$URL" -z "$DESTINATION" -o "$TEMP_FILE"
+if [ -s "$TEMP_FILE" ]
+then
+  mv "$TEMP_FILE" "$DESTINATION"
+  chmod +rx "$DESTINATION"
 fi
