@@ -7,10 +7,12 @@ import Data.List (intercalate)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Data.Version (showVersion)
 
 import Mybox.Driver.Class
 import Mybox.Platform
 import Mybox.Prelude
+import Paths_mybox (version)
 
 data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
 
@@ -290,7 +292,21 @@ curl :: [Text] -> Text -> Args
 curl args url = curlNoFail ("--fail" : args) url
 
 curlNoFail :: [Text] -> Text -> Args
-curlNoFail args url = "curl" :| ["--silent", "--show-error", "--location"] <> args <> [url]
+curlNoFail args url =
+  "curl"
+    :| [ "--silent"
+       , "--show-error"
+       , "--location"
+       , "--retry"
+       , "2"
+       , "--user-agent"
+       , curlUserAgent
+       ]
+    <> args
+    <> [url]
+
+curlUserAgent :: Text
+curlUserAgent = "mybox/" <> Text.pack (showVersion version)
 
 env :: [(Text, Text)] -> Args -> Args
 env vars args = "env" :| map mkVar vars ++ toList args
