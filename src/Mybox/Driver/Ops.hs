@@ -293,7 +293,17 @@ curl args url = curlNoFail ("--fail" : args) url
 
 curlNoFail :: [Text] -> Text -> Args
 curlNoFail args url =
-  "curl" :| ["--silent", "--show-error", "--location", "--user-agent", curlUserAgent] <> args <> [url]
+  "curl"
+    :| [ "--silent"
+       , "--show-error"
+       , "--location"
+       , "--retry"
+       , "2"
+       , "--user-agent"
+       , curlUserAgent
+       ]
+    <> args
+    <> [url]
 
 curlUserAgent :: Text
 curlUserAgent = "mybox/" <> Text.pack (showVersion version)
