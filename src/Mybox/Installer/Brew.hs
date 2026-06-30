@@ -53,11 +53,16 @@ brewRun act args =
 brewIsThirdParty :: Text -> Bool
 brewIsThirdParty package = Text.count "/" package >= 2
 
-brewInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Text -> Eff es ()
-brewInstall action package = do
-  when (action == "install" && brewIsThirdParty package) $
+data BrewAction = Install | Upgrade
+  deriving (Eq, Show)
+
+brewInstall :: forall s es. (App es, IsSystemPackage s) => BrewAction -> Text -> Eff es ()
+brewInstall Install package = do
+  when (brewIsThirdParty package) $
     brewRun @s drvRun ["trust", package]
-  brewRun @s drvRun [action, package]
+  brewRun @s drvRun ["install", package]
+brewInstall Upgrade package =
+  brewRun @s drvRun ["upgrade", "--yes", package]
 
 brewPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
 brewPackageInfo package_ = do
@@ -125,8 +130,8 @@ brew :: forall s. IsSystemPackage s => Installer
 brew =
   Installer
     { storeKey = "brew"
-    , install_ = brewInstall @s "install"
+    , install_ = brewInstall @s Install
     , installURL = iURLNotImplemented
-    , upgrade_ = brewInstall @s "upgrade"
+    , upgrade_ = brewInstall @s Upgrade
     , getPackageInfo = brewPackageInfo @s
     }
