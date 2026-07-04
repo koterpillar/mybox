@@ -1,5 +1,6 @@
 module Mybox.Package.NPM (NPMPackage (..), mkNPMPackage) where
 
+import Data.Map qualified as Map
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -15,13 +16,12 @@ import Mybox.Tracker
 
 data NPMPackage = NPMPackage
   { package :: Text
-  , binaries :: [Text]
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
 
 mkNPMPackage :: Text -> NPMPackage
-mkNPMPackage package = NPMPackage{package, binaries = [], post = []}
+mkNPMPackage package = NPMPackage{package, post = []}
 
 instance PackageName NPMPackage where
   splitName = genericSplitName' @'[] @'["package"]
@@ -29,12 +29,11 @@ instance PackageName NPMPackage where
 instance FromJSON NPMPackage where
   parseJSON = withObjectTotal "NPMPackage" $ do
     package <- takeField "npm"
-    binaries <- takeCollapsedList "binary"
     post <- takePost
     pure NPMPackage{..}
 
 instance ToJSON NPMPackage where
-  toJSON p = object $ ["npm" .= p.package, "binary" .= p.binaries] <> postToJSON p
+  toJSON p = object $ ["npm" .= p.package] <> postToJSON p
 
 prerequisites :: App es => Eff es ()
 prerequisites = do
@@ -50,6 +49,13 @@ viewVersion :: App es => NPMPackage -> Eff es Text
 viewVersion p = do
   prerequisites
   drvRunOutput $ "npm" :| ["view", p.package, "version"]
+
+newtype PackageJson = PackageJson {bin :: Map Text Text} deriving (Show)
+
+instance FromJSON PackageJson where
+  parseJSON = withObject "PackageJson" $ \obj -> do
+    bin <- obj .:? "bin" .!= mempty
+    pure $ PackageJson{bin}
 
 npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do
@@ -69,13 +75,17 @@ npmInstall p = do
     Just npxBin -> do
       -- npxBin would be .../_npx/(hash)/node_modules/.bin, take the part up to
       -- and including the hash
-      let npxPath = pParent npxBin >>= pParent
-      for_ npxPath $ trkAdd p
+      npxPath <- maybe (throwString "Cannot find npx path") pure $ pParent npxBin >>= pParent
+      trkAdd p npxPath
       local <- drvLocal False
       let binDir = local </> "bin"
       drvMkdir binDir
 
-      forM_ p.binaries $ \name -> do
+      packageJsonText <- drvReadFile (npxPath </> "node_modules" </> p.package </> "package.json")
+      packageJson <- jsonDecode @PackageJson "package.json" packageJsonText
+      let binaries = Map.keys packageJson.bin
+
+      forM_ binaries $ \name -> do
         let target = binDir </> name
         let script =
               Text.unlines

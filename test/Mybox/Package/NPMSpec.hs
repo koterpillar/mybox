@@ -12,10 +12,7 @@ spec :: Spec
 spec = do
   metaSpec
     @NPMPackage
-    [ (Nothing, "{\"npm\": \"test\"}")
-    , (Just "single binary", "{\"npm\": \"test\", \"binary\": \"test\"}")
-    , (Just "multiple binaries", "{\"npm\": \"test\", \"binary\": [\"one\", \"two\"]}")
-    ]
+    [(Nothing, "{\"npm\": \"test\"}")]
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue) $ do
       skipGenericLinux "Default installer is unavailable on generic Linux" $
@@ -28,7 +25,7 @@ spec = do
         remoteVersion package `shouldThrow` anyException
   skipGenericLinux "Default installer is unavailable on generic Linux" $
     packageSpec $
-      ps ((mkNPMPackage "express-generator"){binaries = ["express"]})
+      ps (mkNPMPackage "express-generator")
         & checkInstalledCommandOutput
           ("express" :| ["--help"])
           "engine support"
