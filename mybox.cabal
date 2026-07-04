@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.39.1.
+-- This file has been generated from package.yaml by hpack version 0.39.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -64,6 +64,7 @@ library
       Mybox.Package.ManualVersion.Internal
       Mybox.Package.Name
       Mybox.Package.NPM
+      Mybox.Package.NPM.Internal
       Mybox.Package.Pipx
       Mybox.Package.Pipx.Internal
       Mybox.Package.Post

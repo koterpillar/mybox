@@ -34,7 +34,7 @@ spec = do
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
-    roundtrip $ (mkNPMPackage "express"){Mybox.Package.NPM.binaries = ["express"]}
+    roundtrip $ mkNPMPackage "express"
     roundtrip $ mkPipxPackage "pipx"
     roundtrip $ mkReleasePackage "test/repo"
     roundtrip $ (mkReleasePackage "test/repo"){Mybox.Package.Release.archive = emptyArchiveFields{raw = Right True}}
