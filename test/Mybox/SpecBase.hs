@@ -140,6 +140,8 @@ jsonSpec examples = describe "JSON parsing" $ for_ examples $ \(name, json) -> d
     let pkgE'' = jsonDecode @a "example" json''
     let pkg'' = requireRight pkgE''
     pkg'' `shouldBe` pkg
+    let omitted = omittedField @a
+    length omitted `shouldSatisfy` (<= 1)
 
 metaSpec ::
   forall a.
