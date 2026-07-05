@@ -41,6 +41,12 @@ spec = do
           ("yarn-deduplicate" :| ["--help"])
           "Usage: yarn-deduplicate"
         & ignorePaths npmPaths
+    packageSpec $
+      ps (mkNPMPackage "@kilocode/cli")
+        & checkInstalledCommandOutput
+          ("kilo" :| ["help"])
+          "show token usage"
+        & ignorePaths (npmPaths <> [".local" </> "share" </> "kilo", ".local" </> "state" </> "kilo"])
   describe "PackageJson" $ do
     it "parses bin field" $ do
       let json = "{\"bin\": {\"foo\": \"bar\"}}"

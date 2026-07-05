@@ -82,7 +82,7 @@ npmInstall p = do
       let binDir = local </> "bin"
       drvMkdir binDir
 
-      packageJsonText <- drvReadFile (npxPath </> "node_modules" </> p.package </> "package.json")
+      packageJsonText <- drvReadFile (npxPath </> "node_modules" <//> mkPath @Rel p.package </> "package.json")
       packageJson <- jsonDecode @PackageJsonBin "package.json" packageJsonText
       let binaries = either (const [p.package]) Map.keys $ packageJson.bin
 
