@@ -55,6 +55,7 @@ tests:
       - hspec
       - lzma
       - mybox
+      - tar
       - zip-archive
       - zlib
     build-tools:

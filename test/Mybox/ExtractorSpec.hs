@@ -1,5 +1,7 @@
 module Mybox.ExtractorSpec where
 
+import Codec.Archive.Tar qualified as Tar
+import Codec.Archive.Tar.Entry qualified as Tar
 import Codec.Archive.Zip qualified as Zip
 import Codec.Compression.BZip qualified as BZip
 import Codec.Compression.GZip qualified as GZip
@@ -50,38 +52,58 @@ compress fn extension contents act = do
     drvWriteBinaryFile archive compressed
     act archive
 
+tarExtension :: Maybe Text -> Text
+tarExtension Nothing = "tar"
+tarExtension (Just ext) = "tar." <> ext
+
 spec :: Spec
 spec =
   withEff (nullTracker . runInstallQueue) $ do
-    describe "extract" $ do
-      it "unzips removing common prefix" $ do
-        temporaryZip ["foo/bar", "foo/baz"] $ \archive -> do
-          extractFileNames archive >>= (`shouldBe` Set.fromList ["bar", "baz"])
-      it "stops upon multiple elements" $ do
-        temporaryZip ["bar", "baz"] $ \archive -> do
-          extractFileNames archive >>= (`shouldBe` Set.fromList ["bar", "baz"])
-      it "stops when the only element is not a directory" $ do
-        temporaryZip ["foo/bar"] $ \archive -> do
-          extractFileNames archive >>= (`shouldBe` Set.fromList ["bar"])
-      it "raises an error with too much nesting" $ do
-        temporaryZip [Text.intercalate "/" $ replicate 100 "foo"] $ \archive -> do
-          extractFileNames archive `shouldThrow` errorCallContains ["Too many nested directories:", "/foo/"]
-    describe "getExtractor" $ do
-      it "guesses extractor from a link" $ do
-        extractor <- getExtractor "http://example.com/test.tar.gz"
-        show extractor `shouldBe` "tar -z"
-      it "guesses extractor from a link redirect" $ do
-        extractor <- getExtractor "https://telegram.org/dl/desktop/linux"
-        show extractor `shouldBe` "tar -J"
-      it "raises an error with unknown format" $ do
-        getExtractor "http://example.com" `shouldThrow` errorCall "Unknown archive format"
-    describe "getRawExtractor" $ do
-      it "guesses raw extractor from a link" $ do
-        extractor <- getRawExtractor "http://example.com/test.gz"
-        show extractor `shouldBe` "gunzip"
-      it "falls back to file copying" $ do
-        extractor <- getRawExtractor "http://example.com"
-        show extractor `shouldBe` "move"
+    describe "Extractor" $ do
+      for_ [(id, Nothing), (GZip.compress, Just "gz"), (LZMA.compress, Just "xz"), (BZip.compress, Just "bz2")] $
+        \(compressAction, maybeExtension) -> do
+          let extension = tarExtension maybeExtension
+          it ("decompresses " <> Text.unpack extension) $ do
+            let entry = Tar.fileEntry (requireRight $ Tar.toTarPath False "myfile.txt") "contents"
+            let archiveData = Tar.writeEntry entry <> Tar.writeTrailer
+            let compressed = compressAction archiveData
+            drvTempDir $ \archiveDir -> do
+              let archive = archiveDir </> ("archive." <> extension)
+              drvWriteBinaryFile archive compressed
+              extractor <- getExtractor archive.text
+              drvTempDir $ \dest -> do
+                extract extractor archive dest
+                extracted <- drvReadFile $ dest </> "myfile.txt"
+                extracted `shouldBe` "contents"
+      describe "extract" $ do
+        it "unzips removing common prefix" $ do
+          temporaryZip ["foo/bar", "foo/baz"] $ \archive -> do
+            extractFileNames archive >>= (`shouldBe` Set.fromList ["bar", "baz"])
+        it "stops upon multiple elements" $ do
+          temporaryZip ["bar", "baz"] $ \archive -> do
+            extractFileNames archive >>= (`shouldBe` Set.fromList ["bar", "baz"])
+        it "stops when the only element is not a directory" $ do
+          temporaryZip ["foo/bar"] $ \archive -> do
+            extractFileNames archive >>= (`shouldBe` Set.fromList ["bar"])
+        it "raises an error with too much nesting" $ do
+          temporaryZip [Text.intercalate "/" $ replicate 100 "foo"] $ \archive -> do
+            extractFileNames archive `shouldThrow` errorCallContains ["Too many nested directories:", "/foo/"]
+      describe "getExtractor" $ do
+        it "guesses extractor from a link" $ do
+          extractor <- getExtractor "http://example.com/test.tar.gz"
+          show extractor `shouldBe` "tar -z"
+        it "guesses extractor from a link redirect" $ do
+          extractor <- getExtractor "https://telegram.org/dl/desktop/linux"
+          show extractor `shouldBe` "tar -J"
+        it "raises an error with unknown format" $ do
+          getExtractor "http://example.com" `shouldThrow` errorCall "Unknown archive format"
+      describe "getRawExtractor" $ do
+        it "guesses raw extractor from a link" $ do
+          extractor <- getRawExtractor "http://example.com/test.gz"
+          show extractor `shouldBe` "gunzip"
+        it "falls back to file copying" $ do
+          extractor <- getRawExtractor "http://example.com"
+          show extractor `shouldBe` "move"
     describe "RawExtractor" $
       for_ [(compress GZip.compress, "gz"), (compress LZMA.compress, "xz"), (compress BZip.compress, "bz2")] $
         \(compressAction, extension) ->
