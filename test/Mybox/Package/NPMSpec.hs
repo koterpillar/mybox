@@ -27,23 +27,36 @@ spec = do
       it "fails for non-existent package" $ do
         let package = mkNPMPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException
-  skipGenericLinux "Default installer is unavailable on generic Linux" $
+  skipGenericLinux "Default installer is unavailable on generic Linux" $ do
+    let npmPaths = [".npm" </> "_cacache", ".npm" </> "_logs", ".npm" </> "_update-notifier-last-checked"]
     packageSpec $
       ps (mkNPMPackage "express-generator")
         & checkInstalledCommandOutput
           ("express" :| ["--help"])
           "engine support"
-        & ignorePaths [".npm" </> "_cacache", ".npm" </> "_logs", ".npm" </> "_update-notifier-last-checked"]
+        & ignorePaths npmPaths
+    packageSpec $
+      ps (mkNPMPackage "yarn-deduplicate")
+        & checkInstalledCommandOutput
+          ("yarn-deduplicate" :| ["--help"])
+          "Usage: yarn-deduplicate"
+        & ignorePaths npmPaths
   describe "PackageJson" $ do
     it "parses bin field" $ do
       let json = "{\"bin\": {\"foo\": \"bar\"}}"
       let resultE = jsonDecode "example" json
       resultE `shouldSatisfy` isRight
       let pkg = requireRight resultE
-      pkg `shouldBe` PackageJson (Map.singleton "foo" "bar")
+      pkg `shouldBe` PackageJsonBin (Right (Map.singleton "foo" "bar"))
+    it "parses raw string" $ do
+      let json = "{\"bin\": \"foo\"}"
+      let resultE = jsonDecode "example" json
+      resultE `shouldSatisfy` isRight
+      let pkg = requireRight resultE
+      pkg `shouldBe` PackageJsonBin (Left ())
     it "parses empty object" $ do
       let json = "{}"
       let resultE = jsonDecode "example" json
       resultE `shouldSatisfy` isRight
       let pkg = requireRight resultE
-      pkg `shouldBe` PackageJson Map.empty
+      pkg `shouldBe` PackageJsonBin (Right Map.empty)
