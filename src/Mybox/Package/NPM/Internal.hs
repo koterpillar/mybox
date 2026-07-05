@@ -50,12 +50,13 @@ viewVersion p = do
   prerequisites
   drvRunOutput $ "npm" :| ["view", p.package, "version"]
 
-newtype PackageJson = PackageJson {bin :: Map Text Text} deriving (Eq, Show)
+newtype PackageJsonBin = PackageJsonBin {bin :: Either () (Map Text Text)} deriving (Eq, Show)
 
-instance FromJSON PackageJson where
-  parseJSON = withObject "PackageJson" $ \obj -> do
-    bin <- obj .:? "bin" .!= mempty
-    pure $ PackageJson{bin}
+instance FromJSON PackageJsonBin where
+  parseJSON = withObject "PackageJsonBin" $ \obj -> do
+    binEither :: Maybe (CollapsedEither Text (Map Text Text)) <- obj .:? "bin"
+    let bin = fromMaybe (Right mempty) $ fmap (first (const ()) . getCollapsedEither) binEither
+    pure $ PackageJsonBin{bin}
 
 npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do
@@ -81,9 +82,9 @@ npmInstall p = do
       let binDir = local </> "bin"
       drvMkdir binDir
 
-      packageJsonText <- drvReadFile (npxPath </> "node_modules" </> p.package </> "package.json")
-      packageJson <- jsonDecode @PackageJson "package.json" packageJsonText
-      let binaries = Map.keys packageJson.bin
+      packageJsonText <- drvReadFile (npxPath </> "node_modules" <//> mkPath @Rel p.package </> "package.json")
+      packageJson <- jsonDecode @PackageJsonBin "package.json" packageJsonText
+      let binaries = either (const [p.package]) Map.keys $ packageJson.bin
 
       forM_ binaries $ \name -> do
         let target = binDir </> name
