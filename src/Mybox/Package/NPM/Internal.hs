@@ -1,6 +1,7 @@
 module Mybox.Package.NPM.Internal where
 
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -50,13 +51,20 @@ viewVersion p = do
   prerequisites
   drvRunOutput $ "npm" :| ["view", p.package, "version"]
 
-newtype PackageJsonBin = PackageJsonBin {bin :: Either () (Map Text Text)} deriving (Eq, Show)
+newtype PackageJsonBin = PackageJsonBin {bin :: Either () (Set Text)} deriving (Eq, Show)
 
 instance FromJSON PackageJsonBin where
   parseJSON = withObject "PackageJsonBin" $ \obj -> do
     binEither :: Maybe (CollapsedEither Text (Map Text Text)) <- obj .:? "bin"
-    let bin = fromMaybe (Right mempty) $ fmap (first (const ()) . getCollapsedEither) binEither
+    let bin = case fmap getCollapsedEither binEither of
+          Just (Left _) -> Left ()
+          Just (Right bins) -> Right $ Map.keysSet bins
+          Nothing -> Right mempty
     pure $ PackageJsonBin{bin}
+
+binariesFromPackageJson :: NPMPackage -> PackageJsonBin -> Set Text
+binariesFromPackageJson p packageJson =
+  either (const $ Set.singleton $ Text.takeWhileEnd (/= '/') p.package) id packageJson.bin
 
 npmInstall :: App es => NPMPackage -> Eff es ()
 npmInstall p = do
@@ -84,7 +92,7 @@ npmInstall p = do
 
       packageJsonText <- drvReadFile (npxPath </> "node_modules" <//> mkPath @Rel p.package </> "package.json")
       packageJson <- jsonDecode @PackageJsonBin "package.json" packageJsonText
-      let binaries = either (const [p.package]) Map.keys $ packageJson.bin
+      let binaries = binariesFromPackageJson p packageJson
 
       forM_ binaries $ \name -> do
         let target = binDir </> name

@@ -1,6 +1,6 @@
 module Mybox.Package.NPMSpec where
 
-import Data.Map qualified as Map
+import Data.Set qualified as Set
 
 import Mybox.Aeson
 import Mybox.Package.Class
@@ -47,13 +47,13 @@ spec = do
           ("kilo" :| ["help"])
           "show token usage"
         & ignorePaths (npmPaths <> [".local" </> "share" </> "kilo", ".local" </> "state" </> "kilo"])
-  describe "PackageJson" $ do
+  describe "PackageJsonBin" $ do
     it "parses bin field" $ do
       let json = "{\"bin\": {\"foo\": \"bar\"}}"
       let resultE = jsonDecode "example" json
       resultE `shouldSatisfy` isRight
       let pkg = requireRight resultE
-      pkg `shouldBe` PackageJsonBin (Right (Map.singleton "foo" "bar"))
+      pkg `shouldBe` PackageJsonBin (Right (Set.singleton "foo"))
     it "parses raw string" $ do
       let json = "{\"bin\": \"foo\"}"
       let resultE = jsonDecode "example" json
@@ -65,4 +65,15 @@ spec = do
       let resultE = jsonDecode "example" json
       resultE `shouldSatisfy` isRight
       let pkg = requireRight resultE
-      pkg `shouldBe` PackageJsonBin (Right Map.empty)
+      pkg `shouldBe` PackageJsonBin (Right mempty)
+  describe "binary naming" $ do
+    let unscoped = mkNPMPackage "foo"
+    let scoped = mkNPMPackage "@foo/bar"
+    let singleBin = PackageJsonBin (Left ())
+    let multiBin = PackageJsonBin (Right (Set.singleton "baz"))
+    it "uses package name for non-scoped package when bin is raw string" $ do
+      binariesFromPackageJson unscoped singleBin `shouldBe` Set.singleton "foo"
+    it "uses package basename for scoped package when bin is raw string" $ do
+      binariesFromPackageJson scoped singleBin `shouldBe` Set.singleton "bar"
+    it "uses map keys when bin is object" $ do
+      binariesFromPackageJson scoped multiBin `shouldBe` Set.singleton "baz"
