@@ -85,6 +85,9 @@ instance Anchor a => HasField "text" (Path a) Text where
     (Rel, []) -> "."
     (Rel, s) -> Text.intercalate "/" s
 
+instance Anchor a => HasField "string" (Path a) String where
+  getField = Text.unpack . (.text)
+
 instance Anchor a => ToJSONKey (Path a) where
   toJSONKey = toJSONKeyText (.text)
 
