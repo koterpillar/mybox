@@ -2,6 +2,7 @@ module Mybox.Package.Release.Internal where
 
 import Control.Monad.Writer
 import Data.Text qualified as Text
+import Data.Time.Clock (UTCTime)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -107,6 +108,7 @@ data Release = Release
   { id :: Int
   , tag_name :: Text
   , prerelease :: Bool
+  , published_at :: Maybe UTCTime
   , assets :: [ReleaseArtifact]
   }
   deriving (Generic, Show)
@@ -174,6 +176,11 @@ instance ArchivePackage ReleasePackage where
   archiveUrl p = (.browser_download_url) <$> artifact p
 
 instance Package ReleasePackage where
-  remoteVersion p = Text.pack . show . (.id) <$> release p
+  remoteVersion p = do
+    r <- release p
+    pure $
+      (mkReleaseVersion $ Text.pack $ show r.id)
+        { date = r.published_at
+        }
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

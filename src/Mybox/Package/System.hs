@@ -52,12 +52,12 @@ autoUpdateVersion p = if p.autoUpdates then const "latest" else id
 systemInstaller :: Driver :> es => SystemPackage -> Eff es Installer
 systemInstaller p = mkInstaller @SystemPackage p.installer
 
-systemRemoteVersion :: App es => SystemPackage -> Eff es Text
+systemRemoteVersion :: App es => SystemPackage -> Eff es ReleaseVersion
 systemRemoteVersion p = case p.url of
   Nothing -> do
     installer <- systemInstaller p
-    autoUpdateVersion p <$> iLatestVersion installer p.name
-  Just url -> drvUrlEtag url
+    mkReleaseVersion . autoUpdateVersion p <$> iLatestVersion installer p.name
+  Just url -> mkReleaseVersion <$> drvUrlEtag url
 
 systemLocalVersion :: App es => SystemPackage -> Eff es (Maybe Text)
 systemLocalVersion p = case p.url of

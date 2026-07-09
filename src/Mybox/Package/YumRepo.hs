@@ -82,6 +82,6 @@ yumRepoInstall p = do
     MacOS -> terror "YumRepo is only supported on Linux"
 
 instance Package YumRepo where
-  remoteVersion = pure . yumRepoRemoteVersion
+  remoteVersion = pure . mkReleaseVersion . yumRepoRemoteVersion
   localVersion = manualVersion
   install = installWithPost $ manualVersionInstall yumRepoInstall

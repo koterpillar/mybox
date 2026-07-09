@@ -46,10 +46,10 @@ prerequisites = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
 
-viewVersion :: App es => NPMPackage -> Eff es Text
+viewVersion :: App es => NPMPackage -> Eff es ReleaseVersion
 viewVersion p = do
   prerequisites
-  drvRunOutput $ "npm" :| ["view", p.package, "version"]
+  mkReleaseVersion <$> drvRunOutput ("npm" :| ["view", p.package, "version"])
 
 newtype PackageJsonBin = PackageJsonBin {bin :: Either () (Set Text)} deriving (Eq, Show)
 

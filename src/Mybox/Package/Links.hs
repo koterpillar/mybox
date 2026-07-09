@@ -83,8 +83,8 @@ paths p = do
 
   pure $ Set.filter (\path_ -> all ($ (pRelativeTo_ src path_).text) fs) pp
 
-lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
-lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
+lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es ReleaseVersion
+lpRemoteVersion p = mkReleaseVersion . Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
 
 lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
 lpInstall p = do

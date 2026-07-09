@@ -88,8 +88,8 @@ shellLocalVersion p = do
     MacOS -> getShellMacOS username
   pure $ Just shellPath
 
-shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es Text
-shellRemoteVersion p = pure p.shell.text
+shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es ReleaseVersion
+shellRemoteVersion p = pure $ mkReleaseVersion p.shell.text
 
 shellInstall :: App es => ShellPackage -> Eff es ()
 shellInstall p = do

@@ -89,10 +89,10 @@ cpLocalVersion p = do
       Just <$> cpRevParse "HEAD" False p
     else pure Nothing
 
-cpRemoteVersion :: App es => ClonePackage -> Eff es Text
+cpRemoteVersion :: App es => ClonePackage -> Eff es ReleaseVersion
 cpRemoteVersion p = do
   prerequisites
-  drvRepoBranchVersion (cpRemote p) p.branch
+  mkReleaseVersion <$> drvRepoBranchVersion (cpRemote p) p.branch
 
 cpDefaultRemote :: Text
 cpDefaultRemote = "origin"

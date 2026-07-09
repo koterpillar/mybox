@@ -49,7 +49,7 @@ testFile = do
   pure $ home </> "test-file-1"
 
 instance Package TestPackage where
-  remoteVersion p = pure p.flavour
+  remoteVersion p = pure $ mkReleaseVersion p.flavour
   localVersion _ = do
     tf <- testFile
     drvIsFile tf >>= \case

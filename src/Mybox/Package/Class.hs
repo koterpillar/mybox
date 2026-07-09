@@ -1,6 +1,8 @@
 module Mybox.Package.Class (
   Package (..),
   PackageName (..),
+  ReleaseVersion (..),
+  mkReleaseVersion,
   getName,
   withoutName,
   genericSplitName,
@@ -10,6 +12,8 @@ module Mybox.Package.Class (
   ensureInstalled,
 ) where
 
+import Data.Time.Clock (UTCTime)
+
 import Mybox.Aeson
 import Mybox.Display
 import Mybox.Effects
@@ -18,11 +22,20 @@ import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Tracker
 
+data ReleaseVersion = ReleaseVersion
+  { version :: Text
+  , date :: Maybe UTCTime
+  }
+  deriving (Eq, Generic, Ord, Show)
+
+mkReleaseVersion :: Text -> ReleaseVersion
+mkReleaseVersion version = ReleaseVersion{version, date = Nothing}
+
 class
   (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: App es => a -> Eff es Text
+  remoteVersion :: App es => a -> Eff es ReleaseVersion
   localVersion :: App es => a -> Eff es (Maybe Text)
   install :: App es => a -> Eff es ()
 
@@ -37,7 +50,7 @@ isInstalled pkg = do
         Nothing -> pure False
         Just lv' -> do
           rv <- remoteVersion pkg
-          pure $ lv' == rv
+          pure $ lv' == rv.version
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = trkTry pkg $

@@ -31,12 +31,12 @@ spec = do
         it "gets version for existing package" $ do
           let package = mkPipxPackage "black"
           version <- remoteVersion package
-          version `shouldSatisfy` (>= "25.0.0")
-          version `shouldSatisfy` (<= "999.0.0")
+          version.version `shouldSatisfy` (>= "25.0.0")
+          version.version `shouldSatisfy` (<= "999.0.0")
       it "fails for non-existent package" $ do
         let package = mkPipxPackage "xxxxxxxxxxxx"
         remoteVersion package `shouldThrow` anyException
-      let isGitHash v = Text.length v == 40
+      let isGitHash v = Text.length v.version == 40
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package" $ do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
