@@ -4,16 +4,19 @@ import Mybox.Aeson
 import Mybox.Compute.Base
 import Mybox.Driver
 import Mybox.Prelude
+import Mybox.Utils
 
 data Conditions = Conditions
   { os :: Maybe [Text]
   , architecture :: Maybe [Architecture]
+  , hostname :: Maybe [Text]
   }
 
 instance FromJSON Conditions where
   parseJSON = withObjectTotal "Conditions" $ do
     os <- takeCollapsedListMaybe "os"
     architecture <- takeCollapsedListMaybe "architecture"
+    hostname <- takeCollapsedListMaybe "hostname"
     pure Conditions{..}
 
 andM :: Monad m => [m Bool] -> m Bool
@@ -23,10 +26,19 @@ andM = foldM go True
   go True act = act
 
 match :: Driver :> es => Conditions -> Eff es Bool
-match c = andM $ toList (osMatches <$> c.os) <> toList (architectureMatches <$> c.architecture)
+match c =
+  andM $
+    toList (osMatches <$> c.os)
+      <> toList (architectureMatches <$> c.architecture)
+      <> toList (hostnameMatches <$> c.hostname)
 
 architectureMatches :: Driver :> es => [Architecture] -> Eff es Bool
 architectureMatches as = flip elem as <$> drvArchitecture
+
+hostnameMatches :: Driver :> es => [Text] -> Eff es Bool
+hostnameMatches hostnames = do
+  hostname <- drvHostname
+  pure $ any (`glob` hostname) hostnames
 
 osMatches :: Driver :> es => [Text] -> Eff es Bool
 osMatches os = flip any os . matches <$> drvOS
