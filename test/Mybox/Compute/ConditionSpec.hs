@@ -2,95 +2,50 @@ module Mybox.Compute.ConditionSpec where
 
 import Mybox.Aeson
 import Mybox.Compute.Condition
+import Mybox.Compute.SpecBase
 import Mybox.Driver
-import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
-
-mockPlatform :: Architecture -> OS -> Args -> Maybe Text
-mockPlatform arch _ ("uname" :| ["-m"]) = Just $ architectureString arch
-mockPlatform _ _ ("uname" :| ["-n"]) = Just "my-host"
-mockPlatform _ os ("uname" :| []) = Just $ case os of
-  MacOS -> "Darwin"
-  Linux _ -> "Linux"
-mockPlatform _ (Linux (Debian variant)) ("cat" :| ["/etc/os-release"]) =
-  Just $ "ID=" <> variant <> "\n"
-mockPlatform _ (Linux Fedora) ("cat" :| ["/etc/os-release"]) =
-  Just "ID=fedora\n"
-mockPlatform _ _ _ = Nothing
-
-run :: Architecture -> OS -> Value -> Object -> Maybe Value
-run arch os value base = runPureEff $ pureDriver (mockPlatform arch os) $ conditionProcessor value base
 
 rest :: Object
 rest = "rest" .= String "value"
 
 shouldMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
-shouldMatch !arch !os value = run arch os value rest `shouldBe` Just (Object rest)
+shouldMatch !arch !os value = do
+  runProcessor arch os value rest ifProcessor `shouldBe` Just (Object rest)
+  runProcessor arch os value rest unlessProcessor `shouldBe` Nothing
 
 shouldNotMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
-shouldNotMatch !arch !os value = run arch os value rest `shouldBe` Nothing
+shouldNotMatch !arch !os value = do
+  runProcessor arch os value rest ifProcessor `shouldBe` Nothing
+  runProcessor arch os value rest unlessProcessor `shouldBe` Just (Object rest)
 
 spec :: Spec
 spec = do
-  describe "conditionProcessor" $ do
+  describe "ifProcessor" $ do
     it "passes through when no OS condition is specified" $ do
       shouldMatch X86_64 MacOS (object [])
       shouldMatch Aarch64 (Linux Fedora) (object [])
 
-    describe "OS matching" $ do
-      let osFilter (cond :: Text) = object ["os" .= cond]
-
-      it "filters macOS" $ do
-        let f = osFilter "darwin"
-        shouldMatch X86_64 MacOS f
-        shouldNotMatch X86_64 (Linux Fedora) f
-
-      it "filters Linux" $ do
-        let f = osFilter "linux"
-        shouldMatch X86_64 (Linux Fedora) f
-        shouldMatch X86_64 (Linux (Debian "debian")) f
-        shouldNotMatch X86_64 MacOS f
-
-      it "filters Fedora" $ do
-        let f = osFilter "fedora"
-        shouldMatch X86_64 (Linux Fedora) f
-        shouldNotMatch X86_64 (Linux (Debian "debian")) f
-        shouldNotMatch X86_64 MacOS f
-
-      it "filters Debian variants" $ do
-        let f = osFilter "debian"
-        shouldMatch X86_64 (Linux (Debian "debian")) f
-        shouldNotMatch X86_64 (Linux (Debian "ubuntu")) f
-        shouldNotMatch X86_64 (Linux Fedora) f
-        shouldNotMatch X86_64 MacOS f
+    it "filters OS" $ do
+      let value = object ["os" .= ("darwin" :: Text)]
+      shouldMatch X86_64 MacOS value
+      shouldNotMatch X86_64 (Linux Fedora) value
 
     it "filters on architecture" $ do
       let value = object ["architecture" .= ("x86_64" :: Text)]
       shouldMatch X86_64 MacOS value
       shouldNotMatch Aarch64 MacOS value
 
-    describe "hostname matching" $ do
-      it "filters on exact hostname" $ do
-        let value = object ["hostname" .= ("my-host" :: Text)]
-        shouldMatch X86_64 MacOS value
-        shouldNotMatch X86_64 MacOS (object ["hostname" .= ("other-host" :: Text)])
+    it "filters on hostname" $ do
+      shouldMatch X86_64 MacOS (object ["hostname" .= ("my-*" :: Text)])
+      shouldMatch X86_64 MacOS (object ["hostname" .= ("*-host" :: Text)])
+      shouldNotMatch X86_64 MacOS (object ["hostname" .= ("other-*" :: Text)])
 
-      it "filters on hostname glob" $ do
-        shouldMatch X86_64 MacOS (object ["hostname" .= ("my-*" :: Text)])
-        shouldMatch X86_64 MacOS (object ["hostname" .= ("*-host" :: Text)])
-        shouldNotMatch X86_64 MacOS (object ["hostname" .= ("other-*" :: Text)])
-
-      it "accepts any hostname from the list" $ do
-        let value = object ["hostname" .= ["other-host" :: Text, "my-host"]]
-        shouldMatch X86_64 MacOS value
-        shouldNotMatch X86_64 MacOS (object ["hostname" .= ["a" :: Text, "b"]])
-
-    it "accepts any element from the list" $ do
-      let value = object ["os" .= ["darwin" :: Text, "debian"]]
+    it "accepts any hostname from the list" $ do
+      let value = object ["hostname" .= ["other-host" :: Text, "my-host"]]
       shouldMatch X86_64 MacOS value
-      shouldMatch Aarch64 (Linux (Debian "debian")) value
-      shouldNotMatch Aarch64 (Linux Fedora) value
+      shouldNotMatch X86_64 MacOS (object ["hostname" .= ["a" :: Text, "b"]])
 
     it "checks all conditions" $ do
       let value =

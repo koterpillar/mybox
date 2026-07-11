@@ -17,7 +17,8 @@ import Mybox.Prelude
 sigils :: Map Text (Processor (Eff '[Driver]))
 sigils =
   Map.fromList
-    [ ("if", conditionProcessor)
+    [ ("if", ifProcessor)
+    , ("unless", unlessProcessor)
     , ("format", formatProcessor)
     , ("jsonpath", jsonpathProcessor)
     , ("links", linksProcessor)
