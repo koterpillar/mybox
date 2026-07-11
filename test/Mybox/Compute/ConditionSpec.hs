@@ -9,6 +9,7 @@ import Mybox.SpecBase
 
 mockPlatform :: Architecture -> OS -> Args -> Maybe Text
 mockPlatform arch _ ("uname" :| ["-m"]) = Just $ architectureString arch
+mockPlatform _ _ ("uname" :| ["-n"]) = Just "my-host"
 mockPlatform _ os ("uname" :| []) = Just $ case os of
   MacOS -> "Darwin"
   Linux _ -> "Linux"
@@ -68,6 +69,22 @@ spec = do
       let value = object ["architecture" .= ("x86_64" :: Text)]
       shouldMatch X86_64 MacOS value
       shouldNotMatch Aarch64 MacOS value
+
+    describe "hostname matching" $ do
+      it "filters on exact hostname" $ do
+        let value = object ["hostname" .= ("my-host" :: Text)]
+        shouldMatch X86_64 MacOS value
+        shouldNotMatch X86_64 MacOS (object ["hostname" .= ("other-host" :: Text)])
+
+      it "filters on hostname glob" $ do
+        shouldMatch X86_64 MacOS (object ["hostname" .= ("my-*" :: Text)])
+        shouldMatch X86_64 MacOS (object ["hostname" .= ("*-host" :: Text)])
+        shouldNotMatch X86_64 MacOS (object ["hostname" .= ("other-*" :: Text)])
+
+      it "accepts any hostname from the list" $ do
+        let value = object ["hostname" .= ["other-host" :: Text, "my-host"]]
+        shouldMatch X86_64 MacOS value
+        shouldNotMatch X86_64 MacOS (object ["hostname" .= ["a" :: Text, "b"]])
 
     it "accepts any element from the list" $ do
       let value = object ["os" .= ["darwin" :: Text, "debian"]]
