@@ -18,6 +18,7 @@ library
       Mybox.Compute
       Mybox.Compute.Base
       Mybox.Compute.Condition
+      Mybox.Compute.Facts
       Mybox.Compute.Format
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
@@ -178,9 +179,11 @@ test-suite tests
       Mybox.AesonSpec
       Mybox.Compute.BaseSpec
       Mybox.Compute.ConditionSpec
+      Mybox.Compute.FactsSpec
       Mybox.Compute.FormatSpec
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
+      Mybox.Compute.SpecBase
       Mybox.Compute.URLSpec
       Mybox.Config.CommandLineSpec
       Mybox.Display.ANSISpec
