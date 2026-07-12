@@ -30,8 +30,8 @@ spec = do
 
   describe "architectureMatches" $ do
     it "matches the architecture" $ do
-      runMockPlatform X86_64 MacOS (architectureMatches X86_64) `shouldBe` True
-      runMockPlatform Aarch64 MacOS (architectureMatches X86_64) `shouldBe` False
+      runMockPlatform X86_64 MacOS (architectureMatches "x86_64") `shouldBe` True
+      runMockPlatform Aarch64 MacOS (architectureMatches "x86_64") `shouldBe` False
 
   describe "hostnameMatches" $ do
     it "matches the exact hostname" $ do

@@ -4,8 +4,10 @@ import Mybox.Driver
 import Mybox.Prelude
 import Mybox.Utils
 
-architectureMatches :: Driver :> es => Architecture -> Eff es Bool
-architectureMatches a = (== a) <$> drvArchitecture
+architectureMatches :: Driver :> es => Text -> Eff es Bool
+architectureMatches aStr = case parseArchitecture aStr of
+  Left _ -> pure False
+  Right a -> (a ==) <$> drvArchitecture
 
 hostnameMatches :: Driver :> es => Text -> Eff es Bool
 hostnameMatches h = glob h <$> drvHostname
