@@ -8,7 +8,7 @@ import Mybox.Prelude
 
 data Conditions = Conditions
   { os :: Maybe [Text]
-  , architecture :: Maybe [Architecture]
+  , architecture :: Maybe [Text]
   , hostname :: Maybe [Text]
   }
 
