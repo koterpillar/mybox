@@ -47,6 +47,17 @@ spec = do
       shouldMatch X86_64 MacOS value
       shouldNotMatch X86_64 MacOS (object ["hostname" .= ["a" :: Text, "b"]])
 
+    it "accepts any OS from the list" $ do
+      let value = object ["os" .= ["darwin" :: Text, "debian"]]
+      shouldMatch X86_64 MacOS value
+      shouldMatch Aarch64 (Linux (Debian "debian")) value
+      shouldNotMatch Aarch64 (Linux Fedora) value
+
+    it "accepts any architecture from the list" $ do
+      let value = object ["architecture" .= ["x86_64" :: Text, "aarch64"]]
+      shouldMatch X86_64 MacOS value
+      shouldMatch Aarch64 MacOS value
+
     it "checks all conditions" $ do
       let value =
             object

@@ -18,6 +18,7 @@ module Mybox.Prelude (
   for,
   on,
   uncons,
+  andM,
   anyM,
   unlessM,
   unsnoc,
@@ -43,7 +44,7 @@ module Mybox.Prelude (
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
-import Control.Monad.Extra (anyM, unlessM, whenM, whileM)
+import Control.Monad.Extra (andM, anyM, unlessM, whenM, whileM)
 import Data.Bifunctor (first)
 import Data.Either
 import Data.Foldable
