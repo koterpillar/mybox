@@ -28,7 +28,7 @@ installLogFile = "dummy-package-install-log.txt"
 instance Package DummyPackage where
   remoteVersion _ = do
     home <- drvHome
-    drvReadFile $ home <//> dummyVersionFile
+    mkReleaseVersion <$> drvReadFile (home <//> dummyVersionFile)
   localVersion = manualVersion
   install = manualVersionInstall $ \_ -> do
     home <- drvHome

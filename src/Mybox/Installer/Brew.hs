@@ -30,7 +30,7 @@ homebrewDirectory = flip fmap drvOS $ \case
   Linux _ -> mkPath "/home/linuxbrew/.linuxbrew"
 
 instance IsSystemPackage s => Package (BrewBootstrap s) where
-  remoteVersion BrewBootstrap = pure "homebrew"
+  remoteVersion BrewBootstrap = pure $ mkReleaseVersion "homebrew"
   localVersion BrewBootstrap = do
     dir <- homebrewDirectory
     exists <- drvIsDir dir

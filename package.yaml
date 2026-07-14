@@ -32,6 +32,7 @@ dependencies:
   - random
   - safe-exceptions
   - scalpel
+  - time
   - text
   - typed-process
   - vector
