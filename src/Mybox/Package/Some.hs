@@ -60,6 +60,6 @@ instance PackageName SomePackage where
       True -> Just $ SomePackage $ \g -> f $ g . fromJust . snd . splitName
 
 instance Package SomePackage where
-  remoteVersion (SomePackage f) = f remoteVersion
+  releases (SomePackage f) = f releases
   localVersion (SomePackage f) = f localVersion
-  install (SomePackage f) = f install
+  install (SomePackage f) release = f (`install` release)

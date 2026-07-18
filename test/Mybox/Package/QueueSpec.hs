@@ -9,6 +9,7 @@ import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -45,9 +46,9 @@ instance ToJSON ActionPackage where
       ]
 
 instance Package ActionPackage where
-  remoteVersion _ = pure "1"
+  releases _ = pure defaultRelease
   localVersion _ = pure Nothing
-  install p = do
+  install p _ = do
     queueInstallMany p.deps
     d <- destinationPath p
     drvRun $ "sleep" :| [p.delayS]

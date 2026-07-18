@@ -11,6 +11,7 @@ import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
+import Mybox.Release
 
 data ForgePackage = ForgePackage
   { repo :: Text
@@ -83,17 +84,16 @@ githubApiEndpoint owner repo = do
   let baseUrl = "https://api.github.com/repos/" <> owner <> "/" <> repo
   pure APIEndpoint{..}
 
-api :: Driver :> es => ForgePackage -> Text -> Eff es (Either (Int, Text) Text)
+api :: Driver :> es => ForgePackage -> Text -> Eff es Text
 api p url = do
   endpoint <- apiEndpoint p
   let headers = case endpoint.authToken of
         Just t -> ["-H", "Authorization: token " <> t]
         Nothing -> []
   (status, result) <- drvHttpGetStatusArgs headers (endpoint.baseUrl <> url)
-  pure $
-    if status == 200
-      then Right result
-      else Left (status, result)
+  if status == 200
+    then pure result
+    else error $ "Releases API returned " <> show status <> ": " <> Text.unpack result
 
 data ReleaseArtifact = ReleaseArtifact
   { name :: Text
@@ -103,47 +103,45 @@ data ReleaseArtifact = ReleaseArtifact
 
 instance FromJSON ReleaseArtifact
 
-data Release = Release
+data APIRelease = APIRelease
   { id :: Int
   , tag_name :: Text
+  , published_at :: Maybe UTCTime
   , prerelease :: Bool
   , assets :: [ReleaseArtifact]
   }
   deriving (Generic, Show)
 
-instance FromJSON Release
+instance FromJSON APIRelease
 
-handleAPIError :: Either (Int, Text) a -> Eff es a
-handleAPIError = \case
-  Left (status, err) -> error $ "Releases API returned " <> show status <> ": " <> Text.unpack err
-  Right output -> pure output
-
-releases :: Driver :> es => ForgePackage -> Eff es [Release]
-releases p =
+apiReleases :: Driver :> es => ForgePackage -> Eff es [APIRelease]
+apiReleases p =
   api p "/releases"
-    >>= handleAPIError
     >>= jsonDecode "Releases"
 
-latestRelease :: Driver :> es => ForgePackage -> Eff es (Maybe Release)
-latestRelease p =
-  api p "/releases/latest" >>= \case
-    Left (404, _) -> pure Nothing
-    r -> handleAPIError r >>= jsonDecode "Release"
-
-wantRelease :: ForgePackage -> Release -> Bool
+-- FIXME: Move release-selection predicate into the shared Package class layer.
+wantRelease :: ForgePackage -> APIRelease -> Bool
 wantRelease p r
   | r.prerelease = False
   | r.tag_name `elem` p.skipReleases = False
   | otherwise = True
 
-release :: forall es. Driver :> es => ForgePackage -> Eff es Release
-release p =
-  findRelease (latestRelease p)
-    `fromMaybeOrMM` findRelease (releases p)
-    `fromMaybeOrMM` (error $ "No releases found for " <> Text.unpack p.repo)
- where
-  findRelease :: Foldable f => Eff es (f Release) -> Eff es (Maybe Release)
-  findRelease = fmap $ find $ wantRelease p
+matchingReleases :: Driver :> es => ForgePackage -> Eff es [APIRelease]
+matchingReleases p = filter (wantRelease p) <$> apiReleases p
+
+toRelease :: APIRelease -> Release
+toRelease r =
+  (mkRelease r.tag_name)
+    { date = r.published_at
+    , prerelease = r.prerelease
+    }
+
+findAPIRelease :: Driver :> es => ForgePackage -> Release -> Eff es APIRelease
+findAPIRelease p release_ = do
+  -- FIXME: Fetch by tag directly (e.g. /releases/tags/{tag}) instead of scanning all releases.
+  candidates <- matchingReleases p
+  find ((== release_.version) . (.tag_name)) candidates
+    `fromMaybeOrM` (error $ "No release found for " <> Text.unpack p.repo <> ": " <> Text.unpack release_.version)
 
 environmentFilters :: Architecture -> OS -> [Text -> Bool]
 environmentFilters arch os = execWriter $ do
@@ -164,16 +162,16 @@ ghFilters p = do
   os <- drvOS
   pure $ toFilters p.filters <> environmentFilters arch os
 
-artifact :: Driver :> es => ForgePackage -> Eff es ReleaseArtifact
-artifact p = do
-  r <- release p
+artifact :: Driver :> es => ForgePackage -> Release -> Eff es ReleaseArtifact
+artifact p release_ = do
+  r <- findAPIRelease p release_
   fs <- ghFilters p
   throwLeft $ choose_ (map (. (.name)) fs) r.assets
 
 instance ArchivePackage ForgePackage where
-  archiveUrl p = (.browser_download_url) <$> artifact p
+  archiveUrl p release_ = (.browser_download_url) <$> artifact p release_
 
 instance Package ForgePackage where
-  remoteVersion p = Text.pack . show . (.id) <$> release p
+  releases p = map toRelease <$> matchingReleases p
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

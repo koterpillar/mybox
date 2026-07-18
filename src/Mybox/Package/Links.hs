@@ -15,6 +15,7 @@ import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Root
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data LinksPackage = LinksPackage
@@ -101,5 +102,5 @@ lpInstall p = do
 
 instance Package LinksPackage where
   localVersion = manualVersion
-  remoteVersion = lpRemoteVersion
-  install = installWithPost $ manualVersionInstall lpInstall
+  releases p = fmap mkSingleRelease $ lpRemoteVersion p
+  install = installWithPost $ manualVersionInstall $ \p _ -> lpInstall p

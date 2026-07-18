@@ -5,6 +5,7 @@ import Mybox.Driver
 import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 newtype ManualVersion = ManualVersion {version :: Text} deriving (Eq, Generic, Ord, Show)
@@ -30,10 +31,9 @@ manualVersion p = do
       trkAdd p vf
       fmap (.version) <$> jsonDecode @ManualVersion "install record" <$> drvReadFile vf
 
-manualVersionInstall :: (App es, Package p) => (p -> Eff es ()) -> p -> Eff es ()
-manualVersionInstall installAct p = do
-  v <- remoteVersion p
-  installAct p
+manualVersionInstall :: (App es, Package p) => (p -> Release -> Eff es ()) -> p -> Release -> Eff es ()
+manualVersionInstall installAct p release = do
+  installAct p release
   vf <- versionFile p
-  drvWriteBinaryFile vf $ encode $ ManualVersion{version = v}
+  drvWriteBinaryFile vf $ encode $ ManualVersion{version = release.version}
   trkAdd p vf

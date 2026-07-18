@@ -6,6 +6,7 @@ import Mybox.Package.Class
 import Mybox.Package.ManualVersion.Internal
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -26,11 +27,12 @@ installLogFile :: Path Rel
 installLogFile = "dummy-package-install-log.txt"
 
 instance Package DummyPackage where
-  remoteVersion _ = do
+  releases _ = do
     home <- drvHome
-    drvReadFile $ home <//> dummyVersionFile
+    version <- drvReadFile $ home <//> dummyVersionFile
+    pure $ mkSingleRelease version
   localVersion = manualVersion
-  install = manualVersionInstall $ \_ -> do
+  install = manualVersionInstall $ \_ _ -> do
     home <- drvHome
     drvWriteFile (home <//> installLogFile) ""
 
@@ -60,6 +62,6 @@ spec = do
       localVersion pkg >>= (`shouldBe` Nothing)
     it "installs and is reported installed after installation" $ do
       setRemoteVersion "version1"
-      install pkg
+      install pkg (mkRelease "version1")
       hasInstallLog >>= (`shouldBe` True)
       localVersion pkg >>= (`shouldBe` Just "version1")

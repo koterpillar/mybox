@@ -14,6 +14,7 @@ import Mybox.Package.Queue
 import Mybox.Package.Root
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data ArchiveFields = ArchiveFields
@@ -65,7 +66,7 @@ archiveToJSON p =
   ]
 
 class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p where
-  archiveUrl :: forall es. App es => p -> Eff es Text
+  archiveUrl :: forall es. App es => p -> Release -> Eff es Text
 
 aDirectory :: (ArchivePackage p, Driver :> es) => p -> Eff es (Path Abs)
 aDirectory p = do
@@ -91,9 +92,9 @@ aExtractRaw p url archiveFile filename = do
     extractRaw extractor archiveFile targetPath
     when (filename `elem` p.archive.binaries) $ drvMakeExecutable targetPath
 
-archiveInstall :: (App es, ArchivePackage p) => p -> Eff es ()
-archiveInstall p = do
-  url <- archiveUrl p
+archiveInstall :: (App es, ArchivePackage p) => p -> Release -> Eff es ()
+archiveInstall p release = do
+  url <- archiveUrl p release
   drvTempDownload url $ \archiveFile -> do
     target <- aDirectory p
     trkAdd p target

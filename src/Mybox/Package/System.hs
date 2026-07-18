@@ -8,6 +8,7 @@ import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
+import Mybox.Release
 
 data SystemPackage = SystemPackage
   { name :: Text
@@ -47,7 +48,7 @@ instance ToJSON SystemPackage where
         <> postToJSON p
 
 autoUpdateVersion :: SystemPackage -> Text -> Text
-autoUpdateVersion p = if p.autoUpdates then const "latest" else id
+autoUpdateVersion p = if p.autoUpdates then const defaultVersion else id
 
 systemInstaller :: Driver :> es => SystemPackage -> Eff es Installer
 systemInstaller p = mkInstaller @SystemPackage p.installer
@@ -66,16 +67,16 @@ systemLocalVersion p = case p.url of
     fmap (autoUpdateVersion p) <$> iInstalledVersion installer p.name
   Just _ -> manualVersion p
 
-systemInstall :: App es => SystemPackage -> Eff es ()
-systemInstall p = do
+systemInstall :: App es => SystemPackage -> Release -> Eff es ()
+systemInstall p release = do
   installer <- systemInstaller p
   case p.url of
     Nothing -> do
       alreadyInstalled <- isJust <$> systemLocalVersion p
       (if alreadyInstalled then iUpgrade else iInstall) installer p.name
-    Just url -> manualVersionInstall (\_ -> iInstallURL installer url) p
+    Just url -> manualVersionInstall (\_ _ -> iInstallURL installer url) p release
 
 instance Package SystemPackage where
   localVersion = systemLocalVersion
-  remoteVersion = systemRemoteVersion
+  releases p = fmap mkSingleRelease $ systemRemoteVersion p
   install = installWithPost systemInstall

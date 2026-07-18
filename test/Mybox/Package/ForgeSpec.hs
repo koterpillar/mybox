@@ -173,28 +173,28 @@ spec = do
 
   it "skips release" $ do
     let keytar = (mkForgePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
-    r <- release keytar
-    r.tag_name `shouldBe` "v7.8.0"
+    rs <- matchingReleases keytar
+    map (.tag_name) (take 1 rs) `shouldBe` ["v7.8.0"]
 
-  it "errors when no releases" $ do
+  it "returns no releases when all are filtered out" $ do
     let nixos = mkForgePackage "NixOS/nixpkgs"
-    release nixos `shouldThrow` errorCall "No releases found for NixOS/nixpkgs"
+    matchingReleases nixos >>= (`shouldSatisfy` null)
 
   it "skips prereleases" $ do
     let ha = mkForgePackage "home-assistant/core"
     let isStable rel = not $ Text.isInfixOf "b" rel.tag_name
-    haReleases <- releases ha
+    haReleases <- matchingReleases ha
     -- Exclude all stable releases _since_ last prerelease
     let latestStable = takeWhile isStable haReleases
     let haSkip = ha{skipReleases = map (.tag_name) latestStable}
     -- Should find the stable release _before_ last prerelease
-    r <- release haSkip
-    r `shouldSatisfy` isStable
+    filtered <- matchingReleases haSkip
+    map (.tag_name) (take 1 filtered) `shouldSatisfy` all (not . Text.isInfixOf "b")
 
   it "fetches releases when full URL specified" $ do
     let giteaRunner = mkForgePackage "https://gitea.com/gitea/act_runner"
-    release giteaRunner >>= (`shouldSatisfy` \r -> r.prerelease == False)
+    matchingReleases giteaRunner >>= (`shouldSatisfy` \rs -> all (not . (.prerelease)) (take 1 rs))
 
   it "errors on invalid repo format" $ do
     let invalid = mkForgePackage "invalid-repo-format"
-    release invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"
+    matchingReleases invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"

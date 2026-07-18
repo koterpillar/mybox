@@ -8,6 +8,7 @@ import Mybox.Package.NPM.Internal
 import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
@@ -22,11 +23,11 @@ spec = do
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "gets version for existing package" $ do
           let package = mkNPMPackage "express"
-          version <- remoteVersion package
-          version `shouldSatisfy` (>= "4.18.2")
+          release <- selectedRelease package
+          release.version `shouldSatisfy` (>= "4.18.2")
       it "fails for non-existent package" $ do
         let package = mkNPMPackage "xxxxxxxxxxxx"
-        remoteVersion package `shouldThrow` anyException
+        selectedRelease package `shouldThrow` anyException
   skipGenericLinux "Default installer is unavailable on generic Linux" $ do
     let npmPaths = [".npm" </> "_cacache", ".npm" </> "_logs", ".npm" </> "_update-notifier-last-checked"]
     packageSpec $
