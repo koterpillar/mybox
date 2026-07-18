@@ -45,14 +45,22 @@ spec = do
         it "returns a Git commit hash for a git package with ref" $ do
           let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
           remoteVersion package >>= (`shouldSatisfy` isGitHash)
+  let pipxShare = [".local" </> "share", "Library" </> "Application Support"]
   let psPython =
         ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]
           . ignorePaths
             [ prefix </> "pipx" </> suffix
-            | prefix <- [".local", ".local" </> "share"]
-            , suffix <- [".cache", "logs", "py", "shared"]
+            | prefix <- pipxShare
+            , suffix <- [".cache", "logs", "py", "shared", ".shared.lock"]
+            ]
+          -- FIXME: Support glob patterns so we can write `.*.lock`.
+          . ignorePaths
+            [ prefix </> "pipx" </> "venvs" </> lockFile
+            | prefix <- pipxShare
+            , lockFile <- [".tqdm.lock", ".mypy.lock"]
             ]
           . ignorePaths [".local" </> "state" </> "pipx" </> "log"]
+          . ignorePaths [mkPath "Library/Application Support/pipx/py/CACHEDIR.TAG"]
           . ignorePaths [".rustup" </> "settings.toml"] -- something on GitHub runners creates this
   let tqdmPackage name =
         ps (mkPipxPackage name)

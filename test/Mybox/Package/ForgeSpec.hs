@@ -1,4 +1,4 @@
-module Mybox.Package.ReleaseSpec where
+module Mybox.Package.ForgeSpec where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -6,7 +6,7 @@ import Data.Text qualified as Text
 import Mybox.Driver
 import Mybox.Filters
 import Mybox.Package.Archive
-import Mybox.Package.Release.Internal hiding (id)
+import Mybox.Package.Forge.Internal hiding (id)
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
@@ -60,10 +60,10 @@ libraryExists lib = do
       libraries <- drvRunOutput $ "ldconfig" :| ["-p"]
       pure $ any (Text.isInfixOf lib) (Text.lines libraries)
 
-neovimPackage :: Bool -> PackageSpecArgs -> PackageSpec ReleasePackage
+neovimPackage :: Bool -> PackageSpecArgs -> PackageSpec ForgePackage
 neovimPackage root psa =
   ps
-    ( (mkReleasePackage "neovim/neovim")
+    ( (mkForgePackage "neovim/neovim")
         { archive =
             emptyArchiveFields
               { binaries = ["nvim"]
@@ -87,7 +87,7 @@ neovimPackage root psa =
 
 spec :: Spec
 spec = do
-  metaSpec @ReleasePackage [(Nothing, "{\"repo\": \"example/example\"}")]
+  metaSpec @ForgePackage [(Nothing, "{\"repo\": \"example/example\"}")]
 
   packageSpecGen "neovim" $ neovimPackage False
   packageSpecGen "neovim with root" $ neovimPackage True
@@ -95,7 +95,7 @@ spec = do
   onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
     packageSpec $
       ps
-        ( (mkReleasePackage "eza-community/eza")
+        ( (mkForgePackage "eza-community/eza")
             { archive =
                 emptyArchiveFields
                   { binaries = ["eza"]
@@ -111,7 +111,7 @@ spec = do
   skipGenericLinux "Java installer unavailable on generic Linux" $
     packageSpecGen "Ammonite" $ \psa ->
       ps
-        ( (mkReleasePackage "com-lihaoyi/Ammonite")
+        ( (mkForgePackage "com-lihaoyi/Ammonite")
             { archive =
                 emptyArchiveFields
                   { binaries = ["amm"]
@@ -133,7 +133,7 @@ spec = do
 
   packageSpec $
     ps
-      ( (mkReleasePackage "jqlang/jq")
+      ( (mkForgePackage "jqlang/jq")
           { archive =
               emptyArchiveFields
                 { binaries = ["jq"]
@@ -146,7 +146,7 @@ spec = do
   onlyIf "libgmp required to run hindent" (libraryExists "libgmp") $
     packageSpec $
       ps
-        ( (mkReleasePackage "koterpillar/hindent-build")
+        ( (mkForgePackage "koterpillar/hindent-build")
             { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
             }
         )
@@ -156,7 +156,7 @@ spec = do
     skipGenericLinux "Default installer is unavailable on generic Linux" $
       packageSpec $
         ps
-          ( (mkReleasePackage "tonsky/FiraCode")
+          ( (mkForgePackage "tonsky/FiraCode")
               { archive =
                   emptyArchiveFields{fonts = ["FiraCode-Regular"]}
               }
@@ -165,23 +165,23 @@ spec = do
 
   packageSpec $
     ps
-      ( (mkReleasePackage "codeberg.org/mergiraf/mergiraf")
+      ( (mkForgePackage "codeberg.org/mergiraf/mergiraf")
           { archive = emptyArchiveFields{binaries = ["mergiraf"]}
           }
       )
       & checkInstalledCommandOutput ("mergiraf" :| ["--help"]) "A syntax-aware merge driver for Git"
 
   it "skips release" $ do
-    let keytar = (mkReleasePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
+    let keytar = (mkForgePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
     r <- release keytar
     r.tag_name `shouldBe` "v7.8.0"
 
   it "errors when no releases" $ do
-    let nixos = mkReleasePackage "NixOS/nixpkgs"
+    let nixos = mkForgePackage "NixOS/nixpkgs"
     release nixos `shouldThrow` errorCall "No releases found for NixOS/nixpkgs"
 
   it "skips prereleases" $ do
-    let ha = mkReleasePackage "home-assistant/core"
+    let ha = mkForgePackage "home-assistant/core"
     let isStable rel = not $ Text.isInfixOf "b" rel.tag_name
     haReleases <- releases ha
     -- Exclude all stable releases _since_ last prerelease
@@ -192,9 +192,9 @@ spec = do
     r `shouldSatisfy` isStable
 
   it "fetches releases when full URL specified" $ do
-    let giteaRunner = mkReleasePackage "https://gitea.com/gitea/act_runner"
+    let giteaRunner = mkForgePackage "https://gitea.com/gitea/act_runner"
     release giteaRunner >>= (`shouldSatisfy` \r -> r.prerelease == False)
 
   it "errors on invalid repo format" $ do
-    let invalid = mkReleasePackage "invalid-repo-format"
+    let invalid = mkForgePackage "invalid-repo-format"
     release invalid `shouldThrow` errorCall "Invalid repo format: invalid-repo-format"
