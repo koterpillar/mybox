@@ -59,6 +59,8 @@ library
       Mybox.Package.Clone
       Mybox.Package.Daemon
       Mybox.Package.Destination
+      Mybox.Package.Forge
+      Mybox.Package.Forge.Internal
       Mybox.Package.Hash
       Mybox.Package.Links
       Mybox.Package.ManualVersion
@@ -71,8 +73,6 @@ library
       Mybox.Package.Post
       Mybox.Package.Queue
       Mybox.Package.Queue.Effect
-      Mybox.Package.Release
-      Mybox.Package.Release.Internal
       Mybox.Package.Root
       Mybox.Package.Shell
       Mybox.Package.Some
@@ -211,13 +211,13 @@ test-suite tests
       Mybox.Package.ClassSpec
       Mybox.Package.CloneSpec
       Mybox.Package.DaemonSpec
+      Mybox.Package.ForgeSpec
       Mybox.Package.LinksSpec
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NameSpec
       Mybox.Package.NPMSpec
       Mybox.Package.PipxSpec
       Mybox.Package.QueueSpec
-      Mybox.Package.ReleaseSpec
       Mybox.Package.ShellSpec
       Mybox.Package.SomeSpec
       Mybox.Package.SpecBase

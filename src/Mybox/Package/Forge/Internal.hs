@@ -1,4 +1,4 @@
-module Mybox.Package.Release.Internal where
+module Mybox.Package.Forge.Internal where
 
 import Control.Monad.Writer
 import Data.Text qualified as Text
@@ -12,7 +12,7 @@ import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
 
-data ReleasePackage = ReleasePackage
+data ForgePackage = ForgePackage
   { repo :: Text
   , skipReleases :: [Text]
   , archive :: ArchiveFields
@@ -21,9 +21,9 @@ data ReleasePackage = ReleasePackage
   }
   deriving (Eq, Generic, Show)
 
-mkReleasePackage :: Text -> ReleasePackage
-mkReleasePackage repo =
-  ReleasePackage
+mkForgePackage :: Text -> ForgePackage
+mkForgePackage repo =
+  ForgePackage
     { repo = repo
     , skipReleases = []
     , archive = emptyArchiveFields
@@ -31,19 +31,19 @@ mkReleasePackage repo =
     , post = []
     }
 
-instance PackageName ReleasePackage where
+instance PackageName ForgePackage where
   splitName = genericSplitName' @'[] @'["repo"]
 
-instance FromJSON ReleasePackage where
-  parseJSON = withObjectTotal "ReleasePackage" $ do
+instance FromJSON ForgePackage where
+  parseJSON = withObjectTotal "ForgePackage" $ do
     repo <- takeField "repo"
     skipReleases <- takeCollapsedList "skip_release"
     archive <- takeArchive
     filters <- takeFilter
     post <- takePost
-    pure ReleasePackage{..}
+    pure ForgePackage{..}
 
-instance ToJSON ReleasePackage where
+instance ToJSON ForgePackage where
   toJSON p =
     object $
       [ "repo" .= p.repo
@@ -58,7 +58,7 @@ data APIEndpoint = APIEndpoint
   , authToken :: Maybe Text
   }
 
-apiEndpoint :: Driver :> es => ReleasePackage -> Eff es APIEndpoint
+apiEndpoint :: Driver :> es => ForgePackage -> Eff es APIEndpoint
 apiEndpoint p = do
   let parts = Text.splitOn "/" p.repo
   case parts of
@@ -83,7 +83,7 @@ githubApiEndpoint owner repo = do
   let baseUrl = "https://api.github.com/repos/" <> owner <> "/" <> repo
   pure APIEndpoint{..}
 
-api :: Driver :> es => ReleasePackage -> Text -> Eff es (Either (Int, Text) Text)
+api :: Driver :> es => ForgePackage -> Text -> Eff es (Either (Int, Text) Text)
 api p url = do
   endpoint <- apiEndpoint p
   let headers = case endpoint.authToken of
@@ -118,25 +118,25 @@ handleAPIError = \case
   Left (status, err) -> error $ "Releases API returned " <> show status <> ": " <> Text.unpack err
   Right output -> pure output
 
-releases :: Driver :> es => ReleasePackage -> Eff es [Release]
+releases :: Driver :> es => ForgePackage -> Eff es [Release]
 releases p =
   api p "/releases"
     >>= handleAPIError
     >>= jsonDecode "Releases"
 
-latestRelease :: Driver :> es => ReleasePackage -> Eff es (Maybe Release)
+latestRelease :: Driver :> es => ForgePackage -> Eff es (Maybe Release)
 latestRelease p =
   api p "/releases/latest" >>= \case
     Left (404, _) -> pure Nothing
     r -> handleAPIError r >>= jsonDecode "Release"
 
-wantRelease :: ReleasePackage -> Release -> Bool
+wantRelease :: ForgePackage -> Release -> Bool
 wantRelease p r
   | r.prerelease = False
   | r.tag_name `elem` p.skipReleases = False
   | otherwise = True
 
-release :: forall es. Driver :> es => ReleasePackage -> Eff es Release
+release :: forall es. Driver :> es => ForgePackage -> Eff es Release
 release p =
   findRelease (latestRelease p)
     `fromMaybeOrMM` findRelease (releases p)
@@ -158,22 +158,22 @@ environmentFilters arch os = execWriter $ do
       tell [excludes_ "musl"]
     _ -> pure ()
 
-ghFilters :: Driver :> es => ReleasePackage -> Eff es [Text -> Bool]
+ghFilters :: Driver :> es => ForgePackage -> Eff es [Text -> Bool]
 ghFilters p = do
   arch <- drvArchitecture
   os <- drvOS
   pure $ toFilters p.filters <> environmentFilters arch os
 
-artifact :: Driver :> es => ReleasePackage -> Eff es ReleaseArtifact
+artifact :: Driver :> es => ForgePackage -> Eff es ReleaseArtifact
 artifact p = do
   r <- release p
   fs <- ghFilters p
   throwLeft $ choose_ (map (. (.name)) fs) r.assets
 
-instance ArchivePackage ReleasePackage where
+instance ArchivePackage ForgePackage where
   archiveUrl p = (.browser_download_url) <$> artifact p
 
-instance Package ReleasePackage where
+instance Package ForgePackage where
   remoteVersion p = Text.pack . show . (.id) <$> release p
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

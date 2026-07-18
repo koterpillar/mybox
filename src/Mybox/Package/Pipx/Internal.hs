@@ -8,10 +8,10 @@ import Mybox.Driver
 import Mybox.Effects
 import Mybox.Package.Archive
 import Mybox.Package.Class
+import Mybox.Package.Forge hiding (repo)
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Package.Queue
-import Mybox.Package.Release hiding (repo)
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
@@ -72,7 +72,7 @@ prerequisites p = do
   for_ packages $ \package ->
     queueInstall $ mkSystemPackage package
   queueInstall $
-    (mkReleasePackage "pypa/pipx")
+    (mkForgePackage "pypa/pipx")
       { archive = emptyArchiveFields{binaries = ["pipx"], raw = Left "pipx"}
       }
   when (isRepo p) $
