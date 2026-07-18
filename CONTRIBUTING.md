@@ -38,6 +38,7 @@ Releases are done using Semantic Release, see [build.yml](.github/workflows/buil
 
 # Code style
 
+- Prefer domain types over `Text`. In particular, represent timestamps with `UTCTime`.
 - Use modern idioms (e.g., `DerivingVia`, `Generic`, `TypeApplications`).
 - Use point-free style where it makes sense.
 - Do not use explicit import lists, especially for internal modules, unless
