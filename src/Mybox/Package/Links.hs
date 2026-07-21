@@ -22,6 +22,7 @@ data LinksPackage = LinksPackage
   , destination :: Path AnyAnchor
   , dot :: Bool
   , shallow :: Bool
+  , copy :: Bool
   , filters :: FilterFields
   , root :: Bool
   , post :: [Text]
@@ -35,6 +36,7 @@ mkLinksPackage src dest =
     , destination = dest
     , dot = False
     , shallow = False
+    , copy = False
     , filters = mempty
     , root = False
     , post = []
@@ -49,6 +51,7 @@ instance FromJSON LinksPackage where
     destination <- takeField "destination"
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
     shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
+    copy <- fromMaybe False <$> takeFieldMaybe "copy"
     filters <- takeFilter
     root <- takeRoot
     post <- takePost
@@ -61,6 +64,7 @@ instance ToJSON LinksPackage where
       , "destination" .= p.destination
       , "dot" .= p.dot
       , "shallow" .= p.shallow
+      , "copy" .= p.copy
       , "root" .= p.root
       ]
         <> filterToJSON p.filters
@@ -92,11 +96,12 @@ lpInstall p = do
   pp <- paths p
   src <- source p
   sudo' <- mkSudo
+  let place = if p.copy then drvCopy else drvLink
   for_ (Set.toList pp) $ \path_ -> do
     let path = pRelativeTo_ src path_
     let pathDot = (if p.dot then mkPath $ "." <> path.text else path)
     let pathDest = destination <//> pathDot
-    modifyDriver (if p.root then sudo' else id) $ drvLink path_ pathDest
+    modifyDriver (if p.root then sudo' else id) $ place path_ pathDest
     trkAdd p pathDest
 
 instance Package LinksPackage where
