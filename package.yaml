@@ -38,6 +38,7 @@ dependencies:
   - witherable
   - yaml
   - terminal-size
+  - time
 ghc-options:
   - -Wall
   - -Werror

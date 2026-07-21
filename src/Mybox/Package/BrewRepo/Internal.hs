@@ -10,6 +10,7 @@ import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Utils
 
 data BrewRepo = BrewRepo
@@ -64,7 +65,7 @@ brewRepoLocalVersion p = do
   tappedRepos <- brewRun @SystemPackage drvRunOutput ["tap"]
   pure $
     if tapName p `Text.isInfixOf` tappedRepos
-      then Just "installed"
+      then Just defaultVersion
       else Nothing
 
 brewRepoInstall :: App es => BrewRepo -> Eff es ()
@@ -76,6 +77,6 @@ brewRepoInstall p =
     False -> [tapName p, p.name_]
 
 instance Package BrewRepo where
-  remoteVersion = const $ pure "installed"
+  releases = const $ pure defaultRelease
   localVersion = brewRepoLocalVersion
-  install = installWithPost brewRepoInstall
+  install = installWithPost $ \p _ -> brewRepoInstall p

@@ -1,5 +1,6 @@
 module Mybox.Package.Class (
   Package (..),
+  selectedRelease,
   PackageName (..),
   getName,
   withoutName,
@@ -16,15 +17,22 @@ import Mybox.Effects
 import Mybox.Package.Hash
 import Mybox.Package.Name
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 class
   (FromJSON a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
-  remoteVersion :: App es => a -> Eff es Text
+  releases :: App es => a -> Eff es [Release]
   localVersion :: App es => a -> Eff es (Maybe Text)
-  install :: App es => a -> Eff es ()
+  install :: App es => a -> Release -> Eff es ()
+
+selectedRelease :: (App es, Package a) => a -> Eff es Release
+selectedRelease pkg =
+  releases pkg >>= \case
+    release : _ -> pure release
+    [] -> terror $ "No releases found for " <> getName pkg
 
 isInstalled :: (App es, Package a) => a -> Eff es Bool
 isInstalled pkg = do
@@ -36,8 +44,8 @@ isInstalled pkg = do
       case lv of
         Nothing -> pure False
         Just lv' -> do
-          rv <- remoteVersion pkg
-          pure $ lv' == rv
+          rv <- selectedRelease pkg
+          pure $ lv' == rv.version
 
 ensureInstalled :: (App es, Package a) => a -> Eff es ()
 ensureInstalled pkg = trkTry pkg $
@@ -49,6 +57,7 @@ ensureInstalled pkg = trkTry pkg $
         trkSkip pkg
       else do
         displayBannerWhile (bannerInstalling $ getName pkg) $ do
-          install pkg
+          release <- selectedRelease pkg
+          install pkg release
           writeHash pkg
         displayBanner $ bannerModified $ getName pkg

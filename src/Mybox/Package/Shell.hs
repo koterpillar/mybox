@@ -11,7 +11,7 @@ import Mybox.Package.Queue
 import Mybox.Package.Root
 import Mybox.Package.System
 import Mybox.Prelude
-import Mybox.Stores
+import Mybox.Release
 
 data ShellPackage = ShellPackage
   { shell :: Path Abs
@@ -88,9 +88,6 @@ shellLocalVersion p = do
     MacOS -> getShellMacOS username
   pure $ Just shellPath
 
-shellRemoteVersion :: (Driver :> es, Stores :> es) => ShellPackage -> Eff es Text
-shellRemoteVersion p = pure p.shell.text
-
 shellInstall :: App es => ShellPackage -> Eff es ()
 shellInstall p = do
   drvOS >>= \case
@@ -108,5 +105,5 @@ shellInstall p = do
 
 instance Package ShellPackage where
   localVersion = shellLocalVersion
-  remoteVersion = shellRemoteVersion
-  install = installWithPost shellInstall
+  releases p = pure $ mkSingleRelease p.shell.text
+  install = installWithPost $ \p _ -> shellInstall p

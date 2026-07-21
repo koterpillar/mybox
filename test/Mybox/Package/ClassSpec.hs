@@ -10,6 +10,7 @@ import Mybox.Package.Class
 import Mybox.Package.Hash
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.SpecBase
 import Mybox.Stores
 import Mybox.Tracker
@@ -20,6 +21,9 @@ data TestPackage = TestPackage
   , error_ :: Bool
   , flavour :: Text
   }
+  deriving (Eq, Generic, Show)
+
+newtype EmptyReleasesPackage = EmptyReleasesPackage {name :: Text}
   deriving (Eq, Generic, Show)
 
 defTestPackage :: TestPackage
@@ -43,30 +47,42 @@ instance ToJSON TestPackage where
       , "flavour" .= p.flavour
       ]
 
+instance PackageName EmptyReleasesPackage where
+  splitName = genericSplitName
+
+instance FromJSON EmptyReleasesPackage
+
+instance ToJSON EmptyReleasesPackage
+
 testFile :: Driver :> es => Eff es (Path Abs)
 testFile = do
   home <- drvHome
   pure $ home </> "test-file-1"
 
 instance Package TestPackage where
-  remoteVersion p = pure p.flavour
+  releases p = pure $ mkSingleRelease p.flavour
   localVersion _ = do
     tf <- testFile
     drvIsFile tf >>= \case
       False -> pure Nothing
       True -> Just <$> drvReadFile tf
-  install p
+  install p _
     | p.error_ = throwString "Error"
     | otherwise = do
         tf <- testFile
         drvWriteFile tf p.flavour
         trkAdd p tf
 
+instance Package EmptyReleasesPackage where
+  releases _ = pure []
+  localVersion _ = pure Nothing
+  install _ _ = throwString "unexpected install"
+
 run_ ::
-  (AppDisplay :> es', Concurrent :> es, Concurrent :> es', Driver :> es', Stores :> es', Tracker :> es') =>
+  (AppDisplay :> es', Concurrent :> es, Concurrent :> es', Driver :> es', Package p, Stores :> es', Tracker :> es') =>
   (Eff es' () -> Eff (Tracker : AppDisplay : es) ()) ->
   TrackedFiles ->
-  TestPackage ->
+  p ->
   Eff es (TrackResult, String)
 run_ fn initialSet =
   fmap (\(((), trk), out) -> (trk, out))
@@ -133,3 +149,7 @@ spec = do
       state.state `shouldBe` (mempty & mkTrk preexistingFile)
       shouldSatisfy out $
         isPrefixOf "checking test\ninstalling test\nerror test: Control.Exception.Safe.throwString called with:\n\nError"
+
+    it "errors when package has no releases" $ do
+      run_ id initState (EmptyReleasesPackage "empty-releases")
+        `shouldThrow` errorCall "No releases found for empty-releases"

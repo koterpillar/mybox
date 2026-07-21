@@ -13,7 +13,7 @@ instance PackageName DummyPackage where
   splitName = genericSplitName
 
 instance ArchivePackage DummyPackage where
-  archiveUrl _ = pure "dummy"
+  archiveUrl _ _ = pure "dummy"
 
 spec :: Spec
 spec = do

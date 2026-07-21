@@ -14,6 +14,7 @@ import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data DaemonPackage = DaemonPackage
@@ -151,12 +152,9 @@ daemonLocalVersion :: Driver :> es => DaemonPackage -> Eff es (Maybe Text)
 daemonLocalVersion p = do
   path <- serviceFilePath p
   exists <- drvIsFile path
-  pure $ if exists then Just "daemon" else Nothing
-
-daemonRemoteVersion :: Driver :> es => DaemonPackage -> Eff es Text
-daemonRemoteVersion _ = pure "daemon"
+  pure $ if exists then Just defaultVersion else Nothing
 
 instance Package DaemonPackage where
   localVersion = daemonLocalVersion
-  remoteVersion = daemonRemoteVersion
-  install = installWithPost daemonInstall
+  releases _ = pure defaultRelease
+  install = installWithPost $ \p _ -> daemonInstall p

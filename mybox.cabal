@@ -83,6 +83,7 @@ library
       Mybox.Platform
       Mybox.Prelude
       Mybox.RecValue
+      Mybox.Release
       Mybox.Stores
       Mybox.Tracker
       Mybox.Tracker.Internal
@@ -122,6 +123,7 @@ library
     , scalpel
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable
@@ -166,6 +168,7 @@ executable mybox
     , scalpel
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable
@@ -274,6 +277,7 @@ test-suite tests
     , tar
     , terminal-size
     , text
+    , time
     , typed-process
     , vector
     , witherable
