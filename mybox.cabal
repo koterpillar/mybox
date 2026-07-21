@@ -22,6 +22,7 @@ library
       Mybox.Compute.Format
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
+      Mybox.Compute.Switch
       Mybox.Compute.URL
       Mybox.Concurrent
       Mybox.Config
@@ -184,6 +185,7 @@ test-suite tests
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
       Mybox.Compute.SpecBase
+      Mybox.Compute.SwitchSpec
       Mybox.Compute.URLSpec
       Mybox.Config.CommandLineSpec
       Mybox.Display.ANSISpec

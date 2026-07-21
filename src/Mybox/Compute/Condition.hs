@@ -8,7 +8,7 @@ import Mybox.Prelude
 
 data Conditions = Conditions
   { os :: Maybe [Text]
-  , architecture :: Maybe [Architecture]
+  , architecture :: Maybe [Text]
   , hostname :: Maybe [Text]
   }
 
@@ -22,9 +22,9 @@ instance FromJSON Conditions where
 match :: Driver :> es => Conditions -> Eff es Bool
 match c =
   andM $
-    toList (osMatches <$> c.os)
-      <> toList (architectureMatches <$> c.architecture)
-      <> toList (hostnameMatches <$> c.hostname)
+    toList (anyM architectureMatches <$> c.architecture)
+      <> toList (anyM hostnameMatches <$> c.hostname)
+      <> toList (anyM osMatch <$> c.os)
 
 conditionProcessor :: Driver :> es => Value -> Eff es Bool
 conditionProcessor value = do

@@ -6,6 +6,7 @@ module Mybox.Platform (
   OS (..),
   Distribution (..),
   osFilters,
+  osMatches,
 ) where
 
 import Data.List.NonEmpty qualified as NonEmpty
@@ -78,3 +79,10 @@ osFilters = fromSynonyms osSynonyms . okey
  where
   okey MacOS = "darwin"
   okey (Linux _) = "linux"
+
+osMatches :: Text -> OS -> Bool
+osMatches "darwin" MacOS = True
+osMatches "linux" (Linux _) = True
+osMatches "fedora" (Linux Fedora) = True
+osMatches s (Linux (Debian variant)) = s == variant
+osMatches _ _ = False
