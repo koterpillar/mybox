@@ -112,6 +112,7 @@ library
     , base64-bytestring
     , bytestring
     , containers
+    , crypton
     , effectful
     , extra
     , mtl
@@ -155,6 +156,7 @@ executable mybox
     , base64-bytestring
     , bytestring
     , containers
+    , crypton
     , effectful
     , extra
     , mtl
@@ -260,6 +262,7 @@ test-suite tests
     , bytestring
     , bzlib
     , containers
+    , crypton
     , effectful
     , extra
     , hspec

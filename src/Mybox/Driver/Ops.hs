@@ -1,5 +1,6 @@
 module Mybox.Driver.Ops where
 
+import Data.ByteString (ByteString)
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy qualified as LBS
 import Data.Char (isAlphaNum)
@@ -119,7 +120,10 @@ drvTempDir :: Driver :> es => (Path Abs -> Eff es a) -> Eff es a
 drvTempDir = bracket (drvTemp_ True) drvRm
 
 drvReadFile :: (Anchor a, Driver :> es) => Path a -> Eff es Text
-drvReadFile path = drvRunOutput $ "cat" :| [path.text]
+drvReadFile path = Text.decodeUtf8 <$> drvReadBinaryFile path
+
+drvReadBinaryFile :: (Anchor a, Driver :> es) => Path a -> Eff es ByteString
+drvReadBinaryFile path = drvRunOutputBinary $ "cat" :| [path.text]
 
 drvWriteFile :: (Anchor a, Driver :> es) => Path a -> Text -> Eff es ()
 drvWriteFile path content = do

@@ -2,10 +2,13 @@ module Mybox.Package.LinksSpec where
 
 import Mybox.Driver
 import Mybox.Filters
+import Mybox.Package.Class
 import Mybox.Package.Links
+import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
+import Mybox.Tracker
 
 data Test = Test
   { modifyPkg :: LinksPackage -> LinksPackage
@@ -60,6 +63,26 @@ spec = do
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"copy\": true, \"include\": [\"foo\"], \"root\": true}")
     ]
+  describe "remote version" $
+    withEff (nullTracker . runInstallQueue) $ do
+      it "changes when a copied file's contents change" $
+        drvTempDir $ \srcDir -> do
+          let file = srcDir </> "file.txt"
+          drvWriteFile file "before"
+          let pkg = (mkLinksPackage (pWiden srcDir) (mkPath "dest")){copy = True}
+          before' <- remoteVersion pkg
+          drvWriteFile file "after"
+          after' <- remoteVersion pkg
+          after' `shouldSatisfy` (/= before')
+      it "is stable when a linked file's contents change" $
+        drvTempDir $ \srcDir -> do
+          let file = srcDir </> "file.txt"
+          drvWriteFile file "before"
+          let pkg = mkLinksPackage (pWiden srcDir) (mkPath "dest")
+          before' <- remoteVersion pkg
+          drvWriteFile file "after"
+          after' <- remoteVersion pkg
+          after' `shouldBe` before'
   packageSpecGen "links" $ baseLinks defTest
   packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{shallow = True}}
   packageSpecGen "copy links" $ copyLinks defTest{modifyPkg = \p -> p{copy = True}}

@@ -3,8 +3,11 @@ module Mybox.Package.Links (
   mkLinksPackage,
 ) where
 
+import Crypto.Hash (SHA256 (..), hashWith)
+import Data.ByteString (ByteString)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -87,8 +90,37 @@ paths p = do
 
   pure $ Set.filter (\path_ -> all ($ (pRelativeTo_ src path_).text) fs) pp
 
+sha256 :: ByteString -> Text
+sha256 = Text.pack . show . hashWith SHA256
+
+-- | Hash the bytes that would be copied from a source path: the file itself,
+-- or, when the path is a directory (possible with 'shallow'), every file
+-- underneath it keyed by its relative path.
+contentHash :: Driver :> es => Path Abs -> Eff es Text
+contentHash path_ = do
+  isFile <- drvIsFile path_
+  if isFile
+    then sha256 <$> drvReadBinaryFile path_
+    else do
+      files <- Set.toList <$> drvFind path_ findOptions{onlyFiles = True}
+      hashes <- for files $ \file -> do
+        content <- drvReadBinaryFile file
+        pure $ sha256 $ Text.encodeUtf8 (pRelativeTo_ path_ file).text <> "\0" <> content
+      pure $ sha256 $ Text.encodeUtf8 $ Text.unlines hashes
+
+-- | A version reflecting what would be installed. Symlinks only need to track
+-- the set of source paths (the link target follows the source), but copies are
+-- snapshots, so their contents are hashed too to detect when the source
+-- changed and the copy needs refreshing.
 lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
-lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
+lpRemoteVersion p = do
+  src <- source p
+  pp <- Set.toList <$> paths p
+  entries <- for pp $ \path_ -> do
+    let rel = (pRelativeTo_ src path_).text
+    chash <- if p.copy then contentHash path_ else pure ""
+    pure $ sha256 $ Text.encodeUtf8 $ rel <> "\0" <> chash
+  pure $ sha256 $ Text.encodeUtf8 $ Text.unlines entries
 
 lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
 lpInstall p = do

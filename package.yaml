@@ -23,6 +23,7 @@ dependencies:
   - base64-bytestring
   - bytestring
   - containers
+  - crypton
   - effectful
   - extra
   - Glob
