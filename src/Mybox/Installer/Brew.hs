@@ -60,7 +60,7 @@ brewInstall :: forall s es. (App es, IsSystemPackage s) => BrewAction -> Text ->
 brewInstall Install package = do
   when (brewIsThirdParty package) $
     brewRun @s drvRun ["trust", package]
-  brewRun @s drvRun ["install", package]
+  brewRun @s drvRun ["install", "--yes", package]
 brewInstall Upgrade package =
   brewRun @s drvRun ["upgrade", "--yes", package]
 
