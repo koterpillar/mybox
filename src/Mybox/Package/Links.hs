@@ -1,10 +1,14 @@
 module Mybox.Package.Links (
   LinksPackage (..),
+  LinksMethod (..),
   mkLinksPackage,
 ) where
 
+import Crypto.Hash (SHA256 (..), hashWith)
+import Data.ByteString (ByteString)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -21,12 +25,35 @@ data LinksPackage = LinksPackage
   { source_ :: Path AnyAnchor
   , destination :: Path AnyAnchor
   , dot :: Bool
-  , shallow :: Bool
+  , method :: LinksMethod
   , filters :: FilterFields
   , root :: Bool
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+
+data LinksMethod
+  = LinksMethodLinks
+  | LinksMethodShallowLinks
+  | LinksMethodCopy
+  deriving (Eq, Generic, Show)
+
+instance RecValue LinksMethod where
+  rvEmpty = LinksMethodLinks
+
+instance FromJSON LinksMethod where
+  parseJSON = withText "LinksMethod" $ \case
+    "links" -> pure LinksMethodLinks
+    "shallowLinks" -> pure LinksMethodShallowLinks
+    "copy" -> pure LinksMethodCopy
+    v -> fail $ "Invalid links method: " <> Text.unpack v
+
+instance ToJSON LinksMethod where
+  toJSON =
+    String . \case
+      LinksMethodLinks -> "links"
+      LinksMethodShallowLinks -> "shallowLinks"
+      LinksMethodCopy -> "copy"
 
 mkLinksPackage :: Path AnyAnchor -> Path AnyAnchor -> LinksPackage
 mkLinksPackage src dest =
@@ -34,7 +61,7 @@ mkLinksPackage src dest =
     { source_ = src
     , destination = dest
     , dot = False
-    , shallow = False
+    , method = LinksMethodLinks
     , filters = mempty
     , root = False
     , post = []
@@ -48,7 +75,7 @@ instance FromJSON LinksPackage where
     source_ <- takeField "links"
     destination <- takeField "destination"
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
-    shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
+    method <- fromMaybe LinksMethodLinks <$> takeFieldMaybe "method"
     filters <- takeFilter
     root <- takeRoot
     post <- takePost
@@ -60,7 +87,7 @@ instance ToJSON LinksPackage where
       [ "links" .= p.source_
       , "destination" .= p.destination
       , "dot" .= p.dot
-      , "shallow" .= p.shallow
+      , "method" .= p.method
       , "root" .= p.root
       ]
         <> filterToJSON p.filters
@@ -75,7 +102,10 @@ source p = do
 
 paths :: Driver :> es => LinksPackage -> Eff es (Set (Path Abs))
 paths p = do
-  let opt = if p.shallow then findOptions{maxDepth = Just 1} else findOptions{onlyFiles = True}
+  let opt =
+        if p.method == LinksMethodShallowLinks
+          then findOptions{maxDepth = Just 1}
+          else findOptions{onlyFiles = True}
   src <- source p
   pp <- drvFind src opt
 
@@ -83,8 +113,22 @@ paths p = do
 
   pure $ Set.filter (\path_ -> all ($ (pRelativeTo_ src path_).text) fs) pp
 
+sha256 :: ByteString -> Text
+sha256 = Text.pack . show . hashWith SHA256
+
+-- | A version reflecting what would be installed. Symlinks only need to track
+-- the set of source paths (the link target follows the source), but copies are
+-- snapshots, so their contents are hashed too to detect when the source
+-- changed and the copy needs refreshing.
 lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
-lpRemoteVersion p = Text.intercalate "#" . map (.text) . Set.toList <$> paths p -- FIXME: hash
+lpRemoteVersion p = do
+  src <- source p
+  pp <- Set.toList <$> paths p
+  entries <- for pp $ \path_ -> do
+    let rel = (pRelativeTo_ src path_).text
+    chash <- if p.method == LinksMethodCopy then sha256 <$> drvReadBinaryFile path_ else pure ""
+    pure $ rel <> "\0" <> chash
+  pure $ sha256 $ Text.encodeUtf8 $ Text.unlines entries
 
 lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
 lpInstall p = do
@@ -92,11 +136,15 @@ lpInstall p = do
   pp <- paths p
   src <- source p
   sudo' <- mkSudo
+  let place =
+        if p.method == LinksMethodCopy
+          then drvCopy
+          else drvLink
   for_ (Set.toList pp) $ \path_ -> do
     let path = pRelativeTo_ src path_
     let pathDot = (if p.dot then mkPath $ "." <> path.text else path)
     let pathDest = destination <//> pathDot
-    modifyDriver (if p.root then sudo' else id) $ drvLink path_ pathDest
+    modifyDriver (if p.root then sudo' else id) $ place path_ pathDest
     trkAdd p pathDest
 
 instance Package LinksPackage where
