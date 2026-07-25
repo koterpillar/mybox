@@ -61,7 +61,8 @@ spec = do
   metaSpec
     @LinksPackage
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
-    , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"shallow\": true, \"copy\": true, \"include\": [\"foo\"], \"root\": true}")
+    , (Just "shallow links method", "{\"links\": \"test/test\", \"destination\": \"test\", \"method\": \"shallowLinks\"}")
+    , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"method\": \"copy\", \"include\": [\"foo\"], \"root\": true}")
     ]
   describe "remote version" $
     withEff (nullTracker . runInstallQueue) $ do
@@ -69,7 +70,7 @@ spec = do
         drvTempDir $ \srcDir -> do
           let file = srcDir </> "file.txt"
           drvWriteFile file "before"
-          let pkg = (mkLinksPackage (pWiden srcDir) (mkPath "dest")){copy = True}
+          let pkg = (mkLinksPackage (pWiden srcDir) (mkPath "dest")){method = LinksMethodCopy}
           before' <- remoteVersion pkg
           drvWriteFile file "after"
           after' <- remoteVersion pkg
@@ -84,8 +85,8 @@ spec = do
           after' <- remoteVersion pkg
           after' `shouldBe` before'
   packageSpecGen "links" $ baseLinks defTest
-  packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{shallow = True}}
-  packageSpecGen "copy links" $ copyLinks defTest{modifyPkg = \p -> p{copy = True}}
+  packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{method = LinksMethodShallowLinks}}
+  packageSpecGen "copy links" $ copyLinks defTest{modifyPkg = \p -> p{method = LinksMethodCopy}}
   packageSpecGen "dot links" $
     baseLinks $
       defTest
@@ -110,7 +111,7 @@ spec = do
     packageSpecGen "copy root links" $
       copyLinks $
         defTest
-          { modifyPkg = \p -> p{copy = True, root = True}
+          { modifyPkg = \p -> p{method = LinksMethodCopy, root = True}
           , modifyCmd = sudo
           , baseDir = drvHome_ "root"
           }

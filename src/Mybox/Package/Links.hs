@@ -1,5 +1,6 @@
 module Mybox.Package.Links (
   LinksPackage (..),
+  LinksMethod (..),
   mkLinksPackage,
 ) where
 
@@ -24,13 +25,35 @@ data LinksPackage = LinksPackage
   { source_ :: Path AnyAnchor
   , destination :: Path AnyAnchor
   , dot :: Bool
-  , shallow :: Bool
-  , copy :: Bool
+  , method :: LinksMethod
   , filters :: FilterFields
   , root :: Bool
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+
+data LinksMethod
+  = LinksMethodLinks
+  | LinksMethodShallowLinks
+  | LinksMethodCopy
+  deriving (Eq, Generic, Show)
+
+instance RecValue LinksMethod where
+  rvEmpty = LinksMethodLinks
+
+instance FromJSON LinksMethod where
+  parseJSON = withText "LinksMethod" $ \case
+    "links" -> pure LinksMethodLinks
+    "shallowLinks" -> pure LinksMethodShallowLinks
+    "copy" -> pure LinksMethodCopy
+    v -> fail $ "Invalid links method: " <> Text.unpack v
+
+instance ToJSON LinksMethod where
+  toJSON =
+    String . \case
+      LinksMethodLinks -> "links"
+      LinksMethodShallowLinks -> "shallowLinks"
+      LinksMethodCopy -> "copy"
 
 mkLinksPackage :: Path AnyAnchor -> Path AnyAnchor -> LinksPackage
 mkLinksPackage src dest =
@@ -38,8 +61,7 @@ mkLinksPackage src dest =
     { source_ = src
     , destination = dest
     , dot = False
-    , shallow = False
-    , copy = False
+    , method = LinksMethodLinks
     , filters = mempty
     , root = False
     , post = []
@@ -53,8 +75,7 @@ instance FromJSON LinksPackage where
     source_ <- takeField "links"
     destination <- takeField "destination"
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
-    shallow <- fromMaybe False <$> takeFieldMaybe "shallow"
-    copy <- fromMaybe False <$> takeFieldMaybe "copy"
+    method <- fromMaybe LinksMethodLinks <$> takeFieldMaybe "method"
     filters <- takeFilter
     root <- takeRoot
     post <- takePost
@@ -66,8 +87,7 @@ instance ToJSON LinksPackage where
       [ "links" .= p.source_
       , "destination" .= p.destination
       , "dot" .= p.dot
-      , "shallow" .= p.shallow
-      , "copy" .= p.copy
+      , "method" .= p.method
       , "root" .= p.root
       ]
         <> filterToJSON p.filters
@@ -82,7 +102,10 @@ source p = do
 
 paths :: Driver :> es => LinksPackage -> Eff es (Set (Path Abs))
 paths p = do
-  let opt = if p.shallow then findOptions{maxDepth = Just 1} else findOptions{onlyFiles = True}
+  let opt =
+        if p.method == LinksMethodShallowLinks
+          then findOptions{maxDepth = Just 1}
+          else findOptions{onlyFiles = True}
   src <- source p
   pp <- drvFind src opt
 
@@ -92,21 +115,6 @@ paths p = do
 
 sha256 :: ByteString -> Text
 sha256 = Text.pack . show . hashWith SHA256
-
--- | Hash the bytes that would be copied from a source path: the file itself,
--- or, when the path is a directory (possible with 'shallow'), every file
--- underneath it keyed by its relative path.
-contentHash :: Driver :> es => Path Abs -> Eff es Text
-contentHash path_ = do
-  isFile <- drvIsFile path_
-  if isFile
-    then sha256 <$> drvReadBinaryFile path_
-    else do
-      files <- Set.toList <$> drvFind path_ findOptions{onlyFiles = True}
-      hashes <- for files $ \file -> do
-        content <- drvReadBinaryFile file
-        pure $ sha256 $ Text.encodeUtf8 (pRelativeTo_ path_ file).text <> "\0" <> content
-      pure $ sha256 $ Text.encodeUtf8 $ Text.unlines hashes
 
 -- | A version reflecting what would be installed. Symlinks only need to track
 -- the set of source paths (the link target follows the source), but copies are
@@ -118,8 +126,8 @@ lpRemoteVersion p = do
   pp <- Set.toList <$> paths p
   entries <- for pp $ \path_ -> do
     let rel = (pRelativeTo_ src path_).text
-    chash <- if p.copy then contentHash path_ else pure ""
-    pure $ sha256 $ Text.encodeUtf8 $ rel <> "\0" <> chash
+    chash <- if p.method == LinksMethodCopy then sha256 <$> drvReadBinaryFile path_ else pure ""
+    pure $ rel <> "\0" <> chash
   pure $ sha256 $ Text.encodeUtf8 $ Text.unlines entries
 
 lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
@@ -128,7 +136,10 @@ lpInstall p = do
   pp <- paths p
   src <- source p
   sudo' <- mkSudo
-  let place = if p.copy then drvCopy else drvLink
+  let place =
+        if p.method == LinksMethodCopy
+          then drvCopy
+          else drvLink
   for_ (Set.toList pp) $ \path_ -> do
     let path = pRelativeTo_ src path_
     let pathDot = (if p.dot then mkPath $ "." <> path.text else path)
