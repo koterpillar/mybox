@@ -61,7 +61,7 @@ spec = do
   metaSpec
     @LinksPackage
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
-    , (Just "shallow links method", "{\"links\": \"test/test\", \"destination\": \"test\", \"method\": \"shallowLinks\"}")
+    , (Just "shallow links method", "{\"links\": \"test/test\", \"destination\": \"test\", \"method\": \"shallow\"}")
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"method\": \"copy\", \"include\": [\"foo\"], \"root\": true}")
     ]
   describe "remote version" $

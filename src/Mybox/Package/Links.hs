@@ -44,7 +44,7 @@ instance RecValue LinksMethod where
 instance FromJSON LinksMethod where
   parseJSON = withText "LinksMethod" $ \case
     "links" -> pure LinksMethodLinks
-    "shallowLinks" -> pure LinksMethodShallowLinks
+    "shallow" -> pure LinksMethodShallowLinks
     "copy" -> pure LinksMethodCopy
     v -> fail $ "Invalid links method: " <> Text.unpack v
 
@@ -52,7 +52,7 @@ instance ToJSON LinksMethod where
   toJSON =
     String . \case
       LinksMethodLinks -> "links"
-      LinksMethodShallowLinks -> "shallowLinks"
+      LinksMethodShallowLinks -> "shallow"
       LinksMethodCopy -> "copy"
 
 mkLinksPackage :: Path AnyAnchor -> Path AnyAnchor -> LinksPackage
