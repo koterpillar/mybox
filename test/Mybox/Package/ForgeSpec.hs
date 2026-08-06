@@ -143,6 +143,25 @@ spec = do
       )
       & checkInstalledCommandOutput ("jq" :| ["--version"]) "jq-"
 
+  -- the binary is packed into a tarball on its own, named after the platform
+  packageSpec $
+    ps
+      ( (mkForgePackage "openai/codex")
+          { archive =
+              emptyArchiveFields
+                { binaries = ["codex"]
+                , raw = Right True
+                }
+          , filters =
+              mempty
+                { prefixes = ["codex-"]
+                , suffixes = [".tar.gz"]
+                , excludes = ["app-server", "code-mode-host", "responses-api-proxy", "-package", "symbols"]
+                }
+          }
+      )
+      & checkInstalledCommandOutput ("codex" :| ["--version"]) "codex-cli"
+
   onlyIf "libgmp required to run hindent" (libraryExists "libgmp") $
     packageSpec $
       ps

@@ -72,9 +72,14 @@ aDirectory p = do
   local <- drvLocal p.archive.root
   return $ local </> "mybox" </> pathname p
 
+aRawFilename :: ArchivePackage p => p -> Text -> Text
+aRawFilename p url = case p.archive.binaries of
+  [binary] -> binary
+  _ -> Text.takeWhileEnd (/= '/') url
+
 aExtract :: (App es, ArchivePackage p) => p -> Text -> Path Abs -> Eff es ()
 aExtract p url archiveFile = case p.archive.raw of
-  Right True -> aExtractRaw p url archiveFile $ Text.takeWhileEnd (/= '/') url
+  Right True -> aExtractRaw p url archiveFile $ aRawFilename p url
   Left filename -> aExtractRaw p url archiveFile filename
   Right False -> do
     extractor <- getExtractor url

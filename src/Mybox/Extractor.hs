@@ -39,10 +39,19 @@ findContents sourceDir maxDepth = do
             else pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
         _ -> pure (sourceDir, Set.map (pRelativeTo_ sourceDir) contents)
 
-extract :: (Anchor a1, Anchor a2, App es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
-extract extractor archive targetDirectory = drvTempDir $ \tmpdir -> do
+withContents ::
+  (Anchor a, App es) =>
+  Extractor ->
+  Path a ->
+  (Path Abs -> Set (Path Rel) -> Eff es b) ->
+  Eff es b
+withContents extractor archive act = drvTempDir $ \tmpdir -> do
   extractExact extractor archive tmpdir
   (contentsDir, contents) <- findContents tmpdir 10
+  act contentsDir contents
+
+extract :: (Anchor a1, Anchor a2, App es) => Extractor -> Path a1 -> Path a2 -> Eff es ()
+extract extractor archive targetDirectory = withContents extractor archive $ \contentsDir contents ->
   for_ contents $ \element -> do
     let target = pWiden targetDirectory <//> element
     drvCopy (contentsDir <//> element) target
@@ -147,10 +156,32 @@ bunzip2 = mkRawExtractor "bunzip2" $ \archive target -> do
 move :: RawExtractor
 move = RawExtractor{extractRaw_ = drvCopy, description = "move"}
 
+-- | Extract the sole file out of an archive. Some projects distribute a single
+-- binary as an archive, and name it after the platform it was built for, so we
+-- might want to rename that file.
+single :: Extractor -> RawExtractor
+single extractor =
+  mkRawExtractor extractor.description $ \archive target ->
+    withContents extractor archive $ \contentsDir contents ->
+      case Set.toList contents of
+        [element] -> drvCopy (contentsDir <//> element) target
+        elements ->
+          terror $
+            "Expected a single file in "
+              <> archive.text
+              <> ", got: "
+              <> Text.intercalate ", " (map (.text) elements)
+
 guessRawExtractor :: Text -> Maybe RawExtractor
 guessRawExtractor url = go
  where
+  -- archives have to be matched before the compression they use
   go
+    | hasSuffix ".tar" = Just $ single tar
+    | hasSuffix ".tar.gz" || hasSuffix ".tgz" = Just $ single tarGz
+    | hasSuffix ".tar.bz2" = Just $ single tarBz2
+    | hasSuffix ".tar.xz" || hasSuffix ".txz" = Just $ single tarXz
+    | hasSuffix ".zip" = Just $ single unzipE
     | hasSuffix ".gz" = Just gunzip
     | hasSuffix ".xz" = Just xz
     | hasSuffix ".bz2" = Just bunzip2
