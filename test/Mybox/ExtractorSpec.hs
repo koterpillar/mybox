@@ -20,9 +20,11 @@ import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Tracker
 
+-- | Every entry's contents are its own path.
 temporaryZip :: Driver :> es => [Text] -> (Path Abs -> Eff es a) -> Eff es a
 temporaryZip paths act = drvTempDir $ \archiveDir -> do
-  let addEntry path = Zip.addEntryToArchive $ Zip.toEntry (Text.unpack path) 0 mempty
+  let addEntry path =
+        Zip.addEntryToArchive $ Zip.toEntry (Text.unpack path) 0 $ LBS.fromStrict $ Text.encodeUtf8 path
   let archive = foldr addEntry Zip.emptyArchive paths
 
   let archiveFile = archiveDir </> "archive.zip"
@@ -38,6 +40,12 @@ extractFileNames archive = do
     files <- drvFind dir findOptions{onlyFiles = True}
     pure $ Set.map (pRelativeTo_ dir) files
 
+temporaryArchive :: Driver :> es => Text -> LBS.ByteString -> (Path Abs -> Eff es a) -> Eff es a
+temporaryArchive extension contents act = drvTempDir $ \tempDir -> do
+  let archive = tempDir </> ("myfile." <> extension)
+  drvWriteBinaryFile archive contents
+  act archive
+
 compress ::
   Driver :> es =>
   (LBS.ByteString -> LBS.ByteString) ->
@@ -45,12 +53,17 @@ compress ::
   Text ->
   (Path Abs -> Eff es a) ->
   Eff es a
-compress fn extension contents act = do
-  drvTempDir $ \tempDir -> do
-    let archive = tempDir </> ("myfile." <> extension)
-    let compressed = fn $ LBS.fromStrict $ Text.encodeUtf8 contents
-    drvWriteBinaryFile archive compressed
-    act archive
+compress fn extension contents =
+  temporaryArchive extension $ fn $ LBS.fromStrict $ Text.encodeUtf8 contents
+
+tarball :: [(Text, Text)] -> LBS.ByteString
+tarball entries = foldMap entry entries <> Tar.writeTrailer
+ where
+  entry (name, contents) =
+    Tar.writeEntry $
+      Tar.fileEntry (requireRight $ Tar.toTarPath False $ Text.unpack name) $
+        LBS.fromStrict $
+          Text.encodeUtf8 contents
 
 tarExtension :: Maybe Text -> Text
 tarExtension Nothing = "tar"
@@ -63,13 +76,8 @@ spec =
       for_ [(id, Nothing), (GZip.compress, Just "gz"), (LZMA.compress, Just "xz"), (BZip.compress, Just "bz2")] $
         \(compressAction, maybeExtension) -> do
           let extension = tarExtension maybeExtension
-          it ("decompresses " <> Text.unpack extension) $ do
-            let entry = Tar.fileEntry (requireRight $ Tar.toTarPath False "myfile.txt") "contents"
-            let archiveData = Tar.writeEntry entry <> Tar.writeTrailer
-            let compressed = compressAction archiveData
-            drvTempDir $ \archiveDir -> do
-              let archive = archiveDir </> ("archive." <> extension)
-              drvWriteBinaryFile archive compressed
+          it ("decompresses " <> Text.unpack extension) $
+            temporaryArchive extension (compressAction $ tarball [("myfile.txt", "contents")]) $ \archive -> do
               extractor <- getExtractor archive.text
               drvTempDir $ \dest -> do
                 extract extractor archive dest
@@ -101,10 +109,13 @@ spec =
         it "guesses raw extractor from a link" $ do
           extractor <- getRawExtractor "http://example.com/test.gz"
           show extractor `shouldBe` "gunzip"
+        it "prefers tar over compression for a tarball" $ do
+          extractor <- getRawExtractor "http://example.com/test.tar.gz"
+          show extractor `shouldBe` "tar -z"
         it "falls back to file copying" $ do
           extractor <- getRawExtractor "http://example.com"
           show extractor `shouldBe` "move"
-    describe "RawExtractor" $
+    describe "RawExtractor" $ do
       for_ [(compress GZip.compress, "gz"), (compress LZMA.compress, "xz"), (compress BZip.compress, "bz2")] $
         \(compressAction, extension) ->
           it ("decompresses " <> Text.unpack extension) $
@@ -114,3 +125,27 @@ spec =
                 extractRaw extractor archive dest
                 extracted <- drvReadFile dest
                 extracted `shouldBe` "contents"
+      for_ [(id, Nothing), (GZip.compress, Just "gz"), (LZMA.compress, Just "xz"), (BZip.compress, Just "bz2")] $
+        \(compressAction, maybeExtension) -> do
+          let extension = tarExtension maybeExtension
+          it ("extracts the only file out of " <> Text.unpack extension) $
+            temporaryArchive extension (compressAction $ tarball [("myfile.txt", "contents")]) $ \archive -> do
+              extractor <- getRawExtractor archive.text
+              drvTempFile $ \dest -> do
+                extractRaw extractor archive dest
+                extracted <- drvReadFile dest
+                extracted `shouldBe` "contents"
+      it "extracts the only file out of zip" $
+        temporaryZip ["foo/bar"] $ \archive -> do
+          extractor <- getRawExtractor archive.text
+          drvTempFile $ \dest -> do
+            extractRaw extractor archive dest
+            extracted <- drvReadFile dest
+            extracted `shouldBe` "foo/bar"
+      it "refuses to extract a tarball with multiple files" $ do
+        let contents = tarball [("myfile.txt", "contents"), ("otherfile.txt", "other")]
+        temporaryArchive "tar.gz" (GZip.compress contents) $ \archive -> do
+          extractor <- getRawExtractor archive.text
+          drvTempFile $ \dest ->
+            extractRaw extractor archive dest
+              `shouldThrow` errorCallContains ["Expected a single file in", "myfile.txt, otherfile.txt"]
