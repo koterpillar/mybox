@@ -20,14 +20,14 @@ hook spec = do
   runIO $ unsetEnv "PIPX_BIN_DIR"
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
   driverLock <- runIO $ runEff $ runConcurrent $ newLockMap
-  afterAll_ (runEff $ runConcurrent $ printStats statVar 20) $
-    parallel $
-      effSpec (dispatch statVar driverLock) spec
+  afterAll_ (runEff $ runConcurrent $ printStats statVar 20)
+    $ parallel
+    $ effSpec (dispatch statVar driverLock) spec
 
 dispatch :: MVar DriverStats -> DriverLockMap -> Eff BaseEff r -> Eff '[IOE] r
 dispatch statVar driverLock act =
-  runConcurrent $
-    noDisplay $
-      runStores $
-        testDriver driverLock $
-          driverStats statVar act
+  runConcurrent
+    $ noDisplay
+    $ runStores
+    $ testDriver driverLock
+    $ driverStats statVar act

@@ -10,13 +10,13 @@ import Mybox.Prelude
 dnfInstall :: Driver :> es => Text -> Text -> Eff es ()
 dnfInstall action package = do
   sudo' <- mkSudo
-  drvRunSilent $
-    sudo' $
-      "dnf"
-        :| [ action
-           , "-y"
-           , package
-           ]
+  drvRunSilent
+    $ sudo'
+    $ "dnf"
+      :| [ action
+         , "-y"
+         , package
+         ]
 
 rpmQuery :: Driver :> es => Maybe Text -> Eff es (Map Text Text)
 rpmQuery package_ = do
@@ -34,9 +34,9 @@ rpmQuery package_ = do
 
 dnfRepoQuery :: Driver :> es => Maybe Text -> Eff es (Map Text Text)
 dnfRepoQuery package_ = do
-  when (isNothing package_) $
-    drvRunSilent $
-      "dnf" :| ["--quiet", "clean", "expire-cache"]
+  when (isNothing package_)
+    $ drvRunSilent
+    $ "dnf" :| ["--quiet", "clean", "expire-cache"]
 
   arch <- drvArchitecture
   let archStr = case arch of

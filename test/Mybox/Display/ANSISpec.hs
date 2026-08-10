@@ -22,32 +22,32 @@ spec = do
 
     it "displays progress when some packages are already checked" $ do
       output <-
-        run $
-          displayBanner $
-            mconcat
-              [ bannerPending "one"
-              , bannerPending "two"
-              , bannerPending "three"
-              , bannerPending "four"
-              , bannerUnchanged "one"
-              , bannerModified "two"
-              ]
+        run
+          $ displayBanner
+          $ mconcat
+            [ bannerPending "one"
+            , bannerPending "two"
+            , bannerPending "three"
+            , bannerPending "four"
+            , bannerUnchanged "one"
+            , bannerModified "two"
+            ]
       let expectedBar = Text.replicate 38 "█" <> Text.replicate 38 " "
       output `shouldBe` colourString ("<green>installed<reset> two\n" <> expectedBar <> " 2/4")
 
     it "displays final banner when all packages checked" $ do
       output <-
-        run $
-          displayBanner $
-            mconcat
-              [ bannerPending "one"
-              , bannerPending "two"
-              , bannerPending "three"
-              , bannerUnchanged "one"
-              , bannerModified "two"
-              , bannerModified "three"
-              , bannerFailed "five" $ toException (userError "fail")
-              ]
+        run
+          $ displayBanner
+          $ mconcat
+            [ bannerPending "one"
+            , bannerPending "two"
+            , bannerPending "three"
+            , bannerUnchanged "one"
+            , bannerModified "two"
+            , bannerModified "three"
+            , bannerFailed "five" $ toException (userError "fail")
+            ]
 
       output `shouldBe` colourString "<green>installed<reset> three, two\n<red>error<reset> five: user error (fail)"
 

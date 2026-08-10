@@ -29,6 +29,6 @@ mainOpt commandLine =
     localDriver $ do
       config <- readConfig commandLine
       state <- drvMyboxState
-      drvTracker (state </> "files.json") $
-        runInstallQueue $
-          queueInstallMany config.packages
+      drvTracker (state </> "files.json")
+        $ runInstallQueue
+        $ queueInstallMany config.packages

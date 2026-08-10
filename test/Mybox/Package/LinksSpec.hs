@@ -87,31 +87,31 @@ spec = do
   packageSpecGen "links" $ baseLinks defTest
   packageSpecGen "shallow links" $ baseLinks $ defTest{modifyPkg = \p -> p{method = LinksMethodShallowLinks}}
   packageSpecGen "copy links" $ copyLinks defTest{modifyPkg = \p -> p{method = LinksMethodCopy}}
-  packageSpecGen "dot links" $
-    baseLinks $
-      defTest
-        { modifyPkg = \p -> p{dot = True}
-        , expectedFiles = [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]
-        }
-  packageSpecGen "only links" $
-    baseLinks $
-      defTest
-        { modifyPkg = \p -> p{filters = mempty{includes = ["myfile"]}}
-        , expectedFiles = ["myfile"]
-        , content = "Linked file"
-        }
+  packageSpecGen "dot links"
+    $ baseLinks
+    $ defTest
+      { modifyPkg = \p -> p{dot = True}
+      , expectedFiles = [".myfile", mkPath ".deep/space/nine/ncc-1701.txt"]
+      }
+  packageSpecGen "only links"
+    $ baseLinks
+    $ defTest
+      { modifyPkg = \p -> p{filters = mempty{includes = ["myfile"]}}
+      , expectedFiles = ["myfile"]
+      , content = "Linked file"
+      }
   onlyIf "Root tests pollute real /root and require a virtual system" virtualSystem $ do
-    packageSpecGen "root links" $
-      baseLinks $
-        defTest
-          { modifyPkg = \p -> p{root = True}
-          , modifyCmd = sudo
-          , baseDir = drvHome_ "root"
-          }
-    packageSpecGen "copy root links" $
-      copyLinks $
-        defTest
-          { modifyPkg = \p -> p{method = LinksMethodCopy, root = True}
-          , modifyCmd = sudo
-          , baseDir = drvHome_ "root"
-          }
+    packageSpecGen "root links"
+      $ baseLinks
+      $ defTest
+        { modifyPkg = \p -> p{root = True}
+        , modifyCmd = sudo
+        , baseDir = drvHome_ "root"
+        }
+    packageSpecGen "copy root links"
+      $ copyLinks
+      $ defTest
+        { modifyPkg = \p -> p{method = LinksMethodCopy, root = True}
+        , modifyCmd = sudo
+        , baseDir = drvHome_ "root"
+        }

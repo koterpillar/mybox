@@ -18,9 +18,9 @@ jsonpathProcessor :: Processor (Eff es)
 jsonpathProcessor pathValue rest = do
   jsonpath <- fixJSONPath <$> parseThrow parseJSON pathValue
   (baseString, args) <-
-    flip parseThrow rest $
-      parseObjectTotal $
-        (,) <$> takeField "base" <*> takeFilter
+    flip parseThrow rest
+      $ parseObjectTotal
+      $ (,) <$> takeField "base" <*> takeFilter
   base <- jsonDecode "base" baseString
   resultValues <- throwLeft $ first show $ query (Text.unpack jsonpath) base
   results <- traverse (parseThrow parseJSON) $ toList resultValues

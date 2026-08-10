@@ -92,9 +92,9 @@ draw :: Print :> es => [TerminalLine] -> Eff es ()
 draw items = do
   forM_ items $ \line -> do
     forM_ line $ \item -> do
-      Print.print $
-        setSGRCode $
-          Reset : toList (SetColor Foreground Dull <$> item.foreground)
+      Print.print
+        $ setSGRCode
+        $ Reset : toList (SetColor Foreground Dull <$> item.foreground)
       Print.print $ Text.unpack item.text
     Print.print clearFromCursorToLineEndCode
     Print.print "\n"

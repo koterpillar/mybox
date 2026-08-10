@@ -92,21 +92,21 @@ spec = do
   packageSpecGen "neovim" $ neovimPackage False
   packageSpecGen "neovim with root" $ neovimPackage True
 
-  onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False) $
-    packageSpec $
-      ps
-        ( (mkForgePackage "eza-community/eza")
-            { archive =
-                emptyArchiveFields
-                  { binaries = ["eza"]
-                  }
-            , filters =
-                mempty
-                  { excludes = [".zip", "no_libgit"]
-                  }
-            }
-        )
-        & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
+  onlyIfOS "Eza package only provides Linux binaries" (\case Linux _ -> True; _ -> False)
+    $ packageSpec
+    $ ps
+      ( (mkForgePackage "eza-community/eza")
+          { archive =
+              emptyArchiveFields
+                { binaries = ["eza"]
+                }
+          , filters =
+              mempty
+                { excludes = [".zip", "no_libgit"]
+                }
+          }
+      )
+      & checkInstalledCommandOutput ("eza" :| ["--version"]) "eza - A modern, maintained replacement for ls"
 
   skipGenericLinux "Java installer unavailable on generic Linux" $
     packageSpecGen "Ammonite" $ \psa ->
@@ -162,25 +162,25 @@ spec = do
       )
       & checkInstalledCommandOutput ("codex" :| ["--version"]) "codex-cli"
 
-  onlyIf "libgmp required to run hindent" (libraryExists "libgmp") $
-    packageSpec $
-      ps
-        ( (mkForgePackage "koterpillar/hindent-build")
-            { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
-            }
-        )
-        & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
+  onlyIf "libgmp required to run hindent" (libraryExists "libgmp")
+    $ packageSpec
+    $ ps
+      ( (mkForgePackage "koterpillar/hindent-build")
+          { archive = emptyArchiveFields{binaries = ["hindent"], raw = Left "hindent"}
+          }
+      )
+      & checkInstalledCommandOutput ("hindent" :| ["--help"]) "Reformat Haskell source code"
 
-  onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem $
-    skipGenericLinux "Default installer is unavailable on generic Linux" $
-      packageSpec $
-        ps
-          ( (mkForgePackage "tonsky/FiraCode")
-              { archive =
-                  emptyArchiveFields{fonts = ["FiraCode-Regular"]}
-              }
-          )
-          & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
+  onlyIf "FiraCode font installation tests require virtual system (Docker or CI)" virtualSystem
+    $ skipGenericLinux "Default installer is unavailable on generic Linux"
+    $ packageSpec
+    $ ps
+      ( (mkForgePackage "tonsky/FiraCode")
+          { archive =
+              emptyArchiveFields{fonts = ["FiraCode-Regular"]}
+          }
+      )
+      & checkInstalledCommandOutput ("fc-list" :| ["FiraCode"]) "FiraCode-Regular"
 
   packageSpec $
     ps

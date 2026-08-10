@@ -18,10 +18,10 @@ import Mybox.Spec.Utils
 pureDriver :: (Args -> Maybe Text) -> Eff (Driver : es) a -> Eff es a
 pureDriver run = interpret_ $ \case
   DrvRun exitBehavior outputBehavior args ->
-    pure $
-      rrSuccess exitBehavior outputBehavior $
-        requireJust ("pureDriver: unexpected command " <> show args) $
-          run args
+    pure
+      $ rrSuccess exitBehavior outputBehavior
+      $ requireJust ("pureDriver: unexpected command " <> show args)
+      $ run args
   DrvLock _ -> error "pureDriver: locks not supported"
 
 stubDriver :: Driver :> es => (Args -> Maybe Text) -> Eff es a -> Eff es a

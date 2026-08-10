@@ -35,44 +35,45 @@ spec = do
           & checkInstalledCommandOutput
             ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
-    onlyIfOS "Apt is only available on Debian" (\case Linux (Debian "debian") -> True; _ -> False) $
-      packageSpec $
-        ps (mkSystemPackage "openvox-release"){url = Just "https://apt.voxpupuli.org/openvox8-release-debian13.deb"}
-          & checkInstalledCommandOutput
-            ("cat" :| ["/etc/apt/sources.list.d/openvox8-release.list"])
-            "OpenVox 8"
-    onlyIfOS "Timezone package only requires interactive configuration on Debian" (\case Linux (Debian _) -> True; _ -> False) $
-      packageSpec $
-        ps (mkSystemPackage "tzdata")
-          & checkInstalledCommandOutput
-            ("cat" :| ["/usr/share/doc/tzdata/copyright"])
-            "Internet Assigned Numbers Authority"
-    skipGenericLinux "GCC package tests are skipped on generic Linux" $
-      onlyIfOS "GCC package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
-        packageSpec $
-          ps (mkSystemPackage "g++")
-            & checkInstalledCommandOutput
-              ("g++" :| ["--version"])
-              "Free Software Foundation, Inc."
-    onlyIf "Flatpak package tests require CI environment" inCI $
-      skipIf "Flatpak package tests cannot run in Docker" inDocker $
-        onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
-          packageSpec $
-            ps ((mkSystemPackage "org.videolan.VLC"){installer = Just Flatpak})
-              & checkInstalledCommandOutput
-                ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
-                "VLC version"
-              & ignorePaths [mkPath ".local/share/flatpak"]
+    onlyIfOS "Apt is only available on Debian" (\case Linux (Debian "debian") -> True; _ -> False)
+      $ packageSpec
+      $ ps (mkSystemPackage "openvox-release"){url = Just "https://apt.voxpupuli.org/openvox8-release-debian13.deb"}
+        & checkInstalledCommandOutput
+          ("cat" :| ["/etc/apt/sources.list.d/openvox8-release.list"])
+          "OpenVox 8"
+    onlyIfOS "Timezone package only requires interactive configuration on Debian" (\case Linux (Debian _) -> True; _ -> False)
+      $ packageSpec
+      $ ps (mkSystemPackage "tzdata")
+        & checkInstalledCommandOutput
+          ("cat" :| ["/usr/share/doc/tzdata/copyright"])
+          "Internet Assigned Numbers Authority"
+    skipGenericLinux "GCC package tests are skipped on generic Linux"
+      $ onlyIfOS "GCC package tests are only available on Linux" (\case Linux _ -> True; _ -> False)
+      $ packageSpec
+      $ ps (mkSystemPackage "g++")
+        & checkInstalledCommandOutput
+          ("g++" :| ["--version"])
+          "Free Software Foundation, Inc."
+    onlyIf "Flatpak package tests require CI environment" inCI
+      $ skipIf "Flatpak package tests cannot run in Docker" inDocker
+      $ onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False)
+      $ packageSpec
+      $ ps ((mkSystemPackage "org.videolan.VLC"){installer = Just Flatpak})
+        & checkInstalledCommandOutput
+          ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
+          "VLC version"
+        & ignorePaths [mkPath ".local/share/flatpak"]
     skipGenericLinux "Brew system package tests are skipped on generic Linux" $ do
-      onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False) $
+      onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False)
+        $
         -- tup has a revision in Brew, check that it is correctly reported as
         -- installed after installation
-        packageSpec $
-          ps ((mkSystemPackage "tup"){installer = Just Brew, autoUpdates = False})
-            & preinstallEnableSudo
-            & checkInstalledCommandOutput
-              ("tup" :| ["--version"])
-              "tup 0."
+        packageSpec
+        $ ps ((mkSystemPackage "tup"){installer = Just Brew, autoUpdates = False})
+          & preinstallEnableSudo
+          & checkInstalledCommandOutput
+            ("tup" :| ["--version"])
+            "tup 0."
       packageSpec $
         ps ((mkSystemPackage "the_silver_searcher"){installer = Just Brew})
           & preinstallEnableSudo
