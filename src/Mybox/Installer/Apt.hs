@@ -10,10 +10,10 @@ import Mybox.Prelude
 aptInstall :: Driver :> es => Text -> Eff es ()
 aptInstall package = do
   sudo' <- mkSudo
-  drvRunSilent $
-    sudo' $
-      env [("DEBIAN_FRONTEND", "noninteractive")] $
-        "apt" :| ["install", "-y", package]
+  drvRunSilent
+    $ sudo'
+    $ env [("DEBIAN_FRONTEND", "noninteractive")]
+    $ "apt" :| ["install", "-y", package]
 
 aptInstallURL :: Driver :> es => Text -> Eff es ()
 aptInstallURL url = drvTempDownload url $ \path ->

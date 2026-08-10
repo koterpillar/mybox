@@ -60,10 +60,10 @@ tarball :: [(Text, Text)] -> LBS.ByteString
 tarball entries = foldMap entry entries <> Tar.writeTrailer
  where
   entry (name, contents) =
-    Tar.writeEntry $
-      Tar.fileEntry (requireRight $ Tar.toTarPath False $ Text.unpack name) $
-        LBS.fromStrict $
-          Text.encodeUtf8 contents
+    Tar.writeEntry
+      $ Tar.fileEntry (requireRight $ Tar.toTarPath False $ Text.unpack name)
+      $ LBS.fromStrict
+      $ Text.encodeUtf8 contents
 
 tarExtension :: Maybe Text -> Text
 tarExtension Nothing = "tar"

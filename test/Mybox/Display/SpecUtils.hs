@@ -22,6 +22,6 @@ writeHandle act = localDriver $ drvTempFile $ \filePath -> do
 
 runSimpleDisplayPure :: forall a es r. ANSIDisplayable a => Eff (Display a : es) r -> Eff es (r, String)
 runSimpleDisplayPure act =
-  Print.runPure $
-    runSimpleDisplay $
-      inject @_ @(Display a : Print : _) act
+  Print.runPure
+    $ runSimpleDisplay
+    $ inject @_ @(Display a : Print : _) act

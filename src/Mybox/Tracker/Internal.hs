@@ -111,7 +111,7 @@ drvTracker stateFile act = do
       else pure mempty
   (r, after) <- stateTracker before act
   forM_ after.deleted $ rmWithRoot
-  drvWriteBinaryFile stateFile $
-    encode $
-      TrackerStateFile after.state
+  drvWriteBinaryFile stateFile
+    $ encode
+    $ TrackerStateFile after.state
   pure r

@@ -31,9 +31,9 @@ linksProcessor value rest = do
   args <- parseThrow parseFilter rest
   contents <- drvHttpGet url
   links <-
-    maybe (throwString "Cannot find links") pure $
-      scrapeStringLike contents $
-        attrs "href" "a"
+    maybe (throwString "Cannot find links") pure
+      $ scrapeStringLike contents
+      $ attrs "href" "a"
   link <- throwLeft $ choose_ (toFilters args) links
   linkAbsolute <- uriRelativeTo link url
   pure $ Just $ String linkAbsolute
