@@ -10,6 +10,7 @@ import Mybox.Compute.Condition
 import Mybox.Compute.Format
 import Mybox.Compute.JSONPath
 import Mybox.Compute.Links
+import Mybox.Compute.Regex
 import Mybox.Compute.URL
 import Mybox.Driver
 import Mybox.Prelude
@@ -22,6 +23,7 @@ sigils =
     , ("format", formatProcessor)
     , ("jsonpath", jsonpathProcessor)
     , ("links", linksProcessor)
+    , ("regex", regexProcessor)
     , ("url", urlProcessor)
     ]
 
