@@ -22,6 +22,7 @@ library
       Mybox.Compute.Format
       Mybox.Compute.JSONPath
       Mybox.Compute.Links
+      Mybox.Compute.Regex
       Mybox.Compute.URL
       Mybox.Concurrent
       Mybox.Config
@@ -119,6 +120,7 @@ library
     , network-uri
     , optparse-applicative
     , random
+    , regex-tdfa
     , safe-exceptions
     , scalpel
     , terminal-size
@@ -164,6 +166,7 @@ executable mybox
     , network-uri
     , optparse-applicative
     , random
+    , regex-tdfa
     , safe-exceptions
     , scalpel
     , terminal-size
@@ -185,6 +188,7 @@ test-suite tests
       Mybox.Compute.FormatSpec
       Mybox.Compute.JSONPathSpec
       Mybox.Compute.LinksSpec
+      Mybox.Compute.RegexSpec
       Mybox.Compute.SpecBase
       Mybox.Compute.URLSpec
       Mybox.Config.CommandLineSpec
@@ -272,6 +276,7 @@ test-suite tests
     , network-uri
     , optparse-applicative
     , random
+    , regex-tdfa
     , safe-exceptions
     , scalpel
     , tar

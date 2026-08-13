@@ -20,6 +20,10 @@ errorCallContains :: [Text] -> ErrorCall -> Bool
 errorCallContains expected (ErrorCall msg) =
   all (`Text.isInfixOf` Text.pack msg) expected
 
+stringExceptionContains :: [Text] -> StringException -> Bool
+stringExceptionContains expected (StringException msg _) =
+  all (`Text.isInfixOf` Text.pack msg) expected
+
 concurrently :: Concurrent :> es => Int -> (Int -> Eff es ()) -> Eff es ()
 concurrently times act = do
   sem <- newQSemN 0
