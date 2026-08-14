@@ -82,10 +82,13 @@ jobs:
           merge-multiple: true
       - name: Merge
         run: bin/merge-coverage *.tix > ${{ steps.compile.outputs.local-hpc-root }}/combined/all/all.tix
-      - name: Convert
+      - id: convert
+        name: Convert
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: stack:all
+      - name: Filter
+        run: bin/filter-coverage ${{ steps.convert.outputs.report }}
       - name: Upload
         uses: codecov/codecov-action@v7
         env:

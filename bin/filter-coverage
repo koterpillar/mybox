@@ -1,0 +1,58 @@
+#!/usr/bin/env stack
+-- stack script --resolver lts --package aeson --package base --package bytestring --package containers --package directory
+
+{-# LANGUAGE OverloadedStrings #-}
+
+-- Remove uninteresting lines from a Codecov report produced by hpc-codecov.
+
+import Data.Aeson
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.ByteString.Lazy as ByteString
+import Data.Char (isSpace)
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IntSet
+import Data.List (isPrefixOf)
+import System.Directory (doesFileExist)
+import System.Environment (getArgs)
+
+-- Instance heads are attributed the coverage of the methods GHC derives for
+-- them, which the tests are not expected to exercise.
+ignored :: String -> Bool
+ignored = isPrefixOf "instance" . dropWhile isSpace
+
+main :: IO ()
+main = do
+  args <- getArgs
+  path <- case args of
+    [path] -> pure path
+    _ -> error "Usage: filter-coverage REPORT.json"
+  report <- eitherDecodeFileStrict' path >>= either error pure
+  filtered <- filterReport report
+  ByteString.writeFile path $ encode filtered
+
+filterReport :: Value -> IO Value
+filterReport (Object report) | Just (Object files) <- KeyMap.lookup "coverage" report = do
+  files' <- KeyMap.traverseWithKey filterFile files
+  pure $ Object $ KeyMap.insert "coverage" (Object files') report
+filterReport v = error $ "Unexpected report format: " <> show v
+
+filterFile :: Key.Key -> Value -> IO Value
+filterFile file (Object hits) = do
+  skip <- ignoredLines $ Key.toString file
+  pure $ Object $ KeyMap.filterWithKey (\line _ -> not $ lineNumber line `IntSet.member` skip) hits
+filterFile file v = error $ "Unexpected hits for " <> Key.toString file <> ": " <> show v
+
+lineNumber :: Key.Key -> Int
+lineNumber line = case reads (Key.toString line) of
+  [(n, "")] -> n
+  _ -> error $ "Unexpected line number: " <> Key.toString line
+
+ignoredLines :: FilePath -> IO IntSet
+ignoredLines path = do
+  exists <- doesFileExist path
+  if not exists
+    then error $ "Source file not found: " <> path
+    else do
+      content <- readFile path
+      pure $ IntSet.fromList [n | (n, line) <- zip [1 ..] (lines content), ignored line]
