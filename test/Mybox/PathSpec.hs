@@ -1,7 +1,9 @@
 module Mybox.PathSpec where
 
+import Mybox.Aeson
 import Mybox.Path
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 
 spec :: Spec
@@ -126,3 +128,68 @@ spec = do
     it "returns parent for two-segment relative path" $ do
       let result = pParent (pSegment "usr" </> "local")
       (result >>= \p -> Just p.segments) `shouldBe` Just (["usr"] :: [Text])
+
+  describe "pWiden" $ do
+    it "widens an absolute path" $ do
+      let result = pWiden (pRoot </> "usr" </> "local")
+      result.anchor `shouldBe` Abs
+      pAbs result `shouldBe` Just (pRoot </> "usr" </> "local")
+    it "widens a relative path" $ do
+      let result = pWiden (pSegment "usr" </> "local")
+      result.anchor `shouldBe` Rel
+      pAbs result `shouldBe` Nothing
+    it "widens an already widened path" $ do
+      let result = pWiden (mkPath "/usr" :: Path AnyAnchor)
+      result.anchor `shouldBe` Abs
+      pAbs result `shouldBe` Just (pRoot </> "usr")
+
+  describe "<//>" $ do
+    let absPath = pRoot </> "usr"
+    let absPath' = pRoot </> "etc" </> "conf"
+    let relPath = pSegment "local"
+    let relPath' = pSegment "share" </> "mybox"
+    -- check the result, and that widening either side distributes over
+    -- appending, which exercises every AnchorAppend instance. Widening one
+    -- side only doesn't pin down the result anchor, so those two results need
+    -- widening to compare; widening both already yields AnyAnchor.
+    let appendShouldBe a b c = do
+          let expected = pWiden c
+          (a <//> b) `shouldBe` c
+          pWiden (pWiden a <//> b) `shouldBe` expected
+          pWiden (a <//> pWiden b) `shouldBe` expected
+          (pWiden a <//> pWiden b) `shouldBe` expected
+    it "replaces an absolute path with an absolute one" $
+      appendShouldBe absPath absPath' absPath'
+    it "appends a relative path to an absolute one" $
+      appendShouldBe absPath relPath (pRoot </> "usr" </> "local")
+    it "replaces a relative path with an absolute one" $
+      appendShouldBe relPath absPath absPath
+    it "appends a relative path to a relative one" $
+      appendShouldBe relPath relPath' (pSegment "local" </> "share" </> "mybox")
+    -- the anchor of a Path is lazy, so this comparison at Path Abs (rather
+    -- than the widened comparisons above) is what forces anchorAppend
+    it "replaces a widened path with an absolute one" $
+      (pWiden relPath <//> absPath) `shouldBe` absPath
+
+  describe "compare" $ do
+    it "orders paths by segment" $
+      compare (pRoot </> "usr") (pRoot </> "var") `shouldBe` LT
+    it "orders a prefix path first" $
+      compare (pRoot </> "usr") (pRoot </> "usr" </> "local") `shouldBe` LT
+    it "orders absolute paths before relative ones" $
+      compare (pWiden pRoot) (pWiden $ pSegment "usr") `shouldBe` LT
+
+  describe "JSON" $ do
+    it "encodes absolute paths" $
+      jsonEncode (pRoot </> "usr" </> "local") `shouldBe` "\"/usr/local\""
+    it "encodes relative paths" $
+      jsonEncode (pSegment "usr" </> "local") `shouldBe` "\"usr/local\""
+    it "decodes absolute paths" $
+      jsonDecode @(Path Abs) "path" "\"/usr/local\""
+        >>= (`shouldBe` (pRoot </> "usr" </> "local"))
+    it "decodes relative paths" $
+      jsonDecode @(Path Rel) "path" "\"usr/local\""
+        >>= (`shouldBe` (pSegment "usr" </> "local"))
+    it "fails to decode a relative path as absolute" $
+      jsonDecode @(Path Abs) "path" "\"relative\""
+        `shouldThrow` stringExceptionContains ["Path is not absolute: \"relative\""]
