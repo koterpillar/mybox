@@ -1,7 +1,7 @@
 module Mybox.Compute.JSONPathSpec where
 
 import Mybox.Aeson
-import Mybox.Compute.JSONPath
+import Mybox.Compute.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -22,4 +22,4 @@ spec = do
               [ "base" .= jsonEncode jsonData
               , "exclude" .= ("bbbb" :: Text)
               ]
-      runPureEff (jsonpathProcessor jsonpath rest) `shouldBe` Just "aaaa"
+      runPureProcessor jsonpath rest "jsonpath" `shouldBe` Just "aaaa"

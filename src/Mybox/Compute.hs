@@ -1,5 +1,6 @@
 module Mybox.Compute (
   preprocess,
+  sigils,
 ) where
 
 import Data.Map qualified as Map

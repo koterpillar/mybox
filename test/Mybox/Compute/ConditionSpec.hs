@@ -1,7 +1,6 @@
 module Mybox.Compute.ConditionSpec where
 
 import Mybox.Aeson
-import Mybox.Compute.Condition
 import Mybox.Compute.SpecBase
 import Mybox.Driver
 import Mybox.Prelude
@@ -12,13 +11,13 @@ rest = "rest" .= String "value"
 
 shouldMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
 shouldMatch !arch !os value = do
-  runProcessor arch os value rest ifProcessor `shouldBe` Just (Object rest)
-  runProcessor arch os value rest unlessProcessor `shouldBe` Nothing
+  runProcessor arch os value rest "if" `shouldBe` Just (Object rest)
+  runProcessor arch os value rest "unless" `shouldBe` Nothing
 
 shouldNotMatch :: IOE :> es => Architecture -> OS -> Value -> Eff es ()
 shouldNotMatch !arch !os value = do
-  runProcessor arch os value rest ifProcessor `shouldBe` Nothing
-  runProcessor arch os value rest unlessProcessor `shouldBe` Just (Object rest)
+  runProcessor arch os value rest "if" `shouldBe` Nothing
+  runProcessor arch os value rest "unless" `shouldBe` Just (Object rest)
 
 spec :: Spec
 spec = do

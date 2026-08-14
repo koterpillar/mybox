@@ -2,13 +2,12 @@ module Mybox.Compute.SwitchSpec where
 
 import Mybox.Aeson
 import Mybox.Compute.SpecBase
-import Mybox.Compute.Switch
 import Mybox.Driver
 import Mybox.Prelude
 import Mybox.SpecBase
 
 run :: Architecture -> OS -> Text -> Object -> Maybe Value
-run !arch !os value rest = runProcessor arch os (String value) rest switchProcessor
+run !arch !os value rest = runProcessor arch os (String value) rest "switch"
 
 spec :: Spec
 spec = do

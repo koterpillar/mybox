@@ -3,9 +3,8 @@ module Mybox.Compute.LinksSpec where
 import Data.Text qualified as Text
 
 import Mybox.Aeson
-import Mybox.Compute.Links
+import Mybox.Compute.SpecBase
 import Mybox.Driver
-import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -29,7 +28,7 @@ testCurl cmd = do
   testFetch url
 
 run :: Value -> Object -> Maybe Value
-run value base = runPureEff $ pureDriver testCurl $ linksProcessor value base
+run value base = runProcessorWith testCurl value base "links"
 
 spec :: Spec
 spec = do
