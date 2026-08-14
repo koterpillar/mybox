@@ -1,5 +1,6 @@
 module Mybox.Compute (
   preprocess,
+  sigils,
 ) where
 
 import Data.Map qualified as Map
@@ -11,6 +12,7 @@ import Mybox.Compute.Format
 import Mybox.Compute.JSONPath
 import Mybox.Compute.Links
 import Mybox.Compute.Regex
+import Mybox.Compute.Switch
 import Mybox.Compute.URL
 import Mybox.Driver
 import Mybox.Prelude
@@ -24,6 +26,7 @@ sigils =
     , ("jsonpath", jsonpathProcessor)
     , ("links", linksProcessor)
     , ("regex", regexProcessor)
+    , ("switch", switchProcessor)
     , ("url", urlProcessor)
     ]
 

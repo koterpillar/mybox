@@ -1,9 +1,8 @@
 module Mybox.Compute.URLSpec where
 
 import Mybox.Aeson
-import Mybox.Compute.URL
+import Mybox.Compute.SpecBase
 import Mybox.Driver
-import Mybox.Driver.Test
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -12,7 +11,7 @@ testCurl ("curl" :| args) = (\(_, url) -> "content of " <> url <> "\n200") <$> u
 testCurl _ = Nothing
 
 run :: Value -> Object -> Maybe Value
-run value base = runPureEff $ pureDriver testCurl $ urlProcessor value base
+run value base = runProcessorWith testCurl value base "url"
 
 spec :: Spec
 spec = do

@@ -2,6 +2,7 @@ module Mybox.Compute.FormatSpec where
 
 import Mybox.Aeson
 import Mybox.Compute.Format
+import Mybox.Compute.SpecBase
 import Mybox.Prelude
 import Mybox.SpecBase
 
@@ -32,8 +33,8 @@ spec = do
     it "formats values from JSON" $ do
       let format = String "Hello {} {}"
       let base = "base" .= ["Nice" :: Text, "World"]
-      runPureEff (formatProcessor format base) `shouldBe` Just "Hello Nice World"
+      runPureProcessor format base "format" `shouldBe` Just "Hello Nice World"
     it "formats a single value from JSON" $ do
       let format = String "Hello {}"
       let base = "base" .= ("World" :: Text)
-      runPureEff (formatProcessor format base) `shouldBe` Just "Hello World"
+      runPureProcessor format base "format" `shouldBe` Just "Hello World"
