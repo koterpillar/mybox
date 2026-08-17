@@ -8,6 +8,7 @@ import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data YumRepo = YumRepo
@@ -82,6 +83,6 @@ yumRepoInstall p = do
     MacOS -> terror "YumRepo is only supported on Linux"
 
 instance Package YumRepo where
-  remoteVersion = pure . yumRepoRemoteVersion
+  releases p = pure $ mkSingleRelease $ yumRepoRemoteVersion p
   localVersion = manualVersion
-  install = installWithPost $ manualVersionInstall yumRepoInstall
+  install = installWithPost $ manualVersionInstall $ \p _ -> yumRepoInstall p

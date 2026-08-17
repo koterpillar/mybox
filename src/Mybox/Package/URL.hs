@@ -9,6 +9,7 @@ import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
 import Mybox.Prelude
+import Mybox.Release
 
 data URLPackage = URLPackage
   { url :: Text
@@ -47,9 +48,10 @@ instance PackageName URLPackage where
   splitName = first urlName . genericSplitName' @'[] @'["url"]
 
 instance ArchivePackage URLPackage where
-  archiveUrl p = pure p.url
+  archiveUrl p _ = pure p.url
 
 instance Package URLPackage where
-  remoteVersion p = drvUrlEtag p.url
+  -- FIXME: Populate Release.date from URL metadata (for example Last-Modified/created time).
+  releases p = fmap mkSingleRelease $ drvUrlEtag p.url
   localVersion = manualVersion
   install = manualVersionInstall $ installWithPost archiveInstall

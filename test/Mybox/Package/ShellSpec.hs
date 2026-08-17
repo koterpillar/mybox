@@ -9,6 +9,7 @@ import Mybox.Package.Queue
 import Mybox.Package.Shell
 import Mybox.Package.SpecBase
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -74,7 +75,7 @@ spec = do
     onlyIf "Shell validation tests require Docker environment" inDocker $
       withEff (nullTracker . runInstallQueue) $ do
         it "fails when shell does not exist" $
-          install (mkShellPackage $ pRoot </> "bin" </> "xxxxxxxx") `shouldThrow` anyException
+          install (mkShellPackage $ pRoot </> "bin" </> "xxxxxxxx") (mkRelease "ignored") `shouldThrow` anyException
 
         it "fails when shell is not executable" $
-          install (mkShellPackage $ pRoot </> "etc" </> "shells") `shouldThrow` anyException
+          install (mkShellPackage $ pRoot </> "etc" </> "shells") (mkRelease "ignored") `shouldThrow` anyException
