@@ -7,6 +7,7 @@ import Mybox.Package.Pipx.Internal
 import Mybox.Package.Queue
 import Mybox.Package.SpecBase
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.SpecBase
 import Mybox.Tracker
 
@@ -30,21 +31,23 @@ spec = do
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "gets version for existing package" $ do
           let package = mkPipxPackage "black"
-          version <- remoteVersion package
-          version `shouldSatisfy` (>= "25.0.0")
-          version `shouldSatisfy` (<= "999.0.0")
+          release <- selectedRelease package
+          release.version `shouldSatisfy` (>= "25.0.0")
+          release.version `shouldSatisfy` (<= "999.0.0")
       it "fails for non-existent package" $ do
         let package = mkPipxPackage "xxxxxxxxxxxx"
-        remoteVersion package `shouldThrow` anyException
+        selectedRelease package `shouldThrow` anyException
       let isGitHash v = Text.length v == 40
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package" $ do
           let package = mkPipxPackage "git+https://github.com/django/django.git"
-          remoteVersion package >>= (`shouldSatisfy` isGitHash)
+          release <- selectedRelease package
+          release.version `shouldSatisfy` isGitHash
       skipGenericLinux "Default installer is unavailable on generic Linux" $
         it "returns a Git commit hash for a git package with ref" $ do
           let package = mkPipxPackage "git+https://github.com/python/mypy.git@release-1.9"
-          remoteVersion package >>= (`shouldSatisfy` isGitHash)
+          release <- selectedRelease package
+          release.version `shouldSatisfy` isGitHash
   let pipxShare = [".local" </> "share", "Library" </> "Application Support"]
   let psPython =
         ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]

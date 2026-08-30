@@ -15,5 +15,5 @@ postToJSON p = ["post" .= p.post]
 runPost :: (Driver :> es, PackagePost p) => p -> Eff es ()
 runPost p = for_ p.post $ drvRun . shellRaw
 
-installWithPost :: (Driver :> es, PackagePost p) => (p -> Eff es ()) -> p -> Eff es ()
-installWithPost f p = f p >> runPost p
+installWithPost :: (Driver :> es, PackagePost p) => (p -> a -> Eff es ()) -> p -> a -> Eff es ()
+installWithPost f p r = f p r >> runPost p

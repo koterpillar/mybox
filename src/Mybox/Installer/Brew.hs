@@ -12,6 +12,7 @@ import Mybox.Installer.Class
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.Release
 
 data BrewBootstrap s = BrewBootstrap deriving (Eq, Show)
 
@@ -30,12 +31,12 @@ homebrewDirectory = flip fmap drvOS $ \case
   Linux _ -> mkPath "/home/linuxbrew/.linuxbrew"
 
 instance IsSystemPackage s => Package (BrewBootstrap s) where
-  remoteVersion BrewBootstrap = pure "homebrew"
+  releases BrewBootstrap = pure defaultRelease
   localVersion BrewBootstrap = do
     dir <- homebrewDirectory
     exists <- drvIsDir dir
     pure $ if exists then Just "homebrew" else Nothing
-  install BrewBootstrap = do
+  install BrewBootstrap _ = do
     macOS <- flip fmap drvOS $ \case MacOS -> True; _ -> False
     -- macOS comes with git; mkSystemPackage relies on brew itself so have to skip
     unless macOS $ queueInstall $ mkSystemPackage_ @s "git" []

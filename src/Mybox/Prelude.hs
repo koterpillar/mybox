@@ -31,6 +31,7 @@ module Mybox.Prelude (
   NonEmpty (..),
   Set,
   Text,
+  UTCTime,
   RecValue (..),
   terror,
   maximumMaybe,
@@ -58,6 +59,7 @@ import Data.Proxy
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (UTCTime)
 import Data.Traversable (for)
 import Effectful
 import Effectful.Concurrent.MVar

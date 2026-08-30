@@ -13,6 +13,7 @@ import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data NPMPackage = NPMPackage
@@ -108,5 +109,7 @@ npmInstall p = do
 
 instance Package NPMPackage where
   localVersion = manualVersion
-  remoteVersion = viewVersion
-  install = installWithPost $ manualVersionInstall npmInstall
+
+  -- FIXME: Return multiple npm releases, not just the latest version.
+  releases p = fmap mkSingleRelease $ viewVersion p
+  install = installWithPost $ manualVersionInstall $ \p _ -> npmInstall p

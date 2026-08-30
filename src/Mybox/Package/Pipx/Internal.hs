@@ -14,6 +14,7 @@ import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 
 data PipxPackage = PipxPackage
@@ -148,5 +149,7 @@ pipxInstall p = do
 
 instance Package PipxPackage where
   localVersion = localVersionPipx
-  remoteVersion = remoteVersionPipx
-  install = installWithPost $ manualVersionInstall pipxInstall
+
+  -- FIXME: Return multiple pipx releases, not just the latest/resolved version.
+  releases p = fmap mkSingleRelease $ remoteVersionPipx p
+  install = installWithPost $ manualVersionInstall $ \p _ -> pipxInstall p

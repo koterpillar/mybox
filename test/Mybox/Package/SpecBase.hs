@@ -25,6 +25,7 @@ import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Spec.Utils
 import Mybox.SpecBase
 import Mybox.Stores
@@ -124,7 +125,8 @@ packageSpecGen name makePS = do
         preexistingFiles <- trackableFiles s
         ((), ts) <-
           stateTracker mempty $ runInstallQueue $ do
-            install p
+            selected <- selectedRelease p
+            install p selected
             checkVersionMatches p
         checkAllTracked s preexistingFiles ts.state
         checkInstalled_ s
@@ -155,6 +157,6 @@ checkAllTracked s preexisting ts = do
 
 checkVersionMatches :: (App es, IOE :> es, Package p) => p -> Eff es ()
 checkVersionMatches p = do
-  remote <- remoteVersion p
+  remote <- selectedRelease p
   local <- localVersion p
-  local `shouldBe` Just remote
+  local `shouldBe` Just remote.version

@@ -11,6 +11,7 @@ import Mybox.Package.Post
 import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
+import Mybox.Release
 import Mybox.Tracker
 import Mybox.Utils
 
@@ -124,5 +125,7 @@ cpInstall p = do
 
 instance Package ClonePackage where
   localVersion = cpLocalVersion
-  remoteVersion = cpRemoteVersion
-  install = installWithPost cpInstall
+
+  -- FIXME: Include commit date in Release.date.
+  releases p = fmap mkSingleRelease $ cpRemoteVersion p
+  install = installWithPost $ \p _ -> cpInstall p
