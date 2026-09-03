@@ -23,11 +23,10 @@ spec = do
             ("rg" :| ["--help"])
             "ripgrep"
       packageSpec $
-        ps (mkSystemPackage "alacritty")
-          & ignorePaths [".terminfo"]
+        ps (mkSystemPackage "jq")
           & checkInstalledCommandOutput
-            ("alacritty" :| ["--version"])
-            "alacritty 0"
+            ("jq" :| ["--version"])
+            "jq-"
     onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $ do
       let fedoraVersion = "44" -- renovate: datasource=endoflife-date depName=fedora versioning=loose
       packageSpec $
