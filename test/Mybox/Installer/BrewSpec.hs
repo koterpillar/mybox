@@ -28,6 +28,6 @@ spec = do
         iLatestVersion brew "the_silver_searcher" >>= (`shouldSatisfy` (\v -> v >= "2.2.0" && v < "99"))
       onlyMacOS $ do
         it "returns cask version" $
-          iLatestVersion brew "alacritty" >>= (`shouldSatisfy` (\v -> v >= "0.13.2" && v < "99"))
+          iLatestVersion brew "iterm2" >>= (`shouldSatisfy` (\v -> v >= "3.0.0" && v < "99"))
         it "fails for non-tapped cask" $
           iInstalledVersion brew "homebrew/cask-zzzzzzz/yyyyyyy" `shouldThrow` anyException
