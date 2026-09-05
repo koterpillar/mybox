@@ -45,18 +45,29 @@ rrSuccess exitBehaviour outputBehaviour result = RunResult{..}
 requireGithubToken :: Driver :> es => Eff es Text
 requireGithubToken = requireJust "GITHUB_TOKEN not set" <$> drvGithubToken
 
+getPath :: Driver :> es => Eff es [Path Abs]
+getPath = fmap (maybe [] go) $ drvEnv "PATH"
+ where
+  go = map mkPath . Text.splitOn ":"
+
+problematicPath :: Path Abs -> Bool
+problematicPath p = Text.isSuffixOf "mise/shims" p.text -- mise config is not transplanted to the custom home directory and becomes untrusted
+
+pathValue :: [Path Abs] -> Text
+pathValue paths = Text.intercalate ":" $ map (.text) paths
+
 testHostDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Eff (Driver : es) a -> Eff es a
 testHostDriver driverLock act = localDriverWith driverLock $ do
   githubToken <- requireGithubToken
   originalHome <- drvHome
-  originalPath <- fromMaybe "" <$> drvEnv "PATH"
+  originalPath <- getPath
   drvTempDir $ \home' -> do
     home <- drvRealPath home'
     let newLocalBin = home </> ".local" </> "bin"
     os <- drvOS
     let envOverrides =
           [ ("GITHUB_TOKEN", githubToken)
-          , ("PATH", newLocalBin.text <> ":" <> linuxBrewBin.text <> ":" <> originalPath)
+          , ("PATH", pathValue (newLocalBin : linuxBrewBin : filter (not . problematicPath) originalPath))
           , ("HOME", home.text)
           ]
             <> case os of
