@@ -57,7 +57,7 @@ systemRemoteVersion p = case p.url of
   Nothing -> do
     installer <- systemInstaller p
     autoUpdateVersion p <$> iLatestVersion installer p.name
-  Just url -> drvUrlEtag url
+  Just url -> drvUrlVersion url
 
 systemLocalVersion :: App es => SystemPackage -> Eff es (Maybe Text)
 systemLocalVersion p = case p.url of

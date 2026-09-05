@@ -10,6 +10,7 @@ import Mybox.Package.Links
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
 import Mybox.Package.Shell
+import Mybox.Package.Skill
 import Mybox.Package.System
 import Mybox.Package.URL
 import Mybox.Package.YumRepo
@@ -38,6 +39,7 @@ instance FromJSON SomePackage where
       , mkSomePackageF (parseJSON @PipxPackage v)
       , mkSomePackageF (parseJSON @ForgePackage v)
       , mkSomePackageF (parseJSON @ShellPackage v)
+      , mkSomePackageF (parseJSON @SkillPackage v)
       , mkSomePackageF (parseJSON @SystemPackage v)
       , mkSomePackageF (parseJSON @URLPackage v)
       , mkSomePackageF (parseJSON @YumRepo v)

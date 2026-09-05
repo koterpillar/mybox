@@ -219,6 +219,13 @@ drvRedirectLocation = drvUrlProperty "%{url_effective}"
 drvUrlProperty :: Driver :> es => Text -> Text -> Eff es Text
 drvUrlProperty property = drvRunOutput . curl ["--head", "-o", "/dev/null", "--write-out", property]
 
+drvUrlVersion :: Driver :> es => Text -> Eff es Text
+drvUrlVersion url = do
+  etag <- drvUrlProperty "%header{etag}" url
+  if Text.null etag
+    then drvUrlProperty "%header{last-modified}" url
+    else pure etag
+
 drvRepoBranchVersion ::
   Driver :> es =>
   -- | Repository
