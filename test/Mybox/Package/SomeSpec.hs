@@ -10,6 +10,7 @@ import Mybox.Package.Forge
 import Mybox.Package.Links
 import Mybox.Package.NPM
 import Mybox.Package.Pipx
+import Mybox.Package.Skill
 import Mybox.Package.Some
 import Mybox.Package.System
 import Mybox.Package.URL
@@ -39,6 +40,8 @@ spec = do
     roundtrip $ mkForgePackage "test/repo"
     roundtrip $ (mkForgePackage "test/repo"){Mybox.Package.Forge.archive = emptyArchiveFields{raw = Right True}}
     roundtrip $ (mkForgePackage "test/repo"){Mybox.Package.Forge.archive = emptyArchiveFields{raw = Left "raw"}}
+    roundtrip $ mkSkillPackage "test/test"
+    roundtrip $ (mkSkillPackage "https://example.com/skills"){only = Just ["test"]}
     roundtrip $ mkSystemPackage "ghc"
     roundtrip $ (mkSystemPackage "com.example.Test"){installer = Just Flatpak}
     roundtrip $ (mkSystemPackage "example"){installer = Just Brew}
