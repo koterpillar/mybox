@@ -28,9 +28,17 @@ pathname p = Text.replace "/" "--" (getName p)
 joinName :: Maybe Text -> [Text] -> Text
 joinName prefix parts = Text.intercalate "#" $ maybe id (:) prefix $ filter (not . Text.null) parts
 
+-- | 'splitName' for a record whose name is its @name@ field.
 genericSplitName :: (GHasName '["name"] (Rep a), Generic a) => a -> (Text, Maybe a)
 genericSplitName = genericSplitName' @'[] @'["name"]
 
+-- | 'splitName' for a record whose name is made up of the @names@ fields,
+-- joined with @#@ after the optional literal @prefix@. Empty parts are
+-- dropped.
+--
+-- > splitName = genericSplitName' @'["transfer"] @'["from", "to"]
+-- > -- GenericTransferPackage{from = "here", to = "there", param = "quickly"}
+-- > --   -> ("transfer#here#there", Just GenericTransferPackage{from = "", to = "", param = "quickly"})
 genericSplitName' :: forall (prefix :: [Symbol]) names a. (GHasName names (Rep a), Generic a, KnownMaybeSymbol prefix) => a -> (Text, Maybe a)
 genericSplitName' value =
   let r = gSplitName @names $ from value
