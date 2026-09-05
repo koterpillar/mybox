@@ -4,8 +4,6 @@ module Mybox.Package.Links (
   mkLinksPackage,
 ) where
 
-import Crypto.Hash (SHA256 (..), hashWith)
-import Data.ByteString (ByteString)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -20,6 +18,7 @@ import Mybox.Package.Post
 import Mybox.Package.Root
 import Mybox.Prelude
 import Mybox.Tracker
+import Mybox.Utils
 
 data LinksPackage = LinksPackage
   { source_ :: Path AnyAnchor
@@ -112,9 +111,6 @@ paths p = do
   let fs = toFilters p.filters
 
   pure $ Set.filter (\path_ -> all ($ (pRelativeTo_ src path_).text) fs) pp
-
-sha256 :: ByteString -> Text
-sha256 = Text.pack . show . hashWith SHA256
 
 -- | A version reflecting what would be installed. Symlinks only need to track
 -- the set of source paths (the link target follows the source), but copies are
