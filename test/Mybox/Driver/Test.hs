@@ -69,6 +69,14 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
           [ ("GITHUB_TOKEN", githubToken)
           , ("PATH", pathValue (newLocalBin : linuxBrewBin : filter (not . problematicPath) originalPath))
           , ("HOME", home.text)
+          , -- `git fetch` inside `brew update` starts `git maintenance run
+            -- --auto --detach`, which inherits Homebrew's lock file descriptor
+            -- and keeps the lock for as long as it runs, making concurrent
+            -- tests fail with "Another `brew update` process is already
+            -- running".
+            ("GIT_CONFIG_COUNT", "1")
+          , ("GIT_CONFIG_KEY_0", "maintenance.auto")
+          , ("GIT_CONFIG_VALUE_0", "false")
           ]
     let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
         linkToOriginalHome path = do
