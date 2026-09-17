@@ -1,5 +1,6 @@
 module Mybox.LockMapSpec where
 
+import Data.List (nub)
 import Effectful.Concurrent (threadDelay)
 
 import Mybox.LockMap
@@ -41,8 +42,7 @@ spec = do
       -- All MVars should be identical
       mvars <- readMVar mvarsVar
       length mvars `shouldBe` 100
-      let uniqueMVars = length $ foldl (\acc mv -> if mv `elem` acc then acc else mv : acc) [] mvars
-      uniqueMVars `shouldBe` 1
+      length (nub mvars) `shouldBe` 1
 
     it "correctly handles modifications to different keys concurrently" $ do
       lockMap <- newLockMap @_ @Int @Int
