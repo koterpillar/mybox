@@ -68,7 +68,10 @@ brewRepoLocalVersion p = do
       else Nothing
 
 brewRepoInstall :: App es => BrewRepo -> Eff es ()
-brewRepoInstall p =
+brewRepoInstall p = do
+  -- Brew refuses to tap a repository it doesn't trust; the user asking for it
+  -- is the trust decision.
+  brewRun @SystemPackage drvRun ["trust", "--tap", p.name_]
   brewRun @SystemPackage drvRun ("tap" : args)
  where
   args = case isGithubShortcut p.name_ of

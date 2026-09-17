@@ -69,6 +69,8 @@ ps p =
           , mkPath "Library/Caches"
           , mkPath "Library/Logs"
           , mkPath ".local/state/dnf5.log"
+          , -- Brew's trust store, written when installing anything third-party
+            ".homebrew"
           ]
     }
 
