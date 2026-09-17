@@ -70,9 +70,6 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
           , ("PATH", pathValue (newLocalBin : linuxBrewBin : filter (not . problematicPath) originalPath))
           , ("HOME", home.text)
           ]
-            <> case os of
-              MacOS -> [("HOMEBREW_REQUIRE_TAP_TRUST", "1")]
-              _ -> []
     let linkToOriginalHome :: Driver :> es => Path Rel -> Eff es ()
         linkToOriginalHome path = do
           let op = originalHome <//> path
