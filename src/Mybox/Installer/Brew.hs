@@ -4,6 +4,7 @@ module Mybox.Installer.Brew where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
+import Debug.Trace (traceM)
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -43,12 +44,37 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
       drvMakeExecutable installSh
       drvRun $ installSh.text :| []
 
+-- ponytail: experiment for the "Another `brew update` process is already
+-- running" failures; delete once we know what keeps Homebrew's lock. Keyed by
+-- PID so the changing CPU/TIME columns are not reported as new processes.
+psSnapshot :: Driver :> es => Eff es (Map Text Text)
+psSnapshot = do
+  out <- (.output) <$> drvRunOutputExit ("ps" :| ["ax"])
+  pure $ Map.fromList $ mapMaybe entry $ Text.lines out
+ where
+  entry line = case Text.words line of
+    pid : _ -> Just (pid, line)
+    [] -> Nothing
+
+reportLeftoverProcesses :: Driver :> es => Map Text Text -> Args -> Eff es ()
+reportLeftoverProcesses before cmd = do
+  after <- psSnapshot
+  -- the snapshot itself is always new, and is not interesting
+  let new = Map.filter (not . Text.isInfixOf "ps ax") $ Map.difference after before
+  unless (Map.null new)
+    $ traceM
+    $ Text.unpack
+    $ Text.unlines
+    $ ("new processes after " <> shellJoin cmd <> ":") : toList new
+
 brewRun :: forall s es r. (App es, IsSystemPackage s) => (Args -> Eff es r) -> [Text] -> Eff es r
 brewRun act args =
   drvAtomic "brew-run" $ do
     queueInstall $ BrewBootstrap @s
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-    act $ exe.text :| args
+    let cmd = exe.text :| args
+    before <- psSnapshot
+    act cmd `finally` reportLeftoverProcesses before cmd
 
 brewIsThirdParty :: Text -> Bool
 brewIsThirdParty package = Text.count "/" package >= 2
