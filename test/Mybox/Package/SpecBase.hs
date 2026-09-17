@@ -69,6 +69,7 @@ ps p =
           , mkPath "Library/Caches"
           , mkPath "Library/Logs"
           , mkPath ".local/state/dnf5.log"
+          , mkPath ".local/state/gh/device-id"
           ]
     }
 
