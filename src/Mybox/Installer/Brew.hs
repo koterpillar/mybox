@@ -48,7 +48,9 @@ brewRun act args =
   drvAtomic "brew-run" $ do
     queueInstall $ BrewBootstrap @s
     exe <- flip fmap homebrewDirectory $ \dir -> dir </> "bin" </> "brew"
-    act $ exe.text :| args
+    -- brewPackageInfo updates the package index itself, no need for Homebrew
+    -- to do it again before every command
+    act $ env [("HOMEBREW_NO_AUTO_UPDATE", "1")] $ exe.text :| args
 
 brewIsThirdParty :: Text -> Bool
 brewIsThirdParty package = Text.count "/" package >= 2
