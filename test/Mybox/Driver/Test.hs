@@ -80,13 +80,14 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
           Linux _ -> [mkPath ".local/share/fonts", mkPath ".local/share/systemd/user"]
           MacOS -> [mkPath "Library/Fonts", mkPath "Library/LaunchAgents"]
     for_ linkedDirectories linkToOriginalHome
-    -- `git fetch` inside `brew update` starts `git maintenance run --auto
-    -- --detach`, which inherits the file descriptor Homebrew locks its update
-    -- lock with and keeps it locked for as long as it runs, making concurrent
-    -- tests fail with "Another `brew update` process is already running".
-    -- Homebrew filters the environment down to an allowlist, so GIT_CONFIG_*
-    -- does not survive; HOME does.
-    drvWriteFile (home </> ".gitconfig") "[maintenance]\n\tauto = false\n"
+    -- `brew update` locks the whole run under a file descriptor lock, but
+    -- `git fetch` it runs starts a `git maintenance` subprocess in background,
+    -- which keeps the lock even after `brew update` completes.
+    -- Thus a subsequent `brew update` fails with
+    -- "Another `brew update` process is already running".
+    -- Tests don't need `git maintenance` for their ephemeral environment, so
+    -- we disable it.
+    drvWriteFile (home </> ".gitconfig") "[maintenance]\nauto = false\n"
     modifyDriver (env envOverrides) act
 
 containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
