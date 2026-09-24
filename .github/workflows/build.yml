@@ -39,6 +39,18 @@ jobs:
       - name: Configure host system
         if: matrix.host
         run: ./bin/configure-ci-host
+      - name: Check macOS App Store
+        if: matrix.host == 'macos'
+        run: |
+          brew install mas
+          echo "mas install"
+          mas install 409203825 || echo "Failed: $?"
+          echo "mas list"
+          mas list || echo "Failed: $?"
+          echo "mas outdated"
+          mas outdated || echo "Failed: $?"
+          echo "/Applications"
+          ls -l /Applications
       - id: test
         name: Test
         uses: freckle/stack-action@v5
