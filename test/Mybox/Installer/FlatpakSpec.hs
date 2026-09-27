@@ -13,9 +13,7 @@ import Mybox.SpecBase
 import Mybox.Tracker
 
 expectedFlatpakVersion :: Text -> Bool
-expectedFlatpakVersion version = case Text.splitOn ":" version of
-  [origin, commit] -> origin `elem` ["fedora", "flathub"] && Text.length commit == 12
-  _ -> False
+expectedFlatpakVersion version = Text.length version == 12
 
 flatpak :: Installer
 flatpak = Flatpak.flatpak @SystemPackage

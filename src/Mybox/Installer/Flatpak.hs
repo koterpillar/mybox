@@ -35,22 +35,29 @@ flatpakUpgrade package = do
   queueInstall $ flatpakPackage @s
   drvRun $ "flatpak" :| ["upgrade", "-y", package]
 
-parseFlatpakVersions :: Text -> Map Text Text
-parseFlatpakVersions output = Map.fromList $ do
+mergeVersions :: [(Text, (Text, Text))] -> Map Text Text
+mergeVersions = Map.map snd . Map.fromListWith m
+ where
+  m (o1, c1) (o2, c2)
+    | o1 == repoName = (o1, c1)
+    | otherwise = (o2, c2)
+
+parseVersions :: Text -> Map Text Text
+parseVersions output = mergeVersions $ do
   line <- Text.lines output
   case Text.words line of
-    [name, origin, commit] -> [(name, origin <> ":" <> commit)]
+    [name, origin, commit] -> [(name, (origin, commit))]
     _ -> terror $ "Invalid flatpak version output: " <> line
 
 flatpakGetInstalled :: Driver :> es => Eff es (Map Text Text)
 flatpakGetInstalled = do
   result <- drvRunOutput $ "flatpak" :| ["list", "--app", "--columns=application,origin,active"]
-  pure $ parseFlatpakVersions result
+  pure $ parseVersions result
 
 flatpakGetLatest :: Driver :> es => Eff es (Map Text Text)
 flatpakGetLatest = do
   result <- drvRunOutput $ "flatpak" :| ["remote-ls", "--app", "--columns=application,origin,commit"]
-  pure $ parseFlatpakVersions result
+  pure $ parseVersions result
 
 -- FIXME: Cannot selectively query for only a single package
 flatpakPackageInfo :: forall s es. (App es, IsSystemPackage s) => Maybe Text -> Eff es (Map Text PackageVersion)
