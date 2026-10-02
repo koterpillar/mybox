@@ -12,7 +12,7 @@ import Data.Text qualified as Text
 
 import Mybox.Driver
 import Mybox.Effects
-import Mybox.Package.Class
+import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Path
 import Mybox.Prelude
@@ -82,7 +82,7 @@ unzipE = Extractor{extractExact = extractUnzip, description = "unzip"}
  where
   extractUnzip :: (Anchor a, App es) => Path a -> Path Abs -> Eff es ()
   extractUnzip archive targetDirectory = do
-    unlessExecutableExists "unzip" $ ensureInstalled (mkSystemPackage "unzip")
+    unlessExecutableExists "unzip" $ queueInstall (mkSystemPackage "unzip")
     drvRun $ "unzip" :| ["-o", "-qq", archive.text, "-d", targetDirectory.text]
 
 withRedirect :: Driver :> es => (Text -> Maybe a) -> Eff es a -> Text -> Eff es a
@@ -132,7 +132,7 @@ ensureXz = unlessExecutableExists "xzcat" $ do
     Linux (Debian _) -> "xz-utils"
     Linux (Generic d) -> terror $ "Cannot install xz on generic Linux: " <> d
     MacOS -> "xz"
-  ensureInstalled $ mkSystemPackage prerequisite
+  queueInstall $ mkSystemPackage prerequisite
 
 xz :: RawExtractor
 xz = mkRawExtractor "xz" $ \archive target -> do
@@ -146,7 +146,7 @@ ensureBunzip2 = unlessExecutableExists "bunzip2" $ do
     Linux (Debian _) -> Just "bzip2"
     Linux (Generic d) -> terror $ "Cannot install bzip2 on generic Linux: " <> d
     MacOS -> Nothing
-  forM_ prerequisite $ ensureInstalled . mkSystemPackage
+  forM_ prerequisite $ queueInstall . mkSystemPackage
 
 bunzip2 :: RawExtractor
 bunzip2 = mkRawExtractor "bunzip2" $ \archive target -> do
