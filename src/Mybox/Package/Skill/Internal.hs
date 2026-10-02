@@ -50,7 +50,7 @@ instance ToJSON SkillPackage where
 prerequisites :: App es => SkillPackage -> Eff es ()
 prerequisites p = do
   queueInstall $ mkNPMPackage "skills"
-  when (isGithubShortcut p.source) $ queueInstall $ mkSystemPackage "git"
+  when (isGithubShortcut p.source) ensureGit
 
 indexUrl :: SkillPackage -> Text
 indexUrl p =

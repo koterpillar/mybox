@@ -82,6 +82,7 @@ library
       Mybox.Package.Skill.Internal
       Mybox.Package.Some
       Mybox.Package.System
+      Mybox.Package.System.Class
       Mybox.Package.URL
       Mybox.Package.YumRepo
       Mybox.Path

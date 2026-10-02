@@ -8,7 +8,6 @@ import Mybox.Effects
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.Post
-import Mybox.Package.Queue
 import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
@@ -55,7 +54,7 @@ instance ToJSON ClonePackage where
         <> postToJSON p
 
 prerequisites :: App es => Eff es ()
-prerequisites = queueInstall $ mkSystemPackage "git"
+prerequisites = ensureGit
 
 cpRemote :: ClonePackage -> Text
 cpRemote p = normalizeGitRepoUrl p.repo

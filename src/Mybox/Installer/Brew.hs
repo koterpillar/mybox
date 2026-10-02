@@ -11,6 +11,7 @@ import Mybox.Effects
 import Mybox.Installer.Class
 import Mybox.Package.Class
 import Mybox.Package.Queue
+import Mybox.Package.System.Class
 import Mybox.Prelude
 
 data BrewBootstrap s = BrewBootstrap deriving (Eq, Show)
@@ -36,9 +37,7 @@ instance IsSystemPackage s => Package (BrewBootstrap s) where
     exists <- drvIsDir dir
     pure $ if exists then Just "homebrew" else Nothing
   install BrewBootstrap = do
-    macOS <- flip fmap drvOS $ \case MacOS -> True; _ -> False
-    -- macOS comes with git; mkSystemPackage relies on brew itself so have to skip
-    unless macOS $ queueInstall $ mkSystemPackage_ @s "git" []
+    ensureGit_ @s
     drvTempDownload "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh" $ \installSh -> do
       drvMakeExecutable installSh
       drvRun $ installSh.text :| []
