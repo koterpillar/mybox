@@ -41,24 +41,33 @@ drvIsDir = drvTest IsDirectory
 drvIsSymlink :: (Anchor a, Driver :> es) => Path a -> Eff es Bool
 drvIsSymlink = drvTest IsSymlink
 
+-- | Get the absolute path of an executable in PATH.
+drvExecutablePath :: Driver :> es => Text -> Eff es (Maybe (Path Abs))
+drvExecutablePath exe = do
+  result <- drvRunOutputExit $ shell $ "command" :| ["-v", exe]
+  pure $
+    if result.exit == ExitSuccess
+      then Just $ mkPath result.output
+      else Nothing
+
 -- | Check if an executable exists in PATH.
 drvExecutableExists :: Driver :> es => Text -> Eff es Bool
-drvExecutableExists exe = do
-  result <- drvRunOutputExit $ shell $ "command" :| ["-v", exe]
-  pure (result.exit == ExitSuccess)
+drvExecutableExists exe = isJust <$> drvExecutablePath exe
 
+-- | Perform an action unless an executable exists in PATH.
 unlessExecutableExists :: Driver :> es => Text -> Eff es () -> Eff es ()
 unlessExecutableExists command act = drvExecutableExists command >>= (`unless` act)
 
-drvFindExecutable :: Driver :> es => [Text] -> Eff es Text
+-- | Find the first executable in PATH from a list of candidates.
+drvFindExecutable :: Driver :> es => [Text] -> Eff es (Path Abs)
 drvFindExecutable candidates = go candidates
  where
   go [] = terror $ "Neither of " <> Text.intercalate ", " candidates <> " found in PATH."
   go (exe : executables) = do
-    exists <- drvExecutableExists exe
-    if exists
-      then pure exe
-      else go executables
+    result <- drvExecutablePath exe
+    case result of
+      Just path -> pure path
+      Nothing -> go executables
 
 -- | Get the current username.
 drvUsername :: Driver :> es => Eff es Text

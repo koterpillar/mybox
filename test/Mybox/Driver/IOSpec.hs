@@ -69,10 +69,21 @@ spec = do
         go findOptions >>= (`shouldBe` Set.fromList ["one", "subdir", "subdir" </> "one", "two", "three"])
         go (findOptions{onlyFiles = True}) >>= (`shouldBe` Set.fromList ["one", "subdir" </> "one", "two", "three"])
         go (findOptions{names = Just ["four"]}) >>= (`shouldBe` Set.empty)
+  let isCurlPath p = length p.segments >= 2 && listToMaybe (reverse p.segments) == Just "curl"
+  describe "drvExecutablePath" $ do
+    it "returns Just path for existing executable" $ do
+      drvExecutablePath "curl" >>= (`shouldSatisfy` any isCurlPath)
+    it "returns Nothing for non-existing executable" $ do
+      drvExecutablePath "nonexistent-command-xyz" >>= (`shouldBe` Nothing)
+  describe "drvExecutableExists" $ do
+    it "returns True for existing executable" $ do
+      drvExecutableExists "curl" >>= (`shouldBe` True)
+    it "returns False for non-existing executable" $ do
+      drvExecutableExists "nonexistent-command-xyz" >>= (`shouldBe` False)
   describe "drvFindExecutable" $ do
     it "returns executable path" $ do
-      drvFindExecutable ["sh"] >>= (`shouldBe` "sh")
-      drvFindExecutable ["nonexistent-command", "sh"] >>= (`shouldBe` "sh")
+      drvFindExecutable ["curl"] >>= (`shouldSatisfy` isCurlPath)
+      drvFindExecutable ["nonexistent-command", "curl"] >>= (`shouldSatisfy` isCurlPath)
     it "errors when no executable found" $
       drvFindExecutable ["nonexistent-command"]
         `shouldThrow` errorCall "Neither of nonexistent-command found in PATH."

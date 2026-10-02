@@ -63,7 +63,7 @@ tar_ option ensure = Extractor{extractExact = extractTar, description = Text.unw
   extractTar archive targetDirectory = do
     ensure
     tarCmd <- drvFindExecutable ["gtar", "tar"]
-    drvRun $ tarCmd :| ["--extract", "--directory", targetDirectory.text] ++ toList option ++ ["--file", archive.text]
+    drvRun $ tarCmd.text :| ["--extract", "--directory", targetDirectory.text] ++ toList option ++ ["--file", archive.text]
 
 tar :: Extractor
 tar = tar_ Nothing (pure ())
