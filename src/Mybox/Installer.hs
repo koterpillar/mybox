@@ -19,6 +19,7 @@ import Mybox.Installer.Brew
 import Mybox.Installer.Class
 import Mybox.Installer.DNF
 import Mybox.Installer.Flatpak
+import Mybox.Package.System.Class
 import Mybox.Prelude
 
 data InstallerKind = Flatpak | Brew

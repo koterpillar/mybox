@@ -9,6 +9,7 @@ import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer.Class
 import Mybox.Package.Queue
+import Mybox.Package.System.Class
 import Mybox.Prelude
 
 repoName :: Text

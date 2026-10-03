@@ -1,4 +1,9 @@
-module Mybox.Package.System (SystemPackage (..), InstallerKind (..), mkSystemPackage) where
+module Mybox.Package.System (
+  SystemPackage (..),
+  InstallerKind (..),
+  mkSystemPackage,
+  ensureGit,
+) where
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -7,6 +12,7 @@ import Mybox.Installer
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
+import Mybox.Package.System.Class
 import Mybox.Prelude
 
 data SystemPackage = SystemPackage
@@ -26,6 +32,9 @@ mkSystemPackage name = SystemPackage{name, installer = Nothing, url = Nothing, a
 
 instance IsSystemPackage SystemPackage where
   mkSystemPackage_ name post = (mkSystemPackage name){post}
+
+ensureGit :: App es => Eff es ()
+ensureGit = ensureGit_ @SystemPackage
 
 instance FromJSON SystemPackage where
   parseJSON = withObjectTotal "SystemPackage" $ do

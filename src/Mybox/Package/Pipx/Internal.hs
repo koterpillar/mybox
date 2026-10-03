@@ -75,9 +75,7 @@ prerequisites p = do
     (mkForgePackage "pypa/pipx")
       { archive = emptyArchiveFields{binaries = ["pipx"], raw = Left "pipx"}
       }
-  when (isRepo p)
-    $ queueInstall
-    $ mkSystemPackage "git"
+  when (isRepo p) ensureGit
 
 pipx :: (Concurrent :> es, Driver :> es) => (Args -> Eff es a) -> [Text] -> Eff es a
 pipx run args = drvAtomic "pipx" $ run $ "pipx" :| args
