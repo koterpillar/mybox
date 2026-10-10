@@ -1,6 +1,9 @@
 module Mybox.Package.SystemSpec where
 
 import Mybox.Driver
+import Mybox.Effects
+import Mybox.Installer.Flatpak.Internal
+import Mybox.Package.Class
 import Mybox.Package.SpecBase
 import Mybox.Package.System
 import Mybox.Prelude
@@ -53,15 +56,25 @@ spec = do
         & checkInstalledCommandOutput
           ("g++" :| ["--version"])
           "Free Software Foundation, Inc."
-    onlyIf "Flatpak package tests require CI environment" inCI
-      $ skipIf "Flatpak package tests cannot run in Docker" inDocker
-      $ onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False)
-      $ packageSpec
-      $ ps ((mkSystemPackage "org.videolan.VLC"){installer = Just Flatpak})
-        & checkInstalledCommandOutput
-          ("flatpak" :| ["run", "org.videolan.VLC", "--version"])
-          "VLC version"
-        & ignorePaths [mkPath ".local/share/flatpak"]
+    skipIf "Flatpak package tests cannot run in Docker" inDocker $
+      onlyIfOS "Flatpak package tests are only available on Linux" (\case Linux _ -> True; _ -> False) $
+        do
+          let vlc = "org.videolan.VLC"
+          let vlcPs =
+                ps ((mkSystemPackage vlc){installer = Just Flatpak})
+                  & checkInstalledCommandOutput
+                    ("flatpak" :| ["run", vlc, "--version"])
+                    "VLC version"
+                  & ignorePaths [mkPath ".local/share/flatpak"]
+          packageSpec vlcPs
+          describe "when a previous version is installed" $ do
+            let downgrade :: App es => Eff es ()
+                downgrade = do
+                  ensureInstalled $ flatpakPackage @SystemPackage
+                  previousVersion <- drvRunOutput $ "flatpak" :| ["remote-info", "--show-parent", repoName, vlc]
+                  drvRun $ "flatpak" :| ["install", "--assumeyes", "--noninteractive", repoName, vlc]
+                  drvRun $ sudo $ "flatpak" :| ["update", "--commit=" <> previousVersion, "--assumeyes", "--noninteractive", vlc]
+            packageSpec $ vlcPs & preinstall downgrade
     skipGenericLinux "Brew system package tests are skipped on generic Linux" $ do
       onlyIfOS "Tup is only available on Brew for Linux" (\case Linux _ -> True; _ -> False)
         $
