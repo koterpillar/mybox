@@ -29,12 +29,7 @@ flatpakPackage =
 flatpakInstall :: forall s es. (App es, IsSystemPackage s) => Text -> Eff es ()
 flatpakInstall package = do
   queueInstall $ flatpakPackage @s
-  drvRun $ "flatpak" :| ["install", "-y", repoName, package]
-
-flatpakUpgrade :: forall s es. (App es, IsSystemPackage s) => Text -> Eff es ()
-flatpakUpgrade package = do
-  queueInstall $ flatpakPackage @s
-  drvRun $ "flatpak" :| ["upgrade", "-y", package]
+  drvRun $ "flatpak" :| ["install", "--or-update", "--assumeyes", "--noninteractive", repoName, package]
 
 mergeVersions :: [(Text, (Text, Text))] -> Map Text Text
 mergeVersions = Map.map snd . Map.fromListWith m
@@ -72,6 +67,6 @@ flatpak =
     { storeKey = "flatpak"
     , install_ = flatpakInstall @s
     , installURL = iURLNotImplemented
-    , upgrade_ = flatpakUpgrade @s
+    , upgrade_ = flatpakInstall @s
     , getPackageInfo = flatpakPackageInfo @s
     }

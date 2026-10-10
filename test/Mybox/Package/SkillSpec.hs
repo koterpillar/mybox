@@ -55,16 +55,17 @@ spec = do
           Text.length version `shouldBe` 40
         it "fails for a non-existent repository" $
           remoteVersion (mkSkillPackage "vercel-labs/xxxxxxxxxxxx") `shouldThrow` anyException
-  skipGenericLinux "Default installer is unavailable on generic Linux" $ do
-    packageSpec $
-      ps (mkSkillPackage "DietrichGebert/ponytail")
-        & ignorePaths skillIgnorePaths
-        & checkInstalled (hasSkill "ponytail")
-    packageSpec $
-      ps (mkSkillPackage "vercel-labs/skills"){only = Just ["find-skills"]}
-        & ignorePaths skillIgnorePaths
-        & checkInstalled (hasSkill "find-skills")
-    packageSpec $
-      ps (mkSkillPackage "https://agentskills.io"){agents = ["claude-code"]}
-        & ignorePaths skillIgnorePaths
-        & checkInstalled (hasSkill "agent" >> hasSkill' ".claude" "agent")
+  skipGenericLinux "Default installer is unavailable on generic Linux" $
+    skipIfOS "Debian Node is too old" (\case Linux (Debian "debian") -> True; _ -> False) $ do
+      packageSpec $
+        ps (mkSkillPackage "DietrichGebert/ponytail")
+          & ignorePaths skillIgnorePaths
+          & checkInstalled (hasSkill "ponytail")
+      packageSpec $
+        ps (mkSkillPackage "vercel-labs/skills"){only = Just ["find-skills"]}
+          & ignorePaths skillIgnorePaths
+          & checkInstalled (hasSkill "find-skills")
+      packageSpec $
+        ps (mkSkillPackage "https://agentskills.io"){agents = ["claude-code"]}
+          & ignorePaths skillIgnorePaths
+          & checkInstalled (hasSkill "agent" >> hasSkill' ".claude" "agent")
