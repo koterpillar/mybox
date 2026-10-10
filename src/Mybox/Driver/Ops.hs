@@ -262,21 +262,21 @@ drvOS = do
   case osStr of
     "Linux" -> do
       distributionStr <- parseOsRelease <$> drvReadFile pOSRelease
-      distribution <- case distributionStr of
-        "debian" -> pure $ Debian "debian"
-        "ubuntu" -> pure $ Debian "ubuntu"
-        "fedora" -> pure Fedora
-        _ -> pure $ Generic distributionStr
-      pure $ Linux distribution
+      pure $ Linux $ case distributionStr of
+        "debian" -> Debian "debian"
+        "ubuntu" -> Debian "ubuntu"
+        "fedora" -> Fedora
+        _ -> Generic distributionStr
      where
       parseOsRelease :: Text -> Text
       parseOsRelease contents = fromMaybe (terror "Failed to parse /etc/os-release") $ listToMaybe $ do
         line <- Text.lines contents
         [k, v] <- pure $ Text.splitOn "=" line
         guard (k == "ID")
-        if Text.isPrefixOf "\"" v && Text.isSuffixOf "\"" v
-          then pure $ Text.drop 1 $ Text.dropEnd 1 v
-          else pure v
+        pure $
+          if Text.isPrefixOf "\"" v && Text.isSuffixOf "\"" v
+            then Text.drop 1 $ Text.dropEnd 1 v
+            else v
     "Darwin" -> pure MacOS
     _ -> terror $ "Unsupported OS: " <> osStr
 
