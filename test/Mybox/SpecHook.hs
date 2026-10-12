@@ -14,10 +14,10 @@ import Mybox.Stores
 
 hook :: Spec -> Hspec.Spec
 hook spec = do
-  -- pipx tests might run in parallel; pipx needs to use the default location
-  -- for virtual environments (inside $HOME) to avoid conflicts.
-  runIO $ unsetEnv "PIPX_HOME"
-  runIO $ unsetEnv "PIPX_BIN_DIR"
+  -- uv tests might run in parallel; uv needs to use the default location
+  -- for tool environments (inside $HOME) to avoid conflicts.
+  runIO $ unsetEnv "UV_TOOL_DIR"
+  runIO $ unsetEnv "UV_TOOL_BIN_DIR"
   statVar <- runIO $ runEff $ runConcurrent $ newMVar Map.empty
   driverLock <- runIO $ runEff $ runConcurrent $ newLockMap
   afterAll_ (runEff $ runConcurrent $ printStats statVar 20)

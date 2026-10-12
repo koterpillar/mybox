@@ -13,6 +13,12 @@ import Mybox.Tracker
 spec :: Spec
 spec = do
   metaSpec @PythonPackage [(Nothing, "{\"python\": \"django\"}")]
+  describe "tool list parsing" $ do
+    it "parses tools" $ do
+      parseToolList "black v25.1.0\n- black\n- blackd\nmypy v1.9.0\n- mypy\n"
+        `shouldBe` [PythonInstalledPackage "black" "25.1.0", PythonInstalledPackage "mypy" "1.9.0"]
+    it "is empty without tools" $ do
+      parseToolList "No tools installed\n" `shouldBe` []
   describe "repo parsing" $ do
     let pkgRepo = repo . mkPythonPackage
     it "is Nothing for normal package" $ do
@@ -45,22 +51,9 @@ spec = do
         it "returns a Git commit hash for a git package with ref" $ do
           let package = mkPythonPackage "git+https://github.com/python/mypy.git@release-1.9"
           remoteVersion package >>= (`shouldSatisfy` isGitHash)
-  let pipxShare = [".local" </> "share", "Library" </> "Application Support"]
   let psPython =
-        ignorePaths [".shiv", ".local" </> "bin" </> "pipx"]
-          . ignorePaths
-            [ prefix </> "pipx" </> suffix
-            | prefix <- pipxShare
-            , suffix <- [".cache", "logs", "py", "shared", ".shared.lock"]
-            ]
-          -- FIXME: Support glob patterns so we can write `.*.lock`.
-          . ignorePaths
-            [ prefix </> "pipx" </> "venvs" </> lockFile
-            | prefix <- pipxShare
-            , lockFile <- [".tqdm.lock", ".mypy.lock"]
-            ]
-          . ignorePaths [".local" </> "state" </> "pipx" </> "log"]
-          . ignorePaths [mkPath "Library/Application Support/pipx/py/CACHEDIR.TAG"]
+        ignorePaths [".local" </> "bin" </> "uv", ".local" </> "bin" </> "uvx"]
+          . ignorePaths [".cache" </> "uv", ".local" </> "share" </> "uv" </> "python", ".local" </> "share" </> "uv" </> "tools" </> ".gitignore", ".local" </> "share" </> "uv" </> "tools" </> ".lock"]
           . ignorePaths [".rustup" </> "settings.toml"] -- something on GitHub runners creates this
   let tqdmPackage name =
         ps (mkPythonPackage name)

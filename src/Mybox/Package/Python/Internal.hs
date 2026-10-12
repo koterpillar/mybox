@@ -53,64 +53,58 @@ repo p = do
 isRepo :: PythonPackage -> Bool
 isRepo = isJust . repo
 
-newtype PythonList = PythonList {packages :: [PythonInstalledPackage]} deriving (Show)
+data PythonInstalledPackage = PythonInstalledPackage
+  { name :: Text
+  , version :: Text
+  }
+  deriving (Eq, Show)
 
-instance FromJSON PythonList where
-  parseJSON = withObject "PythonList" $ \obj -> do
-    packages <- obj .: "venvs"
-    pure $ PythonList{packages = toList (packages :: Map Text PythonInstalledPackage)}
+-- | Parse @uv tool list@ output: @name vVERSION@ lines, each followed by
+-- @- binary@ lines.
+parseToolList :: Text -> [PythonInstalledPackage]
+parseToolList = mapMaybe parse . Text.lines
+ where
+  parse l = do
+    guard $ not $ "-" `Text.isPrefixOf` l
+    let (name, version) = Text.breakOn " v" l
+    guard $ not $ Text.null version
+    pure PythonInstalledPackage{name, version = Text.drop 2 version}
 
 prerequisites :: App es => PythonPackage -> Eff es ()
 prerequisites p = do
-  os <- drvOS
-  let packages = case os of
-        Linux distribution ->
-          ["python3-pip"] <> case distribution of
-            Debian _ -> ["python3-venv"]
-            _ -> []
-        MacOS -> []
-  for_ packages $ \package ->
-    queueInstall $ mkSystemPackage package
   queueInstall $
-    (mkForgePackage "pypa/pipx")
-      { archive = emptyArchiveFields{binaries = ["pipx"], raw = Left "pipx"}
+    (mkForgePackage "astral-sh/uv")
+      { archive = emptyArchiveFields{binaries = ["uv"]}
       }
   when (isRepo p) ensureGit
 
-pipx :: (Concurrent :> es, Driver :> es) => (Args -> Eff es a) -> [Text] -> Eff es a
-pipx run args = drvAtomic "pipx" $ run $ "pipx" :| args
+uv :: (Args -> Eff es a) -> [Text] -> Eff es a
+uv run args = run $ "uv" :| args
 
-data PythonInstalledPackage = PythonInstalledPackage
-  { name :: Text
-  , canonicalName :: Text
-  , version :: Maybe Text
-  , binaries :: [Path Abs]
-  }
-  deriving (Show)
+toolsDir :: Driver :> es => Eff es (Path Abs)
+toolsDir = mkPath <$> uv drvRunOutput ["tool", "dir"]
 
-instance FromJSON PythonInstalledPackage where
-  parseJSON = withObject "PythonInstalledPackage" $ \obj -> do
-    metadata <- obj .: "metadata"
-    mainPackage <- metadata .: "main_package"
-    name <- mainPackage .: "package_or_url"
-    canonicalName <- mainPackage .: "package"
-    version <- mainPackage .:? "package_version"
-    binaries <- mainPackage .: "app_paths" >>= traverse (.: "__Path__")
-    pure $ PythonInstalledPackage{..}
+receiptPath :: Path Abs -> PythonInstalledPackage -> Path Abs
+receiptPath tools t = tools </> t.name </> "uv-receipt.toml"
 
-getInstalled :: (Concurrent :> es, Driver :> es) => PythonPackage -> Eff es (Maybe PythonInstalledPackage)
+getInstalled :: Driver :> es => PythonPackage -> Eff es (Maybe PythonInstalledPackage)
 getInstalled p = do
-  pipxListOutput <- pipx drvRunOutput ["list", "--json"]
-  allMetadata <- jsonDecode @PythonList "pipx output" pipxListOutput
-  pure $ find (\pkg -> pkg.name == p.package) allMetadata.packages
+  tools <- toolsDir
+  installed <- parseToolList <$> uv drvRunOutput ["tool", "list"]
+  listToMaybe <$> filterM (matches tools) installed
+ where
+  -- Git packages are identified by the URL in the receipt (uv appends @?rev=@ for a ref), as the tool is named after the package
+  matches tools t = case repo p of
+    Nothing -> pure $ t.name == p.package
+    Just (url, _) -> do
+      receipt <- drvReadFile $ receiptPath tools t
+      pure $ any (`Text.isInfixOf` receipt) ["git = \"" <> url <> end | end <- ["\"", "?"]]
 
-localVersionPython :: (Concurrent :> es, Driver :> es, Tracker :> es) => PythonPackage -> Eff es (Maybe Text)
+localVersionPython :: (Driver :> es, Tracker :> es) => PythonPackage -> Eff es (Maybe Text)
 localVersionPython p = do
   if isRepo p
-    then manualVersion p -- pipx doesn't store Git commit, just the version field from the package
-    else do
-      metadata <- getInstalled p
-      pure $ metadata >>= (.version)
+    then manualVersion p -- uv doesn't store Git commit, just the version field from the package
+    else fmap (.version) <$> getInstalled p
 
 remoteVersionPython :: App es => PythonPackage -> Eff es Text
 remoteVersionPython p = do
@@ -119,30 +113,24 @@ remoteVersionPython p = do
     Just (r, b) -> drvRepoBranchVersion r b
     Nothing -> do
       result <-
-        drvRunOutput $
-          "python3" :| ["-m", "pip", "index", "versions", p.package]
+        uv drvRunOutput ["run", "--no-project", "--with", "pip", "pip", "index", "versions", p.package]
       maybe (terror "Cannot parse pip output") pure $ do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
 
-venvsPath :: (Concurrent :> es, Driver :> es) => Eff es (Path Abs)
-venvsPath = mkPath <$> pipx drvRunOutput ["environment", "--value", "PIPX_LOCAL_VENVS"]
-
 pythonInstall :: App es => PythonPackage -> Eff es ()
 pythonInstall p = do
   prerequisites p
-  pipx drvRun $ (if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package]
+  uv drvRun ["tool", "install", "--force", "--upgrade", p.package]
   metadata_ <- getInstalled p
-  local <- drvLocal False
+  tools <- toolsDir
   for_ metadata_ $ \metadata -> do
     -- track virtual environment
-    venvs <- venvsPath
-    let envPath = venvs </> metadata.canonicalName
-    trkAdd p envPath
+    trkAdd p $ tools </> metadata.name
     -- Track binaries
-    for_ metadata.binaries $ \binary ->
-      let binPath = local </> "bin" </> binary.basename
-       in trkAdd p binPath
+    receipt <- drvReadFile $ receiptPath tools metadata
+    for_ (drop 1 $ Text.splitOn "install-path = \"" receipt) $ \s ->
+      trkAdd p $ mkPath $ Text.takeWhile (/= '"') s
 
 instance Package PythonPackage where
   localVersion = localVersionPython
