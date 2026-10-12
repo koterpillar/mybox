@@ -91,7 +91,7 @@ getInstalled :: Driver :> es => PythonPackage -> Eff es (Maybe PythonInstalledPa
 getInstalled p = do
   tools <- toolsDir
   installed <- parseToolList <$> uv drvRunOutput ["tool", "list"]
-  listToMaybe <$> filterM (matches tools) installed
+  findM (matches tools) installed
  where
   -- Git packages are identified by the URL in the receipt (uv appends @?rev=@ for a ref), as the tool is named after the package
   matches tools t = case repo p of
