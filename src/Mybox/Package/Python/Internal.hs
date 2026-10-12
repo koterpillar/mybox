@@ -2,6 +2,7 @@ module Mybox.Package.Python.Internal where
 
 import Data.Char (isAlphaNum)
 import Data.Text qualified as Text
+import Toml qualified
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -84,8 +85,35 @@ uv run args = run $ "uv" :| args
 toolsDir :: Driver :> es => Eff es (Path Abs)
 toolsDir = mkPath <$> uv drvRunOutput ["tool", "dir"]
 
-receiptPath :: Path Abs -> PythonInstalledPackage -> Path Abs
-receiptPath tools t = tools </> t.name </> "uv-receipt.toml"
+-- | Contents of @uv-receipt.toml@ that we use.
+data Receipt = Receipt
+  { requirements :: [Requirement]
+  , entrypoints :: [Entrypoint]
+  }
+  deriving (Show)
+
+data Requirement = Requirement
+  { git :: Maybe Text
+  }
+  deriving (Show)
+
+newtype Entrypoint = Entrypoint {installPath :: Text} deriving (Show)
+
+receiptCodec :: Toml.TomlCodec Receipt
+receiptCodec = Toml.table toolCodec "tool"
+ where
+  toolCodec =
+    Receipt
+      <$> Toml.list requirementCodec "requirements" Toml..= (.requirements)
+      <*> Toml.list entrypointCodec "entrypoints" Toml..= (.entrypoints)
+  requirementCodec = Requirement <$> Toml.dioptional (Toml.text "git") Toml..= (.git)
+  entrypointCodec = Entrypoint <$> Toml.text "install-path" Toml..= (.installPath)
+
+readReceipt :: Driver :> es => Path Abs -> PythonInstalledPackage -> Eff es Receipt
+readReceipt tools t = do
+  let path = tools </> t.name </> "uv-receipt.toml"
+  contents <- drvReadFile path
+  either (terror . Toml.prettyTomlDecodeErrors) pure $ Toml.decode receiptCodec contents
 
 getInstalled :: Driver :> es => PythonPackage -> Eff es (Maybe PythonInstalledPackage)
 getInstalled p = do
@@ -97,8 +125,8 @@ getInstalled p = do
   matches tools t = case repo p of
     Nothing -> pure $ t.name == p.package
     Just (url, _) -> do
-      receipt <- drvReadFile $ receiptPath tools t
-      pure $ any (`Text.isInfixOf` receipt) ["git = \"" <> url <> end | end <- ["\"", "?"]]
+      receipt <- readReceipt tools t
+      pure $ any ((== Just url) . fmap (Text.takeWhile (/= '?')) . (.git)) receipt.requirements
 
 localVersionPython :: (Driver :> es, Tracker :> es) => PythonPackage -> Eff es (Maybe Text)
 localVersionPython p = do
@@ -128,9 +156,9 @@ pythonInstall p = do
     -- track virtual environment
     trkAdd p $ tools </> metadata.name
     -- Track binaries
-    receipt <- drvReadFile $ receiptPath tools metadata
-    for_ (drop 1 $ Text.splitOn "install-path = \"" receipt) $ \s ->
-      trkAdd p $ mkPath $ Text.takeWhile (/= '"') s
+    receipt <- readReceipt tools metadata
+    for_ receipt.entrypoints $ \entrypoint ->
+      trkAdd p $ mkPath entrypoint.installPath
 
 instance Package PythonPackage where
   localVersion = localVersionPython

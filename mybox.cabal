@@ -130,6 +130,7 @@ library
     , scalpel
     , terminal-size
     , text
+    , tomland
     , typed-process
     , vector
     , witherable
@@ -176,6 +177,7 @@ executable mybox
     , scalpel
     , terminal-size
     , text
+    , tomland
     , typed-process
     , vector
     , witherable
@@ -289,6 +291,7 @@ test-suite tests
     , tar
     , terminal-size
     , text
+    , tomland
     , typed-process
     , vector
     , witherable
