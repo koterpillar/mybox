@@ -1,4 +1,4 @@
-module Mybox.Package.Pipx.Internal where
+module Mybox.Package.Python.Internal where
 
 import Data.Char (isAlphaNum)
 import Data.Text qualified as Text
@@ -16,28 +16,28 @@ import Mybox.Package.System
 import Mybox.Prelude
 import Mybox.Tracker
 
-data PipxPackage = PipxPackage
+data PythonPackage = PythonPackage
   { package :: Text
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
 
-mkPipxPackage :: Text -> PipxPackage
-mkPipxPackage package = PipxPackage{package, post = []}
+mkPythonPackage :: Text -> PythonPackage
+mkPythonPackage package = PythonPackage{package, post = []}
 
-instance PackageName PipxPackage where
+instance PackageName PythonPackage where
   splitName = genericSplitName' @'[] @'["package"]
 
-instance FromJSON PipxPackage where
-  parseJSON = withObjectTotal "PipxPackage" $ do
-    package <- takeField "pipx"
+instance FromJSON PythonPackage where
+  parseJSON = withObjectTotal "PythonPackage" $ do
+    package <- takeField "python"
     post <- takePost
-    pure PipxPackage{..}
+    pure PythonPackage{..}
 
-instance ToJSON PipxPackage where
-  toJSON p = object $ ["pipx" .= p.package] <> postToJSON p
+instance ToJSON PythonPackage where
+  toJSON p = object $ ["python" .= p.package] <> postToJSON p
 
-repo :: PipxPackage -> Maybe (Text, Maybe Text)
+repo :: PythonPackage -> Maybe (Text, Maybe Text)
 repo p = do
   url <- Text.stripPrefix "git+" p.package
   case Text.splitOn "@" url of
@@ -50,17 +50,17 @@ repo p = do
  where
   isSchemeUser = all (Text.all isAlphaNum) . Text.splitOn "://"
 
-isRepo :: PipxPackage -> Bool
+isRepo :: PythonPackage -> Bool
 isRepo = isJust . repo
 
-newtype PipxList = PipxList {packages :: [PipxInstalledPackage]} deriving (Show)
+newtype PythonList = PythonList {packages :: [PythonInstalledPackage]} deriving (Show)
 
-instance FromJSON PipxList where
-  parseJSON = withObject "PipxList" $ \obj -> do
+instance FromJSON PythonList where
+  parseJSON = withObject "PythonList" $ \obj -> do
     packages <- obj .: "venvs"
-    pure $ PipxList{packages = toList (packages :: Map Text PipxInstalledPackage)}
+    pure $ PythonList{packages = toList (packages :: Map Text PythonInstalledPackage)}
 
-prerequisites :: App es => PipxPackage -> Eff es ()
+prerequisites :: App es => PythonPackage -> Eff es ()
 prerequisites p = do
   os <- drvOS
   let packages = case os of
@@ -80,7 +80,7 @@ prerequisites p = do
 pipx :: (Concurrent :> es, Driver :> es) => (Args -> Eff es a) -> [Text] -> Eff es a
 pipx run args = drvAtomic "pipx" $ run $ "pipx" :| args
 
-data PipxInstalledPackage = PipxInstalledPackage
+data PythonInstalledPackage = PythonInstalledPackage
   { name :: Text
   , canonicalName :: Text
   , version :: Maybe Text
@@ -88,32 +88,32 @@ data PipxInstalledPackage = PipxInstalledPackage
   }
   deriving (Show)
 
-instance FromJSON PipxInstalledPackage where
-  parseJSON = withObject "PipxInstalledPackage" $ \obj -> do
+instance FromJSON PythonInstalledPackage where
+  parseJSON = withObject "PythonInstalledPackage" $ \obj -> do
     metadata <- obj .: "metadata"
     mainPackage <- metadata .: "main_package"
     name <- mainPackage .: "package_or_url"
     canonicalName <- mainPackage .: "package"
     version <- mainPackage .:? "package_version"
     binaries <- mainPackage .: "app_paths" >>= traverse (.: "__Path__")
-    pure $ PipxInstalledPackage{..}
+    pure $ PythonInstalledPackage{..}
 
-getInstalled :: (Concurrent :> es, Driver :> es) => PipxPackage -> Eff es (Maybe PipxInstalledPackage)
+getInstalled :: (Concurrent :> es, Driver :> es) => PythonPackage -> Eff es (Maybe PythonInstalledPackage)
 getInstalled p = do
   pipxListOutput <- pipx drvRunOutput ["list", "--json"]
-  allMetadata <- jsonDecode @PipxList "pipx output" pipxListOutput
+  allMetadata <- jsonDecode @PythonList "pipx output" pipxListOutput
   pure $ find (\pkg -> pkg.name == p.package) allMetadata.packages
 
-localVersionPipx :: (Concurrent :> es, Driver :> es, Tracker :> es) => PipxPackage -> Eff es (Maybe Text)
-localVersionPipx p = do
+localVersionPython :: (Concurrent :> es, Driver :> es, Tracker :> es) => PythonPackage -> Eff es (Maybe Text)
+localVersionPython p = do
   if isRepo p
     then manualVersion p -- pipx doesn't store Git commit, just the version field from the package
     else do
       metadata <- getInstalled p
       pure $ metadata >>= (.version)
 
-remoteVersionPipx :: App es => PipxPackage -> Eff es Text
-remoteVersionPipx p = do
+remoteVersionPython :: App es => PythonPackage -> Eff es Text
+remoteVersionPython p = do
   prerequisites p
   case repo p of
     Just (r, b) -> drvRepoBranchVersion r b
@@ -128,8 +128,8 @@ remoteVersionPipx p = do
 venvsPath :: (Concurrent :> es, Driver :> es) => Eff es (Path Abs)
 venvsPath = mkPath <$> pipx drvRunOutput ["environment", "--value", "PIPX_LOCAL_VENVS"]
 
-pipxInstall :: App es => PipxPackage -> Eff es ()
-pipxInstall p = do
+pythonInstall :: App es => PythonPackage -> Eff es ()
+pythonInstall p = do
   prerequisites p
   pipx drvRun $ (if isRepo p then ["install", "--force"] else ["upgrade", "--install"]) <> [p.package]
   metadata_ <- getInstalled p
@@ -144,7 +144,7 @@ pipxInstall p = do
       let binPath = local </> "bin" </> binary.basename
        in trkAdd p binPath
 
-instance Package PipxPackage where
-  localVersion = localVersionPipx
-  remoteVersion = remoteVersionPipx
-  install = installWithPost $ manualVersionInstall pipxInstall
+instance Package PythonPackage where
+  localVersion = localVersionPython
+  remoteVersion = remoteVersionPython
+  install = installWithPost $ manualVersionInstall pythonInstall

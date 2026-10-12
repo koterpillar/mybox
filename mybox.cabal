@@ -71,9 +71,9 @@ library
       Mybox.Package.Name
       Mybox.Package.NPM
       Mybox.Package.NPM.Internal
-      Mybox.Package.Pipx
-      Mybox.Package.Pipx.Internal
       Mybox.Package.Post
+      Mybox.Package.Python
+      Mybox.Package.Python.Internal
       Mybox.Package.Queue
       Mybox.Package.Queue.Effect
       Mybox.Package.Root
@@ -228,7 +228,7 @@ test-suite tests
       Mybox.Package.ManualVersionSpec
       Mybox.Package.NameSpec
       Mybox.Package.NPMSpec
-      Mybox.Package.PipxSpec
+      Mybox.Package.PythonSpec
       Mybox.Package.QueueSpec
       Mybox.Package.ShellSpec
       Mybox.Package.SkillSpec

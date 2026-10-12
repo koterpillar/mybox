@@ -8,7 +8,7 @@ import Mybox.Package.Daemon
 import Mybox.Package.Forge
 import Mybox.Package.Links
 import Mybox.Package.NPM
-import Mybox.Package.Pipx
+import Mybox.Package.Python
 import Mybox.Package.Shell
 import Mybox.Package.Skill
 import Mybox.Package.System
@@ -36,7 +36,7 @@ instance FromJSON SomePackage where
       , mkSomePackageF (parseJSON @DaemonPackage v)
       , mkSomePackageF (parseJSON @LinksPackage v)
       , mkSomePackageF (parseJSON @NPMPackage v)
-      , mkSomePackageF (parseJSON @PipxPackage v)
+      , mkSomePackageF (parseJSON @PythonPackage v)
       , mkSomePackageF (parseJSON @ForgePackage v)
       , mkSomePackageF (parseJSON @ShellPackage v)
       , mkSomePackageF (parseJSON @SkillPackage v)
