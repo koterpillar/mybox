@@ -9,7 +9,7 @@ import Mybox.Package.Daemon
 import Mybox.Package.Forge
 import Mybox.Package.Links
 import Mybox.Package.NPM
-import Mybox.Package.Pipx
+import Mybox.Package.Python
 import Mybox.Package.Skill
 import Mybox.Package.Some
 import Mybox.Package.System
@@ -36,7 +36,7 @@ spec = do
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
     roundtrip $ mkNPMPackage "express"
-    roundtrip $ mkPipxPackage "pipx"
+    roundtrip $ mkPythonPackage "example"
     roundtrip $ mkForgePackage "test/repo"
     roundtrip $ (mkForgePackage "test/repo"){Mybox.Package.Forge.archive = emptyArchiveFields{raw = Right True}}
     roundtrip $ (mkForgePackage "test/repo"){Mybox.Package.Forge.archive = emptyArchiveFields{raw = Left "raw"}}

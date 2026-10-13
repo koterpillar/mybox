@@ -35,6 +35,7 @@ dependencies:
   - safe-exceptions
   - scalpel
   - text
+  - tomland
   - typed-process
   - vector
   - witherable
