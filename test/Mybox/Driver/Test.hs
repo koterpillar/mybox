@@ -90,15 +90,15 @@ testHostDriver driverLock act = localDriverWith driverLock $ do
     drvWriteFile (home </> ".gitconfig") "[maintenance]\nauto = false\n"
     modifyDriver (env envOverrides) act
 
-containerDriver :: Driver :> es => Text -> Eff es a -> Eff es a
-containerDriver container = modifyLockKey container . modifyDriver transformArgs
+containerDriver :: Driver :> es => Path Abs -> Text -> Eff es a -> Eff es a
+containerDriver docker container = modifyLockKey container . modifyDriver transformArgs
  where
   transformArgs :: Args -> Args
   transformArgs ("sudo" :| args') = dockerExec "root" args'
   transformArgs args = dockerExec dockerUser $ toList args
   dockerExec :: Text -> [Text] -> Args
   dockerExec user args =
-    "docker"
+    docker.text
       :| [ "exec"
          , "--user"
          , user
@@ -110,25 +110,26 @@ containerDriver container = modifyLockKey container . modifyDriver transformArgs
 testDockerDriver :: (Concurrent :> es, IOE :> es) => DriverLockMap -> Text -> Eff (Driver : es) a -> Eff es a
 testDockerDriver driverLock baseImage act =
   localDriverWith driverLock $ do
-    bracket mkContainer rmContainer $ \container ->
-      containerDriver container act
+    docker <- drvFindExecutable ["podman", "docker"]
+    bracket (mkContainer docker) (rmContainer docker) $ \container ->
+      containerDriver docker container act
  where
-  mkImage :: (Concurrent :> es, Driver :> es) => Eff es Text
-  mkImage =
+  mkImage :: (Concurrent :> es, Driver :> es) => Path Abs -> Eff es Text
+  mkImage docker =
     drvAtomic "mkImage" $
       drvTempDir $ \tempDir -> do
         drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage
-        drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]
+        drvRunSilent $ docker.text :| ["build", "--quiet", "--tag", image, tempDir.text]
         pure image
-  mkContainer :: (Concurrent :> es, Driver :> es, IOE :> es) => Eff es Text
-  mkContainer = do
-    image <- mkImage
+  mkContainer :: (Concurrent :> es, Driver :> es, IOE :> es) => Path Abs -> Eff es Text
+  mkContainer docker = do
+    image <- mkImage docker
     containerName <- randomText "tests"
     githubToken <- requireGithubToken
     drvRunOutput $
-      "docker"
+      docker.text
         :| [ "run"
            , "--rm"
            , "--detach"
@@ -142,8 +143,8 @@ testDockerDriver driverLock baseImage act =
            , "sleep"
            , "86400000"
            ]
-  rmContainer :: Driver :> es => Text -> Eff es ()
-  rmContainer container = drvRunSilent $ "docker" :| ["rm", "--force", container]
+  rmContainer :: Driver :> es => Path Abs -> Text -> Eff es ()
+  rmContainer docker container = drvRunSilent $ docker.text :| ["rm", "--force", container]
 
 dockerfile :: Text -> Text
 dockerfile baseImage =
