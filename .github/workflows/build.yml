@@ -122,7 +122,7 @@ jobs:
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
       - name: Workaround for https://github.com/actions/runner-images/issues/14940
-        if: ${{ matrix.host == 'macos' }}
+        if: ${{ matrix.os == 'macos' }}
         run: 'sudo xcode-select -s /Library/Developer/CommandLineTools'
       - name: Set version
         env:
