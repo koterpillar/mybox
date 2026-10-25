@@ -54,7 +54,7 @@ spec = do
   let psPython =
         ignorePaths [".local" </> "bin" </> "uv", ".local" </> "bin" </> "uvx"]
           . ignorePaths [".cache" </> "uv", ".local" </> "share" </> "uv" </> "python", ".local" </> "share" </> "uv" </> "tools" </> ".gitignore", ".local" </> "share" </> "uv" </> "tools" </> ".lock"]
-          . ignorePaths [".rustup" </> "settings.toml"] -- something on GitHub runners creates this
+          . ignorePaths [mkPath ".rustup"] -- something on GitHub runners runs rustup with the test HOME
   let tqdmPackage name =
         ps (mkPythonPackage name)
           & checkInstalledCommandOutput

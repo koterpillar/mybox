@@ -141,7 +141,7 @@ remoteVersionPython p = do
     Just (r, b) -> drvRepoBranchVersion r b
     Nothing -> do
       result <-
-        uv drvRunOutput ["run", "--no-project", "--with", "pip", "pip", "index", "versions", p.package]
+        uv drvRunOutput ["run", "--no-project", "--with", "pip", "python", "-m", "pip", "index", "versions", p.package]
       maybe (terror "Cannot parse pip output") pure $ do
         versionLine <- listToMaybe $ Text.lines result
         pure $ Text.takeWhileEnd (/= '(') $ Text.takeWhile (/= ')') versionLine
