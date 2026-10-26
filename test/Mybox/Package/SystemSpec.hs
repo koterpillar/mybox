@@ -38,11 +38,12 @@ spec = do
             ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
     onlyIfOS "Apt is only available on Debian" (\case Linux (Debian "debian") -> True; _ -> False)
+      $ onlyIf "Chrome package is only available for x86_64" ((== X86_64) <$> drvArchitecture)
       $ packageSpec
-      $ ps (mkSystemPackage "openvox-release"){url = Just "https://apt.voxpupuli.org/openvox8-release-debian13.deb"}
+      $ ps (mkSystemPackage "google-chrome-stable"){url = Just "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"}
         & checkInstalledCommandOutput
-          ("cat" :| ["/etc/apt/sources.list.d/openvox8-release.list"])
-          "OpenVox 8"
+          ("google-chrome" :| ["--version"])
+          "Google Chrome"
     onlyIfOS "Timezone package only requires interactive configuration on Debian" (\case Linux (Debian _) -> True; _ -> False)
       $ packageSpec
       $ ps (mkSystemPackage "tzdata")
