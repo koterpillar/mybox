@@ -222,6 +222,14 @@ drvTempDownload url act = drvTempFile $ \path -> do
   drvRun $ curl ["-o", path.text] url
   act path
 
+-- | Move a file to a temporary directory under a given name, for tools that
+-- check file extensions.
+drvTempRename :: Driver :> es => Text -> Path Abs -> (Path Abs -> Eff es a) -> Eff es a
+drvTempRename name file act = drvTempDir $ \dir -> do
+  let target = dir </> name
+  drvRun $ "mv" :| [file.text, target.text]
+  act target
+
 drvRedirectLocation :: Driver :> es => Text -> Eff es Text
 drvRedirectLocation = drvUrlProperty "%{url_effective}"
 

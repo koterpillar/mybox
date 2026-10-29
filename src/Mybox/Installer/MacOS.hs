@@ -34,14 +34,7 @@ installDMG image = withMountedDMG image $ \volume -> do
 macOSInstallURL :: Driver :> es => Text -> Eff es ()
 macOSInstallURL url = drvTempDownload url $ \file -> do
   pkg <- isPkg file
-  if pkg then installDownloadedPkg file else installDMG file
-
-installDownloadedPkg :: Driver :> es => Path Abs -> Eff es ()
-installDownloadedPkg file = drvTempDir $ \tdir -> do
-  -- installer requires a .pkg extension
-  let pkgFile = tdir </> "package.pkg"
-  drvRun $ "mv" :| [file.text, pkgFile.text]
-  installPkg pkgFile
+  if pkg then drvTempRename "package.pkg" file installPkg else installDMG file
 
 macOSNotImplemented :: x -> Eff es a
 macOSNotImplemented _ = terror "macOS installer only supports installation from URL."

@@ -16,12 +16,7 @@ aptInstall package = do
     $ "apt" :| ["install", "-y", package]
 
 aptInstallURL :: Driver :> es => Text -> Eff es ()
-aptInstallURL url = drvTempDownload url $ \path ->
-  drvTempDir $ \tdir -> do
-    -- Apt requires a .deb extension
-    let debFile = tdir </> "package.deb"
-    drvRun $ "mv" :| [path.text, debFile.text]
-    aptInstall debFile.text
+aptInstallURL url = drvTempDownload url $ \path -> drvTempRename "package.deb" path $ aptInstall . (.text)
 
 parseAptCacheOutput :: Text -> Maybe Text
 parseAptCacheOutput output = listToMaybe $ do
