@@ -19,6 +19,7 @@ import Mybox.Installer.Brew
 import Mybox.Installer.Class
 import Mybox.Installer.DNF
 import Mybox.Installer.Flatpak
+import Mybox.Installer.MacOSCombined
 import Mybox.Package.System.Class
 import Mybox.Prelude
 
@@ -46,4 +47,4 @@ osInstaller = flip fmap drvOS $ \case
   Linux (Debian _) -> apt
   Linux Fedora -> dnf
   Linux (Generic d) -> terror $ "No installer available for generic Linux: " <> d
-  MacOS -> brew @s
+  MacOS -> macOSCombined @s

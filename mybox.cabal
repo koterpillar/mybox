@@ -52,6 +52,8 @@ library
       Mybox.Installer.DNF
       Mybox.Installer.Flatpak
       Mybox.Installer.Flatpak.Internal
+      Mybox.Installer.MacOS
+      Mybox.Installer.MacOSCombined
       Mybox.LockMap
       Mybox.Main
       Mybox.Package.Archive
