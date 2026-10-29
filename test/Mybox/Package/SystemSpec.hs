@@ -16,6 +16,7 @@ spec = do
     [ (Nothing, "{\"system\": \"test\"}")
     , (Just "URL", "{\"system\": \"test\", \"url\": \"test\"}")
     , (Just "auto update", "{\"system\": \"test\", \"auto_updates\": true}")
+    , (Just "DMG URL", "{\"system\": \"test\", \"url\": \"https://example.com/test.dmg\"}")
     , (Just "flatpak installer", "{\"system\": \"org.example.Test\", \"installer\": \"flatpak\"}")
     ]
   onlyIf "System package tests require virtual system (Docker or CI)" virtualSystem $ do
@@ -44,6 +45,17 @@ spec = do
         & checkInstalledCommandOutput
           ("google-chrome" :| ["--version"])
           "Google Chrome"
+    onlyIfOS "macOS installer is only available on macOS" (== MacOS) $ do
+      packageSpec $
+        ps (mkSystemPackage "firefox"){url = Just "https://download.mozilla.org/?product=firefox-latest-ssl&os=osx&lang=en-US"}
+          & checkInstalledCommandOutput
+            ("/Applications/Firefox.app/Contents/MacOS/firefox" :| ["--version"])
+            "Mozilla Firefox"
+      packageSpec $
+        ps (mkSystemPackage "awscli"){url = Just "https://awscli.amazonaws.com/AWSCLIV2.pkg"}
+          & checkInstalledCommandOutput
+            ("/usr/local/bin/aws" :| ["--version"])
+            "aws-cli/"
     onlyIfOS "Timezone package only requires interactive configuration on Debian" (\case Linux (Debian _) -> True; _ -> False)
       $ packageSpec
       $ ps (mkSystemPackage "tzdata")
