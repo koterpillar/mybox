@@ -156,7 +156,7 @@ spec = do
               mempty
                 { prefixes = ["codex-"]
                 , suffixes = [".tar.gz"]
-                , excludes = ["app-server", "code-mode-host", "responses-api-proxy", "-package", "symbols", "-bazel"]
+                , excludes = ["app-server", "code-mode-host", "exec-server", "responses-api-proxy", "-package", "symbols", "-bazel"]
                 }
           }
       )
