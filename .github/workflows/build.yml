@@ -46,7 +46,6 @@ jobs:
         name: Test
         uses: freckle/stack-action@v5
         with:
-          cache-prefix: test
           stack-build-arguments: --fast --lock-file error-on-write --coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +74,6 @@ jobs:
         with:
           # Run the suite to generate coverage skeleton, but no tests
           stack-build-arguments: --fast --lock-file error-on-write --coverage --ta "--match XXXXX"
-          cache-prefix: coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download
@@ -138,7 +136,6 @@ jobs:
         name: Compile
         uses: freckle/stack-action@v5
         with:
-          cache-prefix: build
           test: false
       - name: Move executable
         run: cp ${{ steps.compile.outputs.local-install-root }}/bin/mybox ./mybox-$(uname)-$(uname -m)
