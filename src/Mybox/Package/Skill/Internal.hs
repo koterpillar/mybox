@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.NPM
@@ -26,6 +27,7 @@ data SkillPackage = SkillPackage
   -- directory.
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx SkillPackage
 
 mkSkillPackage :: Text -> SkillPackage
 mkSkillPackage source = SkillPackage{source, only = Nothing, agents = []}
@@ -33,19 +35,13 @@ mkSkillPackage source = SkillPackage{source, only = Nothing, agents = []}
 instance PackageName SkillPackage where
   splitName = genericSplitName' @'["skills"] @'["source"]
 
-instance FromJSON SkillPackage where
-  parseJSON = withObjectTotal "SkillPackage" $ do
-    source <- takeField "skill"
-    only <- takeCollapsedListMaybe "only"
-    agents <- takeCollapsedList "agents"
-    pure SkillPackage{..}
-
-instance ToJSON SkillPackage where
-  toJSON p =
-    object $
-      ["skill" .= p.source]
-        <> ["only" .= p.only | isJust p.only]
-        <> ["agents" .= p.agents | not (null p.agents)]
+instance JSONEx SkillPackage where
+  jsonEx =
+    jsonExObject "SkillPackage" $
+      field @"source" "skill" "TODO"
+        :* fieldOptional @"only" "only" "TODO"
+        :* fieldOptionalDefault @"agents" "agents" "TODO" []
+        :* Nil
 
 prerequisites :: App es => SkillPackage -> Eff es ()
 prerequisites p = do

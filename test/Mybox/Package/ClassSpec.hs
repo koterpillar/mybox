@@ -6,6 +6,7 @@ import Mybox.Aeson
 import Mybox.Display
 import Mybox.Display.SpecUtils
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Hash
 import Mybox.Package.Queue
@@ -21,6 +22,7 @@ data TestPackage = TestPackage
   , flavour :: Text
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx TestPackage
 
 defTestPackage :: TestPackage
 defTestPackage = TestPackage{name = "test", error_ = False, flavour = ""}
@@ -28,20 +30,13 @@ defTestPackage = TestPackage{name = "test", error_ = False, flavour = ""}
 instance PackageName TestPackage where
   splitName = genericSplitName
 
-instance FromJSON TestPackage where
-  parseJSON = withObject "TestPackage" $ \o -> do
-    name <- o .: "name"
-    error_ <- o .: "error"
-    flavour <- o .: "flavour"
-    pure TestPackage{..}
-
-instance ToJSON TestPackage where
-  toJSON p =
-    object
-      [ "name" .= p.name
-      , "error" .= p.error_
-      , "flavour" .= p.flavour
-      ]
+instance JSONEx TestPackage where
+  jsonEx =
+    jsonExObject "TestPackage" $
+      field @"name" "name" "TODO"
+        :* field @"error_" "error" "TODO"
+        :* field @"flavour" "flavour" "TODO"
+        :* Nil
 
 testFile :: Driver :> es => Eff es (Path Abs)
 testFile = do

@@ -11,6 +11,7 @@ import Data.Text.Encoding qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Filters
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.ManualVersion
@@ -30,29 +31,23 @@ data LinksPackage = LinksPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx LinksPackage
 
 data LinksMethod
   = LinksMethodLinks
   | LinksMethodShallowLinks
   | LinksMethodCopy
-  deriving (Eq, Generic, Show)
+  deriving (Bounded, Enum, Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx LinksMethod
 
 instance RecValue LinksMethod where
   rvEmpty = LinksMethodLinks
 
-instance FromJSON LinksMethod where
-  parseJSON = withText "LinksMethod" $ \case
-    "links" -> pure LinksMethodLinks
-    "shallow" -> pure LinksMethodShallowLinks
-    "copy" -> pure LinksMethodCopy
-    v -> fail $ "Invalid links method: " <> Text.unpack v
-
-instance ToJSON LinksMethod where
-  toJSON =
-    String . \case
-      LinksMethodLinks -> "links"
-      LinksMethodShallowLinks -> "shallow"
-      LinksMethodCopy -> "copy"
+instance JSONEx LinksMethod where
+  jsonEx = enumCodec "LinksMethod" $ \case
+    LinksMethodLinks -> "links"
+    LinksMethodShallowLinks -> "shallow"
+    LinksMethodCopy -> "copy"
 
 mkLinksPackage :: Path AnyAnchor -> Path AnyAnchor -> LinksPackage
 mkLinksPackage src dest =
@@ -69,28 +64,17 @@ mkLinksPackage src dest =
 instance PackageName LinksPackage where
   splitName = genericSplitName' @'["links"] @'["source_", "destination", "dot"]
 
-instance FromJSON LinksPackage where
-  parseJSON = withObjectTotal "LinksPackage" $ do
-    source_ <- takeField "links"
-    destination <- takeField "destination"
-    dot <- fromMaybe False <$> takeFieldMaybe "dot"
-    method <- fromMaybe LinksMethodLinks <$> takeFieldMaybe "method"
-    filters <- takeFilter
-    root <- takeRoot
-    post <- takePost
-    pure LinksPackage{..}
-
-instance ToJSON LinksPackage where
-  toJSON p =
-    object $
-      [ "links" .= p.source_
-      , "destination" .= p.destination
-      , "dot" .= p.dot
-      , "method" .= p.method
-      , "root" .= p.root
-      ]
-        <> filterToJSON p.filters
-        <> postToJSON p
+instance JSONEx LinksPackage where
+  jsonEx =
+    jsonExObject "LinksPackage" $
+      field @"source_" "links" "TODO"
+        :* field @"destination" "destination" "TODO"
+        :* fieldDefault @"dot" "dot" "TODO" False
+        :* fieldDefault @"method" "method" "TODO" LinksMethodLinks
+        :* fieldFlat @"filters"
+        :* fieldRoot
+        :* fieldPost
+        :* Nil
 
 source :: Driver :> es => LinksPackage -> Eff es (Path Abs)
 source p = do

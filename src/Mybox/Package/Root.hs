@@ -1,17 +1,17 @@
 module Mybox.Package.Root (
   PackageRoot,
-  takeRoot,
+  fieldRoot,
   withRoot,
 ) where
 
-import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Prelude
 
 type PackageRoot a = HasField "root" a Bool
 
-takeRoot :: ObjectParser Bool
-takeRoot = fromMaybe False <$> takeFieldMaybe "root"
+fieldRoot :: Field "root" Bool
+fieldRoot = fieldDefault "root" "TODO" False
 
 withRoot :: (Driver :> es, PackageRoot p) => p -> Eff es a -> Eff es a
 withRoot p

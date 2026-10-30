@@ -1,6 +1,7 @@
 module Mybox.Package.Some where
 
 import Mybox.Aeson
+import Mybox.JSONEx
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
@@ -27,27 +28,42 @@ mkSomePackageF = fmap mkSomePackage
 instance Show SomePackage where
   show (SomePackage f) = "SomePackage " <> f show
 
+-- | A package type, for enumerating all of them.
+data PackageType = forall p. Package p => PackageType (Proxy p)
+
+-- | All package types, in the order they are tried when parsing.
+packageTypes :: [PackageType]
+packageTypes =
+  [ PackageType $ Proxy @BrewRepo
+  , PackageType $ Proxy @ClonePackage
+  , PackageType $ Proxy @DaemonPackage
+  , PackageType $ Proxy @LinksPackage
+  , PackageType $ Proxy @NPMPackage
+  , PackageType $ Proxy @PythonPackage
+  , PackageType $ Proxy @ForgePackage
+  , PackageType $ Proxy @ShellPackage
+  , PackageType $ Proxy @SkillPackage
+  , PackageType $ Proxy @SystemPackage
+  , PackageType $ Proxy @URLPackage
+  , PackageType $ Proxy @YumRepo
+  ]
+
+instance JSONEx SomePackage where
+  jsonEx =
+    ValueCodec
+      { toValue = \(SomePackage f) -> f jsonEx.toValue
+      , parseValue = \v ->
+          foldr1
+            jsonAlternative
+            [mkSomePackageF $ (jsonEx @p).parseValue v | PackageType (_ :: Proxy p) <- packageTypes]
+      , valueDoc = DocOneOf [(jsonEx @p).valueDoc | PackageType (_ :: Proxy p) <- packageTypes]
+      }
+
 instance FromJSON SomePackage where
-  parseJSON v =
-    foldr1
-      jsonAlternative
-      [ mkSomePackageF (parseJSON @BrewRepo v)
-      , mkSomePackageF (parseJSON @ClonePackage v)
-      , mkSomePackageF (parseJSON @DaemonPackage v)
-      , mkSomePackageF (parseJSON @LinksPackage v)
-      , mkSomePackageF (parseJSON @NPMPackage v)
-      , mkSomePackageF (parseJSON @PythonPackage v)
-      , mkSomePackageF (parseJSON @ForgePackage v)
-      , mkSomePackageF (parseJSON @ShellPackage v)
-      , mkSomePackageF (parseJSON @SkillPackage v)
-      , mkSomePackageF (parseJSON @SystemPackage v)
-      , mkSomePackageF (parseJSON @URLPackage v)
-      , mkSomePackageF (parseJSON @YumRepo v)
-      ]
+  parseJSON = jsonEx.parseValue
 
 instance ToJSON SomePackage where
-  toJSON (SomePackage f) = f toJSON
-  toEncoding (SomePackage f) = f toEncoding
+  toJSON = jsonEx.toValue
 
 instance Eq SomePackage where
   (==) = (==) `on` toJSON

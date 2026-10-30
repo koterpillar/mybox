@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.Queue
@@ -20,6 +21,7 @@ data ActionPackage = ActionPackage
   , deps :: [ActionPackage]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx ActionPackage
 
 instance HasField "root" ActionPackage Bool where
   getField = const False
@@ -27,22 +29,14 @@ instance HasField "root" ActionPackage Bool where
 instance PackageName ActionPackage where
   splitName = genericSplitName
 
-instance FromJSON ActionPackage where
-  parseJSON = withObjectTotal "ActionPackage" $ do
-    name <- takeField "name"
-    destination <- takeField "destination"
-    delayS <- takeField "delayS"
-    deps <- takeField "deps"
-    pure ActionPackage{..}
-
-instance ToJSON ActionPackage where
-  toJSON p =
-    object
-      [ "name" .= p.name
-      , "destination" .= p.destination
-      , "delayS" .= p.delayS
-      , "deps" .= p.deps
-      ]
+instance JSONEx ActionPackage where
+  jsonEx =
+    jsonExObject "ActionPackage" $
+      field @"name" "name" "TODO"
+        :* field @"destination" "destination" "TODO"
+        :* field @"delayS" "delayS" "TODO"
+        :* field @"deps" "deps" "TODO"
+        :* Nil
 
 instance Package ActionPackage where
   remoteVersion _ = pure "1"

@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.Post
@@ -20,6 +21,7 @@ data ClonePackage = ClonePackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx ClonePackage
 
 instance HasField "root" ClonePackage Bool where
   getField _ = False
@@ -36,22 +38,14 @@ mkClonePackage repo destination =
 instance PackageName ClonePackage where
   splitName = genericSplitName' @'[] @'["repo", "destination"]
 
-instance FromJSON ClonePackage where
-  parseJSON = withObjectTotal "ClonePackage" $ do
-    repo <- takeField "clone"
-    branch <- takeFieldMaybe "branch"
-    destination <- takeField "destination"
-    post <- takePost
-    pure ClonePackage{..}
-
-instance ToJSON ClonePackage where
-  toJSON p =
-    object $
-      [ "clone" .= p.repo
-      , "branch" .= p.branch
-      , "destination" .= p.destination
-      ]
-        <> postToJSON p
+instance JSONEx ClonePackage where
+  jsonEx =
+    jsonExObject "ClonePackage" $
+      field @"repo" "clone" "TODO"
+        :* field @"destination" "destination" "TODO"
+        :* fieldNullable @"branch" "branch" "TODO"
+        :* fieldPost
+        :* Nil
 
 prerequisites :: App es => Eff es ()
 prerequisites = ensureGit

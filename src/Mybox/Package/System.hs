@@ -9,6 +9,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
@@ -23,6 +24,7 @@ data SystemPackage = SystemPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx SystemPackage
 
 instance PackageName SystemPackage where
   splitName = genericSplitName
@@ -36,24 +38,15 @@ instance IsSystemPackage SystemPackage where
 ensureGit :: App es => Eff es ()
 ensureGit = ensureGit_ @SystemPackage
 
-instance FromJSON SystemPackage where
-  parseJSON = withObjectTotal "SystemPackage" $ do
-    name <- takeField "system"
-    installer <- takeFieldMaybe "installer"
-    url <- takeFieldMaybe "url"
-    autoUpdates <- fromMaybe False <$> takeFieldMaybe "auto_updates"
-    post <- takePost
-    pure SystemPackage{..}
-
-instance ToJSON SystemPackage where
-  toJSON p =
-    object $
-      [ "system" .= p.name
-      , "installer" .= p.installer
-      , "url" .= p.url
-      , "auto_updates" .= p.autoUpdates
-      ]
-        <> postToJSON p
+instance JSONEx SystemPackage where
+  jsonEx =
+    jsonExObject "SystemPackage" $
+      field @"name" "system" "TODO"
+        :* fieldNullable @"installer" "installer" "TODO"
+        :* fieldNullable @"url" "url" "TODO"
+        :* fieldDefault @"autoUpdates" "auto_updates" "TODO" False
+        :* fieldPost
+        :* Nil
 
 autoUpdateVersion :: SystemPackage -> Text -> Text
 autoUpdateVersion p = if p.autoUpdates then const "latest" else id

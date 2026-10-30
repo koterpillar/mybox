@@ -1,6 +1,4 @@
 module Mybox.Package.Archive (
-  takeArchive,
-  archiveToJSON,
   ArchiveFields (..),
   emptyArchiveFields,
   ArchivePackage (..),

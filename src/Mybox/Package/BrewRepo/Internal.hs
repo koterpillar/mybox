@@ -6,6 +6,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer.Brew
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Package.System
@@ -17,6 +18,7 @@ data BrewRepo = BrewRepo
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx BrewRepo
 
 mkBrewRepo :: Text -> BrewRepo
 mkBrewRepo name_ = BrewRepo{name_, post = []}
@@ -24,14 +26,12 @@ mkBrewRepo name_ = BrewRepo{name_, post = []}
 instance PackageName BrewRepo where
   splitName = genericSplitName' @'["brew"] @'["name_"]
 
-instance FromJSON BrewRepo where
-  parseJSON = withObjectTotal "BrewRepo" $ do
-    name_ <- takeField "brew_tap"
-    post <- takePost
-    pure BrewRepo{..}
-
-instance ToJSON BrewRepo where
-  toJSON p = object $ ["brew_tap" .= p.name_] <> postToJSON p
+instance JSONEx BrewRepo where
+  jsonEx =
+    jsonExObject "BrewRepo" $
+      field @"name_" "brew_tap" "TODO"
+        :* fieldPost
+        :* Nil
 
 tapName :: BrewRepo -> Text
 tapName p

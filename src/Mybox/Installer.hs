@@ -20,20 +20,16 @@ import Mybox.Installer.Class
 import Mybox.Installer.DNF
 import Mybox.Installer.Flatpak
 import Mybox.Installer.MacOSCombined
+import Mybox.JSONEx
 import Mybox.Package.System.Class
 import Mybox.Prelude
 
 data InstallerKind = Flatpak | Brew
-  deriving (Eq, Generic, Show)
+  deriving (Bounded, Enum, Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx InstallerKind
 
-instance FromJSON InstallerKind where
-  parseJSON = withText "InstallerKind" $ \case
-    "flatpak" -> pure Flatpak
-    "brew" -> pure Brew
-    other -> fail $ "Unknown installer kind: " <> show other
-
-instance ToJSON InstallerKind where
-  toJSON = \case
+instance JSONEx InstallerKind where
+  jsonEx = enumCodec "InstallerKind" $ \case
     Flatpak -> "flatpak"
     Brew -> "brew"
 
