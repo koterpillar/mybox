@@ -5,10 +5,10 @@ import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 
-import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Extractor
+import Mybox.JSONEx
 import Mybox.Package.Name
 import Mybox.Package.Queue
 import Mybox.Package.Root
@@ -25,7 +25,7 @@ data ArchiveFields = ArchiveFields
   , fonts :: [Text]
   , root :: Bool
   }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
 
 instance RecValue ArchiveFields where
   rvEmpty = emptyArchiveFields
@@ -42,27 +42,17 @@ emptyArchiveFields =
     , root = False
     }
 
-takeArchive :: ObjectParser ArchiveFields
-takeArchive = do
-  raw <- maybe (Right False) getCollapsedEither <$> takeFieldMaybe "raw"
-  binaries <- takeCollapsedList "binary"
-  binaryWrapper <- fromMaybe False <$> takeFieldMaybe "binary_wrapper"
-  binaryPaths <- takeCollapsedList "binary_path"
-  apps <- takeCollapsedList "app"
-  fonts <- takeCollapsedList "font"
-  root <- takeRoot
-  pure ArchiveFields{..}
-
-archiveToJSON :: ArchiveFields -> [Pair]
-archiveToJSON p =
-  [ "raw" .= CollapsedEither p.raw
-  , "binary" .= p.binaries
-  , "binary_wrapper" .= p.binaryWrapper
-  , "binary_path" .= p.binaryPaths
-  , "app" .= p.apps
-  , "font" .= p.fonts
-  , "root" .= p.root
-  ]
+instance JSONExFields ArchiveFields where
+  jsonExFields =
+    recordFields $
+      fieldDefaultWith @"raw" "raw" "TODO" (Right False) (collapsedEither jsonEx jsonEx)
+        :* fieldDefault @"binaries" "binary" "TODO" []
+        :* fieldDefault @"binaryWrapper" "binary_wrapper" "TODO" False
+        :* fieldDefault @"binaryPaths" "binary_path" "TODO" []
+        :* fieldDefault @"apps" "app" "TODO" []
+        :* fieldDefault @"fonts" "font" "TODO" []
+        :* fieldRoot
+        :* Nil
 
 class (HasField "archive" p ArchiveFields, PackageName p) => ArchivePackage p where
   archiveUrl :: forall es. App es => p -> Eff es Text

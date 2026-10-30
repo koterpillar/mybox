@@ -4,6 +4,7 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
@@ -17,6 +18,7 @@ data YumRepo = YumRepo
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx YumRepo
 
 mkYumRepo :: Text -> Text -> YumRepo
 mkYumRepo name url = YumRepo{name_ = name, url, gpgKey = Nothing, post = []}
@@ -24,22 +26,14 @@ mkYumRepo name url = YumRepo{name_ = name, url, gpgKey = Nothing, post = []}
 instance PackageName YumRepo where
   splitName = genericSplitName' @'["yum"] @'["name_"]
 
-instance FromJSON YumRepo where
-  parseJSON = withObjectTotal "YumRepo" $ do
-    name_ <- takeField "yum_name"
-    url <- takeField "yum_url"
-    gpgKey <- takeFieldMaybe "gpg_key"
-    post <- takePost
-    pure YumRepo{..}
-
-instance ToJSON YumRepo where
-  toJSON p =
-    object $
-      [ "yum_name" .= p.name_
-      , "yum_url" .= p.url
-      , "gpg_key" .= p.gpgKey
-      ]
-        <> postToJSON p
+instance JSONEx YumRepo where
+  jsonEx =
+    jsonExObject "YumRepo" $
+      field @"name_" "yum_name" "TODO"
+        :* field @"url" "yum_url" "TODO"
+        :* fieldNullable @"gpgKey" "gpg_key" "TODO"
+        :* fieldPost
+        :* Nil
 
 yumRepoRemoteVersion :: YumRepo -> Text
 yumRepoRemoteVersion = jsonEncode

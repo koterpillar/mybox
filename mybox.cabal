@@ -54,6 +54,7 @@ library
       Mybox.Installer.Flatpak.Internal
       Mybox.Installer.MacOS
       Mybox.Installer.MacOSCombined
+      Mybox.JSONEx
       Mybox.LockMap
       Mybox.Main
       Mybox.Package.Archive
@@ -221,6 +222,7 @@ test-suite tests
       Mybox.Installer.DNFSpec
       Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
+      Mybox.JSONExSpec
       Mybox.LockMapSpec
       Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec

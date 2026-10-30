@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Package.Queue
@@ -19,20 +20,18 @@ data ShellPackage = ShellPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx ShellPackage
 
 mkShellPackage :: Path Abs -> ShellPackage
 mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = []}
 
-instance FromJSON ShellPackage where
-  parseJSON = withObjectTotal "ShellPackage" $ do
-    shellPath <- takeField "shell"
-    root <- takeRoot
-    post <- takePost
-    pure ShellPackage{shell = shellPath, ..}
-
-instance ToJSON ShellPackage where
-  toJSON p =
-    object $ ["shell" .= p.shell, "root" .= p.root] <> postToJSON p
+instance JSONEx ShellPackage where
+  jsonEx =
+    jsonExObject "ShellPackage" $
+      field @"shell" "shell" "TODO"
+        :* fieldRoot
+        :* fieldPost
+        :* Nil
 
 instance PackageName ShellPackage where
   splitName = genericSplitName' @'["shell"] @'["shell", "root"]

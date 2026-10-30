@@ -1,6 +1,9 @@
 module Mybox.Package.SomeSpec where
 
+import Data.Map.Strict qualified as Map
+
 import Mybox.Aeson
+import Mybox.JSONEx
 import Mybox.Package.Archive
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
@@ -47,6 +50,19 @@ spec = do
     roundtrip $ (mkSystemPackage "example"){installer = Just Brew}
     roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
+
+  describe "JSONEx" $ do
+    let packageDocs = case (jsonEx @SomePackage).valueDoc of
+          DocOneOf docs -> docs
+          other -> error $ "Expected one of several packages, got " <> show other
+    it "documents every package type" $
+      length packageDocs `shouldBe` 12
+    for_ packageDocs $ \doc -> case doc of
+      DocObject name fields ->
+        it ("has unique keys in " <> show name) $ do
+          let counts = Map.fromListWith (+) [(f.key, 1 :: Int) | f <- fields]
+          Map.keys (Map.filter (> 1) counts) `shouldBe` []
+      other -> it "documents an object" $ expectationFailure $ "Not an object: " <> show other
 
   describe "Eq" $ do
     it "packages with different types are not equal" $ do

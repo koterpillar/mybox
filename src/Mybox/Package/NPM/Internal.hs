@@ -7,6 +7,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONEx
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.Post
@@ -20,6 +21,7 @@ data NPMPackage = NPMPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx NPMPackage
 
 mkNPMPackage :: Text -> NPMPackage
 mkNPMPackage package = NPMPackage{package, post = []}
@@ -27,14 +29,12 @@ mkNPMPackage package = NPMPackage{package, post = []}
 instance PackageName NPMPackage where
   splitName = genericSplitName' @'[] @'["package"]
 
-instance FromJSON NPMPackage where
-  parseJSON = withObjectTotal "NPMPackage" $ do
-    package <- takeField "npm"
-    post <- takePost
-    pure NPMPackage{..}
-
-instance ToJSON NPMPackage where
-  toJSON p = object $ ["npm" .= p.package] <> postToJSON p
+instance JSONEx NPMPackage where
+  jsonEx =
+    jsonExObject "NPMPackage" $
+      field @"package" "npm" "TODO"
+        :* fieldPost
+        :* Nil
 
 prerequisites :: App es => Eff es ()
 prerequisites = do

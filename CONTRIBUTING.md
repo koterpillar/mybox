@@ -28,6 +28,11 @@ formatting automatically.
 - All system operations (filesystem, process, etc.) are performed through the
   `Driver` effect. IO or separate packages are not used to interact with the
   target system.
+- The JSON representation of packages (and types nested in them) is defined
+  once via `JSONEx` (`Mybox.JSONEx`), which bundles the encoder, decoder and
+  documentation. Record codecs are built with `jsonExObject` from per-field
+  specs tagged with the Haskell field name; a mismatch with the record's
+  fields is a type error. `FromJSON`/`ToJSON` are derived via `ViaJSONEx`.
 - Use the `App` type alias to define the effect stack and make dependencies explicit.
 - Organize code into highly modular components, each in its own module.
 - Emphasize composability and testability via effects and typeclasses.

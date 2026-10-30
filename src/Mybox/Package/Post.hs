@@ -1,16 +1,13 @@
-module Mybox.Package.Post (PackagePost, takePost, postToJSON, runPost, installWithPost) where
+module Mybox.Package.Post (PackagePost, fieldPost, runPost, installWithPost) where
 
-import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Prelude
 
 type PackagePost p = HasField "post" p [Text]
 
-takePost :: ObjectParser [Text]
-takePost = takeCollapsedList "post"
-
-postToJSON :: PackagePost p => p -> [Pair]
-postToJSON p = ["post" .= p.post]
+fieldPost :: Field "post" [Text]
+fieldPost = fieldDefault "post" "TODO" []
 
 runPost :: (Driver :> es, PackagePost p) => p -> Eff es ()
 runPost p = for_ p.post $ drvRun . shellRaw

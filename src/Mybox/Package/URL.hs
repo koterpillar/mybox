@@ -4,6 +4,7 @@ import Data.Text qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONEx
 import Mybox.Package.Archive
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
@@ -16,16 +17,15 @@ data URLPackage = URLPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONEx URLPackage
 
-instance FromJSON URLPackage where
-  parseJSON = withObjectTotal "URLPackage" $ do
-    url <- takeField "url"
-    post <- takePost
-    archive <- takeArchive
-    pure $ URLPackage{..}
-
-instance ToJSON URLPackage where
-  toJSON p = object $ ["url" .= p.url] <> archiveToJSON p.archive <> postToJSON p
+instance JSONEx URLPackage where
+  jsonEx =
+    jsonExObject "URLPackage" $
+      field @"url" "url" "TODO"
+        :* fieldFlat @"archive"
+        :* fieldPost
+        :* Nil
 
 mkURLPackage :: Text -> URLPackage
 mkURLPackage url =
