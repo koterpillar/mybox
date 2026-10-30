@@ -6,6 +6,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Filters
+import Mybox.JSONCodec
 import Mybox.Package.Archive
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
@@ -20,6 +21,7 @@ data ForgePackage = ForgePackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec ForgePackage
 
 mkForgePackage :: Text -> ForgePackage
 mkForgePackage repo =
@@ -34,23 +36,15 @@ mkForgePackage repo =
 instance PackageName ForgePackage where
   splitName = genericSplitName' @'[] @'["repo"]
 
-instance FromJSON ForgePackage where
-  parseJSON = withObjectTotal "ForgePackage" $ do
-    repo <- takeField "repo"
-    releaseFilter <- getStandaloneFilterFields <$> takeFieldMaybe "release"
-    archive <- takeArchive
-    filters <- takeFilter
-    post <- takePost
-    pure ForgePackage{..}
-
-instance ToJSON ForgePackage where
-  toJSON p =
-    object $
-      ["repo" .= p.repo]
-        <> ["release" .= object (filterToJSON p.releaseFilter)]
-        <> archiveToJSON p.archive
-        <> filterToJSON p.filters
-        <> postToJSON p
+instance JSONCodec ForgePackage where
+  jsonCodec =
+    jsonCodecObject "ForgePackage" $
+      field @"repo" "repo" "TODO"
+        :* fieldDefault @"releaseFilter" "release" "TODO"
+        :* fieldFlat @"archive"
+        :* fieldFlat @"filters"
+        :* fieldPost
+        :* Nil
 
 data APIEndpoint = APIEndpoint
   { baseUrl :: Text

@@ -11,6 +11,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONCodec
 import Mybox.Package.Class
 import Mybox.Package.Post
 import Mybox.Prelude
@@ -22,24 +23,18 @@ data DaemonPackage = DaemonPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec DaemonPackage
 
 mkDaemonPackage :: NonEmpty Text -> DaemonPackage
 mkDaemonPackage daemon = DaemonPackage{daemon, nameOverride = Nothing, post = []}
 
-instance FromJSON DaemonPackage where
-  parseJSON = withObjectTotal "DaemonPackage" $ do
-    daemon <- takeCollapsedNEList "daemon"
-    nameOverride <- takeFieldMaybe "name"
-    post <- takePost
-    pure DaemonPackage{..}
-
-instance ToJSON DaemonPackage where
-  toJSON p =
-    object $
-      [ "daemon" .= p.daemon
-      ]
-        <> maybe [] (\n -> ["name" .= n]) p.nameOverride
-        <> postToJSON p
+instance JSONCodec DaemonPackage where
+  jsonCodec =
+    jsonCodecObject "DaemonPackage" $
+      field @"daemon" "daemon" "TODO"
+        :* fieldOptional @"nameOverride" "name" "TODO"
+        :* fieldPost
+        :* Nil
 
 instance PackageName DaemonPackage where
   splitName p = case p.nameOverride of

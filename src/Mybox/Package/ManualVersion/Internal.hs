@@ -20,7 +20,7 @@ versionFile p =
     (\s -> s </> "versions" </> (pathname p <> ".json"))
     drvMyboxState
 
-manualVersion :: (Driver :> es, PackageName p, ToJSON p, Tracker :> es) => p -> Eff es (Maybe Text)
+manualVersion :: (Driver :> es, PackageName p, Tracker :> es) => p -> Eff es (Maybe Text)
 manualVersion p = do
   vf <- versionFile p
   exists <- drvIsFile vf
