@@ -2,6 +2,8 @@ module Mybox.Aeson (
   module Data.Aeson,
   Parser,
   Pair,
+  listParser,
+  listValue,
   jsonEncode,
   jsonDecode,
   yamlDecode,
@@ -13,7 +15,9 @@ module Mybox.Aeson (
   withObjectTotal,
   ObjectParser,
   takeField,
+  takeFieldWith,
   takeFieldMaybe,
+  takeFieldMaybeWith,
   takeCollapsedList,
   takeCollapsedListMaybe,
   takeCollapsedNEList,
@@ -68,16 +72,23 @@ takeField_ k f = do
       modify $ KM.delete k
       lift $ f v <?> Key k
 
-takeField :: FromJSON a => Key -> ObjectParser a
-takeField k = takeField_ k $ \case
+takeFieldWith :: Key -> (Value -> Parser a) -> ObjectParser a
+takeFieldWith k p = takeField_ k $ \case
   Nothing -> parseFail $ "key " <> show k <> " not found"
-  Just v -> parseJSON v
+  Just v -> p v
 
-takeFieldMaybe :: FromJSON a => Key -> ObjectParser (Maybe a)
-takeFieldMaybe k = takeField_ k $ \case
+takeField :: FromJSON a => Key -> ObjectParser a
+takeField k = takeFieldWith k parseJSON
+
+-- | Take an optional field; @null@ counts as absent.
+takeFieldMaybeWith :: Key -> (Value -> Parser a) -> ObjectParser (Maybe a)
+takeFieldMaybeWith k p = takeField_ k $ \case
   Nothing -> pure Nothing
   Just Null -> pure Nothing
-  Just v -> Just <$> parseJSON v
+  Just v -> Just <$> p v
+
+takeFieldMaybe :: FromJSON a => Key -> ObjectParser (Maybe a)
+takeFieldMaybe k = takeFieldMaybeWith k parseJSON
 
 parseObjectTotal :: ObjectParser a -> Object -> Parser a
 parseObjectTotal p o = do

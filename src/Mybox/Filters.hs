@@ -4,6 +4,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
 import Mybox.Aeson
+import Mybox.JSONCodec
 import Mybox.Prelude
 
 choose_ :: Show a => [a -> Bool] -> [a] -> Either String a
@@ -49,35 +50,25 @@ data FilterFields = FilterFields
 instance RecValue FilterFields where
   rvEmpty = mempty
 
-takeFilter :: ObjectParser FilterFields
-takeFilter = do
-  prefixes <- takeCollapsedList "prefix"
-  suffixes <- takeCollapsedList "suffix"
-  includes <- takeCollapsedList "include"
-  excludes <- takeCollapsedList "exclude"
-  pure FilterFields{..}
-
-parseFilter :: Object -> Parser FilterFields
-parseFilter = parseObjectTotal takeFilter
-
-filterToJSON :: FilterFields -> [Pair]
-filterToJSON a =
-  [ "prefix" .= a.prefixes
-  , "suffix" .= a.suffixes
-  , "include" .= a.includes
-  , "exclude" .= a.excludes
-  ]
+instance JSONObjectCodec FilterFields where
+  jsonObjectCodec =
+    recordFields $
+      fieldDefault @"prefixes" "prefix" "TODO"
+        :* fieldDefault @"suffixes" "suffix" "TODO"
+        :* fieldDefault @"includes" "include" "TODO"
+        :* fieldDefault @"excludes" "exclude" "TODO"
+        :* Nil
 
 -- | 'FilterFields' as a standalone JSON object, rather than keys of an
 -- enclosing one.
-newtype StandaloneFilterFields = StandaloneFilterFields FilterFields
-  deriving (Eq, Ord, Show)
+instance JSONCodec FilterFields where
+  jsonCodec = objectCodec "FilterFields" jsonObjectCodec
 
-instance FromJSON StandaloneFilterFields where
-  parseJSON = withObject "FilterFields" $ fmap StandaloneFilterFields . parseFilter
+takeFilter :: ObjectParser FilterFields
+takeFilter = jsonObjectCodec.parseFields
 
-getStandaloneFilterFields :: Maybe StandaloneFilterFields -> FilterFields
-getStandaloneFilterFields = fromMaybe mempty . fmap (\(StandaloneFilterFields a) -> a)
+parseFilter :: Object -> Parser FilterFields
+parseFilter = parseObjectTotal takeFilter
 
 toFilters :: FilterFields -> [Text -> Bool]
 toFilters a =

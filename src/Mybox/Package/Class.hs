@@ -13,13 +13,14 @@ module Mybox.Package.Class (
 import Mybox.Aeson
 import Mybox.Display
 import Mybox.Effects
+import Mybox.JSONCodec
 import Mybox.Package.Hash
 import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Tracker
 
 class
-  (FromJSON a, PackageName a, Show a, ToJSON a) =>
+  (FromJSON a, JSONCodec a, PackageName a, Show a, ToJSON a) =>
   Package a
   where
   remoteVersion :: App es => a -> Eff es Text
