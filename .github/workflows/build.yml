@@ -162,7 +162,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: ./bin/install-dev --no-lint --no-haskell
+        run: ./bin/install-dev --no-lint
       - name: Download executables
         uses: actions/download-artifact@v8
         with:
