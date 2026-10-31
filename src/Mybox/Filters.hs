@@ -68,6 +68,17 @@ filterToJSON a =
   , "exclude" .= a.excludes
   ]
 
+-- | 'FilterFields' as a standalone JSON object, rather than keys of an
+-- enclosing one.
+newtype StandaloneFilterFields = StandaloneFilterFields FilterFields
+  deriving (Eq, Ord, Show)
+
+instance FromJSON StandaloneFilterFields where
+  parseJSON = withObject "FilterFields" $ fmap StandaloneFilterFields . parseFilter
+
+getStandaloneFilterFields :: Maybe StandaloneFilterFields -> FilterFields
+getStandaloneFilterFields = fromMaybe mempty . fmap (\(StandaloneFilterFields a) -> a)
+
 toFilters :: FilterFields -> [Text -> Bool]
 toFilters a =
   join

@@ -87,7 +87,11 @@ neovimPackage root psa =
 
 spec :: Spec
 spec = do
-  metaSpec @ForgePackage [(Nothing, "{\"repo\": \"example/example\"}")]
+  metaSpec
+    @ForgePackage
+    [ (Nothing, "{\"repo\": \"example/example\"}")
+    , (Nothing, "{\"repo\": \"example/example\", \"release\": {\"prefix\": [\"v\"], \"exclude\": [\"rc\"]}}")
+    ]
 
   packageSpecGen "neovim" $ neovimPackage False
   packageSpecGen "neovim with root" $ neovimPackage True
@@ -190,8 +194,8 @@ spec = do
       )
       & checkInstalledCommandOutput ("mergiraf" :| ["--help"]) "A syntax-aware merge driver for Git"
 
-  it "skips release" $ do
-    let keytar = (mkForgePackage "atom/node-keytar"){skipReleases = ["v7.9.0"]}
+  it "filters releases" $ do
+    let keytar = (mkForgePackage "atom/node-keytar"){releaseFilter = mempty{excludes = ["7.9.0"]}}
     r <- release keytar
     r.tag_name `shouldBe` "v7.8.0"
 
@@ -205,7 +209,7 @@ spec = do
     haReleases <- releases ha
     -- Exclude all stable releases _since_ last prerelease
     let latestStable = takeWhile isStable haReleases
-    let haSkip = ha{skipReleases = map (.tag_name) latestStable}
+    let haSkip = ha{releaseFilter = mempty{excludes = map (.tag_name) latestStable}}
     -- Should find the stable release _before_ last prerelease
     r <- release haSkip
     r `shouldSatisfy` isStable
