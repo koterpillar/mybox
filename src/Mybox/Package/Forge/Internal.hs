@@ -14,7 +14,7 @@ import Mybox.Prelude
 
 data ForgePackage = ForgePackage
   { repo :: Text
-  , skipReleases :: [Text]
+  , releaseFilter :: FilterFields
   , archive :: ArchiveFields
   , filters :: FilterFields
   , post :: [Text]
@@ -25,7 +25,7 @@ mkForgePackage :: Text -> ForgePackage
 mkForgePackage repo =
   ForgePackage
     { repo = repo
-    , skipReleases = []
+    , releaseFilter = mempty
     , archive = emptyArchiveFields
     , filters = mempty
     , post = []
@@ -37,7 +37,7 @@ instance PackageName ForgePackage where
 instance FromJSON ForgePackage where
   parseJSON = withObjectTotal "ForgePackage" $ do
     repo <- takeField "repo"
-    skipReleases <- takeCollapsedList "skip_release"
+    releaseFilter <- getStandaloneFilterFields <$> takeFieldMaybe "release"
     archive <- takeArchive
     filters <- takeFilter
     post <- takePost
@@ -46,9 +46,8 @@ instance FromJSON ForgePackage where
 instance ToJSON ForgePackage where
   toJSON p =
     object $
-      [ "repo" .= p.repo
-      , "skip_release" .= p.skipReleases
-      ]
+      ["repo" .= p.repo]
+        <> ["release" .= object (filterToJSON p.releaseFilter)]
         <> archiveToJSON p.archive
         <> filterToJSON p.filters
         <> postToJSON p
@@ -131,10 +130,11 @@ latestRelease p =
     r -> handleAPIError r >>= jsonDecode "Release"
 
 wantRelease :: ForgePackage -> Release -> Bool
-wantRelease p r
-  | r.prerelease = False
-  | r.tag_name `elem` p.skipReleases = False
-  | otherwise = True
+wantRelease p r =
+  not r.prerelease
+    -- Release filters check a single release rather than using 'choose' over
+    -- the full list, so that the latest release can be checked on its own.
+    && all ($ r.tag_name) (toFilters p.releaseFilter)
 
 release :: forall es. Driver :> es => ForgePackage -> Eff es Release
 release p =
