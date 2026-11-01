@@ -29,8 +29,11 @@ processSigils_ sigils (Object obj) =
     Just (sigil, value, rest) ->
       case Map.lookup sigil sigils of
         Nothing -> error $ "Unknown sigil: " ++ Text.unpack sigil
-        Just processor ->
-          wither (processSigils_ sigils) rest >>= processor value
+        Just processor -> do
+          processedValue <- processSigils_ sigils value
+          case processedValue of
+            Nothing -> pure Nothing
+            Just value' -> wither (processSigils_ sigils) rest >>= processor value'
 processSigils_ sigils (Array arr) =
   Just . Array <$> wither (processSigils_ sigils) arr
 processSigils_ _ (String s) = pure $ Just $ String s

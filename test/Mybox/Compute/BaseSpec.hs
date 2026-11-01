@@ -38,7 +38,22 @@ spec = do
                   String s -> s
                   _ -> "unknown"
 
-        testSigils = Map.fromList [("test", testProcessor)]
+        innerProcessor value _ =
+          pure $
+            Just $
+              String $
+                "inner:" <> case value of
+                  String s -> s
+                  _ -> "unknown"
+
+        vanishProcessor _ _ = pure Nothing
+
+        testSigils =
+          Map.fromList
+            [ ("test", testProcessor)
+            , ("inner", innerProcessor)
+            , ("vanish", vanishProcessor)
+            ]
     let run = runIdentity . processSigils testSigils
 
     describe "for objects" $ do
@@ -74,6 +89,14 @@ spec = do
         let input = object ["outer" .= nested, "other" .= String "value"]
         let expected = object ["outer" .= String "processed:nested", "other" .= String "value"]
         run input `shouldBe` expected
+
+      it "processes sigils inside sigil values" $ do
+        let input = object ["$test" .= object ["$inner" .= String "path"], "key" .= String "value"]
+        run input `shouldBe` String "processed:inner:path"
+
+      it "drops the node when the sigil value is dropped" $ do
+        let input = object ["$test" .= object ["$vanish" .= String "gone"], "key" .= String "value"]
+        run input `shouldBe` Null
 
       it "processes mixed nested structures" $ do
         let nestedObj = object ["$test" .= String "obj"]
