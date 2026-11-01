@@ -73,8 +73,9 @@ parseToolList = mapMaybe parse . Text.lines
 
 prerequisites :: App es => PythonPackage -> Eff es ()
 prerequisites p = do
-  queueInstall $
-    (mkForgePackage "astral-sh/uv")
+  unlessExecutableExists "uv"
+    $ queueInstall
+    $ (mkForgePackage "astral-sh/uv")
       { archive = emptyArchiveFields{binaries = ["uv"]}
       }
   when (isRepo p) ensureGit
