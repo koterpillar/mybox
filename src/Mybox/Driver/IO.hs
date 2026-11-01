@@ -23,7 +23,7 @@ errorMessage args code stdout stderr =
   stdout_ = fromMaybe stdout $ BS.stripPrefix "OCI runtime exec failed: exec failed: " stdout
   baseMessage =
     "Process "
-      <> Text.unpack (shellJoin args)
+      <> Text.unpack (maskSecrets (shellJoin args))
       <> " failed with exit code "
       <> show code
   extraMessage str desc

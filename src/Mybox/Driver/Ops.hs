@@ -308,6 +308,26 @@ shellQuote t
   q = "'"
   safe c = isAlphaNum c || elem c ['_', '-', '/', '.']
 
+-- Markers after which a secret value follows in a rendered command line.
+-- shortcut: the list is manual, add a marker when a new secret enters command arguments
+secretMarkers :: [Text]
+secretMarkers = ["GITHUB_TOKEN=", "Authorization: token "]
+
+-- | Mask secret values, like the GitHub token, in a command line before it is
+-- shown to the user. The value after a marker is masked up to the next space or
+-- closing quote.
+maskSecrets :: Text -> Text
+maskSecrets text = foldl' maskMarker text secretMarkers
+ where
+  maskMarker t marker =
+    case Text.breakOn marker t of
+      (before, rest)
+        | Just afterMarker <- Text.stripPrefix marker rest ->
+            let (_, afterValue) = Text.break isArgEnd afterMarker
+             in before <> marker <> "***" <> maskSecrets afterValue
+        | otherwise -> t
+  isArgEnd c = c == ' ' || c == '\''
+
 mkSudo :: Driver :> es => Eff es (Args -> Args)
 mkSudo = do
   isRoot <- (== "0") <$> drvRunOutput ("id" :| ["-u"])
