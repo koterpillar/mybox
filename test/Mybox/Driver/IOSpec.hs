@@ -39,6 +39,16 @@ spec = do
         shouldThrow
           (drvRun $ shellRaw "echo fail; echo err >&2; false")
           (errorCallContains ["/bin/sh -c 'echo fail; echo err >&2; false' failed with exit code 1; stderr: err"])
+    describe "secrets" $ do
+      it "masks the token in the error message" $
+        drvRun ("env" :| ["GITHUB_TOKEN=supersecret123", "false"])
+          `shouldThrow` errorCallContains ["GITHUB_TOKEN=***"]
+      it "masks every token in a rendered command" $
+        maskSecrets (shellJoin $ "env" :| ["GITHUB_TOKEN=supersecret123", "env", "GITHUB_TOKEN=anothersecret", "false"])
+          `shouldBe` "env 'GITHUB_TOKEN=***' env 'GITHUB_TOKEN=***' false"
+      it "masks the token in an authorization header" $
+        maskSecrets (shellJoin $ "curl" :| ["-H", "Authorization: token supersecret123"])
+          `shouldBe` "curl -H 'Authorization: token ***'"
     describe "nonexistent command" $ do
       let nonExistentCommand = "nonexistent-command-xyz" :| []
       -- default test driver wraps commands in 'env' and/or 'docker' which exist

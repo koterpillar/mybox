@@ -26,4 +26,4 @@ printStats statVar n = do
   let top = take n $ sortOn (Down . snd) $ Map.toList stats
   liftIO $ putStrLn $ "Top " <> show n <> " commands:"
   forM_ top $ \(arg, count) ->
-    liftIO $ putStrLn $ Text.unpack (shellJoin arg) <> ": " <> show count
+    liftIO $ putStrLn $ Text.unpack (maskSecrets (shellJoin arg)) <> ": " <> show count
