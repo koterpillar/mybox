@@ -32,7 +32,7 @@ spec = do
             ("jq" :| ["--version"])
             "jq-"
     onlyIfOS "RPM is only available on Fedora" (\case Linux Fedora -> True; _ -> False) $ do
-      let fedoraVersion = "44" -- renovate: datasource=endoflife-date depName=fedora versioning=loose
+      let fedoraVersion = "45" -- renovate: datasource=endoflife-date depName=fedora versioning=loose
       packageSpec $
         ps ((mkSystemPackage "rpmfusion-free-release"){url = Just ("https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-" <> fedoraVersion <> ".noarch.rpm")})
           & checkInstalledCommandOutput
