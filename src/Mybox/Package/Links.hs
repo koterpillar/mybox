@@ -69,11 +69,11 @@ instance PackageName LinksPackage where
 instance JSONCodec LinksPackage where
   jsonCodec =
     jsonCodecObject "LinksPackage" $
-      field @"source_" "links" "TODO"
-        :* field @"destination" "destination" "TODO"
+      field @"source_" "links" "Source directory, relative to the package definitions directory"
+        :* field @"destination" "destination" "Directory to link into, relative to the home directory"
         :* fieldOptional @"nameOverride" "name" "Override the package name."
-        :* fieldDefault @"dot" "dot" "TODO"
-        :* fieldDefault @"method" "method" "TODO"
+        :* fieldDefault @"dot" "dot" "Prefix the names of the linked files with a dot"
+        :* fieldDefault @"method" "method" "links: symlink each file; shallow: symlink top-level entries; copy: copy files"
         :* fieldFlat @"filters"
         :* fieldRoot
         :* fieldPost

@@ -22,7 +22,7 @@ data URLPackage = URLPackage
 instance JSONCodec URLPackage where
   jsonCodec =
     jsonCodecObject "URLPackage" $
-      field @"url" "url" "TODO"
+      field @"url" "url" "URL of the archive to download"
         :* fieldFlat @"archive"
         :* fieldPost
         :* Nil

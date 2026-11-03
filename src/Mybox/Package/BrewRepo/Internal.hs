@@ -29,7 +29,7 @@ instance PackageName BrewRepo where
 instance JSONCodec BrewRepo where
   jsonCodec =
     jsonCodecObject "BrewRepo" $
-      field @"name_" "brew_tap" "TODO"
+      field @"name_" "brew_tap" "Homebrew tap to add: user/repo, or a Git URL"
         :* fieldPost
         :* Nil
 

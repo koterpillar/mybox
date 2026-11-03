@@ -34,7 +34,7 @@ instance PackageName PythonPackage where
 instance JSONCodec PythonPackage where
   jsonCodec =
     jsonCodecObject "PythonPackage" $
-      field @"package" "python" "TODO"
+      field @"package" "python" "Python package to install as a tool; git+URL[@ref] installs from Git"
         :* fieldPost
         :* Nil
 

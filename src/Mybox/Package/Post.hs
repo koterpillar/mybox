@@ -7,7 +7,7 @@ import Mybox.Prelude
 type PackagePost p = HasField "post" p [Text]
 
 fieldPost :: Field "post" [Text]
-fieldPost = fieldDefault "post" "TODO"
+fieldPost = fieldDefault "post" "Shell commands to run after installing"
 
 runPost :: (Driver :> es, PackagePost p) => p -> Eff es ()
 runPost p = for_ p.post $ drvRun . shellRaw

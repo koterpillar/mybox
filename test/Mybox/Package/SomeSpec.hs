@@ -46,7 +46,7 @@ spec = do
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []
     roundtrip $ mkLinksPackage (mkPath "src") (mkPath "dest")
-    roundtrip $ (mkLinksPackage (mkPath "src") (mkPath "dest")){nameOverride = Just "custom-links"}
+    roundtrip $ (mkLinksPackage (mkPath "src") (mkPath "dest")){Mybox.Package.Links.nameOverride = Just "custom-links"}
     roundtrip $ mkNPMPackage "express"
     roundtrip $ mkPythonPackage "example"
     roundtrip $ mkForgePackage "test/repo"
