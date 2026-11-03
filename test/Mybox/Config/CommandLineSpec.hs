@@ -11,7 +11,7 @@ import Mybox.Prelude
 import Mybox.SpecBase
 
 instance Arbitrary CommandLine where
-  arbitrary = elements [CLVersion, CommandLine False, CommandLine True]
+  arbitrary = elements [CLVersion, CLPackageHelp, CommandLine False, CommandLine True]
 
 parsePure :: [Text] -> Maybe CommandLine
 parsePure = getParseResult . execParserPure defaultPrefs optionsInfo . map Text.unpack
@@ -24,6 +24,9 @@ spec = do
   it "rejects --version with --no-self-update" $
     parsePure ["--version", "--no-self-update"] `shouldBe` Nothing
 
+  it "returns CLPackageHelp for --package-help" $
+    parsePure ["--package-help"] `shouldBe` Just CLPackageHelp
+
   it "disables self-update for --no-self-update" $
     parsePure ["--no-self-update"] `shouldBe` Just CommandLine{selfUpdate = False}
 
@@ -33,9 +36,10 @@ spec = do
   prop "withoutSelfUpdate is idempotent" $
     \commandLine -> withoutSelfUpdate (withoutSelfUpdate commandLine) === withoutSelfUpdate commandLine
 
-  prop "withoutSelfUpdate yields CLVersion or disables self-update" $
+  prop "withoutSelfUpdate preserves informational commands or disables self-update" $
     \commandLine -> case withoutSelfUpdate commandLine of
-      CLVersion -> True
+      CLVersion -> commandLine == CLVersion
+      CLPackageHelp -> commandLine == CLPackageHelp
       CommandLine{selfUpdate} -> not selfUpdate
 
   prop "roundtrips through the command line" $
