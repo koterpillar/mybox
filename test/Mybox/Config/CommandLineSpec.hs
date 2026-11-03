@@ -17,3 +17,7 @@ spec = do
   it "returns CommandLine for no args" $ do
     let result = parsePure []
     result `shouldBe` Just CommandLine
+
+  it "returns CLPackageHelp for --package-help" $ do
+    let result = parsePure ["--package-help"]
+    result `shouldBe` Just CLPackageHelp

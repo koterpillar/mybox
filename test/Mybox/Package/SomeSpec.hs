@@ -1,8 +1,11 @@
 module Mybox.Package.SomeSpec where
 
 import Data.Map.Strict qualified as Map
+import Data.Text qualified as Text
 
 import Mybox.Aeson
+import Mybox.Display
+import Mybox.Display.SpecUtils
 import Mybox.JSONCodec
 import Mybox.Package.Archive
 import Mybox.Package.BrewRepo
@@ -57,6 +60,11 @@ spec = do
           other -> error $ "Expected one of several packages, got " <> show other
     it "documents every package type" $
       length packageDocs `shouldBe` 12
+    it "renders help for every package type" $ do
+      let ((), help) = runPureEff $ runSimpleDisplayPure @MDisplay $ displayDoc (jsonCodec @SomePackage).doc
+      for_ packageDocs $ \case
+        DocObject name _ -> help `shouldContain` Text.unpack name
+        other -> expectationFailure $ "Not an object: " <> show other
     for_ packageDocs $ \doc -> case doc of
       DocObject name fields ->
         it ("has unique keys in " <> show name) $ do
