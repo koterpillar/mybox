@@ -11,7 +11,7 @@ import Mybox.Prelude
 type PackageRoot a = HasField "root" a Bool
 
 fieldRoot :: Field "root" Bool
-fieldRoot = fieldDefault "root" "TODO"
+fieldRoot = fieldDefault "root" "Install for the root user (system-wide) instead of the current user"
 
 withRoot :: (Driver :> es, PackageRoot p) => p -> Eff es a -> Eff es a
 withRoot p

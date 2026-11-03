@@ -45,12 +45,12 @@ emptyArchiveFields =
 instance JSONObjectCodec ArchiveFields where
   jsonObjectCodec =
     recordFields $
-      fieldDefault @"raw" "raw" "TODO"
-        :* fieldDefault @"binaries" "binary" "TODO"
-        :* fieldDefault @"binaryWrapper" "binary_wrapper" "TODO"
-        :* fieldDefault @"binaryPaths" "binary_path" "TODO"
-        :* fieldDefault @"apps" "app" "TODO"
-        :* fieldDefault @"fonts" "font" "TODO"
+      fieldDefault @"raw" "raw" "The download is a single file, not an archive; set to a string to rename it"
+        :* fieldDefault @"binaries" "binary" "Executables inside the archive to link into the bin directory"
+        :* fieldDefault @"binaryWrapper" "binary_wrapper" "Install the binaries as wrapper scripts instead of symlinks"
+        :* fieldDefault @"binaryPaths" "binary_path" "Directories inside the archive to look for the binaries in"
+        :* fieldDefault @"apps" "app" "Desktop applications inside the archive to install"
+        :* fieldDefault @"fonts" "font" "Fonts inside the archive to install"
         :* fieldRoot
         :* Nil
 

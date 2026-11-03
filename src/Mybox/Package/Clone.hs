@@ -41,9 +41,9 @@ instance PackageName ClonePackage where
 instance JSONCodec ClonePackage where
   jsonCodec =
     jsonCodecObject "ClonePackage" $
-      field @"repo" "clone" "TODO"
-        :* field @"destination" "destination" "TODO"
-        :* fieldOptional @"branch" "branch" "TODO"
+      field @"repo" "clone" "Git repository URL, or owner/repo on GitHub"
+        :* field @"destination" "destination" "Directory to clone into, relative to the home directory"
+        :* fieldOptional @"branch" "branch" "Branch to check out; the remote default branch if not set"
         :* fieldPost
         :* Nil
 

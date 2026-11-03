@@ -38,9 +38,9 @@ instance PackageName SkillPackage where
 instance JSONCodec SkillPackage where
   jsonCodec =
     jsonCodecObject "SkillPackage" $
-      field @"source" "skill" "TODO"
-        :* fieldOptional @"only" "only" "TODO"
-        :* fieldDefault @"agents" "agents" "TODO"
+      field @"source" "skill" "owner/repo on GitHub, or a URL publishing .well-known/skills/index.json"
+        :* fieldOptional @"only" "only" "Skills to install from the source; all of them by default"
+        :* fieldDefault @"agents" "agents" "Agents to install the skills for, besides the universal directory"
         :* Nil
 
 prerequisites :: App es => SkillPackage -> Eff es ()
