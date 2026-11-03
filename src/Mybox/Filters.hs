@@ -53,10 +53,10 @@ instance RecValue FilterFields where
 instance JSONObjectCodec FilterFields where
   jsonObjectCodec =
     recordFields $
-      fieldDefault @"prefixes" "prefix" "TODO"
-        :* fieldDefault @"suffixes" "suffix" "TODO"
-        :* fieldDefault @"includes" "include" "TODO"
-        :* fieldDefault @"excludes" "exclude" "TODO"
+      fieldDefault @"prefixes" "prefix" "Keep candidates starting with one of these"
+        :* fieldDefault @"suffixes" "suffix" "Keep candidates ending with one of these"
+        :* fieldDefault @"includes" "include" "Keep candidates containing one of these (case-insensitive)"
+        :* fieldDefault @"excludes" "exclude" "Drop candidates containing any of these (case-insensitive)"
         :* Nil
 
 -- | 'FilterFields' as a standalone JSON object, rather than keys of an

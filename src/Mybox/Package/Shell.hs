@@ -28,7 +28,7 @@ mkShellPackage shellPath = ShellPackage{shell = shellPath, root = False, post = 
 instance JSONCodec ShellPackage where
   jsonCodec =
     jsonCodecObject "ShellPackage" $
-      field @"shell" "shell" "TODO"
+      field @"shell" "shell" "Path of the shell to set as the login shell"
         :* fieldRoot
         :* fieldPost
         :* Nil
