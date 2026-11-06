@@ -1,6 +1,12 @@
 module Mybox.Package.SomeSpec where
 
+import Data.Map.Strict qualified as Map
+import Data.Text qualified as Text
+
 import Mybox.Aeson
+import Mybox.Display
+import Mybox.Display.SpecUtils
+import Mybox.JSONCodec
 import Mybox.Package.Archive
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
@@ -23,7 +29,7 @@ spec = do
   describe "FromJSON" $ do
     let roundtrip :: Package a => a -> Spec
         roundtrip pkg = it ("parses " <> show pkg <> " from JSON") $ do
-          let pkgJson = jsonEncode pkg
+          let pkgJson = jsonEncode $ jsonCodec.to pkg
           let some = jsonDecode @SomePackage "SomePackage" pkgJson
           some `shouldSatisfy` isRight
           some' <- either (error . show) pure some
@@ -47,6 +53,24 @@ spec = do
     roundtrip $ (mkSystemPackage "example"){installer = Just Brew}
     roundtrip $ mkURLPackage "https://example.com/package.tar.gz"
     roundtrip $ mkYumRepo "test" "https://example.com/repo"
+
+  describe "JSONCodec" $ do
+    let packageDocs = case (jsonCodec @SomePackage).doc of
+          DocOneOf docs -> docs
+          other -> error $ "Expected one of several packages, got " <> show other
+    it "documents every package type" $
+      length packageDocs `shouldBe` 12
+    it "renders help for every package type" $ do
+      let ((), help) = runPureEff $ runSimpleDisplayPure @MDisplay $ displayDoc (jsonCodec @SomePackage).doc
+      for_ packageDocs $ \case
+        DocObject name _ -> help `shouldContain` Text.unpack name
+        other -> expectationFailure $ "Not an object: " <> show other
+    for_ packageDocs $ \doc -> case doc of
+      DocObject name fields ->
+        it ("has unique keys in " <> show name) $ do
+          let counts = Map.fromListWith (+) [(f.key, 1 :: Int) | f <- fields]
+          Map.keys (Map.filter (> 1) counts) `shouldBe` []
+      other -> it "documents an object" $ expectationFailure $ "Not an object: " <> show other
 
   describe "Eq" $ do
     it "packages with different types are not equal" $ do

@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONCodec
 import Mybox.Package.Class
 import Mybox.Package.Destination
 import Mybox.Package.Post
@@ -20,6 +21,7 @@ data ClonePackage = ClonePackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec ClonePackage
 
 instance HasField "root" ClonePackage Bool where
   getField _ = False
@@ -36,22 +38,14 @@ mkClonePackage repo destination =
 instance PackageName ClonePackage where
   splitName = genericSplitName' @'[] @'["repo", "destination"]
 
-instance FromJSON ClonePackage where
-  parseJSON = withObjectTotal "ClonePackage" $ do
-    repo <- takeField "clone"
-    branch <- takeFieldMaybe "branch"
-    destination <- takeField "destination"
-    post <- takePost
-    pure ClonePackage{..}
-
-instance ToJSON ClonePackage where
-  toJSON p =
-    object $
-      [ "clone" .= p.repo
-      , "branch" .= p.branch
-      , "destination" .= p.destination
-      ]
-        <> postToJSON p
+instance JSONCodec ClonePackage where
+  jsonCodec =
+    jsonCodecObject "ClonePackage" $
+      field @"repo" "clone" "Git repository URL, or owner/repo on GitHub"
+        :* field @"destination" "destination" "Directory to clone into, relative to the home directory"
+        :* fieldOptional @"branch" "branch" "Branch to check out; the remote default branch if not set"
+        :* fieldPost
+        :* Nil
 
 prerequisites :: App es => Eff es ()
 prerequisites = ensureGit

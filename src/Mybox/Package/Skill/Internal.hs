@@ -5,6 +5,7 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONCodec
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion
 import Mybox.Package.NPM
@@ -26,6 +27,7 @@ data SkillPackage = SkillPackage
   -- directory.
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec SkillPackage
 
 mkSkillPackage :: Text -> SkillPackage
 mkSkillPackage source = SkillPackage{source, only = Nothing, agents = []}
@@ -33,19 +35,13 @@ mkSkillPackage source = SkillPackage{source, only = Nothing, agents = []}
 instance PackageName SkillPackage where
   splitName = genericSplitName' @'["skills"] @'["source"]
 
-instance FromJSON SkillPackage where
-  parseJSON = withObjectTotal "SkillPackage" $ do
-    source <- takeField "skill"
-    only <- takeCollapsedListMaybe "only"
-    agents <- takeCollapsedList "agents"
-    pure SkillPackage{..}
-
-instance ToJSON SkillPackage where
-  toJSON p =
-    object $
-      ["skill" .= p.source]
-        <> ["only" .= p.only | isJust p.only]
-        <> ["agents" .= p.agents | not (null p.agents)]
+instance JSONCodec SkillPackage where
+  jsonCodec =
+    jsonCodecObject "SkillPackage" $
+      field @"source" "skill" "owner/repo on GitHub, or a URL publishing .well-known/skills/index.json"
+        :* fieldOptional @"only" "only" "Skills to install from the source; all of them by default"
+        :* fieldDefault @"agents" "agents" "Agents to install the skills for, besides the universal directory"
+        :* Nil
 
 prerequisites :: App es => SkillPackage -> Eff es ()
 prerequisites p = do

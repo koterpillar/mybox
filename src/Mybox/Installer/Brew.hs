@@ -9,21 +9,21 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Installer.Class
+import Mybox.JSONCodec
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.System.Class
 import Mybox.Prelude
 
-data BrewBootstrap s = BrewBootstrap deriving (Eq, Show)
+data BrewBootstrap s = BrewBootstrap
+  deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec (BrewBootstrap s)
 
 instance PackageName (BrewBootstrap s) where
   splitName _ = ("homebrew", Nothing)
 
-instance FromJSON (BrewBootstrap s) where
-  parseJSON = withObjectTotal "BrewBootstrap" $ pure BrewBootstrap
-
-instance ToJSON (BrewBootstrap s) where
-  toJSON BrewBootstrap = object []
+instance JSONCodec (BrewBootstrap s) where
+  jsonCodec = jsonCodecObject "BrewBootstrap" Nil
 
 homebrewDirectory :: Driver :> es => Eff es (Path Abs)
 homebrewDirectory = flip fmap drvOS $ \case
