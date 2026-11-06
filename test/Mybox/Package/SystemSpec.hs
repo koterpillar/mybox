@@ -36,7 +36,7 @@ spec = do
       packageSpec $
         ps ((mkSystemPackage "rpmfusion-free-release"){url = Just ("https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-" <> fedoraVersion <> ".noarch.rpm")})
           & checkInstalledCommandOutput
-            ("cat" :| ["/etc/yum.repos.d/rpmfusion-free.repo"])
+            ("cat" :| ["/usr/share/dnf5/repos.d/rpmfusion-free.repo"])
             "RPM Fusion for Fedora"
     onlyIfOS "Apt is only available on Debian" (\case Linux (Debian "debian") -> True; _ -> False)
       $ onlyIf "Chrome package is only available for x86_64" ((== X86_64) <$> drvArchitecture)
