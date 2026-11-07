@@ -1,11 +1,11 @@
 module Mybox.Package.Archive.Internal where
 
 import Data.Char (isDigit)
-import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Aeson
+import Mybox.DesktopFile
 import Mybox.Driver
 import Mybox.Effects
 import Mybox.Extractor
@@ -113,16 +113,20 @@ data AFindOptions = AFindOptions
   , description :: Text
   }
 
-aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es (Path Abs)
-aFind p opt name = do
+aFindMaybe :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es (Maybe (Path Abs))
+aFindMaybe p opt name = do
   directory <- aDirectory p
-  paths <-
-    filterM
-      (if opt.requireExecutable then drvIsExecutable else drvIsFile)
-      [directory <//> path </> name | path <- opt.paths]
-  case paths of
-    (path : _) -> pure path
-    [] -> terror $ "Cannot find " <> opt.description <> " '" <> name <> "' in " <> directory.text
+  findM
+    (if opt.requireExecutable then drvIsExecutable else drvIsFile)
+    [directory <//> path </> name | path <- opt.paths]
+
+aFind :: (ArchivePackage p, Driver :> es) => p -> AFindOptions -> Text -> Eff es (Path Abs)
+aFind p opt name =
+  aFindMaybe p opt name >>= \case
+    Just path -> pure path
+    Nothing -> do
+      directory <- aDirectory p
+      terror $ "Cannot find " <> opt.description <> " '" <> name <> "' in " <> directory.text
 
 binaryFind :: AFindOptions
 binaryFind =
@@ -163,22 +167,23 @@ installApp p app = do
     Linux _ -> pure ()
     os -> error $ "Installing apps on " <> show os <> " is not implemented."
   let appDesktop = app <> ".desktop"
-  appPath <- aFind p freedesktopAppFind appDesktop
   local <- drvLocal p.archive.root
   let appsTarget = local </> "share" </> "applications"
   let desktopTarget = appsTarget </> appDesktop
-  withRoot p.archive $ drvLink appPath desktopTarget
-  trkAdd p desktopTarget
-  appProperties <- parseDesktopFile <$> drvReadFile desktopTarget
-  for_ (Map.lookup "Icon" appProperties) $ installIcon p
-
-parseDesktopFile :: Text -> Map Text Text
-parseDesktopFile contents = Map.fromList $ do
-  line <- Text.lines contents
-  guard $ not $ Text.null line
-  guard $ line /= "[Desktop Entry]"
-  [key, value] <- pure $ Text.splitOn "=" line
-  pure (key, value)
+  aFindMaybe p freedesktopAppFind appDesktop >>= \case
+    Just appPath -> do
+      withRoot p.archive $ drvLink appPath desktopTarget
+      trkAdd p desktopTarget
+      desktopFile <- parseDesktopFile <$> drvReadFile desktopTarget
+      for_ desktopFile.icon $ void . installIcon p
+    Nothing -> do
+      -- The archive doesn't ship a desktop file: create a minimal one. Only
+      -- the application's name is known, but that's enough for launchers to
+      -- find and run it, matching windows by the desktop file's name.
+      icon <- installIcon p app
+      let desktopFile = DesktopFile{name = app, exec = (local </> "bin" </> app).text, icon}
+      withRoot p.archive $ drvWriteFile desktopTarget $ renderDesktopFile desktopFile
+      trkAdd p desktopTarget
 
 withExtensions :: [Text] -> Text -> [Text]
 withExtensions exts name = case Text.splitOn "." name of
@@ -189,7 +194,9 @@ withExtensions exts name = case Text.splitOn "." name of
 iconExtensions :: [Text]
 iconExtensions = ["png", "svg"]
 
-installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es ()
+-- | Install the icons for the given name from the archive into the local
+-- hicolor theme. Returns 'Just' the name if any icons were found.
+installIcon :: (App es, ArchivePackage p) => p -> Text -> Eff es (Maybe Text)
 installIcon p icon = do
   directory <- aDirectory p
   iconPaths <- drvFind directory $ findOptions{names = Just $ withExtensions iconExtensions icon}
@@ -199,6 +206,7 @@ installIcon p icon = do
     let iconTargetPath = iconsTarget <//> iconPath iconSrcPath
     withRoot p.archive $ drvLink iconSrcPath iconTargetPath
     trkAdd p iconTargetPath
+  pure $ guard (not (Set.null iconPaths)) $> icon
 
 iconPath :: Anchor a => Path a -> Path Rel
 iconPath icon = "hicolor" </> resolution </> "apps" </> base

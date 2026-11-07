@@ -30,6 +30,7 @@ library
       Mybox.Config.Base
       Mybox.Config.CommandLine
       Mybox.Config.Match
+      Mybox.DesktopFile
       Mybox.Display
       Mybox.Display.ANSI
       Mybox.Display.Class
