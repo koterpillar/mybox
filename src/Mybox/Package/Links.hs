@@ -66,7 +66,7 @@ instance PackageName LinksPackage where
 
 instance JSONCodec LinksPackage where
   jsonCodec =
-    jsonCodecObject "LinksPackage" $
+    jsonCodecObject "a set of links" $
       field @"source_" "links" "Source directory, relative to the package definitions directory"
         :* field @"destination" "destination" "Directory to link into, relative to the home directory"
         :* fieldDefault @"dot" "dot" "Prefix the names of the linked files with a dot"

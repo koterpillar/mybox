@@ -38,7 +38,7 @@ instance PackageName ForgePackage where
 
 instance JSONCodec ForgePackage where
   jsonCodec =
-    jsonCodecObject "ForgePackage" $
+    jsonCodecObject "software release from a code forge" $
       field @"repo" "repo" "owner/repo on GitHub, or host/owner/repo for Gitea, Codeberg and similar"
         :* fieldDefault @"releaseFilter" "release" "Filters on tag names to choose the release"
         :* fieldFlat @"archive"

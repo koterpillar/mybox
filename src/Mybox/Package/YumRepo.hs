@@ -28,7 +28,7 @@ instance PackageName YumRepo where
 
 instance JSONCodec YumRepo where
   jsonCodec =
-    jsonCodecObject "YumRepo" $
+    jsonCodecObject "a YUM repository" $
       field @"name_" "yum_name" "Repository name"
         :* field @"url" "yum_url" "Repository base URL"
         :* fieldOptional @"gpgKey" "gpg_key" "URL of the GPG key to import and verify packages with"

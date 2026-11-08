@@ -31,7 +31,7 @@ instance PackageName NPMPackage where
 
 instance JSONCodec NPMPackage where
   jsonCodec =
-    jsonCodecObject "NPMPackage" $
+    jsonCodecObject "an npm package" $
       field @"package" "npm" "npm package to install; its executables are linked into the bin directory"
         :* fieldPost
         :* Nil

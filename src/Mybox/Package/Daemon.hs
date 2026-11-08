@@ -30,7 +30,7 @@ mkDaemonPackage daemon = DaemonPackage{daemon, nameOverride = Nothing, post = []
 
 instance JSONCodec DaemonPackage where
   jsonCodec =
-    jsonCodecObject "DaemonPackage" $
+    jsonCodecObject "a user daemon" $
       field @"daemon" "daemon" "Command to run as a user service (systemd or launchd), restarted if it exits"
         :* fieldOptional @"nameOverride" "name" "Package name, instead of deriving it from the command"
         :* fieldPost

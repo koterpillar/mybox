@@ -40,7 +40,7 @@ ensureGit = ensureGit_ @SystemPackage
 
 instance JSONCodec SystemPackage where
   jsonCodec =
-    jsonCodecObject "SystemPackage" $
+    jsonCodecObject "a system package" $
       field @"name" "system" "Package name for the system package manager"
         :* fieldOptional @"installer" "installer" "Use this installer instead of the system package manager"
         :* fieldOptional @"url" "url" "Install from this package file URL instead of the repositories"
