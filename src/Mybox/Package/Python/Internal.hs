@@ -7,6 +7,7 @@ import Toml qualified
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Effects
+import Mybox.JSONCodec
 import Mybox.Package.Archive
 import Mybox.Package.Class
 import Mybox.Package.Forge hiding (repo)
@@ -22,6 +23,7 @@ data PythonPackage = PythonPackage
   , post :: [Text]
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec PythonPackage
 
 mkPythonPackage :: Text -> PythonPackage
 mkPythonPackage package = PythonPackage{package, post = []}
@@ -29,14 +31,12 @@ mkPythonPackage package = PythonPackage{package, post = []}
 instance PackageName PythonPackage where
   splitName = genericSplitName' @'[] @'["package"]
 
-instance FromJSON PythonPackage where
-  parseJSON = withObjectTotal "PythonPackage" $ do
-    package <- takeField "python"
-    post <- takePost
-    pure PythonPackage{..}
-
-instance ToJSON PythonPackage where
-  toJSON p = object $ ["python" .= p.package] <> postToJSON p
+instance JSONCodec PythonPackage where
+  jsonCodec =
+    jsonCodecObject "a Python tool" $
+      field @"package" "python" "Python package to install as a tool; git+URL[@ref] installs from Git"
+        :* fieldPost
+        :* Nil
 
 repo :: PythonPackage -> Maybe (Text, Maybe Text)
 repo p = do

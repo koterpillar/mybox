@@ -8,7 +8,9 @@ import System.IO (stdout)
 import Mybox.Config
 import Mybox.Display
 import Mybox.Driver
+import Mybox.JSONCodec
 import Mybox.Package.Queue
+import Mybox.Package.Some
 import Mybox.Prelude
 import Mybox.Stores
 import Mybox.Tracker
@@ -24,6 +26,7 @@ main = runEff $
 
 mainOpt :: (AppDisplay :> es, Concurrent :> es, IOE :> es) => CommandLine -> Eff es ()
 mainOpt CLVersion = displayVersion version
+mainOpt CLPackageHelp = displayDoc (jsonCodec @SomePackage).doc
 mainOpt commandLine =
   runStores $
     localDriver $ do

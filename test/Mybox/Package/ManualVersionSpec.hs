@@ -2,6 +2,7 @@ module Mybox.Package.ManualVersionSpec where
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONCodec
 import Mybox.Package.Class
 import Mybox.Package.ManualVersion.Internal
 import Mybox.Package.Queue
@@ -11,10 +12,10 @@ import Mybox.Tracker
 
 newtype DummyPackage = DummyPackage {name :: Text}
   deriving (Eq, Generic, Ord, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec DummyPackage
 
-instance FromJSON DummyPackage
-
-instance ToJSON DummyPackage
+instance JSONCodec DummyPackage where
+  jsonCodec = jsonCodecObject "DummyPackage" $ field @"name" "name" "TODO" :* Nil
 
 instance PackageName DummyPackage where
   splitName = genericSplitName

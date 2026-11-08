@@ -13,6 +13,7 @@ module Mybox.Display (
   MDisplay,
   displayLogText,
   displayVersion,
+  displayDoc,
 ) where
 
 import Data.Version
@@ -24,6 +25,7 @@ import Mybox.Display.Data
 import Mybox.Display.Print (Print)
 import Mybox.Display.Print qualified as Print
 import Mybox.Display.Simple
+import Mybox.JSONCodec
 import Mybox.Prelude
 
 type AppDisplay = Display MDisplay
@@ -39,3 +41,7 @@ displayLogText = displayLog . MLog
 
 displayVersion :: AppDisplay :> es => Version -> Eff es ()
 displayVersion = displayLog . MVersion
+
+-- | Display documentation of a JSON value, e.g. the package definition format.
+displayDoc :: AppDisplay :> es => ValueDoc -> Eff es ()
+displayDoc = displayLog . MDoc
