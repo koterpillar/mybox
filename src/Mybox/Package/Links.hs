@@ -23,6 +23,7 @@ import Mybox.Utils
 data LinksPackage = LinksPackage
   { source_ :: Path AnyAnchor
   , destination :: Path AnyAnchor
+  , nameOverride :: Maybe Text
   , dot :: Bool
   , method :: LinksMethod
   , filters :: FilterFields
@@ -59,6 +60,7 @@ mkLinksPackage src dest =
   LinksPackage
     { source_ = src
     , destination = dest
+    , nameOverride = Nothing
     , dot = False
     , method = LinksMethodLinks
     , filters = mempty
@@ -67,12 +69,15 @@ mkLinksPackage src dest =
     }
 
 instance PackageName LinksPackage where
-  splitName = genericSplitName' @'["links"] @'["source_", "destination", "dot"]
+  splitName p = case p.nameOverride of
+    Nothing -> genericSplitName' @'["links"] @'["source_", "destination", "dot"] p
+    Just override -> (override, Just p{nameOverride = Just ""})
 
 instance FromJSON LinksPackage where
   parseJSON = withObjectTotal "LinksPackage" $ do
     source_ <- takeField "links"
     destination <- takeField "destination"
+    nameOverride <- takeFieldMaybe "name"
     dot <- fromMaybe False <$> takeFieldMaybe "dot"
     method <- fromMaybe LinksMethodLinks <$> takeFieldMaybe "method"
     filters <- takeFilter
@@ -85,10 +90,12 @@ instance ToJSON LinksPackage where
     object $
       [ "links" .= p.source_
       , "destination" .= p.destination
-      , "dot" .= p.dot
-      , "method" .= p.method
-      , "root" .= p.root
       ]
+        <> maybe [] (\name -> ["name" .= name]) p.nameOverride
+        <> [ "dot" .= p.dot
+           , "method" .= p.method
+           , "root" .= p.root
+           ]
         <> filterToJSON p.filters
         <> postToJSON p
 
