@@ -1,8 +1,8 @@
 module Mybox.Package.ForgeSpec where
 
-import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 
+import Mybox.DesktopFile
 import Mybox.Driver
 import Mybox.Filters
 import Mybox.Package.Archive
@@ -20,16 +20,15 @@ assertDesktopFileExists ::
 assertDesktopFileExists root fileName expectedName expectedExecutable = do
   local <- drvLocal root
   let desktopFilePath = local </> "share" </> "applications" </> (fileName <> ".desktop")
-  desktopContent <- parseDesktopFile <$> drvReadFile desktopFilePath
+  desktopFile <- parseDesktopFile <$> drvReadFile desktopFilePath
 
-  Map.lookup "Name" desktopContent `shouldBe` Just expectedName
+  desktopFile.name `shouldBe` expectedName
 
   for_ expectedExecutable $ \exec -> do
-    command <- assertKeyExists "desktop file" "Exec" desktopContent
-    command `shouldContainText` exec
+    desktopFile.exec `shouldContainText` exec
 
   let iconsDir = local </> "share" </> "icons"
-  for_ (Map.lookup "Icon" desktopContent) $ \iconName ->
+  for_ desktopFile.icon $ \iconName ->
     assertAnyFileExists ("Icon " <> iconName) iconsDir (iconPaths iconName)
 
 pngResolutions :: [Text]
