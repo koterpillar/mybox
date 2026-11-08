@@ -63,7 +63,12 @@ spec = do
     [ (Nothing, "{\"links\": \"test/test\", \"destination\": \"test\"}")
     , (Just "shallow links method", "{\"links\": \"test/test\", \"destination\": \"test\", \"method\": \"shallow\"}")
     , (Just "all fields", "{\"links\": \"test/test\", \"destination\": \"test\", \"dot\": true, \"method\": \"copy\", \"include\": [\"foo\"], \"root\": true}")
+    , (Just "with name override", "{\"links\": \"test/test\", \"destination\": \"test\", \"name\": \"my-links\"}")
     ]
+  describe "name generation"
+    $ it "uses name override when provided"
+    $ getName ((mkLinksPackage (mkPath "src") (mkPath "dest")){nameOverride = Just "my-links"})
+      `shouldBe` "my-links"
   describe "remote version" $
     withEff (nullTracker . runInstallQueue) $ do
       it "changes when a copied file's contents change" $
