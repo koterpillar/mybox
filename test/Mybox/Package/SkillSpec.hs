@@ -84,3 +84,7 @@ spec = do
         ps (mkSkillPackage "https://agentskills.io"){agents = ["claude-code"]}
           & ignorePaths skillIgnorePaths
           & checkInstalled (hasSkill "agent" >> hasSkill' ".claude" "agent")
+      packageSpec $
+        ps (mkSkillPackage "./test/fixtures/skills")
+          & ignorePaths skillIgnorePaths
+          & checkInstalled (hasSkill "local-test")
