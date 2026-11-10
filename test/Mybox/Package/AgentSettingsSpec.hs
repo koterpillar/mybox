@@ -19,18 +19,26 @@ import Mybox.Tracker
 spec :: Spec
 spec = do
   metaSpec @AgentSettingsPackage
-    [ (Nothing, "{\"agent-settings\":[\"claude\",\"codex\",\"kilo\",\"rovo\"]}")
-    , (Just "rules", "{\"agent-settings\":\"claude\",\"read\":[\"projects\",\"/etc/hosts\"],\"write\":\"projects\",\"commands\":[\"git status\",{\"exact\":\"make test\"}]}")
+    [ (Nothing, "{\"agent-settings\":\"tools\",\"agents\":[\"claude\",\"codex\",\"kilo\",\"rovo\"]}")
+    , (Just "rules", "{\"agent-settings\":\"tools\",\"agents\":\"claude\",\"read\":[\"projects\",\"/etc/hosts\"],\"write\":\"projects\",\"commands\":[\"git status\",{\"exact\":\"make test\"}]}")
     ]
   describe "decoding" $ do
-    for_ ["{\"agent-settings\":[]}", "{\"agent-settings\":[\"unknown\"]}", "{\"agent-settings\":\"claude\",\"typo\":[]}"] $ \input ->
-      it ("rejects " <> Text.unpack input) $
-        eitherDecodeStrictText @AgentSettingsPackage input `shouldSatisfy` isLeft
+    for_
+      [ "{\"agents\":[\"claude\"]}"
+      , "{\"agent-settings\":\"\",\"agents\":[\"claude\"]}"
+      , "{\"agent-settings\":\"tools\"}"
+      , "{\"agent-settings\":\"tools\",\"agents\":[]}"
+      , "{\"agent-settings\":\"tools\",\"agents\":[\"unknown\"]}"
+      , "{\"agent-settings\":\"tools\",\"agents\":[\"claude\"],\"typo\":[]}"
+      ]
+      $ \input ->
+        it ("rejects " <> Text.unpack input) $
+          eitherDecodeStrictText @AgentSettingsPackage input `shouldSatisfy` isLeft
     for_ ["\"\"", "\"git  status\"", "\"git status && echo hi\"", "\"git *\"", "{\"exact\":\"\"}", "{\"exact\":\"git status\",\"typo\":true}"] $ \input ->
       it ("rejects command " <> Text.unpack input) $
         eitherDecodeStrictText @CommandRule input `shouldSatisfy` isLeft
     it "registers the package in SomePackage" $ do
-      let p = (mkAgentSettingsPackage $ Claude :| []){commands = [CommandExact "make test"]}
+      let p = (mkAgentSettingsPackage "tools" $ Claude :| []){commands = [CommandExact "make test"]}
       eitherDecodeStrictText @SomePackage (jsonEncode p) `shouldBe` Right (mkSomePackage p)
   describe "settings JSON" $ do
     it "accepts comments and trailing commas without changing strings or key order" $ do
@@ -125,13 +133,13 @@ spec = do
         let target = home </> "claude-original.json"
             settings = home <//> mkPath @Rel ".claude/settings.json"
             original = "{\"model\":\"custom\"}"
-            p = (mkAgentSettingsPackage $ Claude :| [Rovo, Codex]){commands = [CommandPrefix "git status"], write = [mkPath "code"]}
+            p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo, Codex]){commands = [CommandPrefix "git status"], write = [mkPath "code"]}
         drvWriteFile target original
         drvRun $ "chmod" :| ["600", target.text]
         drvLink target settings
         localVersion p >>= (`shouldBe` Nothing)
         install p
-        install (mkAgentSettingsPackage $ Kilo :| []){commands = [CommandPrefix "git status"]}
+        install (mkAgentSettingsPackage "tools" $ Kilo :| []){commands = [CommandPrefix "git status"]}
         drvIsSymlink settings >>= (`shouldBe` True)
         mode <- Text.take 10 <$> drvRunOutput ("ls" :| ["-ld", target.text])
         mode `shouldBe` "-rw-------"
@@ -142,15 +150,28 @@ spec = do
         drvReadFile settings >>= (`shouldBe` installed)
         drvWriteFile target "{}"
         localVersion p >>= (`shouldBe` Nothing)
+    it "keeps named packages for the same agents installed independently" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        let git = (mkAgentSettingsPackage "git" $ Claude :| [Codex]){commands = [CommandPrefix "git status"]}
+            stack = (mkAgentSettingsPackage "stack" $ Claude :| [Codex]){commands = [CommandPrefix "stack test"]}
+        getName git `shouldBe` "agent-settings#git"
+        getName stack `shouldBe` "agent-settings#stack"
+        withoutName git `shouldBe` Just git{name = ""}
+        ensureInstalled git
+        ensureInstalled stack
+        isInstalled git >>= (`shouldBe` True)
+        isInstalled stack >>= (`shouldBe` True)
+        ensureInstalled git
+        isInstalled stack >>= (`shouldBe` True)
     it "checks every agent before writing any settings" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-        let p = (mkAgentSettingsPackage $ Claude :| [Codex]){commands = [CommandExact "make test"]}
+        let p = (mkAgentSettingsPackage "tools" $ Claude :| [Codex]){commands = [CommandExact "make test"]}
         install p `shouldThrow` anyException
         drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
     it "rejects path patterns and parent traversal before writing" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         for_ ["../private", "code/*", "~/code"] $ \path -> do
-          let p = (mkAgentSettingsPackage $ Claude :| []){read = [mkPath path]}
+          let p = (mkAgentSettingsPackage "tools" $ Claude :| []){read = [mkPath path]}
           install p `shouldThrow` anyException
 
 homeDriver :: Path Abs -> Args -> Maybe Text
