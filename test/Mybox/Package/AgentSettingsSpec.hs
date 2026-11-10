@@ -68,6 +68,10 @@ spec = do
     it "refuses to override existing command restrictions" $ do
       original <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
       rovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
+    for_ ["{\"toolPermissions\":null}", "{\"toolPermissions\":{\"bash\":[]}}"] $ \input ->
+      it ("rejects malformed intermediate settings " <> Text.unpack input) $ do
+        existing <- jsonDecode @Value "settings" input
+        rovoSettings [] [] [CommandPrefix "git status"] existing `shouldSatisfy` isLeft
   withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
     it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do

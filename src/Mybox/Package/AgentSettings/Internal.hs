@@ -7,12 +7,12 @@ module Mybox.Package.AgentSettings.Internal (
   rovoSettings,
 ) where
 
-import Data.Aeson.KeyMap qualified as KM
 import Data.List (nub)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
-import Data.Vector qualified as Vector
 import Data.Yaml qualified as Yaml
+import Lens.Micro qualified as Lens
+import Lens.Micro.Aeson qualified as AesonLens
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -164,13 +164,13 @@ rovoSettings readPaths writePaths commands config = do
   -- Do not assume precedence between overlapping Rovo regex rules.
   prependCommands = \case
     Nothing -> pure $ toJSON $ nub newCommands
-    Just (Array existing) -> do
-      unless (all isAllow existing) $
+    Just existing@(Array _) -> do
+      let entries = existing Lens.^.. AesonLens.values
+      unless (all isAllow entries) $
         Left "Cannot extend Rovo command rules containing explicit ask/deny entries without verified rule precedence"
-      pure $ toJSON $ nub $ Vector.toList existing <> newCommands
+      pure $ toJSON $ nub $ entries <> newCommands
     _ -> Left "Expected Rovo bash commands to be a list"
-  isAllow (Object fields) = KM.lookup "permission" fields == Just (String "allow")
-  isAllow _ = False
+  isAllow value = value Lens.^? (AesonLens.key "permission" . AesonLens._String) == Just "allow"
   patternFor rule =
     "^" <> escapeRegex (commandText rule) <> case rule of
       CommandPrefix _ -> "( .*)?$"

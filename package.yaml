@@ -27,6 +27,8 @@ dependencies:
   - effectful
   - extra
   - Glob
+  - microlens
+  - microlens-aeson
   - mtl
   - network-uri
   - optparse-applicative

@@ -129,6 +129,8 @@ library
     , crypton
     , effectful
     , extra
+    , microlens
+    , microlens-aeson
     , mtl
     , network-uri
     , optparse-applicative
@@ -176,6 +178,8 @@ executable mybox
     , crypton
     , effectful
     , extra
+    , microlens
+    , microlens-aeson
     , mtl
     , mybox
     , network-uri
@@ -293,6 +297,8 @@ test-suite tests
     , extra
     , hspec
     , lzma
+    , microlens
+    , microlens-aeson
     , mtl
     , mybox
     , network-uri
