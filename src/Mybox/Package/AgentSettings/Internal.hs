@@ -108,25 +108,17 @@ settingsPlan p = do
       let output = Text.decodeUtf8 $ Yaml.encode updated
       pure [(path, existing, if config == updated then fromMaybe output existing else output)]
     Codex -> do
-      codexHome <- fromMaybe (home </> ".codex") . fmap (mkPath @Abs) <$> drvEnv "CODEX_HOME"
+      unless (null readPaths && null writePaths) $
+        throwString "Codex path settings are not supported yet"
       rules <- throwLeft $ codexRules p.commands
-      ruleChanges <-
-        if null p.commands
-          then pure []
-          else do
-            let path = codexHome <//> mkPath @Rel "rules/mybox.rules"
-            existing <- readSettings path
-            let output = mergeCodexRules (fromMaybe "" existing) rules
-            pure [(path, existing, output)]
-      pathChanges <-
-        if null readPaths && null writePaths
-          then pure []
-          else do
-            let path = codexHome </> "config.toml"
-            existing <- readSettings path
-            updated <- throwLeft $ codexPaths readPaths writePaths $ fromMaybe "" existing
-            pure [(path, existing, updated)]
-      pure $ ruleChanges <> pathChanges
+      if null p.commands
+        then pure []
+        else do
+          codexHome <- fromMaybe (home </> ".codex") . fmap (mkPath @Abs) <$> drvEnv "CODEX_HOME"
+          let path = codexHome <//> mkPath @Rel "rules/mybox.rules"
+          existing <- readSettings path
+          let output = mergeCodexRules (fromMaybe "" existing) rules
+          pure [(path, existing, output)]
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM predicate yes no = predicate >>= \b -> if b then yes else no

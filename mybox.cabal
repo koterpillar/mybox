@@ -140,7 +140,6 @@ library
     , text
     , tomland
     , typed-process
-    , unordered-containers
     , vector
     , witherable
     , yaml
@@ -188,7 +187,6 @@ executable mybox
     , text
     , tomland
     , typed-process
-    , unordered-containers
     , vector
     , witherable
     , yaml
@@ -304,7 +302,6 @@ test-suite tests
     , text
     , tomland
     , typed-process
-    , unordered-containers
     , vector
     , witherable
     , yaml
