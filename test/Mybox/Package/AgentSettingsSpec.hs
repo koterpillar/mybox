@@ -1,7 +1,6 @@
 module Mybox.Package.AgentSettingsSpec (spec) where
 
 import Data.Text qualified as Text
-import Toml qualified
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -79,44 +78,13 @@ spec = do
       mergeCodexRules (existing <> addition) addition `shouldBe` (existing <> addition)
     it "rejects exact rules" $
       codexRules [CommandExact "make test"] `shouldSatisfy` isLeft
-    it "creates a permission profile and is stable on repeat updates" $ do
-      output <- throwLeft $ codexPaths [mkPath "/etc/hosts"] [mkPath "/tmp/test"] "model = \"custom\"\n"
-      output `shouldContainText` "model = \"custom\""
-      output `shouldContainText` "default_permissions = \"mybox\""
-      output `shouldContainText` "extends = \":workspace\""
-      output `shouldContainText` "\"/etc/hosts\" = \"read\""
-      output `shouldContainText` "\"/tmp/test\" = \"write\""
-      codexPaths [mkPath "/etc/hosts"] [mkPath "/tmp/test"] output `shouldBe` Right output
-    it "preserves active profiles, nested denials, and unrelated TOML values" $ do
-      let input = "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n\"/existing\" = \"write\"\n[mcp_servers.example]\ncommand = \"example\"\nargs = [\"one\",\"two\"]\n"
-      output <- throwLeft $ codexPaths [mkPath "/existing"] [mkPath "/code"] input
-      output `shouldContainText` "\"/private\" = \"deny\""
-      output `shouldContainText` "\"/existing\" = \"write\""
-      parsed <- throwLeft $ first (Text.unpack . Toml.unTomlParseError) $ Toml.parse output
-      normalized <- throwLeft $ normalizeToml parsed
-      server <- throwLeft $ tableAt ["mcp_servers", "example"] normalized
-      optionalText "command" server `shouldBe` Right (Just "example")
-    it "rejects a grant inside an explicitly denied directory" $
-      codexPaths [] [mkPath "/private/child"] "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n" `shouldSatisfy` isLeft
-    it "does not downgrade inherited write access for a read grant" $ do
-      output <- throwLeft $ codexPaths [mkPath "/existing"] [] "default_permissions = \"custom\"\n[permissions.base.filesystem]\n\"/existing\" = \"write\"\n[permissions.custom]\nextends = \"base\"\n"
-      parsed <- throwLeft $ first (Text.unpack . Toml.unTomlParseError) $ Toml.parse output
-      normalized <- throwLeft $ normalizeToml parsed
-      filesystem <- throwLeft $ tableAt ["permissions", "custom", "filesystem"] normalized
-      optionalText (key ["/existing"]) filesystem `shouldBe` Right (Just "write")
-    it "preserves denials inherited from another named profile" $
-      codexPaths [] [mkPath "/private/child"] "default_permissions = \"custom\"\n[permissions.base.filesystem]\n\"/private\" = \"deny\"\n[permissions.custom]\nextends = \"base\"\n" `shouldSatisfy` isLeft
-    it "rejects legacy sandbox settings" $
-      codexPaths [] [mkPath "/code"] "sandbox_mode = \"workspace-write\"\n" `shouldSatisfy` isLeft
-    it "rejects a path explicitly denied in the active profile" $
-      codexPaths [] [mkPath "/private"] "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n" `shouldSatisfy` isLeft
   withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
     it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         let target = home </> "claude-original.json"
             settings = home <//> mkPath @Rel ".claude/settings.json"
             original = "{\"model\":\"custom\"}"
-            p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo, Codex]){commands = [CommandPrefix "git status"], write = [mkPath "code"]}
+            p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo]){commands = [CommandPrefix "git status"], write = [mkPath "code"]}
         drvWriteFile target original
         drvRun $ "chmod" :| ["600", target.text]
         drvLink target settings
@@ -145,6 +113,27 @@ spec = do
         isInstalled stack >>= (`shouldBe` True)
         ensureInstalled git
         isInstalled stack >>= (`shouldBe` True)
+    it "installs Codex command rules without reading or changing config.toml" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        let config = home <//> mkPath @Rel ".codex/config.toml"
+            original = "This file is deliberately not valid TOML."
+            p = (mkAgentSettingsPackage "tools" $ Codex :| []){commands = [CommandPrefix "git status"]}
+        drvWriteFile config original
+        ensureInstalled p
+        isInstalled p >>= (`shouldBe` True)
+        drvReadFile config >>= (`shouldBe` original)
+        drvIsFile (mkPath @Abs $ config.text <> ".mybox-backup") >>= (`shouldBe` False)
+    for_
+      [ ("read", \p -> p{read = [mkPath "code"]})
+      , ("write", \p -> p{write = [mkPath "code"]})
+      ]
+      $ \(permission, setPaths) ->
+        it ("rejects Codex " <> permission <> " grants before writing any settings") $
+          drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+            let p = setPaths (mkAgentSettingsPackage "tools" $ Claude :| [Codex]){commands = [CommandPrefix "git status"]}
+            install p `shouldThrow` stringException "Codex path settings are not supported yet"
+            drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
+            drvIsFile (home <//> mkPath @Rel ".codex/rules/mybox.rules") >>= (`shouldBe` False)
     it "checks every agent before writing any settings" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         let p = (mkAgentSettingsPackage "tools" $ Claude :| [Codex]){commands = [CommandExact "make test"]}
