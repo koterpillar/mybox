@@ -1,0 +1,161 @@
+module Mybox.Package.AgentSettingsSpec (spec) where
+
+import Data.Text qualified as Text
+import Toml qualified
+
+import Mybox.Aeson
+import Mybox.Driver
+import Mybox.Driver.Test
+import Mybox.Package.AgentSettings.Codex
+import Mybox.Package.AgentSettings.Config
+import Mybox.Package.AgentSettings.Internal
+import Mybox.Package.Class
+import Mybox.Package.Queue
+import Mybox.Package.Some
+import Mybox.Prelude
+import Mybox.SpecBase
+import Mybox.Tracker
+
+spec :: Spec
+spec = do
+  metaSpec @AgentSettingsPackage
+    [ (Nothing, "{\"agent-settings\":[\"claude\",\"codex\",\"kilo\",\"rovo\"]}")
+    , (Just "rules", "{\"agent-settings\":\"claude\",\"read\":[\"projects\",\"/etc/hosts\"],\"write\":\"projects\",\"commands\":[\"git status\",{\"exact\":\"make test\"}]}")
+    ]
+  describe "decoding" $ do
+    for_ ["{\"agent-settings\":[]}", "{\"agent-settings\":[\"unknown\"]}", "{\"agent-settings\":\"claude\",\"typo\":[]}"] $ \input ->
+      it ("rejects " <> Text.unpack input) $
+        eitherDecodeStrictText @AgentSettingsPackage input `shouldSatisfy` isLeft
+    for_ ["\"\"", "\"git  status\"", "\"git status && echo hi\"", "\"git *\"", "{\"exact\":\"\"}", "{\"exact\":\"git status\",\"typo\":true}"] $ \input ->
+      it ("rejects command " <> Text.unpack input) $
+        eitherDecodeStrictText @CommandRule input `shouldSatisfy` isLeft
+    it "registers the package in SomePackage" $ do
+      let p = (mkAgentSettingsPackage $ Claude :| []){commands = [CommandExact "make test"]}
+      eitherDecodeStrictText @SomePackage (jsonEncode p) `shouldBe` Right (mkSomePackage p)
+  describe "settings JSON" $ do
+    it "accepts comments and trailing commas without changing strings or key order" $ do
+      let input = "{/* comment */\"url\":\"https://example.com\",// comment\n\"escaped\":\"a\\\"b\\nc\",\"rules\":{\"z\":1,\"a\":2,},}"
+      parsed <- throwLeft $ parseConfig input
+      renderConfig parsed `shouldBe` "{\"url\":\"https://example.com\",\"escaped\":\"a\\\"b\\nc\",\"rules\":{\"z\":1,\"a\":2}}"
+      parseConfig (renderConfig parsed) `shouldBe` Right parsed
+    for_ ["{/*", "{\"x\":1,\"x\":2}", "{\"x\":}", "{} true"] $ \input ->
+      it ("rejects malformed settings " <> Text.unpack input) $
+        parseConfig input `shouldSatisfy` isLeft
+  describe "Claude" $ do
+    it "merges grants, preserving unrelated settings and denials" $ do
+      original <- throwLeft $ parseConfig "{\"model\":\"custom\",\"permissions\":{\"deny\":[\"Bash(rm *)\"],\"allow\":[\"Bash(pwd)\"]}}"
+      let update = claudeSettings [mkPath "/home/test/code"] [mkPath "/tmp"] [CommandPrefix "git status", CommandExact "make test"]
+      updated <- throwLeft $ update original
+      update updated `shouldBe` Right updated
+      let output = renderConfig updated
+      output `shouldContainText` "Read(//home/test/code/**)"
+      output `shouldContainText` "Edit(//tmp/**)"
+      output `shouldContainText` "Bash(git status *)"
+      output `shouldContainText` "Bash(make test)"
+      output `shouldContainText` "\"deny\":[\"Bash(rm *)\"]"
+      output `shouldContainText` "\"model\":\"custom\""
+  describe "Kilo" $ do
+    it "keeps existing specific ask and deny rules after new grants" $ do
+      original <- throwLeft $ parseConfig "{\"permission\":{\"bash\":{\"*\":\"ask\",\"git push *\":\"deny\",\"git clean *\":\"ask\"}}}"
+      let update = kiloSettings [] [] [CommandPrefix "git", CommandExact "make test"]
+      updated <- throwLeft $ update original
+      renderConfig updated `shouldBe` "{\"permission\":{\"bash\":{\"*\":\"ask\",\"git *\":\"allow\",\"make test\":\"allow\",\"git push *\":\"deny\",\"git clean *\":\"ask\"}}}"
+      update updated `shouldBe` Right updated
+    it "rejects global path grants that Kilo cannot represent" $
+      kiloSettings [mkPath "/tmp"] [mkPath "/tmp"] [] emptyConfig `shouldSatisfy` isLeft
+    it "rejects a catch-all denial" $ do
+      original <- throwLeft $ parseConfig "{\"permission\":{\"bash\":\"deny\"}}"
+      kiloSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
+  describe "Rovo" $ do
+    it "generates anchored, escaped regexes for exact and prefix rules" $ do
+      let update = rovoSettings [mkPath "/tmp"] [mkPath "/tmp"] [CommandPrefix "./bin/lint", CommandExact "make test"]
+      updated <- throwLeft $ update emptyConfig
+      renderConfig updated `shouldContainText` "^make test$"
+      renderConfig updated `shouldContainText` "^\\\\./bin/lint( .*)?$"
+      update updated `shouldBe` Right updated
+    it "rejects read-only external paths" $
+      rovoSettings [mkPath "/private"] [] [] emptyConfig `shouldSatisfy` isLeft
+    it "refuses to override existing command restrictions" $ do
+      original <- throwLeft $ parseConfig "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
+      rovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
+  describe "Codex" $ do
+    it "renders literal token prefixes" $
+      codexRules [CommandPrefix "git status"] `shouldBe` Right "prefix_rule(pattern=[\"git\",\"status\"], decision=\"allow\")\n"
+    it "preserves multiline rules while adding missing grants" $ do
+      let existing = "prefix_rule(\n pattern=[\"git\"],\n decision=\"allow\",\n)\nprefix_rule(\n pattern=[\"stack\"],\n decision=\"allow\",\n)\n"
+          addition = "prefix_rule(pattern=[\"forge\"], decision=\"allow\")\n"
+      mergeCodexRules existing addition `shouldBe` (existing <> addition)
+      mergeCodexRules (existing <> addition) addition `shouldBe` (existing <> addition)
+    it "rejects exact rules" $
+      codexRules [CommandExact "make test"] `shouldSatisfy` isLeft
+    it "creates a permission profile and is stable on repeat updates" $ do
+      output <- throwLeft $ codexPaths [mkPath "/etc/hosts"] [mkPath "/tmp/test"] "model = \"custom\"\n"
+      output `shouldContainText` "model = \"custom\""
+      output `shouldContainText` "default_permissions = \"mybox\""
+      output `shouldContainText` "extends = \":workspace\""
+      output `shouldContainText` "\"/etc/hosts\" = \"read\""
+      output `shouldContainText` "\"/tmp/test\" = \"write\""
+      codexPaths [mkPath "/etc/hosts"] [mkPath "/tmp/test"] output `shouldBe` Right output
+    it "preserves active profiles, nested denials, and unrelated TOML values" $ do
+      let input = "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n\"/existing\" = \"write\"\n[mcp_servers.example]\ncommand = \"example\"\nargs = [\"one\",\"two\"]\n"
+      output <- throwLeft $ codexPaths [mkPath "/existing"] [mkPath "/code"] input
+      output `shouldContainText` "\"/private\" = \"deny\""
+      output `shouldContainText` "\"/existing\" = \"write\""
+      parsed <- throwLeft $ first (Text.unpack . Toml.unTomlParseError) $ Toml.parse output
+      normalized <- throwLeft $ normalizeToml parsed
+      server <- throwLeft $ tableAt ["mcp_servers", "example"] normalized
+      optionalText "command" server `shouldBe` Right (Just "example")
+    it "rejects a grant inside an explicitly denied directory" $
+      codexPaths [] [mkPath "/private/child"] "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n" `shouldSatisfy` isLeft
+    it "does not downgrade inherited write access for a read grant" $ do
+      output <- throwLeft $ codexPaths [mkPath "/existing"] [] "default_permissions = \"custom\"\n[permissions.base.filesystem]\n\"/existing\" = \"write\"\n[permissions.custom]\nextends = \"base\"\n"
+      parsed <- throwLeft $ first (Text.unpack . Toml.unTomlParseError) $ Toml.parse output
+      normalized <- throwLeft $ normalizeToml parsed
+      filesystem <- throwLeft $ tableAt ["permissions", "custom", "filesystem"] normalized
+      optionalText (key ["/existing"]) filesystem `shouldBe` Right (Just "write")
+    it "preserves denials inherited from another named profile" $
+      codexPaths [] [mkPath "/private/child"] "default_permissions = \"custom\"\n[permissions.base.filesystem]\n\"/private\" = \"deny\"\n[permissions.custom]\nextends = \"base\"\n" `shouldSatisfy` isLeft
+    it "rejects legacy sandbox settings" $
+      codexPaths [] [mkPath "/code"] "sandbox_mode = \"workspace-write\"\n" `shouldSatisfy` isLeft
+    it "rejects a path explicitly denied in the active profile" $
+      codexPaths [] [mkPath "/private"] "default_permissions = \"custom\"\n[permissions.custom.filesystem]\n\"/private\" = \"deny\"\n" `shouldSatisfy` isLeft
+  withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
+    it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        let target = home </> "claude-original.json"
+            settings = home <//> mkPath @Rel ".claude/settings.json"
+            original = "{\"model\":\"custom\"}"
+            p = (mkAgentSettingsPackage $ Claude :| [Rovo, Codex]){commands = [CommandPrefix "git status"], write = [mkPath "code"]}
+        drvWriteFile target original
+        drvRun $ "chmod" :| ["600", target.text]
+        drvLink target settings
+        localVersion p >>= (`shouldBe` Nothing)
+        install p
+        install (mkAgentSettingsPackage $ Kilo :| []){commands = [CommandPrefix "git status"]}
+        drvIsSymlink settings >>= (`shouldBe` True)
+        mode <- Text.take 10 <$> drvRunOutput ("ls" :| ["-ld", target.text])
+        mode `shouldBe` "-rw-------"
+        drvReadFile (mkPath @Abs $ target.text <> ".mybox-backup") >>= (`shouldBe` original)
+        localVersion p >>= (`shouldBe` Just "configured")
+        installed <- drvReadFile settings
+        install p
+        drvReadFile settings >>= (`shouldBe` installed)
+        drvWriteFile target "{}"
+        localVersion p >>= (`shouldBe` Nothing)
+    it "checks every agent before writing any settings" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        let p = (mkAgentSettingsPackage $ Claude :| [Codex]){commands = [CommandExact "make test"]}
+        install p `shouldThrow` anyException
+        drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
+    it "rejects path patterns and parent traversal before writing" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        for_ ["../private", "code/*", "~/code"] $ \path -> do
+          let p = (mkAgentSettingsPackage $ Claude :| []){read = [mkPath path]}
+          install p `shouldThrow` anyException
+
+homeDriver :: Path Abs -> Args -> Maybe Text
+homeDriver home args
+  | args == shell ("eval" :| ["echo", "~"]) = Just home.text
+  | args == shellRaw "echo $XDG_CONFIG_HOME" = Just ""
+  | args == shellRaw "echo $CODEX_HOME" = Just ""
+  | otherwise = Nothing
