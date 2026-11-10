@@ -42,6 +42,11 @@ spec = do
     it "ignores a trailing slash" $
       indexUrl (mkSkillPackage "https://example.com/")
         `shouldBe` "https://example.com/.well-known/skills/index.json"
+  describe "isLocalSource" $ do
+    it "accepts absolute and relative paths" $
+      map isLocalSource ["/a/b", "./a", "../a"] `shouldBe` [True, True, True]
+    it "rejects repositories and URLs" $
+      map isLocalSource ["a/b", "https://example.com/a"] `shouldBe` [False, False]
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue) $ do
       it "gets version for a well-known source" $ do
