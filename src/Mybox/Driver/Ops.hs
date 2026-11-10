@@ -13,6 +13,7 @@ import Data.Version (showVersion)
 import Mybox.Driver.Class
 import Mybox.Platform
 import Mybox.Prelude
+import Mybox.Utils
 import Paths_mybox (version)
 
 data TestOp = IsExecutable | IsDirectory | IsSymlink | IsFile
@@ -360,3 +361,12 @@ env :: [(Text, Text)] -> Args -> Args
 env vars args = "env" :| map mkVar vars ++ toList args
  where
   mkVar (k, v) = k <> "=" <> v
+
+-- | A hash of the names of files relative to a root directory and, optionally,
+-- of their contents.
+drvHashFiles :: Driver :> es => Bool -> Path Abs -> [Path Abs] -> Eff es Text
+drvHashFiles withContents root files = do
+  entries <- for files $ \f -> do
+    chash <- if withContents then sha256 <$> drvReadBinaryFile f else pure ""
+    pure $ (pRelativeTo_ root f).text <> "\0" <> chash
+  pure $ sha256 $ Text.encodeUtf8 $ Text.unlines entries

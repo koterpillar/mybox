@@ -1,5 +1,6 @@
 module Mybox.Package.Skill.Internal where
 
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -17,8 +18,9 @@ import Mybox.Utils
 -- | Agent skills installed with the @skills@ CLI.
 data SkillPackage = SkillPackage
   { source :: Text
-  -- ^ A GitHub shortcut (@owner/repo@), or a base URL publishing
-  -- @.well-known/skills/index.json@
+  -- ^ A GitHub shortcut (@owner/repo@), a base URL publishing
+  -- @.well-known/skills/index.json@, or a local directory (starting with
+  -- @/@, @./@ or @../@, relative to the current directory)
   , only :: Maybe [Text]
   -- ^ Skills to install, empty for all the source provides
   , agents :: [Text]
@@ -50,7 +52,24 @@ instance ToJSON SkillPackage where
 prerequisites :: App es => SkillPackage -> Eff es ()
 prerequisites p = do
   queueInstall $ mkNPMPackage "skills"
-  when (isGithubShortcut p.source) ensureGit
+  when (isGithubSource p.source) ensureGit
+
+-- | A local directory is written as a path starting with @/@, @./@ or @../@.
+isLocalSource :: Text -> Bool
+isLocalSource s = any (`Text.isPrefixOf` s) ["/", "./", "../"]
+
+isGithubSource :: Text -> Bool
+isGithubSource s = not (isLocalSource s) && isGithubShortcut s
+
+localSourcePath :: Driver :> es => SkillPackage -> Eff es (Path Abs)
+localSourcePath p = drvRealPath (mkPath p.source :: Path AnyAnchor)
+
+-- | A version reflecting the contents of a local source, except @.git@.
+skillLocalVersion :: Driver :> es => SkillPackage -> Eff es Text
+skillLocalVersion p = do
+  src <- localSourcePath p
+  files <- drvFind src findOptions{onlyFiles = True}
+  drvHashFiles True src $ filter ((".git" `notElem`) . (.segments) . pRelativeTo_ src) $ Set.toList files
 
 indexUrl :: SkillPackage -> Text
 indexUrl p =
@@ -58,18 +77,24 @@ indexUrl p =
 
 skillRemoteVersion :: App es => SkillPackage -> Eff es Text
 skillRemoteVersion p
+  | isLocalSource p.source = skillLocalVersion p
   | isGithubShortcut p.source = do
       prerequisites p
       drvRepoBranchVersion (normalizeGitRepoUrl p.source) Nothing
   | otherwise = drvUrlVersion $ indexUrl p
 
-skillAddArgs :: SkillPackage -> Args
-skillAddArgs p =
-  "skills"
-    :| ["add", p.source]
-    <> ("--skill" : (fromMaybe ["*"] p.only))
-    <> ("--agent" : "universal" : p.agents)
-    <> ["--global", "--yes", "--copy"]
+skillAddArgs :: Driver :> es => SkillPackage -> Eff es Args
+skillAddArgs p = do
+  source <-
+    if isLocalSource p.source
+      then (.text) <$> localSourcePath p
+      else pure p.source
+  pure $
+    "skills"
+      :| ["add", source]
+      <> ("--skill" : (fromMaybe ["*"] p.only))
+      <> ("--agent" : "universal" : p.agents)
+      <> ["--global", "--yes", "--copy"]
 
 installedPaths :: Text -> [Path Rel]
 installedPaths = map mkPath . mapMaybe (Text.stripPrefix "~/") . Text.words
@@ -77,7 +102,7 @@ installedPaths = map mkPath . mapMaybe (Text.stripPrefix "~/") . Text.words
 skillInstall :: App es => SkillPackage -> Eff es ()
 skillInstall p = do
   prerequisites p
-  output <- drvRunOutput $ skillAddArgs p
+  output <- drvRunOutput =<< skillAddArgs p
   home <- drvHome
   for_ (installedPaths output) $ trkAdd p . (home <//>)
 

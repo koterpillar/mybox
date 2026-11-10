@@ -42,11 +42,26 @@ spec = do
     it "ignores a trailing slash" $
       indexUrl (mkSkillPackage "https://example.com/")
         `shouldBe` "https://example.com/.well-known/skills/index.json"
+  describe "isLocalSource" $ do
+    it "accepts absolute and relative paths" $
+      map isLocalSource ["/a/b", "./a", "../a"] `shouldBe` [True, True, True]
+    it "rejects repositories and URLs" $
+      map isLocalSource ["a/b", "https://example.com/a"] `shouldBe` [False, False]
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue) $ do
       it "gets version for a well-known source" $ do
         version <- remoteVersion $ mkSkillPackage "https://agentskills.io"
         Text.length version `shouldSatisfy` (>= 10)
+      it "hashes the contents of a local source, ignoring .git" $
+        drvTempDir $ \dir -> do
+          let pkg = mkSkillPackage dir.text
+          drvWriteFile (dir </> "test" </> "SKILL.md") "one"
+          v1 <- remoteVersion pkg
+          drvWriteFile (dir </> ".git" </> "HEAD") "ref"
+          remoteVersion pkg >>= (`shouldBe` v1)
+          drvWriteFile (dir </> "test" </> "SKILL.md") "two"
+          v2 <- remoteVersion pkg
+          v2 `shouldSatisfy` (/= v1)
       it "fails for a well-known source without an index" $
         remoteVersion (mkSkillPackage "https://example.com") `shouldThrow` anyException
       skipGenericLinux "Default installer is unavailable on generic Linux" $ do
@@ -69,3 +84,7 @@ spec = do
         ps (mkSkillPackage "https://agentskills.io"){agents = ["claude-code"]}
           & ignorePaths skillIgnorePaths
           & checkInstalled (hasSkill "agent" >> hasSkill' ".claude" "agent")
+      packageSpec $
+        ps (mkSkillPackage "./test/fixtures/skills")
+          & ignorePaths skillIgnorePaths
+          & checkInstalled (hasSkill "local-test")

@@ -6,7 +6,6 @@ module Mybox.Package.Links (
 
 import Data.Set qualified as Set
 import Data.Text qualified as Text
-import Data.Text.Encoding qualified as Text
 
 import Mybox.Aeson
 import Mybox.Driver
@@ -18,7 +17,6 @@ import Mybox.Package.Post
 import Mybox.Package.Root
 import Mybox.Prelude
 import Mybox.Tracker
-import Mybox.Utils
 
 data LinksPackage = LinksPackage
   { source_ :: Path AnyAnchor
@@ -127,11 +125,7 @@ lpRemoteVersion :: Driver :> es => LinksPackage -> Eff es Text
 lpRemoteVersion p = do
   src <- source p
   pp <- Set.toList <$> paths p
-  entries <- for pp $ \path_ -> do
-    let rel = (pRelativeTo_ src path_).text
-    chash <- if p.method == LinksMethodCopy then sha256 <$> drvReadBinaryFile path_ else pure ""
-    pure $ rel <> "\0" <> chash
-  pure $ sha256 $ Text.encodeUtf8 $ Text.unlines entries
+  drvHashFiles (p.method == LinksMethodCopy) src pp
 
 lpInstall :: (Driver :> es, Tracker :> es) => LinksPackage -> Eff es ()
 lpInstall p = do
