@@ -6,9 +6,6 @@ Pre-requisites:
 - [ShellCheck](https://www.shellcheck.net/)
 - See [install-dev](bin/install-dev) for more - run it to install automatically.
 
-Run [`./bin/lint`](bin/lint) to check style & types, `./bin/lint --format` to apply
-formatting automatically.
-
 ## Code style
 
 - Prefer domain types over `Text`. In particular, represent timestamps with `UTCTime`.
@@ -21,6 +18,9 @@ formatting automatically.
 - Use pattern matching, guards, and monadic control flow (`unlessM`, `whenM`, etc.) extensively.
 - Provide type signatures for all top-level functions.
 - Use deriving clauses for standard typeclasses (`Eq`, `Show`, `Generic`, etc.), including `DerivingVia` where appropriate.
+
+Run [`./bin/lint`](bin/lint) to check style & types, `./bin/lint --format` to apply
+formatting automatically.
 
 ## Architecture
 
@@ -68,3 +68,6 @@ Commit messages must follow Semantic Release default conventions:
   revert would also be backwards compatible.
 * Type `feat` for new features.
 * `BREAKING CHANGE` footer for breaking changes.
+
+A Git hook will check the commit message. Run `bin/install-dev` to make sure
+the hook is installed.
