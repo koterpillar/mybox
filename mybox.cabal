@@ -128,6 +128,7 @@ library
     , crypton
     , effectful
     , extra
+    , lens
     , microlens
     , microlens-aeson
     , mtl
@@ -176,6 +177,7 @@ executable mybox
     , crypton
     , effectful
     , extra
+    , lens
     , microlens
     , microlens-aeson
     , mtl
@@ -291,6 +293,7 @@ test-suite tests
     , effectful
     , extra
     , hspec
+    , lens
     , lzma
     , microlens
     , microlens-aeson

@@ -27,6 +27,7 @@ dependencies:
   - effectful
   - extra
   - Glob
+  - lens
   - microlens
   - microlens-aeson
   - mtl
