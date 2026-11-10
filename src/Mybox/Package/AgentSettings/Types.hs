@@ -6,13 +6,12 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Prelude
 
-data Agent = Claude | Codex | Rovo
+data Agent = Claude | Rovo
   deriving (Bounded, Enum, Eq, Generic, Ord, Show)
 
 agentName :: Agent -> Text
 agentName = \case
   Claude -> "claude"
-  Codex -> "codex"
   Rovo -> "rovo"
 
 instance ToJSON Agent where
@@ -31,7 +30,7 @@ commandText = \case
   CommandPrefix command -> command
   CommandExact command -> command
 
--- Keep conversion to argument tokens unambiguous across agents.
+-- Keep rules literal when translating to wildcard and regex formats.
 validateCommand :: CommandRule -> Either String ()
 validateCommand rule = do
   let command = commandText rule

@@ -58,7 +58,6 @@ library
       Mybox.LockMap
       Mybox.Main
       Mybox.Package.AgentSettings
-      Mybox.Package.AgentSettings.Codex
       Mybox.Package.AgentSettings.Config
       Mybox.Package.AgentSettings.Internal
       Mybox.Package.AgentSettings.Types

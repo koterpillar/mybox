@@ -16,7 +16,6 @@ import Data.Yaml qualified as Yaml
 
 import Mybox.Aeson
 import Mybox.Driver
-import Mybox.Package.AgentSettings.Codex
 import Mybox.Package.AgentSettings.Config
 import Mybox.Package.AgentSettings.Types
 import Mybox.Package.Class
@@ -107,18 +106,6 @@ settingsPlan p = do
       updated <- throwLeft $ rovoSettings readPaths writePaths p.commands config
       let output = Text.decodeUtf8 $ Yaml.encode updated
       pure [(path, existing, if config == updated then fromMaybe output existing else output)]
-    Codex -> do
-      unless (null readPaths && null writePaths) $
-        throwString "Codex path settings are not supported yet"
-      rules <- throwLeft $ codexRules p.commands
-      if null p.commands
-        then pure []
-        else do
-          codexHome <- fromMaybe (home </> ".codex") . fmap (mkPath @Abs) <$> drvEnv "CODEX_HOME"
-          let path = codexHome <//> mkPath @Rel "rules/mybox.rules"
-          existing <- readSettings path
-          let output = mergeCodexRules (fromMaybe "" existing) rules
-          pure [(path, existing, output)]
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM predicate yes no = predicate >>= \b -> if b then yes else no
