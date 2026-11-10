@@ -6,14 +6,13 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Prelude
 
-data Agent = Claude | Codex | Kilo | Rovo
+data Agent = Claude | Codex | Rovo
   deriving (Bounded, Enum, Eq, Generic, Ord, Show)
 
 agentName :: Agent -> Text
 agentName = \case
   Claude -> "claude"
   Codex -> "codex"
-  Kilo -> "kilo"
   Rovo -> "rovo"
 
 instance ToJSON Agent where

@@ -4,13 +4,14 @@ module Mybox.Package.AgentSettings.Internal (
   mkAgentSettingsPackage,
   settingsPlan,
   claudeSettings,
-  kiloSettings,
   rovoSettings,
 ) where
 
+import Data.Aeson.KeyMap qualified as KM
 import Data.List (nub)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Data.Vector qualified as Vector
 import Data.Yaml qualified as Yaml
 
 import Mybox.Aeson
@@ -97,20 +98,14 @@ settingsPlan p = do
   traverse_ (throwLeft . validatePath) $ p.read <> p.write
   fmap concat $ for (nub $ toList p.agents) $ \agent -> case agent of
     Claude -> jsonPlan (home <//> mkPath @Rel ".claude/settings.json") $ claudeSettings readPaths writePaths p.commands
-    Kilo -> do
-      configHome <- fromMaybe (home <//> mkPath @Rel ".config") . fmap (mkPath @Abs) <$> drvEnv "XDG_CONFIG_HOME"
-      let jsonc = configHome <//> mkPath @Rel "kilo/kilo.jsonc"
-          json = configHome <//> mkPath @Rel "kilo/kilo.json"
-      path <- ifM (drvIsFile jsonc) (pure jsonc) $ ifM (drvIsFile json) (pure json) (pure jsonc)
-      jsonPlan path $ kiloSettings readPaths writePaths p.commands
     Rovo -> do
       let current = home <//> mkPath @Rel ".rovodev/config.yml"
           legacy = home <//> mkPath @Rel ".rovo/config.yml"
       path <- ifM (drvIsFile current) (pure current) $ ifM (drvIsFile legacy) (pure legacy) (pure current)
       existing <- readSettings path
-      config <- maybe (pure emptyConfig) (fmap fromValue . yamlDecode @Value) existing
+      config <- maybe (pure $ object []) (yamlDecode @Value) existing
       updated <- throwLeft $ rovoSettings readPaths writePaths p.commands config
-      let output = Text.decodeUtf8 $ Yaml.encode $ toValue updated
+      let output = Text.decodeUtf8 $ Yaml.encode updated
       pure [(path, existing, if config == updated then fromMaybe output existing else output)]
     Codex -> do
       codexHome <- fromMaybe (home </> ".codex") . fmap (mkPath @Abs) <$> drvEnv "CODEX_HOME"
@@ -146,12 +141,12 @@ readSettings path = ifM (drvIsFile path) readExact (pure Nothing)
       <$> drvRunOutput
         (shellRaw $ "printf '\\001' && cat " <> shellQuote path.text <> " && printf '\\001'")
 
-jsonPlan :: Driver :> es => Path Abs -> (Config -> Either String Config) -> Eff es [(Path Abs, Maybe Text, Text)]
+jsonPlan :: Driver :> es => Path Abs -> (Value -> Either String Value) -> Eff es [(Path Abs, Maybe Text, Text)]
 jsonPlan path update = do
   existing <- readSettings path
-  config <- throwLeft $ maybe (pure emptyConfig) parseConfig existing
+  config <- maybe (pure $ object []) (jsonDecode @Value "Claude settings") existing
   updated <- throwLeft $ update config
-  let output = renderConfig updated <> "\n"
+  let output = jsonEncode updated <> "\n"
   pure [(path, existing, if config == updated then fromMaybe output existing else output)]
 
 validatePath :: Path AnyAnchor -> Either String ()
@@ -160,11 +155,11 @@ validatePath path = do
   when (Text.any (`elem` ("*?[]{}()!\\\n\r\t$~\"'" :: String)) path.text) $
     Left "Agent settings paths must be literal paths, without patterns or expansions"
 
-claudeSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Config -> Either String Config
+claudeSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Either String Value
 claudeSettings readPaths writePaths commands =
   modifyConfig ["permissions", "allow"]
     $ appendItems
-    $ map textConfig
+    $ map String
     $ ["Read(" <> pattern <> ")" | path <- readPaths, pattern <- pathPatterns ("/" <> path.text)]
       <> ["Edit(" <> pattern <> ")" | path <- writePaths, pattern <- pathPatterns ("/" <> path.text)]
       <> map (\rule -> "Bash(" <> commandText rule <> case rule of CommandPrefix _ -> " *)"; CommandExact _ -> ")") commands
@@ -172,25 +167,7 @@ claudeSettings readPaths writePaths commands =
 pathPatterns :: Text -> [Text]
 pathPatterns path = [path, Text.dropWhileEnd (== '/') path <> "/**"]
 
-kiloSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Config -> Either String Config
-kiloSettings readPaths writePaths commands config = do
-  unless (null readPaths && null writePaths) $
-    Left "Kilo cannot represent global read/write grants for fixed paths: file rules are relative to each active worktree"
-  if null commands
-    then pure config
-    else do
-      checked <- modifyConfig ["permission"] checkPermissions config
-      modifyConfig ["permission", "bash"] (allowPatterns $ map commandPattern commands) checked
- where
-  checkPermissions value@(Fields fields) = do
-    when (lookup "*" fields == Just (textConfig "deny")) $
-      Left "Cannot extend Kilo commands with an explicit denial of all tools"
-    pure value
-  checkPermissions _ = Left "Expected Kilo permissions to be an object"
-  commandPattern (CommandPrefix command) = command <> " *"
-  commandPattern (CommandExact command) = command
-
-rovoSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Config -> Either String Config
+rovoSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Either String Value
 rovoSettings readPaths writePaths commands config = do
   unless (all (\path -> any (`pUnder` path) writePaths) readPaths) $
     Left "Rovo cannot grant read-only external paths; its allowedExternalPaths grants read and write access"
@@ -198,22 +175,22 @@ rovoSettings readPaths writePaths commands config = do
     if null writePaths
       then pure config
       else
-        modifyConfig ["toolPermissions", "allowedExternalPaths"] (appendItems $ map (textConfig . (.text)) writePaths) config
+        modifyConfig ["toolPermissions", "allowedExternalPaths"] (appendItems $ map (String . (.text)) writePaths) config
   if null commands
     then pure withPaths
     else
       modifyConfig ["toolPermissions", "bash", "commands"] prependCommands withPaths
  where
-  newCommands = map (\rule -> Fields [("command", textConfig $ patternFor rule), ("permission", textConfig "allow")]) commands
+  newCommands = map (\rule -> object ["command" .= patternFor rule, "permission" .= ("allow" :: Text)]) commands
   -- Do not assume precedence between overlapping Rovo regex rules.
   prependCommands = \case
-    Fields [] -> pure $ Items $ nub newCommands
-    Items existing -> do
+    Nothing -> pure $ toJSON $ nub newCommands
+    Just (Array existing) -> do
       unless (all isAllow existing) $
         Left "Cannot extend Rovo command rules containing explicit ask/deny entries without verified rule precedence"
-      pure $ Items $ nub $ existing <> newCommands
+      pure $ toJSON $ nub $ Vector.toList existing <> newCommands
     _ -> Left "Expected Rovo bash commands to be a list"
-  isAllow (Fields fields) = lookup "permission" fields == Just (textConfig "allow")
+  isAllow (Object fields) = KM.lookup "permission" fields == Just (String "allow")
   isAllow _ = False
   patternFor rule =
     "^" <> escapeRegex (commandText rule) <> case rule of
