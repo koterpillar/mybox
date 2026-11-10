@@ -57,6 +57,11 @@ library
       Mybox.Installer.MacOSCombined
       Mybox.LockMap
       Mybox.Main
+      Mybox.Package.AgentSettings
+      Mybox.Package.AgentSettings.Codex
+      Mybox.Package.AgentSettings.Config
+      Mybox.Package.AgentSettings.Internal
+      Mybox.Package.AgentSettings.Types
       Mybox.Package.Archive
       Mybox.Package.Archive.Internal
       Mybox.Package.BrewRepo
@@ -135,6 +140,7 @@ library
     , text
     , tomland
     , typed-process
+    , unordered-containers
     , vector
     , witherable
     , yaml
@@ -182,6 +188,7 @@ executable mybox
     , text
     , tomland
     , typed-process
+    , unordered-containers
     , vector
     , witherable
     , yaml
@@ -223,6 +230,7 @@ test-suite tests
       Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
       Mybox.LockMapSpec
+      Mybox.Package.AgentSettingsSpec
       Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec
       Mybox.Package.ClassSpec
@@ -296,6 +304,7 @@ test-suite tests
     , text
     , tomland
     , typed-process
+    , unordered-containers
     , vector
     , witherable
     , yaml

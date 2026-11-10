@@ -36,6 +36,7 @@ dependencies:
   - scalpel
   - text
   - tomland
+  - unordered-containers
   - typed-process
   - vector
   - witherable
