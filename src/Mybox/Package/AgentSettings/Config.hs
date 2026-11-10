@@ -1,24 +1,25 @@
 module Mybox.Package.AgentSettings.Config where
 
-import Data.Aeson.KeyMap qualified as KM
 import Data.List (nub)
-import Data.Vector qualified as Vector
+import Lens.Micro qualified as Lens
+import Lens.Micro.Aeson qualified as AesonLens
 
 import Mybox.Aeson
 import Mybox.Prelude
 
 modifyConfig :: [Key] -> (Maybe Value -> Either String Value) -> Value -> Either String Value
 modifyConfig [] f value = f $ Just value
-modifyConfig (key : rest) f (Object fields) = do
-  let existing = KM.lookup key fields
-  updated <- case rest of
-    [] -> f existing
-    _ -> modifyConfig rest f $ fromMaybe (Object mempty) existing
-  pure $ Object $ KM.insert key updated fields
+modifyConfig (key : rest) f value@(Object _) =
+  Lens.traverseOf (AesonLens._Object . Lens.at key) update value
+ where
+  update existing =
+    Just <$> case rest of
+      [] -> f existing
+      _ -> modifyConfig rest f $ fromMaybe (Object mempty) existing
 modifyConfig _ _ _ = Left "Expected an object in existing settings"
 
 appendItems :: [Value] -> Maybe Value -> Either String Value
 appendItems new = \case
   Nothing -> pure $ toJSON $ nub new
-  Just (Array existing) -> pure $ toJSON $ nub $ Vector.toList existing <> new
+  Just existing@(Array _) -> pure $ toJSON $ nub $ (existing Lens.^.. AesonLens.values) <> new
   _ -> Left "Expected a list in existing settings"
