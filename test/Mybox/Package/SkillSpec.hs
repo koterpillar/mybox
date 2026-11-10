@@ -52,6 +52,16 @@ spec = do
       it "gets version for a well-known source" $ do
         version <- remoteVersion $ mkSkillPackage "https://agentskills.io"
         Text.length version `shouldSatisfy` (>= 10)
+      it "hashes the contents of a local source, ignoring .git" $
+        drvTempDir $ \dir -> do
+          let pkg = mkSkillPackage dir.text
+          drvWriteFile (dir </> "test" </> "SKILL.md") "one"
+          v1 <- remoteVersion pkg
+          drvWriteFile (dir </> ".git" </> "HEAD") "ref"
+          remoteVersion pkg >>= (`shouldBe` v1)
+          drvWriteFile (dir </> "test" </> "SKILL.md") "two"
+          v2 <- remoteVersion pkg
+          v2 `shouldSatisfy` (/= v1)
       it "fails for a well-known source without an index" $
         remoteVersion (mkSkillPackage "https://example.com") `shouldThrow` anyException
       skipGenericLinux "Default installer is unavailable on generic Linux" $ do
