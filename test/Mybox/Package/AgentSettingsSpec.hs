@@ -7,7 +7,6 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Driver.Test
 import Mybox.Package.AgentSettings.Codex
-import Mybox.Package.AgentSettings.Config
 import Mybox.Package.AgentSettings.Internal
 import Mybox.Package.Class
 import Mybox.Package.Queue
@@ -19,7 +18,7 @@ import Mybox.Tracker
 spec :: Spec
 spec = do
   metaSpec @AgentSettingsPackage
-    [ (Nothing, "{\"agent-settings\":\"tools\",\"agents\":[\"claude\",\"codex\",\"kilo\",\"rovo\"]}")
+    [ (Nothing, "{\"agent-settings\":\"tools\",\"agents\":[\"claude\",\"codex\",\"rovo\"]}")
     , (Just "rules", "{\"agent-settings\":\"tools\",\"agents\":\"claude\",\"read\":[\"projects\",\"/etc/hosts\"],\"write\":\"projects\",\"commands\":[\"git status\",{\"exact\":\"make test\"}]}")
     ]
   describe "decoding" $ do
@@ -29,6 +28,7 @@ spec = do
       , "{\"agent-settings\":\"tools\"}"
       , "{\"agent-settings\":\"tools\",\"agents\":[]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"unknown\"]}"
+      , "{\"agent-settings\":\"tools\",\"agents\":[\"kilo\"]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"claude\"],\"typo\":[]}"
       ]
       $ \input ->
@@ -40,51 +40,34 @@ spec = do
     it "registers the package in SomePackage" $ do
       let p = (mkAgentSettingsPackage "tools" $ Claude :| []){commands = [CommandExact "make test"]}
       eitherDecodeStrictText @SomePackage (jsonEncode p) `shouldBe` Right (mkSomePackage p)
-  describe "settings JSON" $ do
-    it "accepts comments and trailing commas without changing strings or key order" $ do
-      let input = "{/* comment */\"url\":\"https://example.com\",// comment\n\"escaped\":\"a\\\"b\\nc\",\"rules\":{\"z\":1,\"a\":2,},}"
-      parsed <- throwLeft $ parseConfig input
-      renderConfig parsed `shouldBe` "{\"url\":\"https://example.com\",\"escaped\":\"a\\\"b\\nc\",\"rules\":{\"z\":1,\"a\":2}}"
-      parseConfig (renderConfig parsed) `shouldBe` Right parsed
-    for_ ["{/*", "{\"x\":1,\"x\":2}", "{\"x\":}", "{} true"] $ \input ->
-      it ("rejects malformed settings " <> Text.unpack input) $
-        parseConfig input `shouldSatisfy` isLeft
   describe "Claude" $ do
     it "merges grants, preserving unrelated settings and denials" $ do
-      original <- throwLeft $ parseConfig "{\"model\":\"custom\",\"permissions\":{\"deny\":[\"Bash(rm *)\"],\"allow\":[\"Bash(pwd)\"]}}"
+      original <- jsonDecode @Value "settings" "{\"model\":\"custom\",\"permissions\":{\"deny\":[\"Bash(rm *)\"],\"allow\":[\"Bash(pwd)\"]}}"
       let update = claudeSettings [mkPath "/home/test/code"] [mkPath "/tmp"] [CommandPrefix "git status", CommandExact "make test"]
       updated <- throwLeft $ update original
       update updated `shouldBe` Right updated
-      let output = renderConfig updated
+      let output = jsonEncode updated
       output `shouldContainText` "Read(//home/test/code/**)"
       output `shouldContainText` "Edit(//tmp/**)"
       output `shouldContainText` "Bash(git status *)"
       output `shouldContainText` "Bash(make test)"
       output `shouldContainText` "\"deny\":[\"Bash(rm *)\"]"
       output `shouldContainText` "\"model\":\"custom\""
-  describe "Kilo" $ do
-    it "keeps existing specific ask and deny rules after new grants" $ do
-      original <- throwLeft $ parseConfig "{\"permission\":{\"bash\":{\"*\":\"ask\",\"git push *\":\"deny\",\"git clean *\":\"ask\"}}}"
-      let update = kiloSettings [] [] [CommandPrefix "git", CommandExact "make test"]
-      updated <- throwLeft $ update original
-      renderConfig updated `shouldBe` "{\"permission\":{\"bash\":{\"*\":\"ask\",\"git *\":\"allow\",\"make test\":\"allow\",\"git push *\":\"deny\",\"git clean *\":\"ask\"}}}"
-      update updated `shouldBe` Right updated
-    it "rejects global path grants that Kilo cannot represent" $
-      kiloSettings [mkPath "/tmp"] [mkPath "/tmp"] [] emptyConfig `shouldSatisfy` isLeft
-    it "rejects a catch-all denial" $ do
-      original <- throwLeft $ parseConfig "{\"permission\":{\"bash\":\"deny\"}}"
-      kiloSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
+    for_ ["null", "[]", "{\"permissions\":true}", "{\"permissions\":{\"allow\":{}}}"] $ \input ->
+      it ("rejects malformed existing settings " <> Text.unpack input) $ do
+        existing <- jsonDecode @Value "settings" input
+        claudeSettings [] [] [CommandPrefix "git status"] existing `shouldSatisfy` isLeft
   describe "Rovo" $ do
     it "generates anchored, escaped regexes for exact and prefix rules" $ do
       let update = rovoSettings [mkPath "/tmp"] [mkPath "/tmp"] [CommandPrefix "./bin/lint", CommandExact "make test"]
-      updated <- throwLeft $ update emptyConfig
-      renderConfig updated `shouldContainText` "^make test$"
-      renderConfig updated `shouldContainText` "^\\\\./bin/lint( .*)?$"
+      updated <- throwLeft $ update (object [])
+      jsonEncode updated `shouldContainText` "^make test$"
+      jsonEncode updated `shouldContainText` "^\\\\./bin/lint( .*)?$"
       update updated `shouldBe` Right updated
     it "rejects read-only external paths" $
-      rovoSettings [mkPath "/private"] [] [] emptyConfig `shouldSatisfy` isLeft
+      rovoSettings [mkPath "/private"] [] [] (object []) `shouldSatisfy` isLeft
     it "refuses to override existing command restrictions" $ do
-      original <- throwLeft $ parseConfig "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
+      original <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
       rovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
   describe "Codex" $ do
     it "renders literal token prefixes" $
@@ -139,7 +122,6 @@ spec = do
         drvLink target settings
         localVersion p >>= (`shouldBe` Nothing)
         install p
-        install (mkAgentSettingsPackage "tools" $ Kilo :| []){commands = [CommandPrefix "git status"]}
         drvIsSymlink settings >>= (`shouldBe` True)
         mode <- Text.take 10 <$> drvRunOutput ("ls" :| ["-ld", target.text])
         mode `shouldBe` "-rw-------"
@@ -177,6 +159,5 @@ spec = do
 homeDriver :: Path Abs -> Args -> Maybe Text
 homeDriver home args
   | args == shell ("eval" :| ["echo", "~"]) = Just home.text
-  | args == shellRaw "echo $XDG_CONFIG_HOME" = Just ""
   | args == shellRaw "echo $CODEX_HOME" = Just ""
   | otherwise = Nothing
