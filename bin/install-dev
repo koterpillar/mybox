@@ -121,3 +121,24 @@ then
   chmod +x "$FOURMOLU_PATH"
   mv "$FOURMOLU_PATH" ~/.local/bin/fourmolu
 fi
+
+if ! command_exists lefthook
+then
+  OS=$(echo "$OSTYPE" | sed -E 's/darwin.+/MacOS/;s/linux.+/Linux/')
+  ARCH=$(uname -m | sed 's/aarch64/arm64/')
+
+  LEFTHOOK_URL=$(
+    "${GH_CURL[@]}" "https://api.github.com/repos/evilmartians/lefthook/releases/latest" | \
+    python3 -c 'import sys,json;[print(a["browser_download_url"]) for a in json.load(sys.stdin)["assets"]]' | \
+    grep -E "/lefthook_[0-9.]+_${OS}_${ARCH}$"
+  )
+
+  mkdir -p ~/.local/bin
+  "${GH_CURL[@]}" "$LEFTHOOK_URL" -o ~/.local/bin/lefthook
+  chmod +x ~/.local/bin/lefthook
+fi
+
+if [ -z "${CI-}" ]
+then
+  PATH="$HOME/.local/bin:$PATH" lefthook install
+fi
