@@ -22,19 +22,22 @@ import Mybox.Package.Class
 import Mybox.Prelude
 
 data AgentSettingsPackage = AgentSettingsPackage
-  { agents :: NonEmpty Agent
+  { name :: Text
+  , agents :: NonEmpty Agent
   , read :: [Path AnyAnchor]
   , write :: [Path AnyAnchor]
   , commands :: [CommandRule]
   }
   deriving (Eq, Generic, Show)
 
-mkAgentSettingsPackage :: NonEmpty Agent -> AgentSettingsPackage
-mkAgentSettingsPackage agents = AgentSettingsPackage{agents, read = [], write = [], commands = []}
+mkAgentSettingsPackage :: Text -> NonEmpty Agent -> AgentSettingsPackage
+mkAgentSettingsPackage name agents = AgentSettingsPackage{name, agents, read = [], write = [], commands = []}
 
 instance FromJSON AgentSettingsPackage where
   parseJSON = withObjectTotal "AgentSettingsPackage" $ do
-    agents <- takeCollapsedNEList "agent-settings"
+    name <- takeField "agent-settings"
+    when (Text.null $ Text.strip name) $ fail "Agent settings packages require a nonempty name"
+    agents <- takeCollapsedNEList "agents"
     readPaths <- takeCollapsedList "read"
     write <- takeCollapsedList "write"
     commands <- takeCollapsedList "commands"
@@ -44,14 +47,15 @@ instance FromJSON AgentSettingsPackage where
 instance ToJSON AgentSettingsPackage where
   toJSON p =
     object
-      [ "agent-settings" .= p.agents
+      [ "agent-settings" .= p.name
+      , "agents" .= p.agents
       , "read" .= p.read
       , "write" .= p.write
       , "commands" .= p.commands
       ]
 
 instance PackageName AgentSettingsPackage where
-  splitName p = ("agent-settings#" <> Text.intercalate "," (map agentName $ toList p.agents), Just p)
+  splitName p = ("agent-settings#" <> p.name, Just p{name = ""})
 
 -- Do not track shared settings files: removing this package must not delete
 -- the user's settings for an agent.
