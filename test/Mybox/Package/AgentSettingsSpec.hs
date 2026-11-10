@@ -5,7 +5,6 @@ import Data.Text qualified as Text
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Driver.Test
-import Mybox.Package.AgentSettings.Codex
 import Mybox.Package.AgentSettings.Internal
 import Mybox.Package.Class
 import Mybox.Package.Queue
@@ -17,7 +16,7 @@ import Mybox.Tracker
 spec :: Spec
 spec = do
   metaSpec @AgentSettingsPackage
-    [ (Nothing, "{\"agent-settings\":\"tools\",\"agents\":[\"claude\",\"codex\",\"rovo\"]}")
+    [ (Nothing, "{\"agent-settings\":\"tools\",\"agents\":[\"claude\",\"rovo\"]}")
     , (Just "rules", "{\"agent-settings\":\"tools\",\"agents\":\"claude\",\"read\":[\"projects\",\"/etc/hosts\"],\"write\":\"projects\",\"commands\":[\"git status\",{\"exact\":\"make test\"}]}")
     ]
   describe "decoding" $ do
@@ -28,6 +27,7 @@ spec = do
       , "{\"agent-settings\":\"tools\",\"agents\":[]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"unknown\"]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"kilo\"]}"
+      , "{\"agent-settings\":\"tools\",\"agents\":[\"codex\"]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"claude\"],\"typo\":[]}"
       ]
       $ \input ->
@@ -68,16 +68,6 @@ spec = do
     it "refuses to override existing command restrictions" $ do
       original <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
       rovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
-  describe "Codex" $ do
-    it "renders literal token prefixes" $
-      codexRules [CommandPrefix "git status"] `shouldBe` Right "prefix_rule(pattern=[\"git\",\"status\"], decision=\"allow\")\n"
-    it "preserves multiline rules while adding missing grants" $ do
-      let existing = "prefix_rule(\n pattern=[\"git\"],\n decision=\"allow\",\n)\nprefix_rule(\n pattern=[\"stack\"],\n decision=\"allow\",\n)\n"
-          addition = "prefix_rule(pattern=[\"forge\"], decision=\"allow\")\n"
-      mergeCodexRules existing addition `shouldBe` (existing <> addition)
-      mergeCodexRules (existing <> addition) addition `shouldBe` (existing <> addition)
-    it "rejects exact rules" $
-      codexRules [CommandExact "make test"] `shouldSatisfy` isLeft
   withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
     it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
@@ -102,8 +92,8 @@ spec = do
         localVersion p >>= (`shouldBe` Nothing)
     it "keeps named packages for the same agents installed independently" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-        let git = (mkAgentSettingsPackage "git" $ Claude :| [Codex]){commands = [CommandPrefix "git status"]}
-            stack = (mkAgentSettingsPackage "stack" $ Claude :| [Codex]){commands = [CommandPrefix "stack test"]}
+        let git = (mkAgentSettingsPackage "git" $ Claude :| [Rovo]){commands = [CommandPrefix "git status"]}
+            stack = (mkAgentSettingsPackage "stack" $ Claude :| [Rovo]){commands = [CommandPrefix "stack test"]}
         getName git `shouldBe` "agent-settings#git"
         getName stack `shouldBe` "agent-settings#stack"
         withoutName git `shouldBe` Just git{name = ""}
@@ -113,30 +103,9 @@ spec = do
         isInstalled stack >>= (`shouldBe` True)
         ensureInstalled git
         isInstalled stack >>= (`shouldBe` True)
-    it "installs Codex command rules without reading or changing config.toml" $
-      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-        let config = home <//> mkPath @Rel ".codex/config.toml"
-            original = "This file is deliberately not valid TOML."
-            p = (mkAgentSettingsPackage "tools" $ Codex :| []){commands = [CommandPrefix "git status"]}
-        drvWriteFile config original
-        ensureInstalled p
-        isInstalled p >>= (`shouldBe` True)
-        drvReadFile config >>= (`shouldBe` original)
-        drvIsFile (mkPath @Abs $ config.text <> ".mybox-backup") >>= (`shouldBe` False)
-    for_
-      [ ("read", \p -> p{read = [mkPath "code"]})
-      , ("write", \p -> p{write = [mkPath "code"]})
-      ]
-      $ \(permission, setPaths) ->
-        it ("rejects Codex " <> permission <> " grants before writing any settings") $
-          drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-            let p = setPaths (mkAgentSettingsPackage "tools" $ Claude :| [Codex]){commands = [CommandPrefix "git status"]}
-            install p `shouldThrow` stringException "Codex path settings are not supported yet"
-            drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
-            drvIsFile (home <//> mkPath @Rel ".codex/rules/mybox.rules") >>= (`shouldBe` False)
     it "checks every agent before writing any settings" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-        let p = (mkAgentSettingsPackage "tools" $ Claude :| [Codex]){commands = [CommandExact "make test"]}
+        let p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo]){read = [mkPath "code"]}
         install p `shouldThrow` anyException
         drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
     it "rejects path patterns and parent traversal before writing" $
@@ -148,5 +117,4 @@ spec = do
 homeDriver :: Path Abs -> Args -> Maybe Text
 homeDriver home args
   | args == shell ("eval" :| ["echo", "~"]) = Just home.text
-  | args == shellRaw "echo $CODEX_HOME" = Just ""
   | otherwise = Nothing
