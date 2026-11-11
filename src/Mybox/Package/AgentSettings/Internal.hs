@@ -4,19 +4,22 @@ module Mybox.Package.AgentSettings.Internal (
   mkAgentSettingsPackage,
   settingsPlan,
   claudeSettings,
-  rovoSettings,
+  rovoCommands,
+  rovoPaths,
+  appendItems,
+  updateClaudeSettings,
+  updateRovoSettings,
 ) where
 
+import Control.Lens qualified as Lens
+import Data.Aeson.Lens qualified as AesonLens
 import Data.List (nub)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Data.Yaml qualified as Yaml
-import Lens.Micro qualified as Lens
-import Lens.Micro.Aeson qualified as AesonLens
 
 import Mybox.Aeson
 import Mybox.Driver
-import Mybox.Package.AgentSettings.Config
 import Mybox.Package.AgentSettings.Types
 import Mybox.Package.Class
 import Mybox.Prelude
@@ -96,14 +99,14 @@ settingsPlan p = do
       writePaths = nub $ map resolve p.write
   traverse_ (throwLeft . validatePath) $ p.read <> p.write
   fmap concat $ for (nub $ toList p.agents) $ \agent -> case agent of
-    Claude -> jsonPlan (home <//> mkPath @Rel ".claude/settings.json") $ claudeSettings readPaths writePaths p.commands
+    Claude -> jsonPlan (home <//> mkPath @Rel ".claude/settings.json") $ updateClaudeSettings readPaths writePaths p.commands
     Rovo -> do
       let current = home <//> mkPath @Rel ".rovodev/config.yml"
           legacy = home <//> mkPath @Rel ".rovo/config.yml"
       path <- ifM (drvIsFile current) (pure current) $ ifM (drvIsFile legacy) (pure legacy) (pure current)
       existing <- readSettings path
       config <- maybe (pure $ object []) (yamlDecode @Value) existing
-      updated <- throwLeft $ rovoSettings readPaths writePaths p.commands config
+      updated <- throwLeft $ updateRovoSettings readPaths writePaths p.commands config
       let output = Text.decodeUtf8 $ Yaml.encode updated
       pure [(path, existing, if config == updated then fromMaybe output existing else output)]
 
@@ -120,12 +123,12 @@ readSettings path = ifM (drvIsFile path) readExact (pure Nothing)
       <$> drvRunOutput
         (shellRaw $ "printf '\\001' && cat " <> shellQuote path.text <> " && printf '\\001'")
 
-jsonPlan :: Driver :> es => Path Abs -> (Value -> Either String Value) -> Eff es [(Path Abs, Maybe Text, Text)]
+jsonPlan :: Driver :> es => Path Abs -> (Value -> Value) -> Eff es [(Path Abs, Maybe Text, Text)]
 jsonPlan path update = do
   existing <- readSettings path
   config <- maybe (pure $ object []) (jsonDecode @Value "Claude settings") existing
-  updated <- throwLeft $ update config
-  let output = jsonEncode updated <> "\n"
+  let updated = update config
+      output = jsonEncode updated <> "\n"
   pure [(path, existing, if config == updated then fromMaybe output existing else output)]
 
 validatePath :: Path AnyAnchor -> Either String ()
@@ -134,9 +137,35 @@ validatePath path = do
   when (Text.any (`elem` ("*?[]{}()!\\\n\r\t$~\"'" :: String)) path.text) $
     Left "Agent settings paths must be literal paths, without patterns or expansions"
 
-claudeSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Either String Value
-claudeSettings readPaths writePaths commands =
-  modifyConfig ["permissions", "allow"]
+claudeSettings :: Lens.Traversal' Value (Maybe Value)
+claudeSettings =
+  AesonLens.atKey "permissions"
+    . Lens.non (object [])
+    . AesonLens.atKey "allow"
+
+rovoCommands :: Lens.Traversal' Value (Maybe Value)
+rovoCommands =
+  AesonLens.atKey "toolPermissions"
+    . Lens.non (object [])
+    . AesonLens.atKey "bash"
+    . Lens.non (object [])
+    . AesonLens.atKey "commands"
+
+rovoPaths :: Lens.Traversal' Value (Maybe Value)
+rovoPaths =
+  AesonLens.atKey "toolPermissions"
+    . Lens.non (object [])
+    . AesonLens.atKey "allowedExternalPaths"
+
+appendItems :: [Value] -> Maybe Value -> Maybe Value
+appendItems new = \case
+  Nothing -> Just $ toJSON $ nub new
+  Just existing@(Array _) -> Just $ toJSON $ nub $ (existing Lens.^.. AesonLens.values) <> new
+  wrongType -> wrongType
+
+updateClaudeSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Value
+updateClaudeSettings readPaths writePaths commands =
+  Lens.over claudeSettings
     $ appendItems
     $ map String
     $ ["Read(" <> pattern <> ")" | path <- readPaths, pattern <- pathPatterns ("/" <> path.text)]
@@ -146,30 +175,25 @@ claudeSettings readPaths writePaths commands =
 pathPatterns :: Text -> [Text]
 pathPatterns path = [path, Text.dropWhileEnd (== '/') path <> "/**"]
 
-rovoSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Either String Value
-rovoSettings readPaths writePaths commands config = do
+updateRovoSettings :: [Path Abs] -> [Path Abs] -> [CommandRule] -> Value -> Either String Value
+updateRovoSettings readPaths writePaths commands config = do
   unless (all (\path -> any (`pUnder` path) writePaths) readPaths) $
     Left "Rovo cannot grant read-only external paths; its allowedExternalPaths grants read and write access"
-  withPaths <-
-    if null writePaths
-      then pure config
-      else
-        modifyConfig ["toolPermissions", "allowedExternalPaths"] (appendItems $ map (String . (.text)) writePaths) config
+  let withPaths =
+        if null writePaths
+          then config
+          else Lens.over rovoPaths (appendItems $ map (String . (.text)) writePaths) config
   if null commands
     then pure withPaths
-    else
-      modifyConfig ["toolPermissions", "bash", "commands"] prependCommands withPaths
+    else Lens.traverseOf rovoCommands addCommands withPaths
  where
   newCommands = map (\rule -> object ["command" .= patternFor rule, "permission" .= ("allow" :: Text)]) commands
   -- Do not assume precedence between overlapping Rovo regex rules.
-  prependCommands = \case
-    Nothing -> pure $ toJSON $ nub newCommands
-    Just existing@(Array _) -> do
-      let entries = existing Lens.^.. AesonLens.values
+  addCommands existing = do
+    for_ (existing Lens.^? (Lens._Just . AesonLens._Array)) $ \entries ->
       unless (all isAllow entries) $
         Left "Cannot extend Rovo command rules containing explicit ask/deny entries without verified rule precedence"
-      pure $ toJSON $ nub $ entries <> newCommands
-    _ -> Left "Expected Rovo bash commands to be a list"
+    pure $ appendItems newCommands existing
   isAllow value = value Lens.^? (AesonLens.key "permission" . AesonLens._String) == Just "allow"
   patternFor rule =
     "^" <> escapeRegex (commandText rule) <> case rule of
