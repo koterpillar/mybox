@@ -58,7 +58,6 @@ library
       Mybox.LockMap
       Mybox.Main
       Mybox.Package.AgentSettings
-      Mybox.Package.AgentSettings.Config
       Mybox.Package.AgentSettings.Internal
       Mybox.Package.AgentSettings.Types
       Mybox.Package.Archive
@@ -129,8 +128,7 @@ library
     , effectful
     , extra
     , lens
-    , microlens
-    , microlens-aeson
+    , lens-aeson
     , mtl
     , network-uri
     , optparse-applicative
@@ -178,8 +176,7 @@ executable mybox
     , effectful
     , extra
     , lens
-    , microlens
-    , microlens-aeson
+    , lens-aeson
     , mtl
     , mybox
     , network-uri
@@ -294,9 +291,8 @@ test-suite tests
     , extra
     , hspec
     , lens
+    , lens-aeson
     , lzma
-    , microlens
-    , microlens-aeson
     , mtl
     , mybox
     , network-uri

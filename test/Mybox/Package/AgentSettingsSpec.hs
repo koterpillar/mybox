@@ -1,5 +1,6 @@
 module Mybox.Package.AgentSettingsSpec (spec) where
 
+import Control.Lens qualified as Lens
 import Data.Text qualified as Text
 
 import Mybox.Aeson
@@ -42,9 +43,9 @@ spec = do
   describe "Claude" $ do
     it "merges grants, preserving unrelated settings and denials" $ do
       original <- jsonDecode @Value "settings" "{\"model\":\"custom\",\"permissions\":{\"deny\":[\"Bash(rm *)\"],\"allow\":[\"Bash(pwd)\"]}}"
-      let update = claudeSettings [mkPath "/home/test/code"] [mkPath "/tmp"] [CommandPrefix "git status", CommandExact "make test"]
-      updated <- throwLeft $ update original
-      update updated `shouldBe` Right updated
+      let update = updateClaudeSettings [mkPath "/home/test/code"] [mkPath "/tmp"] [CommandPrefix "git status", CommandExact "make test"]
+      let updated = update original
+      update updated `shouldBe` updated
       let output = jsonEncode updated
       output `shouldContainText` "Read(//home/test/code/**)"
       output `shouldContainText` "Edit(//tmp/**)"
@@ -53,25 +54,35 @@ spec = do
       output `shouldContainText` "\"deny\":[\"Bash(rm *)\"]"
       output `shouldContainText` "\"model\":\"custom\""
     for_ ["null", "[]", "{\"permissions\":true}", "{\"permissions\":{\"allow\":{}}}"] $ \input ->
-      it ("rejects malformed existing settings " <> Text.unpack input) $ do
+      it ("skips wrong-type existing settings " <> Text.unpack input) $ do
         existing <- jsonDecode @Value "settings" input
-        claudeSettings [] [] [CommandPrefix "git status"] existing `shouldSatisfy` isLeft
+        updateClaudeSettings [] [] [CommandPrefix "git status"] existing `shouldBe` existing
   describe "Rovo" $ do
     it "generates anchored, escaped regexes for exact and prefix rules" $ do
-      let update = rovoSettings [mkPath "/tmp"] [mkPath "/tmp"] [CommandPrefix "./bin/lint", CommandExact "make test"]
+      let update = updateRovoSettings [mkPath "/tmp"] [mkPath "/tmp"] [CommandPrefix "./bin/lint", CommandExact "make test"]
       updated <- throwLeft $ update (object [])
       jsonEncode updated `shouldContainText` "^make test$"
       jsonEncode updated `shouldContainText` "^\\\\./bin/lint( .*)?$"
       update updated `shouldBe` Right updated
     it "rejects read-only external paths" $
-      rovoSettings [mkPath "/private"] [] [] (object []) `shouldSatisfy` isLeft
+      updateRovoSettings [mkPath "/private"] [] [] (object []) `shouldSatisfy` isLeft
     it "refuses to override existing command restrictions" $ do
       original <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[{\"command\":\"git.*\",\"permission\":\"deny\"}]}}}"
-      rovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
-    for_ ["{\"toolPermissions\":null}", "{\"toolPermissions\":{\"bash\":[]}}"] $ \input ->
-      it ("rejects malformed intermediate settings " <> Text.unpack input) $ do
+      updateRovoSettings [] [] [CommandPrefix "git"] original `shouldSatisfy` isLeft
+    for_ ["{\"toolPermissions\":null}", "{\"toolPermissions\":{\"bash\":[]}}", "{\"toolPermissions\":{\"bash\":{\"commands\":null}}}"] $ \input ->
+      it ("skips wrong-type existing settings " <> Text.unpack input) $ do
         existing <- jsonDecode @Value "settings" input
-        rovoSettings [] [] [CommandPrefix "git status"] existing `shouldSatisfy` isLeft
+        updateRovoSettings [] [] [CommandPrefix "git status"] existing `shouldBe` Right existing
+  describe "missing keys" $ do
+    it "creates Claude parents and an explicit empty array" $ do
+      expected <- jsonDecode @Value "settings" "{\"permissions\":{\"allow\":[]}}"
+      Lens.over claudeSettings (appendItems []) (object []) `shouldBe` expected
+    it "creates Rovo command parents and an explicit empty array" $ do
+      expected <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[]}}}"
+      Lens.over rovoCommands (appendItems []) (object []) `shouldBe` expected
+    it "creates Rovo path parents and an explicit empty array" $ do
+      expected <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"allowedExternalPaths\":[]}}"
+      Lens.over rovoPaths (appendItems []) (object []) `shouldBe` expected
   withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
     it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
@@ -107,6 +118,16 @@ spec = do
         isInstalled stack >>= (`shouldBe` True)
         ensureInstalled git
         isInstalled stack >>= (`shouldBe` True)
+    it "treats wrong-type skipped fields as configured without rewriting them" $
+      drvTempDir $ \home -> stubDriver (homeDriver home) $ do
+        let settings = home <//> mkPath @Rel ".claude/settings.json"
+            original = "{\"permissions\":{\"allow\":false}}"
+            p = (mkAgentSettingsPackage "tools" $ Claude :| []){commands = [CommandPrefix "git status"]}
+        drvWriteFile settings original
+        ensureInstalled p
+        isInstalled p >>= (`shouldBe` True)
+        drvReadFile settings >>= (`shouldBe` original)
+        drvIsFile (mkPath @Abs $ settings.text <> ".mybox-backup") >>= (`shouldBe` False)
     it "checks every agent before writing any settings" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         let p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo]){read = [mkPath "code"]}
