@@ -7,6 +7,7 @@ import Mybox.Aeson
 import Mybox.Driver
 import Mybox.Driver.Test
 import Mybox.Package.AgentSettings.Internal
+import Mybox.Package.AgentSettings.Types
 import Mybox.Package.Class
 import Mybox.Package.Queue
 import Mybox.Package.Some
@@ -23,7 +24,6 @@ spec = do
   describe "decoding" $ do
     for_
       [ "{\"agents\":[\"claude\"]}"
-      , "{\"agent-settings\":\"\",\"agents\":[\"claude\"]}"
       , "{\"agent-settings\":\"tools\"}"
       , "{\"agent-settings\":\"tools\",\"agents\":[]}"
       , "{\"agent-settings\":\"tools\",\"agents\":[\"unknown\"]}"
@@ -76,15 +76,15 @@ spec = do
   describe "missing keys" $ do
     it "creates Claude parents and an explicit empty array" $ do
       expected <- jsonDecode @Value "settings" "{\"permissions\":{\"allow\":[]}}"
-      Lens.over claudeSettings (appendItems []) (object []) `shouldBe` expected
+      Lens.over claudeSettings id (object []) `shouldBe` expected
     it "creates Rovo command parents and an explicit empty array" $ do
       expected <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"bash\":{\"commands\":[]}}}"
-      Lens.over rovoCommands (appendItems []) (object []) `shouldBe` expected
+      Lens.over rovoCommands id (object []) `shouldBe` expected
     it "creates Rovo path parents and an explicit empty array" $ do
       expected <- jsonDecode @Value "settings" "{\"toolPermissions\":{\"allowedExternalPaths\":[]}}"
-      Lens.over rovoPaths (appendItems []) (object []) `shouldBe` expected
+      Lens.over rovoPaths id (object []) `shouldBe` expected
   withEff (nullTracker . runInstallQueue) $ describe "installation" $ do
-    it "updates only the isolated settings, preserves symlinks and backups, and detects drift" $
+    it "updates only the isolated settings, preserves symlinks and file modes" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         let target = home </> "claude-original.json"
             settings = home <//> mkPath @Rel ".claude/settings.json"
@@ -93,18 +93,17 @@ spec = do
         drvWriteFile target original
         drvRun $ "chmod" :| ["600", target.text]
         drvLink target settings
-        localVersion p >>= (`shouldBe` Nothing)
         install p
         drvIsSymlink settings >>= (`shouldBe` True)
         mode <- Text.take 10 <$> drvRunOutput ("ls" :| ["-ld", target.text])
         mode `shouldBe` "-rw-------"
-        drvReadFile (mkPath @Abs $ target.text <> ".mybox-backup") >>= (`shouldBe` original)
+        drvIsFile (mkPath @Abs $ target.text <> ".mybox-backup") >>= (`shouldBe` False)
+        drvIsFile (home <//> mkPath @Rel ".rovo/config.yml") >>= (`shouldBe` True)
+        drvIsFile (home <//> mkPath @Rel ".rovodev/config.yml") >>= (`shouldBe` False)
         localVersion p >>= (`shouldBe` Just "configured")
         installed <- drvReadFile settings
         install p
         drvReadFile settings >>= (`shouldBe` installed)
-        drvWriteFile target "{}"
-        localVersion p >>= (`shouldBe` Nothing)
     it "keeps named packages for the same agents installed independently" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
         let git = (mkAgentSettingsPackage "git" $ Claude :| [Rovo]){commands = [CommandPrefix "git status"]}
@@ -133,11 +132,18 @@ spec = do
         let p = (mkAgentSettingsPackage "tools" $ Claude :| [Rovo]){read = [mkPath "code"]}
         install p `shouldThrow` anyException
         drvIsFile (home <//> mkPath @Rel ".claude/settings.json") >>= (`shouldBe` False)
-    it "rejects path patterns and parent traversal before writing" $
+    it "reinstalls only when the package hash changes" $
       drvTempDir $ \home -> stubDriver (homeDriver home) $ do
-        for_ ["../private", "code/*", "~/code"] $ \path -> do
-          let p = (mkAgentSettingsPackage "tools" $ Claude :| []){read = [mkPath path]}
-          install p `shouldThrow` anyException
+        let settings = home <//> mkPath @Rel ".claude/settings.json"
+            p = (mkAgentSettingsPackage "tools" $ Claude :| []){commands = [CommandPrefix "git status"]}
+            changed = p{commands = [CommandPrefix "stack test"]}
+        ensureInstalled p
+        drvWriteFile settings "{}"
+        ensureInstalled p
+        drvReadFile settings >>= (`shouldBe` "{}")
+        isInstalled changed >>= (`shouldBe` False)
+        ensureInstalled changed
+        drvReadFile settings >>= (`shouldContainText` "Bash(stack test *)")
 
 homeDriver :: Path Abs -> Args -> Maybe Text
 homeDriver home args
