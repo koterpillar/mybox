@@ -1,6 +1,7 @@
 module Mybox.Package.Some where
 
 import Mybox.Aeson
+import Mybox.Package.AgentSettings
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
 import Mybox.Package.Clone
@@ -31,7 +32,8 @@ instance FromJSON SomePackage where
   parseJSON v =
     foldr1
       jsonAlternative
-      [ mkSomePackageF (parseJSON @BrewRepo v)
+      [ mkSomePackageF (parseJSON @AgentSettingsPackage v)
+      , mkSomePackageF (parseJSON @BrewRepo v)
       , mkSomePackageF (parseJSON @ClonePackage v)
       , mkSomePackageF (parseJSON @DaemonPackage v)
       , mkSomePackageF (parseJSON @LinksPackage v)

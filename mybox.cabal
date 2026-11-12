@@ -57,6 +57,9 @@ library
       Mybox.Installer.MacOSCombined
       Mybox.LockMap
       Mybox.Main
+      Mybox.Package.AgentSettings
+      Mybox.Package.AgentSettings.Internal
+      Mybox.Package.AgentSettings.Types
       Mybox.Package.Archive
       Mybox.Package.Archive.Internal
       Mybox.Package.BrewRepo
@@ -124,6 +127,8 @@ library
     , crypton
     , effectful
     , extra
+    , lens
+    , lens-aeson
     , mtl
     , network-uri
     , optparse-applicative
@@ -170,6 +175,8 @@ executable mybox
     , crypton
     , effectful
     , extra
+    , lens
+    , lens-aeson
     , mtl
     , mybox
     , network-uri
@@ -223,6 +230,7 @@ test-suite tests
       Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
       Mybox.LockMapSpec
+      Mybox.Package.AgentSettingsSpec
       Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec
       Mybox.Package.ClassSpec
@@ -282,6 +290,8 @@ test-suite tests
     , effectful
     , extra
     , hspec
+    , lens
+    , lens-aeson
     , lzma
     , mtl
     , mybox
