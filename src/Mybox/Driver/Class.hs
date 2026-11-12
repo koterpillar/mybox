@@ -1,6 +1,7 @@
 module Mybox.Driver.Class where
 
 import Data.ByteString (ByteString)
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Effectful.Dispatch.Dynamic
 
@@ -77,10 +78,10 @@ drvRunOutputExitBinary :: Driver :> es => Args -> Eff es (RunResult ExitCode Byt
 drvRunOutputExitBinary = drvRunOutputBinary_ RunExitReturn
 
 drvRunOutput :: Driver :> es => Args -> Eff es Text
-drvRunOutput = fmap Text.decodeUtf8 . drvRunOutputBinary
+drvRunOutput = fmap (Text.strip . Text.decodeUtf8) . drvRunOutputBinary
 
 drvRunOutputExit :: Driver :> es => Args -> Eff es (RunResult ExitCode Text)
-drvRunOutputExit = fmap (rrMap Text.decodeUtf8) . drvRunOutputExitBinary
+drvRunOutputExit = fmap (rrMap (Text.strip . Text.decodeUtf8)) . drvRunOutputExitBinary
 
 modifyDriver :: Driver :> es => (Args -> Args) -> Eff es a -> Eff es a
 modifyDriver transformArgs = interpose_ $ \case

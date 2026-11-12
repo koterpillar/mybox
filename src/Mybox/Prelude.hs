@@ -21,6 +21,8 @@ module Mybox.Prelude (
   andM,
   anyM,
   findM,
+  ifM,
+  nubOrd,
   unlessM,
   unsnoc,
   whenM,
@@ -45,13 +47,14 @@ module Mybox.Prelude (
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (MonadThrow, StringException (..), throwString)
 import Control.Monad
-import Control.Monad.Extra (andM, anyM, findM, unlessM, whenM, whileM)
+import Control.Monad.Extra (andM, anyM, findM, ifM, unlessM, whenM, whileM)
 import Data.Bifunctor (first)
 import Data.Either
 import Data.Foldable
 import Data.Function (on, (&))
 import Data.Functor (($>))
 import Data.List (uncons, unsnoc)
+import Data.List.Extra (nubOrd)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Maybe

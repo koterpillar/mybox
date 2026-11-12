@@ -28,16 +28,7 @@ errorMessage args code stdout stderr =
       <> show code
   extraMessage str desc
     | BS.null str = ""
-    | otherwise = "; " <> desc <> ": " <> Text.unpack (Text.decodeUtf8 str)
-
-bsStrip :: ByteString -> ByteString
-bsStrip = BS.dropWhileEnd whitespace . BS.dropWhile whitespace
- where
-  whitespace 0x20 = True -- space
-  whitespace 0x09 = True -- tab
-  whitespace 0x0A = True -- newline
-  whitespace 0x0D = True -- carriage return
-  whitespace _ = False
+    | otherwise = "; " <> desc <> ": " <> Text.unpack (Text.strip $ Text.decodeUtf8 str)
 
 type DriverLockMap = LockMap [Text] ()
 
@@ -69,8 +60,8 @@ localDriverWith lm = do
             (exitCode, stderr) <- catchNoSuchThing (ExitFailure 127,) $ liftIO $ readProcessStderr $ process & setStdout nullStream
             pure (exitCode, mempty, stderr)
           RunOutputReturn -> catchNoSuchThing (ExitFailure 127,"",) $ liftIO $ readProcess process
-      let stdout = bsStrip $ LBS.toStrict stdout_
-      let stderr = bsStrip $ LBS.toStrict stderr_
+      let stdout = LBS.toStrict stdout_
+      let stderr = LBS.toStrict stderr_
       exit <-
         case exitBehavior of
           RunExitError ->
