@@ -30,6 +30,13 @@ spec = do
       it "trims whitespace from output" $ do
         result <- drvRunOutput $ "echo" :| ["  trimmed  "]
         result `shouldBe` "trimmed"
+      it "preserves whitespace and binary bytes in binary output" $ do
+        result <- drvRunOutputBinary $ "printf" :| [" \t\n\\000\\377 \r\n"]
+        result `shouldBe` " \t\n\NUL\255 \r\n"
+      it "trims text output but preserves binary output when returning exit codes" $ do
+        let command = shellRaw "printf '  output  \\n'; exit 7"
+        drvRunOutputExit command >>= (`shouldBe` RunResult (ExitFailure 7) "output")
+        drvRunOutputExitBinary command >>= (`shouldBe` RunResult (ExitFailure 7) "  output  \n")
     describe "failing" $ do
       it "returns ExitFailure for false command" $ do
         shouldFail $ drvRunOk $ "false" :| []
