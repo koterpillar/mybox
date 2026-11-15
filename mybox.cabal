@@ -92,6 +92,7 @@ library
       Mybox.Platform
       Mybox.Prelude
       Mybox.RecValue
+      Mybox.SelfUpdate
       Mybox.Stores
       Mybox.Tracker
       Mybox.Tracker.Internal
@@ -135,6 +136,7 @@ library
     , text
     , tomland
     , typed-process
+    , unix
     , vector
     , witherable
     , yaml
@@ -182,6 +184,7 @@ executable mybox
     , text
     , tomland
     , typed-process
+    , unix
     , vector
     , witherable
     , yaml
@@ -243,6 +246,7 @@ test-suite tests
       Mybox.Package.URLSpec
       Mybox.Package.YumRepoSpec
       Mybox.PathSpec
+      Mybox.SelfUpdateSpec
       Mybox.Spec.Assertions
       Mybox.Spec.Uncovered.Assertions
       Mybox.Spec.Uncovered.Utils
@@ -270,6 +274,7 @@ test-suite tests
       hspec-discover:hspec-discover
   build-depends:
       Glob
+    , QuickCheck
     , aeson
     , aeson-jsonpath
     , ansi-terminal
@@ -296,6 +301,7 @@ test-suite tests
     , text
     , tomland
     , typed-process
+    , unix
     , vector
     , witherable
     , yaml

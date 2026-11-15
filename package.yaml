@@ -37,6 +37,7 @@ dependencies:
   - text
   - tomland
   - typed-process
+  - unix
   - vector
   - witherable
   - yaml
@@ -56,6 +57,7 @@ tests:
     dependencies:
       - bzlib
       - hspec
+      - QuickCheck
       - lzma
       - mybox
       - tar

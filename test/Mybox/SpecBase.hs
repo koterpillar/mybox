@@ -15,6 +15,7 @@ module Mybox.SpecBase (
   skipGenericLinux,
   expectationFailure,
   it,
+  prop,
   xit,
   shouldBe,
   shouldContain,
@@ -33,6 +34,7 @@ import Data.Text qualified as Text
 import System.Environment (lookupEnv)
 import Test.Hspec hiding (Spec, SpecWith, before, expectationFailure, it, shouldBe, shouldContain, shouldSatisfy, shouldThrow, xit)
 import Test.Hspec qualified as Hspec
+import Test.QuickCheck
 
 import Mybox.Aeson
 import Mybox.Display
@@ -67,6 +69,11 @@ it name act = Hspec.it name $ \(RunEff unlift) -> unlift act
 
 xit :: String -> Eff es () -> EffSpec es
 xit name act = Hspec.xit name $ \(RunEff unlift) -> unlift act
+
+prop :: (HasCallStack, IOE :> es, Testable p) => String -> p -> EffSpec es
+prop name p = it name $ do
+  result <- liftIO $ quickCheckResult p
+  result `shouldSatisfy` isSuccess
 
 shouldBe :: (Eq a, HasCallStack, IOE :> es, Show a) => a -> a -> Eff es ()
 shouldBe a b = liftIO $ Hspec.shouldBe a b
