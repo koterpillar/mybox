@@ -10,6 +10,7 @@ import Mybox.Display
 import Mybox.Driver
 import Mybox.Package.Queue
 import Mybox.Prelude
+import Mybox.SelfUpdate qualified as SelfUpdate
 import Mybox.Stores
 import Mybox.Tracker
 import Paths_mybox (version)
@@ -27,8 +28,10 @@ mainOpt CLVersion = displayVersion version
 mainOpt commandLine =
   runStores $
     localDriver $ do
-      config <- readConfig commandLine
+      when commandLine.selfUpdate $ SelfUpdate.localExecute $ SelfUpdate.selfUpdate commandLine
       state <- drvMyboxState
-      drvTracker (state </> "files.json")
-        $ runInstallQueue
-        $ queueInstallMany config.packages
+      drvTracker (state </> "files.json") $
+        runInstallQueue $
+          do
+            config <- readConfig commandLine
+            queueInstallMany config.packages
