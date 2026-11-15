@@ -5,15 +5,22 @@ on:
       - "main"
   pull_request:
 
+# No access by default; every job declares what it needs.
+permissions: {}
+
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Install dependencies
         run: ./bin/install-dev
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Lint
         run: ./bin/lint
   test:
@@ -31,11 +38,15 @@ jobs:
           - host: ubuntu
           - host: macos
     runs-on: ${{ matrix.host && format('{0}-latest', matrix.host) || matrix.arch && format('ubuntu-26.04-{0}', matrix.arch) || 'ubuntu-latest' }}
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure host system
         if: matrix.host
         run: ./bin/configure-ci-host
@@ -60,11 +71,15 @@ jobs:
     needs:
       - test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: compile
         name: Compile
         uses: freckle/stack-action@v5
@@ -107,6 +122,8 @@ jobs:
           - os: macos
     runs-on: ${{ matrix.arch && format('ubuntu-26.04-{0}', matrix.arch) || format('{0}-latest', matrix.os) }}
     name: "Build (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})"
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -116,6 +133,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -157,6 +176,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download executables
         uses: actions/download-artifact@v8
         with:
