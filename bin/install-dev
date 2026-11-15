@@ -77,24 +77,13 @@ esac
 GH_CURL=(curl -fsSL --retry 5)
 if [ -n "${GITHUB_TOKEN-}" ]
 then
-  echo "DIAG: using GITHUB_TOKEN from environment (length ${#GITHUB_TOKEN})" >&2
   GH_CURL+=(--header "authorization: Bearer $GITHUB_TOKEN")
 elif command_exists gh && gh auth status >/dev/null 2>&1
 then
-  echo "DIAG: using token from gh auth" >&2
   GH_CURL+=(--header "authorization: Bearer $(gh auth token)")
 else
-  echo "DIAG: no GitHub token available, requests are unauthenticated" >&2
+  echo "WARNING: no GitHub token available, API requests are unauthenticated and may be rate limited" >&2
 fi
-
-# DIAG: show response status, rate limit and body of a GitHub API request
-diag_github() {
-  echo "DIAG: GET $1" >&2
-  curl -sS --dump-header /dev/stderr "${GH_CURL[@]:4}" "$1" | head -c 2000 >&2 || true
-  echo >&2
-}
-diag_github "https://api.github.com/rate_limit"
-diag_github "https://api.github.com/repos/evilmartians/lefthook/releases/latest"
 
 if [ -n "${OPT_LINT-}" ] && ! command_exists fourmolu
 then
