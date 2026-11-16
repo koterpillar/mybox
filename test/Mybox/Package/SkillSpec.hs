@@ -1,5 +1,6 @@
 module Mybox.Package.SkillSpec (spec) where
 
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 import Mybox.Driver
@@ -27,6 +28,13 @@ hasSkill' agentDir name_ = do
   home <- drvHome
   drvIsFile (home </> agentDir </> "skills" </> name_ </> "SKILL.md") >>= (`shouldBe` True)
 
+onlyHasSkills :: (Driver :> es, IOE :> es) => [Text] -> Eff es ()
+onlyHasSkills expected = do
+  home <- drvHome
+  found <- drvFind (home </> ".agents" </> "skills") findOptions{maxDepth = Just 1}
+  Set.fromList (concatMap (take 1 . reverse . (.segments)) (toList found))
+    `shouldBe` Set.fromList expected
+
 spec :: Spec
 spec = do
   metaSpec
@@ -50,7 +58,7 @@ spec = do
   describe "remote version" $ do
     withEff (nullTracker . runInstallQueue) $ do
       it "gets version for a well-known source" $ do
-        version <- remoteVersion $ mkSkillPackage "https://agentskills.io"
+        version <- remoteVersion $ mkSkillPackage "https://developers.cloudflare.com"
         Text.length version `shouldSatisfy` (>= 10)
       it "hashes the contents of a local source, ignoring .git" $
         drvTempDir $ \dir -> do
@@ -79,11 +87,11 @@ spec = do
       packageSpec $
         ps (mkSkillPackage "vercel-labs/skills"){only = Just ["find-skills"]}
           & ignorePaths skillIgnorePaths
-          & checkInstalled (hasSkill "find-skills")
+          & checkInstalled (hasSkill "find-skills" >> onlyHasSkills ["find-skills"])
       packageSpec $
-        ps (mkSkillPackage "https://agentskills.io"){agents = ["claude-code"]}
+        ps (mkSkillPackage "https://developers.cloudflare.com"){agents = ["claude-code"]}
           & ignorePaths skillIgnorePaths
-          & checkInstalled (hasSkill "agent" >> hasSkill' ".claude" "agent")
+          & checkInstalled (hasSkill "agents-sdk" >> hasSkill' ".claude" "agents-sdk")
       packageSpec $
         ps (mkSkillPackage "./test/fixtures/skills")
           & ignorePaths skillIgnorePaths
