@@ -141,7 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx \
-            --package semantic-release@25 \
+            --package semantic-release@26 \
             --package semantic-release-replace-plugin@1 \
             --package semantic-release-stop@1 \
             semantic-release
@@ -190,5 +190,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx \
-            --package semantic-release@25 \
+            --package semantic-release@26 \
             semantic-release
