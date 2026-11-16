@@ -123,7 +123,8 @@ jobs:
     runs-on: ${{ matrix.arch && format('ubuntu-26.04-{0}', matrix.arch) || format('{0}-latest', matrix.os) }}
     name: "Build (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})"
     permissions:
-      contents: read
+      # semantic-release verifies that it can push from here
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
