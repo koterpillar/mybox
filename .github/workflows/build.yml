@@ -131,7 +131,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version: 26
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
         env:
@@ -141,7 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx \
-            --package semantic-release@25 \
+            --package semantic-release@26 \
             --package semantic-release-replace-plugin@1 \
             --package semantic-release-stop@1 \
             semantic-release
@@ -174,7 +174,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version: 26
       - name: Install dependencies
         run: ./bin/install-dev --no-lint
         env:
@@ -190,5 +190,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx \
-            --package semantic-release@25 \
+            --package semantic-release@26 \
             semantic-release
