@@ -30,8 +30,13 @@ spec = do
   it "returns CommandLine for no args" $
     parsePure [] `shouldBe` Just CommandLine{selfUpdate = False}
 
-  it "removes the self-update option" $
-    withoutSelfUpdate (CommandLine True) `shouldBe` CommandLine False
+  prop "withoutSelfUpdate is idempotent" $
+    \commandLine -> withoutSelfUpdate (withoutSelfUpdate commandLine) === withoutSelfUpdate commandLine
+
+  prop "withoutSelfUpdate yields CLVersion or disables self-update" $
+    \commandLine -> case withoutSelfUpdate commandLine of
+      CLVersion -> True
+      CommandLine{selfUpdate} -> not selfUpdate
 
   prop "roundtrips through the command line" $
     \commandLine -> parsePure (commandLineArgs commandLine) == Just commandLine
