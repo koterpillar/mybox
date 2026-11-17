@@ -116,11 +116,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu
-          - os: ubuntu
+          - os: Linux
+            runs-on: ubuntu-24.04
+          - os: Linux
             arch: arm
+            runs-on: ubuntu-26.04-arm
           - os: macos
-    runs-on: ${{ matrix.arch && format('ubuntu-26.04-{0}', matrix.arch) || format('{0}-latest', matrix.os) }}
+            runs-on: macos-latest
+    runs-on: ${{ matrix.runs-on }}
     name: "Build (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})"
     permissions:
       # semantic-release verifies that it can push from here
