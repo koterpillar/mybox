@@ -53,8 +53,11 @@ stack test --ta "--match Mybox.Some.Package"
 After building (`stack build`), in the directory with package definitions, run:
 
 ```shell
-$(cd ..path/to/mybox; stack path --local-install-root)/bin/mybox
+$(cd ..path/to/mybox; stack path --local-install-root)/bin/mybox --no-self-update
 ```
+
+Self-update is on by default and would replace the locally built binary with
+the latest release, so pass `--no-self-update`.
 
 # Contributing
 

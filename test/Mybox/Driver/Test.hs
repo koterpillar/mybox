@@ -117,7 +117,6 @@ testDockerDriver driverLock baseImage act =
   mkImage =
     drvAtomic "mkImage" $
       drvTempDir $ \tempDir -> do
-        drvCopy (pSegment "bootstrap") (tempDir </> "bootstrap")
         drvWriteFile (tempDir </> "Dockerfile") $ dockerfile baseImage
         let image = dockerImagePrefix <> baseImage
         drvRun $ "docker" :| ["build", "--tag", image, tempDir.text]

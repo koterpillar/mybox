@@ -23,13 +23,21 @@ different ones for different roles).
 
 ## Usage
 
-* Run the [bootstrap](bootstrap) script:
+### The first time
 
-  ```shell
-  /bin/sh -c "$(curl -fsSL https://github.com/koterpillar/mybox/releases/latest/download/bootstrap)"
-  ```
+Download the right release for your system and make it executable:
 
-* Run `mybox` from the directory with package definitions.
+```shell
+mkdir -p ~/.local/bin
+curl -fsSL "https://github.com/koterpillar/mybox/releases/latest/download/mybox-$(uname -s)-$(uname -m)" -o ~/.local/bin/mybox
+chmod +x ~/.local/bin/mybox
+```
 
-  For package definition examples, see
-  [koterpillar/desktop](https://github.com/koterpillar/desktop/).
+Make sure `~/.local/bin` is in your `PATH`.
+
+### Then
+
+Run `mybox` from the directory with package definitions.
+
+For package definition examples, see
+[koterpillar/desktop](https://github.com/koterpillar/desktop/).

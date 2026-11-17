@@ -28,7 +28,7 @@ export default {
           [
             "@semantic-release/github",
             {
-              assets: [{ path: "bootstrap" }, { path: "executables/*" }],
+              assets: [{ path: "executables/*" }],
             },
           ],
         ]),
