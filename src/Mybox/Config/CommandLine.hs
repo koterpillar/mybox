@@ -14,11 +14,11 @@ withoutSelfUpdate CLVersion = CLVersion
 optionsParser :: Parser CommandLine
 optionsParser =
   flag' CLVersion (long "version")
-    <|> (CommandLine <$> switch (long "self-update" <> help "Update Mybox before installing packages"))
+    <|> (CommandLine <$> flag True False (long "no-self-update" <> help "Do not update Mybox before installing packages"))
 
 commandLineArgs :: CommandLine -> [Text]
 commandLineArgs CLVersion = ["--version"]
-commandLineArgs commandLine = ["--self-update" | commandLine.selfUpdate]
+commandLineArgs commandLine = ["--no-self-update" | not commandLine.selfUpdate]
 
 optionsInfo :: ParserInfo CommandLine
 optionsInfo = info (optionsParser <**> helper) fullDesc

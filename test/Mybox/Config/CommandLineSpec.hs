@@ -21,14 +21,14 @@ spec = do
   it "returns CLVersion for --version" $
     parsePure ["--version"] `shouldBe` Just CLVersion
 
-  it "rejects --version with --self-update" $
-    parsePure ["--version", "--self-update"] `shouldBe` Nothing
+  it "rejects --version with --no-self-update" $
+    parsePure ["--version", "--no-self-update"] `shouldBe` Nothing
 
-  it "enables self-update for --self-update" $
-    parsePure ["--self-update"] `shouldBe` Just CommandLine{selfUpdate = True}
+  it "disables self-update for --no-self-update" $
+    parsePure ["--no-self-update"] `shouldBe` Just CommandLine{selfUpdate = False}
 
-  it "returns CommandLine for no args" $
-    parsePure [] `shouldBe` Just CommandLine{selfUpdate = False}
+  it "enables self-update for no args" $
+    parsePure [] `shouldBe` Just CommandLine{selfUpdate = True}
 
   prop "withoutSelfUpdate is idempotent" $
     \commandLine -> withoutSelfUpdate (withoutSelfUpdate commandLine) === withoutSelfUpdate commandLine

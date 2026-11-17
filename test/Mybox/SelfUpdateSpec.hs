@@ -28,7 +28,7 @@ spec = do
       let program :| args = requireJust "Expected execute call" $ listToMaybe calls
       local <- drvLocal False
       program `shouldBe` (local </> "bin" </> "mybox").text
-      args `shouldBe` []
+      args `shouldBe` ["--no-self-update"]
 
       ((), calls2) <- executePure $ SelfUpdate.selfUpdate CommandLine{selfUpdate = True}
       calls2 `shouldBe` []
