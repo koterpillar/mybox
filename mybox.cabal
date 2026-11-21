@@ -45,6 +45,7 @@ library
       Mybox.Driver.Stats
       Mybox.Effects
       Mybox.Extractor
+      Mybox.FileLens
       Mybox.Filters
       Mybox.Installer
       Mybox.Installer.Apt
@@ -125,6 +126,8 @@ library
     , crypton
     , effectful
     , extra
+    , lens
+    , lens-aeson
     , mtl
     , network-uri
     , optparse-applicative
@@ -172,6 +175,8 @@ executable mybox
     , crypton
     , effectful
     , extra
+    , lens
+    , lens-aeson
     , mtl
     , mybox
     , network-uri
@@ -219,6 +224,7 @@ test-suite tests
       Mybox.Driver.Test
       Mybox.Driver.TestSpec
       Mybox.ExtractorSpec
+      Mybox.FileLensSpec
       Mybox.FiltersSpec
       Mybox.Installer.AptSpec
       Mybox.Installer.BrewSpec
@@ -287,6 +293,8 @@ test-suite tests
     , effectful
     , extra
     , hspec
+    , lens
+    , lens-aeson
     , lzma
     , mtl
     , mybox

@@ -72,6 +72,12 @@ spec = do
     let testFile = pRoot </> "tmp" </> "test.txt"
     drvWriteFile testFile "Hello World"
     drvReadFile testFile >>= (`shouldBe` "Hello World")
+  describe "drvModifyBinaryFile" $
+    it "updates exact bytes" $
+      drvTempFile $ \path -> do
+        drvWriteBinaryFile path " \NUL\255\n"
+        drvModifyBinaryFile path ((<> "\NUL") . fromMaybe "")
+        drvReadBinaryFile path >>= (`shouldBe` " \NUL\255\n\NUL")
   describe "drvFind" $
     it "finds files" $
       drvTempDir $ \dir -> do
