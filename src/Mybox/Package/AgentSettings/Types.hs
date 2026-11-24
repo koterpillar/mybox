@@ -13,23 +13,20 @@ import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text qualified as Text
 
 import Mybox.Aeson
+import Mybox.JSONCodec
 import Mybox.Prelude
 
 data Agent = Claude | Rovo
   deriving (Bounded, Enum, Eq, Generic, Ord, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec Agent
 
 agentName :: Agent -> Text
 agentName = \case
   Claude -> "claude"
   Rovo -> "rovo"
 
-instance ToJSON Agent where
-  toJSON = toJSON . agentName
-
-instance FromJSON Agent where
-  parseJSON = withText "Agent" $ \name ->
-    maybe (fail $ "Unknown agent: " <> Text.unpack name) pure $
-      find ((== name) . agentName) [minBound .. maxBound]
+instance JSONCodec Agent where
+  jsonCodec = enumCodec "agent" agentName
 
 data CommandMatch = Prefix | Exact
   deriving (Eq, Generic, Ord, Show)
@@ -39,6 +36,7 @@ data CommandRule = CommandRule
   , commandWords :: NonEmpty Text
   }
   deriving (Eq, Ord, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec CommandRule
 
 commandText :: CommandRule -> Text
 commandText = Text.unwords . toList . commandWords
@@ -56,14 +54,24 @@ mkCommandRule match command =
  where
   isLiteral c = isAlphaNum c || c `elem` ("/._-:=+@%," :: String)
 
-instance FromJSON CommandRule where
-  parseJSON value = do
-    (match, command) <- case value of
-      String command -> pure (Prefix, command)
-      _ -> withObjectTotal "Exact command" ((Exact,) <$> takeField "exact") value
-    either fail pure $ mkCommandRule match command
-
-instance ToJSON CommandRule where
-  toJSON rule = case commandMatch rule of
-    Prefix -> toJSON $ commandText rule
-    Exact -> object ["exact" .= commandText rule]
+instance JSONCodec CommandRule where
+  jsonCodec =
+    ValueCodec
+      { to = \rule -> case commandMatch rule of
+          Prefix -> String $ commandText rule
+          Exact -> exact.to $ commandText rule
+      , parse = \value -> do
+          (match, command) <- case value of
+            String command -> pure (Prefix, command)
+            _ -> (Exact,) <$> exact.parse value
+          either fail pure $ mkCommandRule match command
+      , doc = DocOneOf [DocText, exact.doc]
+      }
+   where
+    exact =
+      objectCodec "Exact command" $
+        ObjectCodec
+          { to = \command -> ["exact" .= (command :: Text)]
+          , parse = takeField "exact"
+          , doc = [FieldDoc "exact" "Match the entire command and its arguments." True DocText]
+          }

@@ -8,6 +8,7 @@ import Data.Vector qualified as Vector
 import Mybox.Aeson
 import Mybox.Driver
 import Mybox.FileLens qualified as Lens
+import Mybox.JSONCodec
 import Mybox.Package.AgentSettings.Types
 import Mybox.Package.Class
 import Mybox.Prelude
@@ -18,6 +19,7 @@ data AgentSettingsPackage = AgentSettingsPackage
   , settings :: AgentSettings AnyAnchor
   }
   deriving (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via ViaJSONCodec AgentSettingsPackage
 
 data AgentSettings anchor = AgentSettings
   { read :: [Path anchor]
@@ -32,24 +34,26 @@ mapPaths f settings = settings{read = map f settings.read, write = map f setting
 mkAgentSettingsPackage :: Text -> NonEmpty Agent -> AgentSettingsPackage
 mkAgentSettingsPackage name agents = AgentSettingsPackage{name, agents, settings = AgentSettings [] [] []}
 
-instance FromJSON AgentSettingsPackage where
-  parseJSON = withObjectTotal "AgentSettingsPackage" $ do
-    name <- takeField "agent-settings"
-    agents <- takeCollapsedNEList "agents"
-    readPaths <- takeCollapsedList "read"
-    write <- takeCollapsedList "write"
-    execute <- takeCollapsedList "execute"
-    pure AgentSettingsPackage{name, agents, settings = AgentSettings{read = readPaths, write, execute}}
+instance JSONCodec AgentSettingsPackage where
+  jsonCodec =
+    jsonCodecObject "AgentSettingsPackage" $
+      field @"name" "agent-settings" "Name of this group of agent permissions."
+        :* fieldWith @"agents" "agents" "Agents to configure." arrayCodec
+        :* fieldFlat @"settings"
+        :* Nil
 
-instance ToJSON AgentSettingsPackage where
-  toJSON p =
-    object
-      [ "agent-settings" .= p.name
-      , "agents" .= p.agents
-      , "read" .= p.settings.read
-      , "write" .= p.settings.write
-      , "execute" .= p.settings.execute
-      ]
+instance Anchor anchor => JSONObjectCodec (AgentSettings anchor) where
+  jsonObjectCodec =
+    recordFields $
+      fieldWithDefault @"read" "read" "Paths to grant read access to." arrayCodec
+        :* fieldWithDefault @"write" "write" "Paths to grant write access to." arrayCodec
+        :* fieldWithDefault @"execute" "execute" "Commands to allow the agents to run." arrayCodec
+        :* Nil
+
+-- Preserve array output while accepting single values in package definitions.
+arrayCodec :: (JSONCodec a, ToJSON a) => ValueCodec a
+arrayCodec = case jsonCodec of
+  ValueCodec{parse, doc} -> ValueCodec{to = toJSON, parse, doc}
 
 instance PackageName AgentSettingsPackage where
   splitName p = ("agent-settings#" <> p.name, Just p{name = ""})

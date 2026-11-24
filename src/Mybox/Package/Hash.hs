@@ -2,6 +2,7 @@ module Mybox.Package.Hash where
 
 import Mybox.Aeson
 import Mybox.Driver
+import Mybox.JSONCodec
 import Mybox.Package.Name
 import Mybox.Prelude
 import Mybox.Tracker
@@ -13,8 +14,8 @@ instance ToJSON PackageHash where
 
 instance FromJSON PackageHash
 
-pkgHash :: (PackageName p, ToJSON p) => p -> Maybe PackageHash
-pkgHash = fmap (PackageHash . jsonEncode) . withoutName
+pkgHash :: (JSONCodec p, PackageName p) => p -> Maybe PackageHash
+pkgHash = fmap (PackageHash . jsonEncode . jsonCodec.to) . withoutName
 
 hashFile :: (Driver :> es, PackageName p) => p -> Eff es (Path Abs)
 hashFile p =
@@ -22,7 +23,7 @@ hashFile p =
     (\s -> s </> "hashes" </> (pathname p <> ".json"))
     drvMyboxState
 
-localHash :: (Driver :> es, PackageName p, ToJSON p, Tracker :> es) => p -> Eff es (Maybe PackageHash)
+localHash :: (Driver :> es, JSONCodec p, PackageName p, Tracker :> es) => p -> Eff es (Maybe PackageHash)
 localHash p = do
   hf <- hashFile p
   exists <- drvIsFile hf
@@ -32,7 +33,7 @@ localHash p = do
       trkAdd p hf
       jsonDecode @PackageHash "package hash" <$> drvReadFile hf
 
-writeHash :: (Driver :> es, PackageName p, ToJSON p, Tracker :> es) => p -> Eff es ()
+writeHash :: (Driver :> es, JSONCodec p, PackageName p, Tracker :> es) => p -> Eff es ()
 writeHash p = do
   hf <- hashFile p
   case pkgHash p of

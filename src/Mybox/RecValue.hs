@@ -25,6 +25,11 @@ instance RecValue (Maybe a) where
   rvEmpty = Nothing
   rvNull = isNothing
 
+-- | 'Right' is the default shape.
+instance RecValue b => RecValue (Either a b) where
+  rvEmpty = Right rvEmpty
+  rvNull = either (const False) rvNull
+
 instance RecValue Bool where
   rvEmpty = False
   rvNull = not
