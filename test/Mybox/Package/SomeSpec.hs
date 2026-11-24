@@ -1,6 +1,8 @@
 module Mybox.Package.SomeSpec where
 
 import Mybox.Aeson
+import Mybox.Package.AgentSettings
+import Mybox.Package.AgentSettings.Types
 import Mybox.Package.Archive
 import Mybox.Package.BrewRepo
 import Mybox.Package.Class
@@ -16,6 +18,7 @@ import Mybox.Package.System
 import Mybox.Package.URL
 import Mybox.Package.YumRepo
 import Mybox.Prelude
+import Mybox.Spec.Utils
 import Mybox.SpecBase
 
 spec :: Spec
@@ -31,6 +34,8 @@ spec = do
           show some' `shouldBe` ("SomePackage " <> show pkg)
           let someJson = jsonEncode some'
           someJson `shouldBe` pkgJson
+    let command = requireRight $ mkCommandRule Exact "make test"
+    roundtrip $ (mkAgentSettingsPackage "tools" $ Claude :| []){settings = AgentSettings [] [] [command]}
     roundtrip $ mkBrewRepo "test/test"
     roundtrip $ mkClonePackage "ghc/ghc" $ mkPath "ghc"
     roundtrip $ mkDaemonPackage $ "test-daemon" :| []

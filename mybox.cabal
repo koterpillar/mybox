@@ -58,6 +58,9 @@ library
       Mybox.Installer.MacOSCombined
       Mybox.LockMap
       Mybox.Main
+      Mybox.Package.AgentSettings
+      Mybox.Package.AgentSettings.Internal
+      Mybox.Package.AgentSettings.Types
       Mybox.Package.Archive
       Mybox.Package.Archive.Internal
       Mybox.Package.BrewRepo
@@ -232,6 +235,7 @@ test-suite tests
       Mybox.Installer.FlatpakSpec
       Mybox.Installer.SpecBase
       Mybox.LockMapSpec
+      Mybox.Package.AgentSettingsSpec
       Mybox.Package.ArchiveSpec
       Mybox.Package.BrewRepoSpec
       Mybox.Package.ClassSpec
