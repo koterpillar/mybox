@@ -148,6 +148,13 @@ drvWriteBinaryFile path content = do
   let base64 = Text.decodeUtf8 $ Base64.encode $ LBS.toStrict content
   drvRun $ shellRaw $ "echo " <> shellQuote base64 <> " | base64 -d > " <> shellQuote path.text
 
+-- | Create a missing file or update an existing one if its contents change.
+drvModifyBinaryFile :: (Anchor a, Driver :> es) => Path a -> (Maybe ByteString -> ByteString) -> Eff es ()
+drvModifyBinaryFile path modify = do
+  original <- ifM (drvIsFile path) (Just <$> drvReadBinaryFile path) (pure Nothing)
+  let updated = modify original
+  unless (Just updated == original) $ drvWriteBinaryFile path (LBS.fromStrict updated)
+
 drvMakeExecutable :: (Anchor a, Driver :> es) => Path a -> Eff es ()
 drvMakeExecutable path = drvRun $ "chmod" :| ["+x", path.text]
 
